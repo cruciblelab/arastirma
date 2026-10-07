@@ -1,0 +1,282 @@
+{
+ "berkeley_erkek_esik0.3": {
+  "n": 66,
+  "son_yas_medyan": 18.5,
+  "bacak_bitis_medyan": 16.0,
+  "bacak_bitis_p25_p75": [
+   15.0,
+   17.0
+  ],
+  "govde_bitis_medyan": 18.0,
+  "govde_bitis_p25_p75": [
+   18.0,
+   19.0
+  ],
+  "govde_sonra_oran": 0.8636363636363636,
+  "kalan_govde_medyan": 2.950000000000003,
+  "kalan_govde_p25_p75": [
+   1.4500000000000028,
+   4.374999999999993
+  ],
+  "kalan_govde_p90": 5.399999999999999,
+  "govde_sansurlu_oran": 0.5757575757575758,
+  "dH16_medyan": 2.450000000000003,
+  "dG16_medyan": 2.6000000000000014,
+  "dB16_medyan": 0.29999999999999716,
+  "govde_payi16_medyan": 0.9000000000000009,
+  "govde_payi16_n": 65,
+  "govde_payi16_birlesik": 0.824215607401448
+ },
+ "berkeley_kiz_esik0.3": {
+  "n": 70,
+  "son_yas_medyan": 18.0,
+  "bacak_bitis_medyan": 15.5,
+  "bacak_bitis_p25_p75": [
+   14.0,
+   16.875
+  ],
+  "govde_bitis_medyan": 16.5,
+  "govde_bitis_p25_p75": [
+   15.125,
+   17.5
+  ],
+  "govde_sonra_oran": 0.6714285714285714,
+  "kalan_govde_medyan": 1.0,
+  "kalan_govde_p25_p75": [
+   0.20000000000000284,
+   2.5999999999999908
+  ],
+  "kalan_govde_p90": 4.099999999999994,
+  "govde_sansurlu_oran": 0.22857142857142856,
+  "dH16_medyan": 0.6999999999999886,
+  "dG16_medyan": 0.5,
+  "dB16_medyan": 0.29999999999999005,
+  "govde_payi16_medyan": 0.7886904761904728,
+  "govde_payi16_n": 48,
+  "govde_payi16_birlesik": 0.628272251308902
+ },
+ "berkeley_erkek_esik0.5": {
+  "n": 66,
+  "son_yas_medyan": 18.5,
+  "bacak_bitis_medyan": 16.0,
+  "bacak_bitis_p25_p75": [
+   15.0,
+   16.5
+  ],
+  "govde_bitis_medyan": 18.0,
+  "govde_bitis_p25_p75": [
+   17.5,
+   19.0
+  ],
+  "govde_sonra_oran": 0.9242424242424242,
+  "kalan_govde_medyan": 3.3500000000000014,
+  "kalan_govde_p25_p75": [
+   2.0249999999999986,
+   4.550000000000004
+  ],
+  "kalan_govde_p90": 5.800000000000004,
+  "govde_sansurlu_oran": 0.5757575757575758,
+  "dH16_medyan": 2.450000000000003,
+  "dG16_medyan": 2.6000000000000014,
+  "dB16_medyan": 0.29999999999999716,
+  "govde_payi16_medyan": 0.9000000000000009,
+  "govde_payi16_n": 65,
+  "govde_payi16_birlesik": 0.824215607401448
+ },
+ "berkeley_kiz_esik0.5": {
+  "n": 70,
+  "son_yas_medyan": 18.0,
+  "bacak_bitis_medyan": 14.75,
+  "bacak_bitis_p25_p75": [
+   13.5,
+   16.0
+  ],
+  "govde_bitis_medyan": 16.0,
+  "govde_bitis_p25_p75": [
+   15.0,
+   17.0
+  ],
+  "govde_sonra_oran": 0.7285714285714285,
+  "kalan_govde_medyan": 1.7999999999999972,
+  "kalan_govde_p25_p75": [
+   0.5249999999999986,
+   3.374999999999993
+  ],
+  "kalan_govde_p90": 5.210000000000003,
+  "govde_sansurlu_oran": 0.22857142857142856,
+  "dH16_medyan": 0.6999999999999886,
+  "dG16_medyan": 0.5,
+  "dB16_medyan": 0.29999999999999005,
+  "govde_payi16_medyan": 0.7886904761904728,
+  "govde_payi16_n": 48,
+  "govde_payi16_birlesik": 0.628272251308902
+ },
+ "berkeley_erkek_esik1.0": {
+  "n": 66,
+  "son_yas_medyan": 18.5,
+  "bacak_bitis_medyan": 15.5,
+  "bacak_bitis_p25_p75": [
+   14.5,
+   16.0
+  ],
+  "govde_bitis_medyan": 17.5,
+  "govde_bitis_p25_p75": [
+   16.5,
+   18.0
+  ],
+  "govde_sonra_oran": 0.9545454545454546,
+  "kalan_govde_medyan": 4.299999999999997,
+  "kalan_govde_p25_p75": [
+   3.1999999999999957,
+   5.200000000000003
+  ],
+  "kalan_govde_p90": 6.250000000000007,
+  "govde_sansurlu_oran": 0.5757575757575758,
+  "dH16_medyan": 2.450000000000003,
+  "dG16_medyan": 2.6000000000000014,
+  "dB16_medyan": 0.29999999999999716,
+  "govde_payi16_medyan": 0.9000000000000009,
+  "govde_payi16_n": 65,
+  "govde_payi16_birlesik": 0.824215607401448
+ },
+ "berkeley_kiz_esik1.0": {
+  "n": 70,
+  "son_yas_medyan": 18.0,
+  "bacak_bitis_medyan": 13.5,
+  "bacak_bitis_p25_p75": [
+   12.625,
+   15.0
+  ],
+  "govde_bitis_medyan": 15.0,
+  "govde_bitis_p25_p75": [
+   14.5,
+   16.0
+  ],
+  "govde_sonra_oran": 0.8,
+  "kalan_govde_medyan": 3.25,
+  "kalan_govde_p25_p75": [
+   1.5249999999999986,
+   4.374999999999993
+  ],
+  "kalan_govde_p90": 5.3999999999999915,
+  "govde_sansurlu_oran": 0.22857142857142856,
+  "dH16_medyan": 0.6999999999999886,
+  "dG16_medyan": 0.5,
+  "dB16_medyan": 0.29999999999999005,
+  "govde_payi16_medyan": 0.7886904761904728,
+  "govde_payi16_n": 48,
+  "govde_payi16_birlesik": 0.628272251308902
+ },
+ "model_erkek_son30": {
+  "n": 5000,
+  "son_yas_medyan": 30.0,
+  "bacak_bitis_medyan": 16.0,
+  "bacak_bitis_p25_p75": [
+   15.5,
+   17.0
+  ],
+  "govde_bitis_medyan": 19.0,
+  "govde_bitis_p25_p75": [
+   18.5,
+   20.0
+  ],
+  "govde_sonra_oran": 1.0,
+  "kalan_govde_medyan": 2.8791706295032427,
+  "kalan_govde_p25_p75": [
+   2.6045039363695963,
+   3.1774802853965056
+  ],
+  "kalan_govde_p90": 3.4619245979341757,
+  "govde_sansurlu_oran": 0.0,
+  "dH16_medyan": 3.562443874624634,
+  "dG16_medyan": 3.133361358913149,
+  "dB16_medyan": 0.43155952120682173,
+  "govde_payi16_medyan": 0.8788437785730128,
+  "govde_payi16_n": 4988,
+  "govde_payi16_birlesik": 0.8126079413609856
+ },
+ "model_erkek_son19": {
+  "n": 5000,
+  "son_yas_medyan": 19.0,
+  "bacak_bitis_medyan": 16.0,
+  "bacak_bitis_p25_p75": [
+   15.5,
+   17.0
+  ],
+  "govde_bitis_medyan": 18.0,
+  "govde_bitis_p25_p75": [
+   17.5,
+   18.5
+  ],
+  "govde_sonra_oran": 0.9992,
+  "kalan_govde_medyan": 2.4159867245829645,
+  "kalan_govde_p25_p75": [
+   2.0552953213316094,
+   2.7711941217079357
+  ],
+  "kalan_govde_p90": 3.1049581664625174,
+  "govde_sansurlu_oran": 0.3708,
+  "dH16_medyan": 3.085657625906549,
+  "dG16_medyan": 2.6680710764326463,
+  "dB16_medyan": 0.4219520914153563,
+  "govde_payi16_medyan": 0.8631281192878464,
+  "govde_payi16_n": 4982,
+  "govde_payi16_birlesik": 0.7905514775523897
+ },
+ "model_kiz_son30": {
+  "n": 5000,
+  "son_yas_medyan": 30.0,
+  "bacak_bitis_medyan": 13.5,
+  "bacak_bitis_p25_p75": [
+   13.0,
+   14.5
+  ],
+  "govde_bitis_medyan": 16.0,
+  "govde_bitis_p25_p75": [
+   15.5,
+   16.5
+  ],
+  "govde_sonra_oran": 1.0,
+  "kalan_govde_medyan": 2.4488537170318097,
+  "kalan_govde_p25_p75": [
+   2.2064373559244537,
+   2.7058727463562207
+  ],
+  "kalan_govde_p90": 2.9514725407428997,
+  "govde_sansurlu_oran": 0.0,
+  "dH16_medyan": 0.47034059381978466,
+  "dG16_medyan": 0.4526383161198524,
+  "dB16_medyan": 0.016690377747544005,
+  "govde_payi16_medyan": 0.9472893660322609,
+  "govde_payi16_n": 2321,
+  "govde_payi16_birlesik": 0.9431892145773368
+ },
+ "model_kiz_son19": {
+  "n": 5000,
+  "son_yas_medyan": 19.0,
+  "bacak_bitis_medyan": 13.5,
+  "bacak_bitis_p25_p75": [
+   13.0,
+   14.5
+  ],
+  "govde_bitis_medyan": 16.0,
+  "govde_bitis_p25_p75": [
+   15.5,
+   16.5
+  ],
+  "govde_sonra_oran": 1.0,
+  "kalan_govde_medyan": 2.3843214213607666,
+  "kalan_govde_p25_p75": [
+   2.147551376064939,
+   2.636639360607461
+  ],
+  "kalan_govde_p90": 2.883276478779024,
+  "govde_sansurlu_oran": 0.0008,
+  "dH16_medyan": 0.42059387409008764,
+  "dG16_medyan": 0.40308368882163137,
+  "dB16_medyan": 0.016684178399906102,
+  "govde_payi16_medyan": 0.937993025205383,
+  "govde_payi16_n": 1969,
+  "govde_payi16_birlesik": 0.9371862477586625
+ }
+}
