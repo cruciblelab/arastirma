@@ -1,0 +1,8 @@
+kod,test,olcut,deger,durum,not_
+T7,Sürüm 3 modeliyle eşdeğerlik ve zaman adımı yakınsaması,eşdeğerlik farkı < 0.01 cm ve yakınsama farkı < 0.05 cm,"eşdeğerlik 0.00000 cm, yakınsama 0.00050 cm",GEÇTİ,
+T5,"Karar: üst sınır ayarında P1-P8, 16-21 yaş (16 hücre)",tüm hücrelerde |medyan| < 2 mm (0.2 cm),"en büyük |medyan|: -0.43 mm (erkek, P7 Basketbol)",GEÇTİ,
+T4,"Jimnastik profili 9-16 yaş, gerçekçi ayar",her iki cinsiyette medyan kayıp < 1.0 cm,"gerçekçi: erkek -1.30, kız -0.94 cm | üst sınır: erkek -3.50, kız -2.51 cm",KALDI,
+T1,Disk: 1 saat ayakta sonrası 20 dk sırtüstü geri kazanım,< kaybın %30'u,%14 (k = 30.7 mm/MPa),GEÇTİ,
+T2,Disk: 15 dk traksiyon (0.03 MPa) kazancı,1-8 mm (literatür 3.2-5.4),1.19 mm,GEÇTİ,
+T3,Disk: 33 dk koşuda kısalma,1-6 mm (literatür 3.25),2.54 mm,GEÇTİ,
+T6,Karar: kifotik gençlerde (θ ≥ 45°) kapsamlı programın ölçülen boya katkısı,medyan < 1.0 cm ise 'duruşla 1-2 cm' ifadesi ölçülen boy için desteklenmiyor,medyan 0.37 cm (%95'lik 0.49); herkes için 0.21 cm,GEÇTİ,

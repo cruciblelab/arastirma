@@ -267,8 +267,7 @@ def c_durus(L_oran=durus.L_T_ORAN, kayit=True):
             ax.plot(th, 10 * durus.kazanc(176.0, th, oran, L_oran), color=SERI[j], label=ad)
         ax.axvspan(durus.KIFOZ_ERKEK_16[0] - durus.KIFOZ_ERKEK_16[1], durus.KIFOZ_ERKEK_16[0] + durus.KIFOZ_ERKEK_16[1],
                    color=GRID, alpha=0.6, lw=0)
-        ax.text(durus.KIFOZ_ERKEK_16[0], ax.get_ylim()[1] * 0.92 if ax.get_ylim()[1] > 0 else 1, "16 yaş\nort ± SD",
-                ha="center", color=INK2, fontsize=8.5, va="top")
+        ax.text(durus.KIFOZ_ERKEK_16[0], 0.15, "16 yaş erkek: ort ± SD", ha="center", color=INK2, fontsize=8.5, va="bottom")
         ax.axvline(45, color=INK2, lw=1, ls=":")
         ax.set_xlabel("Başlangıç kifoz açısı (derece)")
         ax.set_ylabel("Ölçülen boya katkı (mm)")

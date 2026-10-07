@@ -1,0 +1,13 @@
+katman,degisiklik,cikti,deger,not_
+A plak,taban (üst sınır),"T5 en büyük |medyan| (erkek, mm)",-0.4234,P7 Basketbol
+A plak,β = 0.2,"T5 en büyük |medyan| (erkek, mm)",-0.2117,P7 Basketbol
+A plak,η = 0.5,"T5 en büyük |medyan| (erkek, mm)",-0.2117,P7 Basketbol
+A plak,η = 0.25,"T5 en büyük |medyan| (erkek, mm)",-0.1058,P7 Basketbol
+A plak,koşu/basketbol bacak L = 5,"T5 en büyük |medyan| (erkek, mm)",-0.5059,P7 Basketbol
+A plak,koşu/basketbol bacak L = 2,"T5 en büyük |medyan| (erkek, mm)",-0.3373,P7 Basketbol
+B disk,"τ_c=0.5, τ_r=2.5",T1 / T2 mm / T3 mm / rutin ertesi sabah mm,,%13 / 1.25 / 3.91 / +0.000
+B disk,"τ_c=3.0, τ_r=2.5",T1 / T2 mm / T3 mm / rutin ertesi sabah mm,,%15 / 1.03 / 1.87 / +0.039
+B disk,"τ_c=1.5, τ_r=1.0",T1 / T2 mm / T3 mm / rutin ertesi sabah mm,,%28 / 2.65 / 2.48 / +0.000
+B disk,"τ_c=1.5, τ_r=4.0",T1 / T2 mm / T3 mm / rutin ertesi sabah mm,,%11 / 0.85 / 2.69 / +0.030
+C duruş,L_T = 0.14 × boy,T6 kifotik medyan (cm),0.3238,
+C duruş,L_T = 0.18 × boy,T6 kifotik medyan (cm),0.4163,
