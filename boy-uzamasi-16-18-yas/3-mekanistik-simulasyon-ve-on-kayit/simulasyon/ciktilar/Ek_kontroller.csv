@@ -1,0 +1,8 @@
+kontrol,deger,not_
+TR uyarlama erkek: ızgara en iyi RMSE (cm),1.027,"dTp -0.25, ölçek 0.985; optimizasyonun bulduğu RMSE 1.12"
+"Ö6a katsayısı erkek 16 yaş, dTp +0.00",0.963,
+"Sanal kohort ort. 16→18 uzama erkek, dTp +0.00 (cm)",3.301,Türk referansı (kesitsel) 2.60; Berkeley medyan 2.3
+"Ö6a katsayısı erkek 16 yaş, dTp -0.25",0.961,
+"Sanal kohort ort. 16→18 uzama erkek, dTp -0.25 (cm)",2.791,Türk referansı (kesitsel) 2.60; Berkeley medyan 2.3
+"Ö6a katsayısı kiz 16 yaş, dTp -0.20",0.860,
+"Sanal kohort ort. 16→18 uzama kiz, dTp -0.20 (cm)",0.479,Türk referansı (kesitsel) 0.70; Berkeley medyan 0.7

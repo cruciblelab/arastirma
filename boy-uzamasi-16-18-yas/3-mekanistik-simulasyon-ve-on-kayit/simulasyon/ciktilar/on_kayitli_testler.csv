@@ -1,0 +1,16 @@
+kod,test,olcut,deger,durum,not_
+Ö1,"Kesme 16 → 18 yaş boy tahmini (ortalama mutlak hata, cm)",M ≤ K2 + 0.10 (her iki cinsiyet),"erkek: M 1.30, K2 1.00, K3 4.57, K1 3.20 | kiz: M 0.60, K2 0.42, K3 0.92, K1 0.84",KALDI,
+Ö2,"Kesme 17 → 18 yaş boy tahmini (ortalama mutlak hata, cm)",M ≤ K2 + 0.10 (her iki cinsiyet),"erkek: M 0.51, K2 0.47, K3 1.22, K1 1.13 | kiz: M 0.46, K2 0.29, K3 0.53, K1 0.40",KALDI,
+Ö3,"18 sonrası kuyruk, erkek (n=41)",|medyan tahmin − medyan gözlem| ≤ 0.30,"gözlenen medyan 0.80, mekanistik 0.72, PB1 0.45 cm (fark -0.08)",GEÇTİ,
+Ö4,Erkek 16→18 büyümede gövde payı (kesme 16),|tahmin − gözlem| ≤ 0.15,"gözlenen 0.79, tahmin 0.77",GEÇTİ,
+Ö5a,Östrojen yokluğu (medyan erkek),25 yaşta hız ≥ 0.5 cm/yıl ve 28 yaşta boy ≥ ort + 2SD,"hız 3.59 cm/yıl, 28 yaş 215.8 cm (eşik 193.0, normal 180.6)",GEÇTİ,
+Ö5b,"Yakalama: çocuklukta eksiklik (erkek, N=0.6, 9-11 yaş)",nihai kayıp ≤ 11 yaş kaybının %25'i,"11 yaşta kayıp 4.07, nihai kayıp 3.41 cm (%84); kız: 4.47 → 4.08",KALDI,
+Ö5c,"Aynı eksiklik ergenlikte (erkek, 13-15 yaş)",nihai kayıp ≥ 2 × Ö5b nihai kaybı,"15 yaşta kayıp 6.26, nihai kayıp 6.04 cm (Ö5b: 3.41, oran 1.8x)",KALDI,
+Ö5d,"Aromataz inhibitörü, geç olgunlaşan erkek (15.2-16.2 yaş)",kazanç +0.5 ile +8 cm arası,kazanç +1.80 cm,GEÇTİ,
+Ö5e,Ergenlik öncesi aromataz inhibitörü (9-11 yaş),|kazanç| < 0.5 cm,kazanç +0.02 cm,GEÇTİ,
+Ö5f,Dış steroid 16-16.5 yaş (hızı > 1 cm/yıl olan 60 erkek),≥ %95'inde nihai boy düşer,%60 düştü; medyan etki -0.01 cm,KALDI,
+Kalibrasyon-TR-erkek,"Türk ortalama boy eğrisine uyum, erkek (9-18 yaş)",RMSE ≤ 0.7 cm,"RMSE 1.12 cm, ΔT_p +0.00 yıl, ölçek 0.986",KALDI,Kalibrasyon kabul ölçütü (doğrulama testi değil)
+Kalibrasyon-TR-kiz,"Türk ortalama boy eğrisine uyum, kiz (9-18 yaş)",RMSE ≤ 0.7 cm,"RMSE 0.56 cm, ΔT_p -0.20 yıl, ölçek 0.983",GEÇTİ,Kalibrasyon kabul ölçütü (doğrulama testi değil)
+Ö6a,"Kural katsayısı, yavaşlayanlar, sanal Türk kohortu (gerçek boy)","her hücrede [0.7, 1.3]","erkek 16: 0.96, erkek 17: 0.97, kiz 16: 0.86, kiz 17: 0.87",GEÇTİ,
+Ö6b,Hâlâ hızlananlarda kural hatası medyanı (gerçek − tahmin),> +0.5 cm (n ≥ 30 hücrelerde),"erkek 16: +2.35 (n=2813), erkek 17: +1.49 (n=481), kiz 16: değerlendirilemedi (n=0), kiz 17: değerlendirilemedi (n=0)",GEÇTİ,
+Ö7,Sanal kızlarda 16.5-18 yaş 6 aylık negatif artış oranı (Berkeley: %14),en az bir protokolde %7-%25,"P1 %37, P2 %37, P3 %40",KALDI,

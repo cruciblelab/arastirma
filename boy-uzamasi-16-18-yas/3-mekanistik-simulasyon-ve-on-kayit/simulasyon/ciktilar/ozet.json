@@ -1,0 +1,2167 @@
+{
+ "testler": {
+  "Ö1": {
+   "deger": "erkek: M 1.30, K2 1.00, K3 4.57, K1 3.20 | kiz: M 0.60, K2 0.42, K3 0.92, K1 0.84",
+   "gecti": false
+  },
+  "Ö2": {
+   "deger": "erkek: M 0.51, K2 0.47, K3 1.22, K1 1.13 | kiz: M 0.46, K2 0.29, K3 0.53, K1 0.40",
+   "gecti": false
+  },
+  "Ö3": {
+   "deger": "gözlenen medyan 0.80, mekanistik 0.72, PB1 0.45 cm (fark -0.08)",
+   "gecti": true
+  },
+  "Ö4": {
+   "deger": "gözlenen 0.79, tahmin 0.77",
+   "gecti": true
+  },
+  "Ö5a": {
+   "deger": "hız 3.59 cm/yıl, 28 yaş 215.8 cm (eşik 193.0, normal 180.6)",
+   "gecti": true
+  },
+  "Ö5b": {
+   "deger": "11 yaşta kayıp 4.07, nihai kayıp 3.41 cm (%84); kız: 4.47 → 4.08",
+   "gecti": false
+  },
+  "Ö5c": {
+   "deger": "15 yaşta kayıp 6.26, nihai kayıp 6.04 cm (Ö5b: 3.41, oran 1.8x)",
+   "gecti": false
+  },
+  "Ö5d": {
+   "deger": "kazanç +1.80 cm",
+   "gecti": true
+  },
+  "Ö5e": {
+   "deger": "kazanç +0.02 cm",
+   "gecti": true
+  },
+  "Ö5f": {
+   "deger": "%60 düştü; medyan etki -0.01 cm",
+   "gecti": false
+  },
+  "Kalibrasyon-TR-erkek": {
+   "deger": "RMSE 1.12 cm, ΔT_p +0.00 yıl, ölçek 0.986",
+   "gecti": false
+  },
+  "Kalibrasyon-TR-kiz": {
+   "deger": "RMSE 0.56 cm, ΔT_p -0.20 yıl, ölçek 0.983",
+   "gecti": true
+  },
+  "Ö6a": {
+   "deger": "erkek 16: 0.96, erkek 17: 0.97, kiz 16: 0.86, kiz 17: 0.87",
+   "gecti": true
+  },
+  "Ö6b": {
+   "deger": "erkek 16: +2.35 (n=2813), erkek 17: +1.49 (n=481), kiz 16: değerlendirilemedi (n=0), kiz 17: değerlendirilemedi (n=0)",
+   "gecti": true
+  },
+  "Ö7": {
+   "deger": "P1 %37, P2 %37, P3 %40",
+   "gecti": false
+  }
+ },
+ "A_uyum": {
+  "erkek": {
+   "rmse_bacak": 0.42883701793830237,
+   "rmse_govde": 0.36335773182092224,
+   "rmse_boy": 0.3663757258689285,
+   "kisi_rmse_medyan_mekanistik": 0.33419945208791574,
+   "kisi_rmse_medyan_pb1": 0.43612947422721704,
+   "parametre_sayisi_kisi_basi_mekanistik": 4,
+   "parametre_sayisi_kisi_basi_pb1": 5,
+   "zaman_adimi_farki_cm": 0.0004303462976906758
+  },
+  "kiz": {
+   "rmse_bacak": 0.45395553944606887,
+   "rmse_govde": 0.36893561189776825,
+   "rmse_boy": 0.40569867094532797,
+   "kisi_rmse_medyan_mekanistik": 0.33275504156232094,
+   "kisi_rmse_medyan_pb1": 0.3660556875387274,
+   "parametre_sayisi_kisi_basi_mekanistik": 4,
+   "parametre_sayisi_kisi_basi_pb1": 5,
+   "zaman_adimi_farki_cm": 0.0003377060994864678
+  }
+ },
+ "B": {
+  "ozet": [
+   {
+    "cinsiyet": "erkek",
+    "kesme": 16.0,
+    "yontem": "K1 büyüme bitti",
+    "count": 66,
+    "mean": 3.1969696969696977,
+    "median": 2.299999999999997
+   },
+   {
+    "cinsiyet": "erkek",
+    "kesme": 16.0,
+    "yontem": "K2 basit kural",
+    "count": 66,
+    "mean": 0.9992368274313903,
+    "median": 0.6248299576278527
+   },
+   {
+    "cinsiyet": "erkek",
+    "kesme": 16.0,
+    "yontem": "K3 PB1",
+    "count": 66,
+    "mean": 4.569946457785994,
+    "median": 1.6902599530041016
+   },
+   {
+    "cinsiyet": "erkek",
+    "kesme": 16.0,
+    "yontem": "M mekanistik",
+    "count": 66,
+    "mean": 1.302759261401045,
+    "median": 0.6500843573879678
+   },
+   {
+    "cinsiyet": "erkek",
+    "kesme": 17.0,
+    "yontem": "K1 büyüme bitti",
+    "count": 66,
+    "mean": 1.1287878787878796,
+    "median": 0.8499999999999943
+   },
+   {
+    "cinsiyet": "erkek",
+    "kesme": 17.0,
+    "yontem": "K2 basit kural",
+    "count": 66,
+    "mean": 0.4686556382520816,
+    "median": 0.33128078817732387
+   },
+   {
+    "cinsiyet": "erkek",
+    "kesme": 17.0,
+    "yontem": "K3 PB1",
+    "count": 66,
+    "mean": 1.2151578614483116,
+    "median": 0.5520278655371555
+   },
+   {
+    "cinsiyet": "erkek",
+    "kesme": 17.0,
+    "yontem": "M mekanistik",
+    "count": 66,
+    "mean": 0.5104061002951327,
+    "median": 0.3766343984943603
+   },
+   {
+    "cinsiyet": "kiz",
+    "kesme": 16.0,
+    "yontem": "K1 büyüme bitti",
+    "count": 70,
+    "mean": 0.8428571428571429,
+    "median": 0.6999999999999886
+   },
+   {
+    "cinsiyet": "kiz",
+    "kesme": 16.0,
+    "yontem": "K2 basit kural",
+    "count": 70,
+    "mean": 0.4205257190043901,
+    "median": 0.35637751357700154
+   },
+   {
+    "cinsiyet": "kiz",
+    "kesme": 16.0,
+    "yontem": "K3 PB1",
+    "count": 70,
+    "mean": 0.9199185513779087,
+    "median": 0.6992018516884428
+   },
+   {
+    "cinsiyet": "kiz",
+    "kesme": 16.0,
+    "yontem": "M mekanistik",
+    "count": 70,
+    "mean": 0.6036723841483438,
+    "median": 0.5753107563717492
+   },
+   {
+    "cinsiyet": "kiz",
+    "kesme": 17.0,
+    "yontem": "K1 büyüme bitti",
+    "count": 70,
+    "mean": 0.3971428571428577,
+    "median": 0.30000000000001137
+   },
+   {
+    "cinsiyet": "kiz",
+    "kesme": 17.0,
+    "yontem": "K2 basit kural",
+    "count": 70,
+    "mean": 0.2935629128611607,
+    "median": 0.24900536039523047
+   },
+   {
+    "cinsiyet": "kiz",
+    "kesme": 17.0,
+    "yontem": "K3 PB1",
+    "count": 70,
+    "mean": 0.5314581228416326,
+    "median": 0.46166020768288263
+   },
+   {
+    "cinsiyet": "kiz",
+    "kesme": 17.0,
+    "yontem": "M mekanistik",
+    "count": 70,
+    "mean": 0.46277126713179534,
+    "median": 0.4315480520535999
+   }
+  ],
+  "govde_payi": {
+   "gozlenen": 0.7946768060836505,
+   "tahmin": 0.7664724519209588
+  }
+ },
+ "C": {
+  "Ö5a": {
+   "v25": 3.585377226425379,
+   "h28": 215.76334668116397,
+   "esik": 193.01494261956165,
+   "normal28": 180.6187221136895
+  },
+  "Ö5bc": {
+   "erkek_cocukluk": [
+    4.073119110591421,
+    3.4095680999464264
+   ],
+   "erkek_ergenlik": [
+    6.261565704253428,
+    6.038596584976659
+   ],
+   "kiz_cocukluk": [
+    4.471382021031246,
+    4.076139033990103
+   ],
+   "kiz_ergenlik": [
+    1.7157023744359208,
+    1.7010532036130712
+   ]
+  },
+  "Ö5de": {
+   "gec_kazanc": 1.7996453711431286,
+   "erken_kazanc": 0.024164619245254926
+  },
+  "Ö5f": {
+   "oran": 0.6,
+   "medyan": -0.006110742032646499
+  }
+ },
+ "D_uyarlama": {
+  "erkek": {
+   "dTp": 0.0019217195510864277,
+   "olcek": 0.9863120463632064,
+   "rmse": 1.1152363601131452
+  },
+  "kiz": {
+   "dTp": -0.2047663413537304,
+   "olcek": 0.9827341839253554,
+   "rmse": 0.5649308727209954
+  }
+ },
+ "D_kural": [
+  {
+   "cinsiyet": "erkek",
+   "yas": 16.0,
+   "n_yavaslayan": 17187,
+   "n_hizlanan": 2813,
+   "katsayi_yavaslayan": 0.9617984083161497,
+   "katsayi_hepsi": 1.135532551854785,
+   "r_yavaslayan": 0.987155911404712,
+   "hizlananlarda_kural_hatasi_medyan": 2.3459930419921875,
+   "kalan_medyan": 3.4221420288085938
+  },
+  {
+   "cinsiyet": "erkek",
+   "yas": 17.0,
+   "n_yavaslayan": 19519,
+   "n_hizlanan": 481,
+   "katsayi_yavaslayan": 0.9662795647386828,
+   "katsayi_hepsi": 1.0193121912725978,
+   "r_yavaslayan": 0.9979814678746722,
+   "hizlananlarda_kural_hatasi_medyan": 1.4852142333984375,
+   "kalan_medyan": 1.7141265869140625
+  },
+  {
+   "cinsiyet": "kiz",
+   "yas": 16.0,
+   "n_yavaslayan": 20000,
+   "n_hizlanan": 0,
+   "katsayi_yavaslayan": 0.8570773077129956,
+   "katsayi_hepsi": 0.8570773077129956,
+   "r_yavaslayan": 0.9981397523720869,
+   "hizlananlarda_kural_hatasi_medyan": NaN,
+   "kalan_medyan": 0.48101806640625
+  },
+  {
+   "cinsiyet": "kiz",
+   "yas": 17.0,
+   "n_yavaslayan": 20000,
+   "n_hizlanan": 0,
+   "katsayi_yavaslayan": 0.8713679131915594,
+   "katsayi_hepsi": 0.8713679131915594,
+   "r_yavaslayan": 0.9997105005203455,
+   "hizlananlarda_kural_hatasi_medyan": NaN,
+   "kalan_medyan": 0.22705078125
+  }
+ ],
+ "D_negatif_oran": {
+  "P1": 0.3743375,
+  "P2": 0.366025,
+  "P3": 0.4001
+ },
+ "E_tasarim": [
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.36333333333333334,
+   "k_medyan": 0.8296821278739179,
+   "ga_genislik_medyan": 0.2877556332188539,
+   "mae_medyan": 0.6430414187584705,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.4567521067296826,
+   "ga_genislik_medyan": 0.23870799189392505,
+   "mae_medyan": 0.5142478717082029,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.4770659491351599,
+   "ga_genislik_medyan": 0.4017336229415118,
+   "mae_medyan": 0.8901403359814668,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.7566666666666667,
+   "k_medyan": 0.8482719848009836,
+   "ga_genislik_medyan": 0.20702016817243318,
+   "mae_medyan": 0.685567737763104,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.462907708330891,
+   "ga_genislik_medyan": 0.15832201495960738,
+   "mae_medyan": 0.5260567800932794,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.490819295912809,
+   "ga_genislik_medyan": 0.2901974201515236,
+   "mae_medyan": 0.9389806147966029,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.9,
+   "k_medyan": 0.8538107482703035,
+   "ga_genislik_medyan": 0.15947572083275607,
+   "mae_medyan": 0.6858663890357344,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.47036191055812954,
+   "ga_genislik_medyan": 0.12283123317323136,
+   "mae_medyan": 0.5344759002016997,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.5202501581817196,
+   "ga_genislik_medyan": 0.2266797093850601,
+   "mae_medyan": 0.9470706185154372,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.9966666666666667,
+   "k_medyan": 0.8490650712602212,
+   "ga_genislik_medyan": 0.11423891499291361,
+   "mae_medyan": 0.6849103498605189,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.46583340098970294,
+   "ga_genislik_medyan": 0.08642962237983459,
+   "mae_medyan": 0.5443819906613587,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.5225511201447364,
+   "ga_genislik_medyan": 0.16420313704612144,
+   "mae_medyan": 0.9767559125862564,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.42,
+   "k_medyan": 0.8325239284272857,
+   "ga_genislik_medyan": 0.2858141327117557,
+   "mae_medyan": 0.6313719928637485,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.4450797335317441,
+   "ga_genislik_medyan": 0.22234083813592995,
+   "mae_medyan": 0.4929638615930897,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.476383644129374,
+   "ga_genislik_medyan": 0.3901933447329382,
+   "mae_medyan": 0.869919862492654,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.72,
+   "k_medyan": 0.8500816518881618,
+   "ga_genislik_medyan": 0.19937868763196898,
+   "mae_medyan": 0.6500353860776416,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.46742073796219197,
+   "ga_genislik_medyan": 0.15803259429205274,
+   "mae_medyan": 0.5214316759238786,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.518470007923762,
+   "ga_genislik_medyan": 0.27995243907062073,
+   "mae_medyan": 0.8902171707992141,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.8933333333333333,
+   "k_medyan": 0.8496961350310688,
+   "ga_genislik_medyan": 0.1570631793800058,
+   "mae_medyan": 0.6607066878812962,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.4625969644803826,
+   "ga_genislik_medyan": 0.11922986075256747,
+   "mae_medyan": 0.5181070589667667,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.5024716739697839,
+   "ga_genislik_medyan": 0.21857483132519717,
+   "mae_medyan": 0.9233240516877146,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 1.0,
+   "k_medyan": 0.8550108526512039,
+   "ga_genislik_medyan": 0.11182989593109871,
+   "mae_medyan": 0.6644180698962034,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.46745014556156617,
+   "ga_genislik_medyan": 0.08557537778436539,
+   "mae_medyan": 0.5223516375245367,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.5219446441399729,
+   "ga_genislik_medyan": 0.1667573161106235,
+   "mae_medyan": 0.9395589835798166,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.21333333333333335,
+   "k_medyan": 0.8243212140772532,
+   "ga_genislik_medyan": 0.3708908350358552,
+   "mae_medyan": 0.8151594770069135,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.43610303276508244,
+   "ga_genislik_medyan": 0.2874878118014821,
+   "mae_medyan": 0.6520155224531402,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0033333333333333335,
+   "k_medyan": 1.463810142852834,
+   "ga_genislik_medyan": 0.5109280916016061,
+   "mae_medyan": 1.1262990027701316,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.35,
+   "k_medyan": 0.8116705535275152,
+   "ga_genislik_medyan": 0.26340842060317393,
+   "mae_medyan": 0.8505293537316951,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.44762086197667716,
+   "ga_genislik_medyan": 0.1983103744930701,
+   "mae_medyan": 0.6635409418555771,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.4538444631194536,
+   "ga_genislik_medyan": 0.3547817496004251,
+   "mae_medyan": 1.1634348592416566,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.5433333333333333,
+   "k_medyan": 0.8174632518043208,
+   "ga_genislik_medyan": 0.20017809711389867,
+   "mae_medyan": 0.8567036367509312,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.4479495061266839,
+   "ga_genislik_medyan": 0.154351677742669,
+   "mae_medyan": 0.6829697864628193,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.469685298576461,
+   "ga_genislik_medyan": 0.2769875598037823,
+   "mae_medyan": 1.1703961245865755,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.81,
+   "k_medyan": 0.8273459454286,
+   "ga_genislik_medyan": 0.14232946621340525,
+   "mae_medyan": 0.8676530930476669,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.4439623151436185,
+   "ga_genislik_medyan": 0.10843255028429091,
+   "mae_medyan": 0.6821889468072165,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.4782291699461678,
+   "ga_genislik_medyan": 0.20234814632453357,
+   "mae_medyan": 1.198232772522268,
+   "k_pop": 0.902587672243492
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0033333333333333335,
+   "k_medyan": 0.5807139207858192,
+   "ga_genislik_medyan": 0.3073027380851072,
+   "mae_medyan": 0.5554237989193772,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.42912264514466736,
+   "ga_genislik_medyan": 0.2742326562552806,
+   "mae_medyan": 0.5060431303969222,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.006666666666666667,
+   "k_medyan": 1.4339467645010773,
+   "ga_genislik_medyan": 0.47987100355360646,
+   "mae_medyan": 0.8836574742818071,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.5863708530194167,
+   "ga_genislik_medyan": 0.20994475452558914,
+   "mae_medyan": 0.5696934838806127,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.4316841442491237,
+   "ga_genislik_medyan": 0.1892124363371247,
+   "mae_medyan": 0.5173912603670128,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.006666666666666667,
+   "k_medyan": 1.4507741942625432,
+   "ga_genislik_medyan": 0.3376955655931406,
+   "mae_medyan": 0.9101609242492154,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.5815818246837484,
+   "ga_genislik_medyan": 0.16442254245966834,
+   "mae_medyan": 0.5830767115881011,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.43493753483535635,
+   "ga_genislik_medyan": 0.14489727578756453,
+   "mae_medyan": 0.52741052480457,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.4565735504311441,
+   "ga_genislik_medyan": 0.25785742497543085,
+   "mae_medyan": 0.9167654109255057,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.5890026209120183,
+   "ga_genislik_medyan": 0.11330120572744717,
+   "mae_medyan": 0.5799919633273087,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.43388314601946854,
+   "ga_genislik_medyan": 0.10299060965495543,
+   "mae_medyan": 0.526393936811296,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.4548120869513466,
+   "ga_genislik_medyan": 0.1861648613081781,
+   "mae_medyan": 0.9225180537527039,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0033333333333333335,
+   "k_medyan": 0.5708551423101778,
+   "ga_genislik_medyan": 0.2961453974317202,
+   "mae_medyan": 0.5381845416491038,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.43781685878362175,
+   "ga_genislik_medyan": 0.26679480556975155,
+   "mae_medyan": 0.5034690682101679,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.4396691237174846,
+   "ga_genislik_medyan": 0.47136566842189453,
+   "mae_medyan": 0.8694593080287538,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.006666666666666667,
+   "k_medyan": 0.5953826916840621,
+   "ga_genislik_medyan": 0.20555352081748576,
+   "mae_medyan": 0.5681938686103376,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.43495012757213436,
+   "ga_genislik_medyan": 0.18511401325287358,
+   "mae_medyan": 0.5017396852554106,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0033333333333333335,
+   "k_medyan": 1.4482413311701308,
+   "ga_genislik_medyan": 0.3325429128496147,
+   "mae_medyan": 0.8773290891070451,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.006666666666666667,
+   "k_medyan": 0.5908005250651223,
+   "ga_genislik_medyan": 0.16053166878221015,
+   "mae_medyan": 0.5570657704915168,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.43783223857277154,
+   "ga_genislik_medyan": 0.14336519661309496,
+   "mae_medyan": 0.5031272880931692,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.468081544978901,
+   "ga_genislik_medyan": 0.2504264149574462,
+   "mae_medyan": 0.8779942656709459,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.5906158722836636,
+   "ga_genislik_medyan": 0.11096615169100799,
+   "mae_medyan": 0.5543635164018104,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.4400981471964935,
+   "ga_genislik_medyan": 0.10101994491253163,
+   "mae_medyan": 0.5065658342584837,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.4735310605557157,
+   "ga_genislik_medyan": 0.18128423106366043,
+   "mae_medyan": 0.8855686498552515,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.5407369226979851,
+   "ga_genislik_medyan": 0.39114982582650903,
+   "mae_medyan": 0.7110180664219932,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.38690800350814325,
+   "ga_genislik_medyan": 0.34425931540017163,
+   "mae_medyan": 0.6506081584930914,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.013333333333333334,
+   "k_medyan": 1.3711805808422481,
+   "ga_genislik_medyan": 0.5685710012664316,
+   "mae_medyan": 1.0863349551743666,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.5427034578794171,
+   "ga_genislik_medyan": 0.2617897530238803,
+   "mae_medyan": 0.7302870875539922,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.39757302804852934,
+   "ga_genislik_medyan": 0.2406686035507312,
+   "mae_medyan": 0.6568436055048632,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.006666666666666667,
+   "k_medyan": 1.3697660000512415,
+   "ga_genislik_medyan": 0.42163808892491805,
+   "mae_medyan": 1.137471847363904,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.5441856971934267,
+   "ga_genislik_medyan": 0.20338406464981817,
+   "mae_medyan": 0.7270208562090285,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.4028476840708206,
+   "ga_genislik_medyan": 0.1802333773349022,
+   "mae_medyan": 0.659298991885535,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0033333333333333335,
+   "k_medyan": 1.373510702506808,
+   "ga_genislik_medyan": 0.3197559267107859,
+   "mae_medyan": 1.1356793344346858,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.5566401782110983,
+   "ga_genislik_medyan": 0.13958735003539058,
+   "mae_medyan": 0.7267026985382851,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": 0.404814446709583,
+   "ga_genislik_medyan": 0.12829562467302702,
+   "mae_medyan": 0.6630319776313032,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "erkek",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 1.3851185607473009,
+   "ga_genislik_medyan": 0.22440685505639868,
+   "mae_medyan": 1.143823409525231,
+   "k_pop": 0.6647539796684959
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.025149347632882554,
+   "ga_genislik_medyan": 0.8745315769832638,
+   "mae_medyan": 0.46587408329471014,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.06252021008148945,
+   "ga_genislik_medyan": 0.799144635012702,
+   "mae_medyan": 0.4150027733617898,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.44427624505784347,
+   "ga_genislik_medyan": 1.1335307057262058,
+   "mae_medyan": 0.6255377944041323,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.04105628791952613,
+   "ga_genislik_medyan": 0.5793245373330345,
+   "mae_medyan": 0.467976658337206,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.08907207377929731,
+   "ga_genislik_medyan": 0.5250704698327542,
+   "mae_medyan": 0.4133152720443215,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.4209378281304848,
+   "ga_genislik_medyan": 0.79152637210832,
+   "mae_medyan": 0.6275140335593357,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.06208729712314548,
+   "ga_genislik_medyan": 0.44537790096957575,
+   "mae_medyan": 0.46991502036188526,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.07602364023449726,
+   "ga_genislik_medyan": 0.40281328980949116,
+   "mae_medyan": 0.42162711254003493,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0033333333333333335,
+   "k_medyan": 0.4141735861868602,
+   "ga_genislik_medyan": 0.608944331411448,
+   "mae_medyan": 0.6444515890333734,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.05071627394073616,
+   "ga_genislik_medyan": 0.31407791295025156,
+   "mae_medyan": 0.473287468293356,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.06408434020374118,
+   "ga_genislik_medyan": 0.2810310679189446,
+   "mae_medyan": 0.4261294772062344,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.3948167897562095,
+   "ga_genislik_medyan": 0.4233831048126586,
+   "mae_medyan": 0.6359853480168742,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.058918470462043286,
+   "ga_genislik_medyan": 0.880168751878081,
+   "mae_medyan": 0.45378016320603437,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.07211022595331609,
+   "ga_genislik_medyan": 0.7445936910336364,
+   "mae_medyan": 0.4053086132098985,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.3881950796219321,
+   "ga_genislik_medyan": 1.1582292935860026,
+   "mae_medyan": 0.6024380447139088,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.047682975970819,
+   "ga_genislik_medyan": 0.5895319078498535,
+   "mae_medyan": 0.45118613866064927,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.04504675077332155,
+   "ga_genislik_medyan": 0.5174960021600914,
+   "mae_medyan": 0.4012628715082714,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.4139619751306469,
+   "ga_genislik_medyan": 0.8060877513765544,
+   "mae_medyan": 0.6178429819783656,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.05772941869119157,
+   "ga_genislik_medyan": 0.44562900948466944,
+   "mae_medyan": 0.4547502242272716,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.062382556185369184,
+   "ga_genislik_medyan": 0.40175000529299804,
+   "mae_medyan": 0.41263139495548995,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0033333333333333335,
+   "k_medyan": 0.4046479131465006,
+   "ga_genislik_medyan": 0.6047281959842873,
+   "mae_medyan": 0.6183231821957212,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": 0.06331339802903646,
+   "ga_genislik_medyan": 0.3147826471877197,
+   "mae_medyan": 0.46303518632760654,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.06653537381091373,
+   "ga_genislik_medyan": 0.28179720890104654,
+   "mae_medyan": 0.4174401202489767,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.4270773336794502,
+   "ga_genislik_medyan": 0.4247444867215032,
+   "mae_medyan": 0.6187261896698351,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.11273664981681077,
+   "ga_genislik_medyan": 0.8836317957322604,
+   "mae_medyan": 0.5433879525418843,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.1983207607399024,
+   "ga_genislik_medyan": 0.8132791923585772,
+   "mae_medyan": 0.5200360444315961,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.1488394253954065,
+   "ga_genislik_medyan": 1.1328274121285307,
+   "mae_medyan": 0.7153283626974246,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.06844769361237965,
+   "ga_genislik_medyan": 0.5966066609531889,
+   "mae_medyan": 0.5635930217435723,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.19575004282658784,
+   "ga_genislik_medyan": 0.5569321782042167,
+   "mae_medyan": 0.5195058893445792,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.11581740884806296,
+   "ga_genislik_medyan": 0.7797327441718411,
+   "mae_medyan": 0.7237898449653536,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.0896132289844219,
+   "ga_genislik_medyan": 0.45962338898659616,
+   "mae_medyan": 0.5674879651446252,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.18980219796250275,
+   "ga_genislik_medyan": 0.4197100312848574,
+   "mae_medyan": 0.5195557873234488,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.14657575262671046,
+   "ga_genislik_medyan": 0.5868519675164017,
+   "mae_medyan": 0.7195316327341363,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.10296634950372371,
+   "ga_genislik_medyan": 0.3167899602844403,
+   "mae_medyan": 0.5624911028669108,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.1973025766043008,
+   "ga_genislik_medyan": 0.2945181473890449,
+   "mae_medyan": 0.5216809456287316,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "uzun",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.135224283781164,
+   "ga_genislik_medyan": 0.4200120850433623,
+   "mae_medyan": 0.7342777619045066,
+   "k_pop": 0.7838152723586281
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.2343215877926133,
+   "ga_genislik_medyan": 0.7826816065721558,
+   "mae_medyan": 0.38898425566458494,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.23085271210110642,
+   "ga_genislik_medyan": 0.750830996009511,
+   "mae_medyan": 0.38190410728884605,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.023556654019416805,
+   "ga_genislik_medyan": 1.0007002895106878,
+   "mae_medyan": 0.5097835465009576,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.2122805241482999,
+   "ga_genislik_medyan": 0.530280511915197,
+   "mae_medyan": 0.4007697608031233,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.2467376464537202,
+   "ga_genislik_medyan": 0.5152546879143629,
+   "mae_medyan": 0.39063879553110925,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.06797321232066034,
+   "ga_genislik_medyan": 0.7017278559786972,
+   "mae_medyan": 0.5327476372049462,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.20804445816610034,
+   "ga_genislik_medyan": 0.40736849483022064,
+   "mae_medyan": 0.4063219833756596,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.23969149011809704,
+   "ga_genislik_medyan": 0.39333552758919516,
+   "mae_medyan": 0.39103114230020486,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.03178980515773784,
+   "ga_genislik_medyan": 0.5289187517825757,
+   "mae_medyan": 0.5244042764811853,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.21780546430022787,
+   "ga_genislik_medyan": 0.27976178140975794,
+   "mae_medyan": 0.40516064529329787,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.23651604345990757,
+   "ga_genislik_medyan": 0.2766377818263707,
+   "mae_medyan": 0.3933090516861969,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P1",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.03152338191353858,
+   "ga_genislik_medyan": 0.3783076243908289,
+   "mae_medyan": 0.5374169856782987,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.20065809397105705,
+   "ga_genislik_medyan": 0.7589631550913454,
+   "mae_medyan": 0.38942814067766873,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.2351651715233944,
+   "ga_genislik_medyan": 0.7441436963391963,
+   "mae_medyan": 0.37970288585867756,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.03984580930297347,
+   "ga_genislik_medyan": 1.019735358261833,
+   "mae_medyan": 0.5047055981407855,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.21080824667031833,
+   "ga_genislik_medyan": 0.5187043052816187,
+   "mae_medyan": 0.3858900482250158,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.24261785901959113,
+   "ga_genislik_medyan": 0.5011012828764646,
+   "mae_medyan": 0.3723965032652927,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.049495566788200246,
+   "ga_genislik_medyan": 0.6996945138135916,
+   "mae_medyan": 0.5167438039060157,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.20485855763102523,
+   "ga_genislik_medyan": 0.40539570512578665,
+   "mae_medyan": 0.39433296526095524,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.2349745185624455,
+   "ga_genislik_medyan": 0.39239740217788566,
+   "mae_medyan": 0.37994846220145984,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.044100204429129666,
+   "ga_genislik_medyan": 0.5383083529800847,
+   "mae_medyan": 0.5166470811179795,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.19824494474437038,
+   "ga_genislik_medyan": 0.2887811761933899,
+   "mae_medyan": 0.39495139292001014,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.2318014201465569,
+   "ga_genislik_medyan": 0.27505663707127675,
+   "mae_medyan": 0.3817440395013285,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P2",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": 0.06914665186884428,
+   "ga_genislik_medyan": 0.3752361968262504,
+   "mae_medyan": 0.5201914848435147,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.3074302703395609,
+   "ga_genislik_medyan": 0.7548307369721414,
+   "mae_medyan": 0.47429278313048806,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.34335068001482605,
+   "ga_genislik_medyan": 0.7500289924974839,
+   "mae_medyan": 0.4754874660674186,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 30,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": -0.13373736294851185,
+   "ga_genislik_medyan": 0.9528202905773131,
+   "mae_medyan": 0.6091527425480954,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.309100974271048,
+   "ga_genislik_medyan": 0.5344618122540724,
+   "mae_medyan": 0.49411181473088905,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.3318234158106109,
+   "ga_genislik_medyan": 0.5216293485690744,
+   "mae_medyan": 0.48248571355094894,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 60,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": -0.15255804579534138,
+   "ga_genislik_medyan": 0.6611152054584305,
+   "mae_medyan": 0.6094928067583906,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.3133793422412346,
+   "ga_genislik_medyan": 0.40784787888122376,
+   "mae_medyan": 0.498840468384498,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.3227449912881811,
+   "ga_genislik_medyan": 0.39794774597208127,
+   "mae_medyan": 0.486560025199537,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 100,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": -0.15944149445496036,
+   "ga_genislik_medyan": 0.5007889270070001,
+   "mae_medyan": 0.6104395788011092,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "kural doğru",
+   "basari": 0.0,
+   "k_medyan": -0.3051534745779443,
+   "ga_genislik_medyan": 0.28285801570292035,
+   "mae_medyan": 0.49564262298314254,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "gerçek k=0.5",
+   "basari": 0.0,
+   "k_medyan": -0.33358118089907013,
+   "ga_genislik_medyan": 0.2765895190422399,
+   "mae_medyan": 0.48782886776649703,
+   "k_pop": 0.6127722910820896
+  },
+  {
+   "cinsiyet": "kiz",
+   "tasarim": "kisa",
+   "protokol": "P3",
+   "n": 200,
+   "senaryo": "gerçek k=1.6",
+   "basari": 0.0,
+   "k_medyan": -0.1423169113520939,
+   "ga_genislik_medyan": 0.35593297402770663,
+   "mae_medyan": 0.6133927496033165,
+   "k_pop": 0.6127722910820896
+  }
+ ],
+ "F_duyarlilik": [
+  {
+   "parametre": "D_max",
+   "deger": 1.0,
+   "negatif_P1": 0.3391,
+   "negatif_P2": 0.358025,
+   "negatif_P3": 0.3927125,
+   "guc_erkek_n100_P1": 0.975,
+   "guc_erkek_n100_P2": 0.935,
+   "katsayi_Ö6a_erkek16": NaN
+  },
+  {
+   "parametre": "D_max",
+   "deger": 2.0,
+   "negatif_P1": 0.3975625,
+   "negatif_P2": 0.372925,
+   "negatif_P3": 0.39995,
+   "guc_erkek_n100_P1": 0.52,
+   "guc_erkek_n100_P2": 0.81,
+   "katsayi_Ö6a_erkek16": NaN
+  },
+  {
+   "parametre": "tau_c",
+   "deger": 0.5,
+   "negatif_P1": 0.3678,
+   "negatif_P2": 0.35135,
+   "negatif_P3": 0.3906875,
+   "guc_erkek_n100_P1": 0.755,
+   "guc_erkek_n100_P2": 0.96,
+   "katsayi_Ö6a_erkek16": NaN
+  },
+  {
+   "parametre": "tau_c",
+   "deger": 4.0,
+   "negatif_P1": 0.321325,
+   "negatif_P2": 0.3891625,
+   "negatif_P3": 0.4075875,
+   "guc_erkek_n100_P1": 1.0,
+   "guc_erkek_n100_P2": 0.67,
+   "katsayi_Ö6a_erkek16": NaN
+  },
+  {
+   "parametre": "e_okuma",
+   "deger": 0.2,
+   "negatif_P1": 0.3610125,
+   "negatif_P2": 0.322375,
+   "negatif_P3": 0.3812625,
+   "guc_erkek_n100_P1": 0.925,
+   "guc_erkek_n100_P2": 0.995,
+   "katsayi_Ö6a_erkek16": NaN
+  },
+  {
+   "parametre": "e_okuma",
+   "deger": 0.6,
+   "negatif_P1": 0.3991625,
+   "negatif_P2": 0.4244,
+   "negatif_P3": 0.4302,
+   "guc_erkek_n100_P1": 0.53,
+   "guc_erkek_n100_P2": 0.03,
+   "katsayi_Ö6a_erkek16": NaN
+  },
+  {
+   "parametre": "b_gozlemci",
+   "deger": 0.0,
+   "negatif_P1": 0.3715875,
+   "negatif_P2": 0.3650375,
+   "negatif_P3": 0.3656,
+   "guc_erkek_n100_P1": 0.885,
+   "guc_erkek_n100_P2": 0.88,
+   "katsayi_Ö6a_erkek16": NaN
+  },
+  {
+   "parametre": "b_gozlemci",
+   "deger": 0.5,
+   "negatif_P1": 0.3715875,
+   "negatif_P2": 0.3650375,
+   "negatif_P3": 0.4228,
+   "guc_erkek_n100_P1": 0.885,
+   "guc_erkek_n100_P2": 0.88,
+   "katsayi_Ö6a_erkek16": NaN
+  },
+  {
+   "parametre": "kaynasma_kapisi",
+   "deger": 0.05,
+   "negatif_P1": NaN,
+   "negatif_P2": NaN,
+   "negatif_P3": NaN,
+   "guc_erkek_n100_P1": NaN,
+   "guc_erkek_n100_P2": NaN,
+   "katsayi_Ö6a_erkek16": 0.9626740429039466
+  },
+  {
+   "parametre": "kaynasma_kapisi",
+   "deger": 0.3,
+   "negatif_P1": NaN,
+   "negatif_P2": NaN,
+   "negatif_P3": NaN,
+   "guc_erkek_n100_P1": NaN,
+   "guc_erkek_n100_P2": NaN,
+   "katsayi_Ö6a_erkek16": 0.9626354272055334
+  }
+ ],
+ "Ek_galton": [
+  {
+   "cinsiyet": "erkek",
+   "n": 481,
+   "egim": 0.7457701580665665,
+   "artik_sd": 5.828705985212223,
+   "korelasyon": 0.48491463950552044
+  },
+  {
+   "cinsiyet": "kiz",
+   "n": 453,
+   "egim": 0.6865299113427585,
+   "artik_sd": 5.127246942153893,
+   "korelasyon": 0.5154527291252343
+  }
+ ]
+}

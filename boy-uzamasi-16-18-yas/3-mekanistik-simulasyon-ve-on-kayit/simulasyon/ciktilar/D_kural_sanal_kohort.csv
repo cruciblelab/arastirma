@@ -1,0 +1,5 @@
+cinsiyet,yas,n_yavaslayan,n_hizlanan,katsayi_yavaslayan,katsayi_hepsi,r_yavaslayan,hizlananlarda_kural_hatasi_medyan,kalan_medyan
+erkek,16.0000,17187,2813,0.9618,1.1355,0.9872,2.3460,3.4221
+erkek,17.0000,19519,481,0.9663,1.0193,0.9980,1.4852,1.7141
+kiz,16.0000,20000,0,0.8571,0.8571,0.9981,,0.4810
+kiz,17.0000,20000,0,0.8714,0.8714,0.9997,,0.2271
