@@ -8,7 +8,7 @@ sürümler eklenir.
 
 | Klasör | Konu | Güncel sürüm |
 |---|---|---|
-| [boy-uzamasi-16-18-yas](boy-uzamasi-16-18-yas/) | Plakları açık 16-18 yaş gençlerde genetik boy potansiyeline ulaşmak | [2 · gerçek veriyle doğrulama](boy-uzamasi-16-18-yas/2-gercek-veriyle-dogrulama/) |
+| [boy-uzamasi-16-18-yas](boy-uzamasi-16-18-yas/) | Plakları açık 16-18 yaş gençlerde genetik boy potansiyeline ulaşmak | [3 · mekanistik simülasyon ve ön kayıt](boy-uzamasi-16-18-yas/3-mekanistik-simulasyon-ve-on-kayit/) |
 
 ---
 

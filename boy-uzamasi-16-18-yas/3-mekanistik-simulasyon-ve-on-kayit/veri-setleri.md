@@ -50,7 +50,7 @@ Bu üçünü birlikte sağlayan ve indirmeye açık **ikinci bir veri seti bulam
 
 | # | Veri seti | Not |
 |---|---|---|
-| 19 | NCD-RisC (ülke bazında yaşa göre ortalama boy, Türkiye dahil) | Bu ortamdan erişilemedi (sunucu 421 hatası). Tarayıcıdan elle indirilebilir. Kural testi için değil, nüfus ortalaması için |
+| 19 | NCD-RisC (ülke bazında yaşa göre ortalama boy, Türkiye dahil) | İlk denemede sunucu 421 hatası verdi, sonraki bağlantı kontrolünde sayfa açıldı. Veri dosyaları **indirilmedi**: Günöz 2014 tablosu nüfus ortalaması için yeterliydi. Kural testi için uygun değil (bireysel değil) |
 
 ## Öneri: sırayla
 

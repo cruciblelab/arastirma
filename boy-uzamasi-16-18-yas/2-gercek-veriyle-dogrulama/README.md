@@ -1,3 +1,5 @@
+> **⚠ Bu eski bir sürüm (2).** Güncel sürüm: [3-mekanistik-simulasyon-ve-on-kayit](../3-mekanistik-simulasyon-ve-on-kayit/). Önemli değişiklik: "geçen yıl kuralı" yalnızca büyüme hızı **yavaşlıyorsa** geçerli (3 ölçüm gerekir). İçerik, kayıt olarak değiştirilmeden bırakıldı.
+
 # Boy Uzaması 16-18 Yaş · Sürüm 2: Gerçek Veriyle Doğrulama
 
 > **Sürüm:** 2 · **Tarih:** 2026-10-07 · **Önceki sürüm:** [1-ilk-tarama](../1-ilk-tarama/) · **Durum:** güncel

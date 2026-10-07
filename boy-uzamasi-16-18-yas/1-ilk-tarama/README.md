@@ -1,4 +1,4 @@
-> **⚠ Bu eski bir sürüm (1).** Güncel sürüm: [2-gercek-veriyle-dogrulama](../2-gercek-veriyle-dogrulama/). Bu sürümdeki bazı hatalar orada düzeltildi (bkz. "Önceki sürümden değişenler"). İçerik, kayıt olarak değiştirilmeden bırakıldı.
+> **⚠ Bu eski bir sürüm (1).** Güncel sürüm: [3-mekanistik-simulasyon-ve-on-kayit](../3-mekanistik-simulasyon-ve-on-kayit/). Bu sürümdeki bazı hatalar [2-gercek-veriyle-dogrulama](../2-gercek-veriyle-dogrulama/) sürümünde düzeltildi (bkz. "Önceki sürümden değişenler"). İçerik, kayıt olarak değiştirilmeden bırakıldı.
 
 # Boy Uzaması: 16-18 Yaş, Büyüme Plakları Açıkken Genetik Potansiyele Ulaşmak
 
