@@ -123,7 +123,7 @@ def simule(cinsiyet, W0, FM0, H_fn, z, prot_yog, durum, ayar, yas0=16.0, yas1=25
         if aktif:
             min_EA, min_N = np.minimum(min_EA, EA), np.minimum(min_N, N)
         for a in anlik:
-            if a not in anlar and yas >= a - 1e-9:
+            if a not in anlar and (yas >= a - 1e-9 or i == adim):
                 anlar[a] = dict(W=W.copy(), FM=FM.copy(), BF=100 * FM / W, BMI=W / H ** 2, EI=EI.copy(),
                                 TEE=np.asarray(TEE, float).copy(), EA=EA.copy(), P_gkg=P / W)
         if i % kayit_her == 0:

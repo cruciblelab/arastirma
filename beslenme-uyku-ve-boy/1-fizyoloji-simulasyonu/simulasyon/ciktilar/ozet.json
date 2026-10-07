@@ -1,0 +1,103 @@
+{
+  "usda_eksik_kayitlar": {
+    "d_vitamini_ug": [
+      "hamsi"
+    ]
+  },
+  "protein_g_1000kcal": {
+    "B1 Dengeli": 44.03,
+    "B2 Fast food": 32.25,
+    "B3 Düşük protein": 15.91,
+    "B4 Yüksek protein": 63.98,
+    "B5 Etsiz": 40.0
+  },
+  "kohort_erkek": {
+    "n": 2000,
+    "boy16_medyan_cm": 173.3231928614545,
+    "kalan_buyume_16_25_medyan_cm": 3.5589099986455097,
+    "W16_medyan": 62.95770888651721,
+    "BMI16_medyan": 21.08716635795433,
+    "BF16_medyan": 18.441621200511037
+  },
+  "kohort_kiz": {
+    "n": 2000,
+    "boy16_medyan_cm": 162.17989566319636,
+    "kalan_buyume_16_25_medyan_cm": 0.48663964272533944,
+    "W16_medyan": 55.55044573352718,
+    "BMI16_medyan": 21.098496189485303,
+    "BF16_medyan": 22.05872924612281
+  },
+  "F2": {
+    "W": 62.95770888651721,
+    "H": 1.7332319286145448,
+    "TEE_model": 2713.363080330234,
+    "EER_IOM": 2791.1695624541057,
+    "fark_yuzde": -2.7875942461718872
+  },
+  "F3": {
+    "artis_10yil_kg": 1.001273813770112,
+    "yarilanma_yil": 0.5831622176591367,
+    "artis_1yil_kg": 0.6974604288177062,
+    "artis_3yil_kg": 0.9729525299124617
+  },
+  "testler": [
+    {
+      "test": "F1",
+      "aciklama": "Enerji korunumu (göreli hata, bütün senaryolar ve kişiler)",
+      "deger": "2.38e-12",
+      "olcut": "< 1e-3",
+      "sonuc": "GEÇTİ"
+    },
+    {
+      "test": "F2",
+      "aciklama": "16 yaş medyan erkek: model TEE ve IOM EER (az aktif)",
+      "deger": "2713 / 2791 kcal (-2.8%)",
+      "olcut": "±%10",
+      "sonuc": "GEÇTİ"
+    },
+    {
+      "test": "F3a",
+      "aciklama": "Hall 2011: +100 kJ/gün → 10 yılda kilo artışı",
+      "deger": "1.00 kg",
+      "olcut": "0.8-1.25 kg",
+      "sonuc": "GEÇTİ"
+    },
+    {
+      "test": "F3b",
+      "aciklama": "Hall 2011: yarılanma süresi",
+      "deger": "0.58 yıl",
+      "olcut": "0.4-1.2 yıl",
+      "sonuc": "GEÇTİ"
+    },
+    {
+      "test": "F4a",
+      "aciklama": "Enerji modeli Δt 1 gün / 0.5 gün, 18 yaş kilo farkı (S2b, en büyük)",
+      "deger": "0.0073 kg",
+      "olcut": "< 0.05 kg",
+      "sonuc": "GEÇTİ"
+    },
+    {
+      "test": "F4b",
+      "aciklama": "Büyüme RK2 Δt / Δt/2, son boy farkı (S2b, en büyük)",
+      "deger": "0.00408 cm",
+      "olcut": "< 0.01 cm",
+      "sonuc": "GEÇTİ"
+    },
+    {
+      "test": "F4c",
+      "aciklama": "İkinci iterasyon, son boy farkı (S2b, en büyük)",
+      "deger": "0.00578 cm",
+      "olcut": "< 0.01 cm",
+      "sonuc": "GEÇTİ"
+    },
+    {
+      "test": "F5",
+      "aciklama": "S0 (N ≡ 1) ve sürüm 3 senaryosuz çıktı",
+      "deger": "0.0e+00 cm",
+      "olcut": "< 1e-9 cm",
+      "sonuc": "GEÇTİ"
+    }
+  ],
+  "K4_en_buyuk_pozitif_fark_cm": 9.293408083976828e-06,
+  "sure_sn": 546
+}

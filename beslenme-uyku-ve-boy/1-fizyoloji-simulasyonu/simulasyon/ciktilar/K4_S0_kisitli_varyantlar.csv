@@ -1,0 +1,45 @@
+varyant,cinsiyet,senaryo,S0_kisitli_yuzde,uzun_cikan_yuzde,en_buyuk_pozitif_cm
+N_E doğrusal,erkek,S0 Referans,0.0000,0.0000,0.0000
+N_E doğrusal,erkek,S1 Diyet -500 kcal,0.0000,0.0000,0.0000
+N_E doğrusal,erkek,S1b Sert diyet -1000 kcal,0.0000,0.0000,-0.0017
+N_E doğrusal,erkek,"S2 Yoğun spor, telafisiz",0.0000,0.0000,-0.0026
+N_E doğrusal,erkek,S2b Yoğun spor + diyet -500,0.0000,0.0000,-0.0057
+N_E doğrusal,erkek,S3 Yüksek protein,0.0000,0.0000,0.0000
+N_E doğrusal,erkek,S4 Düşük protein,0.0000,0.0000,0.0000
+N_E doğrusal,erkek,S5 Fast food +500 kcal,0.0000,0.0000,0.0000
+N_E doğrusal,erkek,S6 Kısa uyku (6 sa),0.0000,0.0000,0.0000
+N_E doğrusal,erkek,S7 Uyku bozukluğu,0.0000,0.0000,-0.0252
+N_E doğrusal,erkek,S8 Spor + yeterli beslenme,0.0000,0.0000,0.0000
+N_E doğrusal,erkek,S9 Etsiz,0.0000,0.0000,0.0000
+N_E doğrusal,kiz,S0 Referans,0.4500,0.0000,0.0000
+N_E doğrusal,kiz,S1 Diyet -500 kcal,0.4500,0.0000,0.0000
+N_E doğrusal,kiz,S1b Sert diyet -1000 kcal,0.4500,0.0000,-0.0007
+N_E doğrusal,kiz,"S2 Yoğun spor, telafisiz",0.4500,0.0000,-0.0004
+N_E doğrusal,kiz,S2b Yoğun spor + diyet -500,0.4500,0.0000,-0.0014
+N_E doğrusal,kiz,S3 Yüksek protein,0.4500,0.0000,0.0000
+N_E doğrusal,kiz,S4 Düşük protein,0.4500,0.0000,0.0000
+N_E doğrusal,kiz,S5 Fast food +500 kcal,0.4500,0.2500,0.0253
+N_E doğrusal,kiz,S6 Kısa uyku (6 sa),0.4500,0.2500,0.0234
+N_E doğrusal,kiz,S7 Uyku bozukluğu,0.4500,0.0000,-0.0069
+N_E doğrusal,kiz,S8 Spor + yeterli beslenme,0.4500,0.0000,0.0000
+N_E doğrusal,kiz,S9 Etsiz,0.4500,0.0000,0.0000
+en kötümser kombinasyon,erkek,S0 Referans,0.0000,0.0000,0.0000
+en kötümser kombinasyon,erkek,S1 Diyet -500 kcal,0.0000,0.0000,0.0000
+en kötümser kombinasyon,erkek,S1b Sert diyet -1000 kcal,0.0000,0.0000,-0.0114
+en kötümser kombinasyon,erkek,"S2 Yoğun spor, telafisiz",0.0000,0.0000,-0.0113
+en kötümser kombinasyon,erkek,S2b Yoğun spor + diyet -500,0.0000,0.0000,-0.0222
+en kötümser kombinasyon,erkek,S3 Yüksek protein,0.0000,0.0000,0.0000
+en kötümser kombinasyon,erkek,S4 Düşük protein,0.0000,0.0000,0.0000
+en kötümser kombinasyon,erkek,S5 Fast food +500 kcal,0.0000,0.0000,0.0000
+en kötümser kombinasyon,erkek,S6 Kısa uyku (6 sa),0.0000,0.0000,0.0000
+en kötümser kombinasyon,erkek,S7 Uyku bozukluğu,0.0000,0.0000,-0.0252
+en kötümser kombinasyon,erkek,S8 Spor + yeterli beslenme,0.0000,0.0000,0.0000
+en kötümser kombinasyon,erkek,S9 Etsiz,0.0000,0.0000,0.0000
+en kötümser kombinasyon,kiz,S0 Referans,0.4500,0.0000,0.0000
+en kötümser kombinasyon,kiz,S3 Yüksek protein,0.4500,0.0000,0.0000
+en kötümser kombinasyon,kiz,S4 Düşük protein,0.4500,0.0000,0.0000
+en kötümser kombinasyon,kiz,S5 Fast food +500 kcal,0.4500,0.2500,0.1089
+en kötümser kombinasyon,kiz,S6 Kısa uyku (6 sa),0.4500,0.3000,0.1141
+en kötümser kombinasyon,kiz,S7 Uyku bozukluğu,0.4500,0.0000,-0.0069
+en kötümser kombinasyon,kiz,S8 Spor + yeterli beslenme,0.4500,0.0000,0.0000
+en kötümser kombinasyon,kiz,S9 Etsiz,0.4500,0.0000,0.0000

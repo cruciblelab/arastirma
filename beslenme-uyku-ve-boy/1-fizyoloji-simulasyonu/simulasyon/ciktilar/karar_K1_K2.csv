@@ -1,0 +1,23 @@
+cinsiyet,senaryo,ana_dH25_cm,ana_sinif,en_kotu_dH25_cm,en_kotu_varyant,en_kotu_p5_cm,siniflar,K2,sinifi_degistiren,surdurulemez_varyantlar,BMI16_alti_en_cok_yuzde,BMI16_alti_varyant
+erkek,S1 Diyet -500 kcal,0.0000,yok (<0.1 cm),-0.0019,en kötümser kombinasyon,-0.0133,yok (<0.1 cm),sağlam,,,66.3000,iştah: k=0 (sabit alım)
+erkek,S1b Sert diyet -1000 kcal,0.0000,yok (<0.1 cm),-0.1046,en kötümser kombinasyon,-0.2270,yok (<0.1 cm) | ölçülemeyecek kadar küçük (0.1-0.5),varsayıma bağlı,en kötümser kombinasyon,,99.1500,iştah: k=0 (sabit alım)
+erkek,"S2 Yoğun spor, telafisiz",0.0000,yok (<0.1 cm),-0.1202,en kötümser kombinasyon,-0.2908,yok (<0.1 cm) | ölçülemeyecek kadar küçük (0.1-0.5),varsayıma bağlı,en kötümser kombinasyon,,94.7500,iştah: k=0 (sabit alım)
+erkek,S2b Yoğun spor + diyet -500,-0.0160,yok (<0.1 cm),-0.2310,en kötümser kombinasyon,-0.5825,yok (<0.1 cm) | ölçülemeyecek kadar küçük (0.1-0.5),varsayıma bağlı,en kötümser kombinasyon,,99.9000,iştah: k=0 (sabit alım)
+erkek,S3 Yüksek protein,0.0000,yok (<0.1 cm),0.0000,ana,0.0000,yok (<0.1 cm),sağlam,,,9.7500,BMI medyanı 18.5
+erkek,S4 Düşük protein,-0.1193,ölçülemeyecek kadar küçük (0.1-0.5),-0.3250,PAL 1.40,-1.8426,yok (<0.1 cm) | ölçülemeyecek kadar küçük (0.1-0.5),varsayıma bağlı,"protein b 0.5, PAL 1.70, BMI medyanı 18.5",,9.7500,BMI medyanı 18.5
+erkek,S5 Fast food +500 kcal,0.0000,yok (<0.1 cm),-0.0005,N_E doğrusal,-0.0060,yok (<0.1 cm),sağlam,,,0.0000,ana
+erkek,S6 Kısa uyku (6 sa),0.0000,yok (<0.1 cm),-0.1305,S6 N_uyku 0.95,-0.4124,yok (<0.1 cm) | ölçülemeyecek kadar küçük (0.1-0.5),varsayıma bağlı,S6 N_uyku 0.95,,0.0000,ana
+erkek,S7 Uyku bozukluğu,-0.2612,ölçülemeyecek kadar küçük (0.1-0.5),-0.5229,S7 N_uyku 0.8,-1.6552,fark edilir (≥0.5 cm) | ölçülemeyecek kadar küçük (0.1-0.5),varsayıma bağlı,S7 N_uyku 0.8,,9.7500,BMI medyanı 18.5
+erkek,S8 Spor + yeterli beslenme,0.0000,yok (<0.1 cm),0.0000,ana,0.0000,yok (<0.1 cm),sağlam,,,9.7000,BMI medyanı 18.5
+erkek,S9 Etsiz,0.0000,yok (<0.1 cm),0.0000,ana,0.0000,yok (<0.1 cm),sağlam,,,9.7500,BMI medyanı 18.5
+kiz,S1 Diyet -500 kcal,0.0000,yok (<0.1 cm),-0.0011,N_E doğrusal,-0.0059,yok (<0.1 cm),sağlam,,"iştah: k=0 (sabit alım), en kötümser kombinasyon",34.4000,BMI medyanı 18.5
+kiz,S1b Sert diyet -1000 kcal,-0.0003,yok (<0.1 cm),-0.0058,N_E doğrusal,-0.0201,yok (<0.1 cm),sağlam,,"iştah: k=0 (sabit alım), en kötümser kombinasyon",61.7500,BMI medyanı 18.5
+kiz,"S2 Yoğun spor, telafisiz",0.0000,yok (<0.1 cm),-0.0056,N_E doğrusal,-0.0246,yok (<0.1 cm),sağlam,,"iştah: k=0 (sabit alım), en kötümser kombinasyon",43.5500,BMI medyanı 18.5
+kiz,S2b Yoğun spor + diyet -500,-0.0058,yok (<0.1 cm),-0.0115,PAL 1.40,-0.0401,yok (<0.1 cm),sağlam,,"iştah: k=0 (sabit alım), en kötümser kombinasyon",69.2500,BMI medyanı 18.5
+kiz,S3 Yüksek protein,0.0000,yok (<0.1 cm),0.0000,ana,0.0000,yok (<0.1 cm),sağlam,,,5.0500,BMI medyanı 18.5
+kiz,S4 Düşük protein,-0.0362,yok (<0.1 cm),-0.0725,protein b 2,-0.4132,yok (<0.1 cm),sağlam,,,5.0500,BMI medyanı 18.5
+kiz,S5 Fast food +500 kcal,0.0000,yok (<0.1 cm),-0.0048,en kötümser kombinasyon,-0.0149,yok (<0.1 cm),sağlam,,,0.0000,ana
+kiz,S6 Kısa uyku (6 sa),0.0000,yok (<0.1 cm),-0.0189,S6 N_uyku 0.95,-0.0584,yok (<0.1 cm),sağlam,,,0.0000,ana
+kiz,S7 Uyku bozukluğu,-0.0377,yok (<0.1 cm),-0.0755,S7 N_uyku 0.8,-0.2338,yok (<0.1 cm),sağlam,,,5.0500,BMI medyanı 18.5
+kiz,S8 Spor + yeterli beslenme,0.0000,yok (<0.1 cm),0.0000,ana,-0.0089,yok (<0.1 cm),sağlam,,,5.1000,BMI medyanı 18.5
+kiz,S9 Etsiz,0.0000,yok (<0.1 cm),0.0000,ana,0.0000,yok (<0.1 cm),sağlam,,,5.0500,BMI medyanı 18.5

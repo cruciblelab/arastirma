@@ -1,0 +1,9 @@
+test,aciklama,deger,olcut,sonuc
+F1,"Enerji korunumu (göreli hata, bütün senaryolar ve kişiler)",2.38e-12,< 1e-3,GEÇTİ
+F2,16 yaş medyan erkek: model TEE ve IOM EER (az aktif),2713 / 2791 kcal (-2.8%),±%10,GEÇTİ
+F3a,Hall 2011: +100 kJ/gün → 10 yılda kilo artışı,1.00 kg,0.8-1.25 kg,GEÇTİ
+F3b,Hall 2011: yarılanma süresi,0.58 yıl,0.4-1.2 yıl,GEÇTİ
+F4a,"Enerji modeli Δt 1 gün / 0.5 gün, 18 yaş kilo farkı (S2b, en büyük)",0.0073 kg,< 0.05 kg,GEÇTİ
+F4b,"Büyüme RK2 Δt / Δt/2, son boy farkı (S2b, en büyük)",0.00408 cm,< 0.01 cm,GEÇTİ
+F4c,"İkinci iterasyon, son boy farkı (S2b, en büyük)",0.00578 cm,< 0.01 cm,GEÇTİ
+F5,S0 (N ≡ 1) ve sürüm 3 senaryosuz çıktı,0.0e+00 cm,< 1e-9 cm,GEÇTİ

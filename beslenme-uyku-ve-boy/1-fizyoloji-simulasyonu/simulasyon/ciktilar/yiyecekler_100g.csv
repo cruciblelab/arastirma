@@ -1,0 +1,30 @@
+yiyecek,fdc_id,usda_aciklama,kcal,protein_g,yag_g,doymus_yag_g,karbonhidrat_g,lif_g,kalsiyum_mg,demir_mg,cinko_mg,d_vitamini_ug
+kiyma,171797,"Beef, ground, 80% lean meat / 20% fat, patty, cooked, broiled",270.000,25.750,17.780,6.764,0.000,0.000,24.000,2.480,6.250,0.000
+tavuk,171477,"Chicken, broilers or fryers, breast, meat only, cooked, roasted",165.000,31.020,3.570,1.010,0.000,0.000,15.000,1.040,1.000,0.100
+yumurta,171287,"Egg, whole, raw, fresh",143.000,12.560,9.510,3.126,0.720,0.000,56.000,1.750,1.290,2.000
+sut,171265,"Milk, whole, 3.25% milkfat, with added vitamin D",61.000,3.150,3.250,1.865,4.800,0.000,113.000,0.030,0.370,1.300
+yogurt,171284,"Yogurt, plain, whole milk",61.000,3.470,3.250,2.096,4.660,0.000,121.000,0.050,0.590,0.100
+beyaz_peynir,173420,"Cheese, feta",265.000,14.210,21.490,13.300,3.880,0.000,493.000,0.650,2.880,0.400
+somon,175168,"Fish, salmon, Atlantic, farmed, cooked, dry heat",206.000,22.100,12.350,2.397,0.000,0.000,15.000,0.340,0.430,13.100
+hamsi,174182,"Fish, anchovy, european, raw",131.000,20.350,4.840,1.282,0.000,0.000,147.000,3.250,1.720,0.000
+tereyagi,173410,"Butter, salted",717.000,0.850,81.110,51.368,0.060,0.000,24.000,0.020,0.090,0.000
+mercimek,172421,"Lentils, mature seeds, cooked, boiled, without salt",116.000,9.020,0.380,0.053,20.130,7.900,19.000,3.330,1.270,0.000
+nohut,173757,"Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",164.000,8.860,2.590,0.269,27.420,7.600,49.000,2.890,1.530,0.000
+kuru_fasulye,175203,"Beans, white, mature seeds, cooked, boiled, without salt",139.000,9.730,0.350,0.091,25.090,6.300,90.000,3.700,1.380,0.000
+ekmek,172686,"Bread, wheat",274.000,10.670,4.530,0.697,47.540,4.000,125.000,3.600,1.040,0.000
+pirinc,168878,"Rice, white, long-grain, regular, enriched, cooked",130.000,2.690,0.280,0.077,28.170,0.400,10.000,1.200,0.490,0.000
+bulgur,170287,"Bulgur, cooked",83.000,3.080,0.240,0.042,18.580,4.500,10.000,0.960,0.570,0.000
+makarna,169737,"Pasta, cooked, enriched, without added salt",158.000,5.800,0.930,0.176,30.860,1.800,7.000,1.280,0.510,0.000
+patates,170438,"Potatoes, boiled, cooked in skin, flesh, without salt",87.000,1.870,0.100,0.026,20.130,1.800,5.000,0.310,0.300,0.000
+domates,170457,"Tomatoes, red, ripe, raw, year round average",18.000,0.880,0.200,0.028,3.890,1.200,10.000,0.270,0.170,0.000
+ispanak,168462,"Spinach, raw",23.000,2.860,0.390,0.063,3.630,2.200,99.000,2.710,0.530,0.000
+elma,171688,"Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",52.000,0.260,0.170,0.028,13.810,2.400,6.000,0.120,0.040,0.000
+muz,173944,"Bananas, raw",89.000,1.090,0.330,0.112,22.840,2.600,5.000,0.260,0.150,0.000
+salatalik,168409,"Cucumber, with peel, raw",15.000,0.650,0.110,0.037,3.630,0.500,16.000,0.280,0.200,0.000
+portakal,169097,"Oranges, raw, all commercial varieties",47.000,0.940,0.120,0.015,11.750,2.400,40.000,0.100,0.070,0.000
+zeytinyagi,171413,"Oil, olive, salad or cooking",884.000,0.000,100.000,13.808,0.000,0.000,1.000,0.560,0.000,0.000
+ceviz,170187,"Nuts, walnuts, english",654.000,15.230,65.210,6.126,13.710,6.700,98.000,2.910,3.090,0.000
+kola,174852,"Beverages, carbonated, cola, regular",42.000,0.000,0.250,0.000,10.360,0.000,1.000,0.020,0.090,0.000
+seker,169655,"Sugars, granulated",387.000,0.000,0.000,0.000,99.980,0.000,1.000,0.050,0.010,0.000
+hamburger,170694,"Fast foods, hamburger; single, regular patty; with condiments",263.000,13.300,10.180,3.567,29.570,1.800,116.000,2.870,2.030,0.100
+cips,169677,"Snacks, potato chips, plain, salted",532.000,6.390,33.980,3.400,53.830,3.100,21.000,1.280,1.090,0.000

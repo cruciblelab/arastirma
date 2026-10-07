@@ -46,6 +46,7 @@ CINS = ("erkek", "kiz")
 AD = {"erkek": "Erkek", "kiz": "Kız"}
 IZGARA = np.round(np.arange(16.0, 25.0 + 1e-9, 0.02), 2)
 OZET, TESTLER = {}, []
+K4_MAX, K4_NOT = [0.0], []
 T_BAS = time.time()
 
 SPOR_SAAT = 2 * 6 / 7       # futbol 2 sa/gün, 6 gün/hafta
@@ -161,21 +162,38 @@ def kos(ayar, senaryolar=SENARYOLAR, bmi=21.0, ayrinti=False):
         k.baslangic(bmi)
         sonuc = {}
         for ad, d in {"S0 Referans": SENARYOLAR["S0 Referans"], **senaryolar}.items():
-            e = k.enerji(d, ayar)
+            try:
+                e = k.enerji(d, ayar)
+            except AssertionError as hata:
+                # Sapma 4: iştah kapalıyken uzun süreli açık dokuyu tüketebilir. Yalnızca k = 0 varyantlarında
+                # "sürdürülemez" diye kaydedilir; ana modelde bu assert durdurucu kalır.
+                if "negatif doku" not in str(hata) or ayar.k_kayip > 0:
+                    raise
+                satirlar.append(dict(varyant=ayar.etiket, cinsiyet=c, senaryo=ad, surdurulemez=True))
+                continue
             b = k.boy(e["N_ser"])
             assert np.all(e["F1"] < 1e-3), f"F1 enerji korunumu: {ad}"
             sonuc[ad] = (e, b)
         e0, b0 = sonuc["S0 Referans"]
         for ad, (e, b) in sonuc.items():
             d18, d25 = (b[0] - b0[0]), (b[1] - b0[1])
-            assert np.all(d18 <= 1e-9) and np.all(d25 <= 1e-9), f"K4: {ad} referanstan uzun çıktı (hata)"
+            # K4 (sapma 2-3): sayısal tolerans 1e-4 cm; yalnızca S0 tavandayken (N ≡ 1) assert edilir.
+            # S0'ın kendisi kısıtlıysa (ör. doğrusal N_E) daha çok yiyen kişinin uzun çıkması varsayımın sonucudur.
+            if np.all(e0["N_ser"] == 1.0):
+                K4_MAX[0] = max(K4_MAX[0], float(d18.max()), float(d25.max()))
+                assert np.all(d18 <= 1e-4) and np.all(d25 <= 1e-4), f"K4: {ad} referanstan uzun çıktı (hata)"
+            else:
+                K4_NOT.append(dict(varyant=ayar.etiket, cinsiyet=c, senaryo=ad,
+                                   S0_kisitli_yuzde=100 * float(np.mean(e0["min_N"] < 0.999)),
+                                   uzun_cikan_yuzde=100 * float(np.mean(d25 > 1e-4)), en_buyuk_pozitif_cm=float(d25.max())))
             a18, a18_0 = e["anlar"][18.0], e0["anlar"][18.0]
             satir = dict(varyant=ayar.etiket, cinsiyet=c, senaryo=ad,
                          dH18_medyan_cm=np.median(d18), dH18_p5_cm=np.percentile(d18, 5),
                          dH25_medyan_cm=np.median(d25), dH25_p5_cm=np.percentile(d25, 5),
                          dH25_p95_cm=np.percentile(d25, 95), dH25_ortalama_cm=d25.mean(),
                          etkilenen_yuzde=100 * np.mean(e["min_N"] < 0.999),
-                         minN_medyan=np.median(e["min_N"]))
+                         minN_medyan=np.median(e["min_N"]), surdurulemez=False,
+                         BMI16_alti_18yas_yuzde=100 * np.mean(a18["BMI"] < 16), BMI18_min=a18["BMI"].min())
             if ayrinti:
                 a17 = e["anlar"][17.0]
                 satir.update(dW18_medyan_kg=np.median(a18["W"] - a18_0["W"]),
@@ -298,28 +316,40 @@ VARYANTLAR = [
 ]
 tum = [ana.drop(columns=[c for c in ana.columns if c not in
                          ("varyant", "cinsiyet", "senaryo", "dH18_medyan_cm", "dH25_medyan_cm", "dH25_p5_cm",
-                          "etkilenen_yuzde")])]
+                          "etkilenen_yuzde", "surdurulemez", "BMI16_alti_18yas_yuzde")])]
 for ayar, ozel, bmi in VARYANTLAR:
     log("Duyarlılık:", ayar.etiket)
     df, _ = kos(ayar, senaryolar=ozel or SENARYOLAR, bmi=bmi)
-    tum.append(df[["varyant", "cinsiyet", "senaryo", "dH18_medyan_cm", "dH25_medyan_cm", "dH25_p5_cm", "etkilenen_yuzde"]])
+    tum.append(df.reindex(columns=["varyant", "cinsiyet", "senaryo", "dH18_medyan_cm", "dH25_medyan_cm", "dH25_p5_cm",
+                                   "etkilenen_yuzde", "surdurulemez", "BMI16_alti_18yas_yuzde"]))
 duy = pd.concat(tum, ignore_index=True)
 duy = duy[duy.senaryo != "S0 Referans"]
-duy["sinif"] = duy.dH25_medyan_cm.map(sinif)
+duy["sinif"] = np.where(duy.surdurulemez.astype(bool), "sürdürülemez (doku tükeniyor)",
+                        duy.dH25_medyan_cm.map(lambda x: sinif(x) if pd.notna(x) else ""))
 duy.to_csv(CIKTI / "duyarlilik.csv", index=False, float_format="%.4f")
 
 k2 = []
 for (c, s), g in duy.groupby(["cinsiyet", "senaryo"], sort=False):
     ana_s = g[g.varyant == "ana"].iloc[0]
+    gg = g[~g.surdurulemez.astype(bool)]
     k2.append(dict(cinsiyet=c, senaryo=s, ana_dH25_cm=ana_s.dH25_medyan_cm, ana_sinif=ana_s.sinif,
-                   en_kotu_dH25_cm=g.dH25_medyan_cm.min(), en_kotu_varyant=g.loc[g.dH25_medyan_cm.idxmin(), "varyant"],
-                   en_kotu_p5_cm=g.dH25_p5_cm.min(),
-                   siniflar=" | ".join(sorted(set(g.sinif))),
-                   K2="sağlam" if g.sinif.nunique() == 1 else "varsayıma bağlı",
-                   sinifi_degistiren=", ".join(g[g.sinif != ana_s.sinif].varyant)))
+                   en_kotu_dH25_cm=gg.dH25_medyan_cm.min(), en_kotu_varyant=gg.loc[gg.dH25_medyan_cm.idxmin(), "varyant"],
+                   en_kotu_p5_cm=gg.dH25_p5_cm.min(),
+                   siniflar=" | ".join(sorted(set(gg.sinif))),
+                   K2="sağlam" if gg.sinif.nunique() == 1 else "varsayıma bağlı",
+                   sinifi_degistiren=", ".join(gg[gg.sinif != ana_s.sinif].varyant),
+                   surdurulemez_varyantlar=", ".join(g[g.surdurulemez.astype(bool)].varyant),
+                   BMI16_alti_en_cok_yuzde=g.BMI16_alti_18yas_yuzde.max(),
+                   BMI16_alti_varyant=(g.loc[g.BMI16_alti_18yas_yuzde.idxmax(), "varyant"]
+                                       if g.BMI16_alti_18yas_yuzde.notna().any() else "")))
 k2 = pd.DataFrame(k2)
 k2.to_csv(CIKTI / "karar_K1_K2.csv", index=False, float_format="%.4f")
 print(k2.to_string())
+
+# Keşifsel (sonradan eklendi, sapma 4): kısıtlamayı kısmen sürdüren genç, zayıf iştah k = 25. K2'ye girmez.
+log("Keşifsel: zayıf iştah k=25")
+kes, _ = kos(replace(ANA, k_kayip=25.0, k_artis=25.0, etiket="keşifsel: zayıf iştah k=25"), ayrinti=True)
+kes.to_csv(CIKTI / "kesifsel_zayif_istah.csv", index=False, float_format="%.4f")
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +394,8 @@ fig.savefig(CIKTI / "senaryolar.png", dpi=150)
 
 pd.DataFrame(TESTLER).to_csv(CIKTI / "testler.csv", index=False)
 OZET["testler"] = TESTLER
+OZET["K4_en_buyuk_pozitif_fark_cm"] = K4_MAX[0]
+pd.DataFrame(K4_NOT).to_csv(CIKTI / "K4_S0_kisitli_varyantlar.csv", index=False, float_format="%.4f")
 OZET["sure_sn"] = round(time.time() - T_BAS)
 (CIKTI / "ozet.json").write_text(json.dumps(OZET, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
 log("Bitti")
