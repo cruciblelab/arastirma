@@ -1,0 +1,57 @@
+{
+ "n_deger": 22,
+ "lab_disi": [
+  {
+   "yas": 16.2,
+   "test": "Ferritin",
+   "deger": 16.9,
+   "birim": "µg/L",
+   "lab_durum": "laboratuvar aralığının altında"
+  },
+  {
+   "yas": 16.2,
+   "test": "Fosfor",
+   "deger": 4.9,
+   "birim": "mg/dL",
+   "lab_durum": "laboratuvar aralığının üstünde"
+  },
+  {
+   "yas": 16.8,
+   "test": "MCHC",
+   "deger": 31.7,
+   "birim": "g/dL",
+   "lab_durum": "laboratuvar aralığının altında"
+  }
+ ],
+ "esik_karsilastirma": [
+  {
+   "yas": 16.2,
+   "test": "25-OH D vitamini",
+   "deger": 18.73,
+   "esige_gore": "eşiğin altında"
+  },
+  {
+   "yas": 16.2,
+   "test": "Ferritin",
+   "deger": 16.9,
+   "esige_gore": "eksiklik eşiğinin üstünde (sınırda)"
+  }
+ ],
+ "transferrin_doygunlugu_yuzde": {
+  "16.2": 36.3
+ },
+ "hemoglobin_seyri": [
+  {
+   "yas": 16.2,
+   "deger": 15.6
+  },
+  {
+   "yas": 16.8,
+   "deger": 15.7
+  },
+  {
+   "yas": 16.9,
+   "deger": 16.1
+  }
+ ]
+}

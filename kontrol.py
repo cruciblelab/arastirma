@@ -168,6 +168,8 @@ def konu_denetle(konu: Path):
 
 
 def main():
+    if not (KOK / "LICENSE").exists() or "Attribution-NonCommercial 4.0" not in (KOK / "LICENSE").read_text(encoding="utf-8"):
+        hata(KOK / "LICENSE", "lisans dosyası yok ya da CC BY-NC 4.0 değil (kural 8)")
     konular = [p for p in KOK.iterdir() if p.is_dir() and p.name not in ATLA and not p.name.startswith(".")]
     for k in sorted(konular):
         konu_denetle(k)

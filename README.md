@@ -11,7 +11,21 @@ sürümler eklenir.
 | [boy-uzamasi-16-18-yas](boy-uzamasi-16-18-yas/) | Plakları açık 16-18 yaş gençlerde genetik boy potansiyeline ulaşmak | [3 · mekanistik simülasyon ve ön kayıt](boy-uzamasi-16-18-yas/3-mekanistik-simulasyon-ve-on-kayit/) |
 | [spor-egzersiz-ve-boy](spor-egzersiz-ve-boy/) | 16 yaş ve sonrasında barfiks, şınav, esneme, asılma ve sporların gerçek boya etkisi | [1 · fizik tabanlı simülasyon](spor-egzersiz-ve-boy/1-fizik-tabanli-simulasyon/) |
 | [beslenme-uyku-ve-boy](beslenme-uyku-ve-boy/) | Gerçek besin değerleri, enerji dengesi, iştah, vücut yağı ve uykunun 16 yaş sonrası boya etkisi | [1 · fizyoloji simülasyonu](beslenme-uyku-ve-boy/1-fizyoloji-simulasyonu/) |
-| [kisisel-buyume-analizi](kisisel-buyume-analizi/) | Belirsiz okul/ev ölçümlerinden kişisel kalan boy tahmini (gerçek kişi verisi repoya girmez) | [1 · belirsiz ölçümlerle tahmin](kisisel-buyume-analizi/1-belirsiz-olcumlerle-tahmin/) |
+| [kisisel-buyume-analizi](kisisel-buyume-analizi/) | Belirsiz okul/ev ölçümlerinden kişisel kalan boy tahmini (gerçek kişi verisi repoya girmez) | [2 · tahlil bulguları](kisisel-buyume-analizi/2-tahlil-bulgulari/) |
+
+## Lisans
+
+Bu depodaki bütün araştırmalar (metin, kod, grafik ve üretilen veriler) **[Creative Commons Atıf-GayriTicari 4.0 Uluslararası (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/deed.tr)** lisansıyla yayınlanır. Tam metin: [LICENSE](LICENSE).
+
+**Ne yapabilirsin:**
+- Kopyalayabilir, paylaşabilir ve kendi araştırmanda istediğin yerde kullanabilirsin.
+- Değiştirerek üzerine yeni çalışma kurabilirsin.
+
+**Şartlar:**
+- **Atıf zorunlu:** Kaynağı belirtmen ve değişiklik yaptıysan bunu söylemen gerekir. Önerilen atıf: *Crucible ekibi, "arastirma" deposu, <araştırma klasörü> sürüm <n>, https://github.com/cruciblelab/arastirma*.
+- **Ticari kullanım yok:** Ticari amaçla kullanılamaz ya da satılamaz.
+
+**Üçüncü taraf kaynaklar** (USDA, Berkeley/sitar, Galton/HistData, makaleler, DSÖ/IOM belgeleri) kendi lisanslarına tabidir. Bu depo onları kopyalamaz; kaynağından indirir ya da yalnızca alıntılar.
 
 ---
 
@@ -110,3 +124,8 @@ Sonuçlar bölümündeki her madde `(A)`, `(B + D)`, `(A-B)` gibi bir etiketle b
 3. Raporu yaz. Her kaynağı aç ve kontrol et.
 4. Eski sürümün README'sinin en üstüne güncel sürüm bağlantısını ekle. Konu dizinini ve bu dosyadaki tabloyu güncelle.
 5. `python kontrol.py` geçmeden commit/push yok.
+
+### 8. Lisans ve kişisel veri
+
+- Bütün içerik CC BY-NC 4.0 lisanslıdır (kökteki `LICENSE`). Denetim bu dosyanın varlığını kontrol eder.
+- Gerçek bir kişinin verisi yalnızca **veri sahibinin açık isteğiyle**, yalnızca analizi etkileyen kısmıyla ve **kimliksizleştirilerek** (ad, doğum tarihi, kimlik numarası, kurum ve kesin tarih olmadan) yayınlanır. Geri kalanı `.kisisel/` klasöründe kalır (git dışı). Kaynak belgeler ayıklamadan sonra silinir.

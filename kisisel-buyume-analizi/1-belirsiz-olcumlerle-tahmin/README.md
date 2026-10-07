@@ -1,3 +1,5 @@
+> **Güncel sürüm:** [2-tahlil-bulgulari](../2-tahlil-bulgulari/). Bu sürüm dondurulmuştur.
+
 # Kişisel Büyüme Analizi · Sürüm 1: Belirsiz Ölçümlerle Tahmin
 
 > **Sürüm:** 1 · **Tarih:** 2026-10-07 · **Durum:** güncel

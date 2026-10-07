@@ -1,0 +1,23 @@
+yas,test,deger,birim,lab_alt,lab_ust,neden_secildi
+16.2,25-OH D vitamini,18.73,ng/mL,,,kemik ve kalsiyum emilimi; beslenme araştırmasındaki "eksik bırakma" maddesi
+16.2,Ferritin,16.9,µg/L,23.9,336.2,demir deposu; büyüme atağında azalabilir
+16.2,Demir,107,µg/dL,70,180,demir durumu (ferritinle birlikte okunur)
+16.2,Demir bağlama kapasitesi (TDBK),295,µg/dL,155,355,transferrin doygunluğu hesabı için
+16.2,Hemoglobin,15.6,g/dL,12,16.8,kansızlık var mı
+16.2,MCV,86.6,fL,80,100,demir eksikliğinde küçülür
+16.2,Fosfor,4.9,mg/dL,2.5,4.5,kemik büyümesiyle ilişkili; laboratuvar yetişkin aralığı kullanıyor
+16.2,Kalsiyum,10.29,mg/dL,8.8,10.6,kemik mineralizasyonu
+16.2,TSH,1.668,mIU/L,0.38,5.33,tiroid (büyüme yavaşlamasının tedavi edilebilir nedeni)
+16.2,Serbest T4,0.77,ng/dL,0.60,1.34,tiroid
+16.2,CRP,0.27,mg/L,0,5,iltihap/kronik hastalık; ferritin eşiğini belirler
+16.2,ALT,16,U/L,0,50,kronik karaciğer hastalığı dışlama
+16.2,AST,20,U/L,0,50,kronik karaciğer hastalığı dışlama
+16.2,Kreatinin,0.69,mg/dL,0.67,1.17,kronik böbrek hastalığı dışlama
+16.2,B12 vitamini,363,ng/L,222,1439,beslenme yeterliliği
+16.2,Folik asit,5.8,µg/L,3.9,,beslenme yeterliliği
+16.8,Hemoglobin,15.7,g/dL,12,17.5,kansızlık izlemi
+16.8,MCV,89.0,fL,82,98,demir eksikliği izlemi
+16.8,MCHC,31.7,g/dL,32,36,demir eksikliği izlemi
+16.9,Hemoglobin,16.1,g/dL,12,16.8,kansızlık izlemi
+16.9,MCV,87.3,fL,80,100,demir eksikliği izlemi
+16.9,MCHC,33.4,g/dL,32,36,demir eksikliği izlemi
