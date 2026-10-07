@@ -32,7 +32,7 @@ CIKTI = KOK / "ciktilar"
 CIKTI.mkdir(exist_ok=True)
 OZEL = KOK / ".kisisel"
 TOHUM = 20261007
-N = 200_000
+N = 1_200_000   # sapma 2: ESS için 200 000 → 1 200 000
 TESTLER, OZET = [], {}
 T0 = time.time()
 
@@ -65,7 +65,8 @@ def berkeley_vakalari():
     out = []
     for i, g in d.groupby("id"):
         g = g.sort_values("yas")
-        if g.yas.min() < 13.5 and (np.abs(g.yas - 21.0) < 0.05).any():
+        # Sapma 1: bitiş noktası her kişinin son ölçüm yaşı (18-21); 21 yaşında ölçümü olan tek kişi vardı
+        if g.yas.min() < 13.5 and g.yas.max() >= 18.0:
             out.append((i, g.yas.values, g.boy.values))
     return out
 
@@ -95,31 +96,38 @@ def sentetik_girdi(yas, boy, rng):
 log("Berkeley doğrulaması")
 on = ONSEL["erkek"]
 rng = np.random.default_rng(TOHUM + 7)
-onsel_kalan = on.H21 - on.boy(np.full(N, 17.20))
-onsel_med_kalan, onsel_med_H21 = float(np.median(onsel_kalan)), float(np.median(on.H21))
+simdi_onsel = on.boy(np.full(N, 17.20))
 satir = []
 for i, yas, boy in berkeley_vakalari():
     girdi, H = sentetik_girdi(yas, boy, rng)
     s = sonsal(on, girdi, Ayar(anne_baba=False), tohum=int(rng.integers(1e9)))
     w = s["w"]
-    gercek_kalan, gercek_H21 = H(21.0) - H(17.20), H(21.0)
-    k10, k50, k90 = yuzdelik(s["kalan21"], w, [10, 50, 90])
-    h10, h50, h90 = yuzdelik(s["H21"], w, [10, 50, 90])
-    satir.append(dict(id=i, gercek_kalan=gercek_kalan, kalan_p10=k10, kalan_medyan=k50, kalan_p90=k90,
-                      gercek_H21=gercek_H21, H21_p10=h10, H21_medyan=h50, H21_p90=h90, ESS=s["ess"],
-                      kapsama_kalan=k10 <= gercek_kalan <= k90, kapsama_H21=h10 <= gercek_H21 <= h90,
-                      hata_sonsal=abs(k50 - gercek_kalan), hata_onsel=abs(onsel_med_kalan - gercek_kalan)))
+    t_son = float(yas.max())
+    H_son = on.boy(np.full(N, t_son))
+    gercek_kalan, gercek_Hson = H(t_son) - H(17.20), H(t_son)
+    k10, k50, k90 = yuzdelik(H_son - s["simdi"], w, [10, 50, 90])
+    h10, h50, h90 = yuzdelik(H_son, w, [10, 50, 90])
+    onsel_med = float(np.median(H_son - simdi_onsel))
+    satir.append(dict(id=i, son_yas=t_son, gercek_kalan=gercek_kalan, kalan_p10=k10, kalan_medyan=k50, kalan_p90=k90,
+                      gercek_Hson=gercek_Hson, Hson_p10=h10, Hson_medyan=h50, Hson_p90=h90, ESS=s["ess"],
+                      kapsama_kalan=k10 <= gercek_kalan <= k90, kapsama_Hson=h10 <= gercek_Hson <= h90,
+                      hata_sonsal=abs(k50 - gercek_kalan), hata_onsel=abs(onsel_med - gercek_kalan)))
 bv = pd.DataFrame(satir)
 bv.to_csv(CIKTI / "berkeley_dogrulama.csv", index=False, float_format="%.3f")
-OZET["berkeley"] = dict(n=len(bv), gercek_kalan_medyan=float(bv.gercek_kalan.median()),
-                        kapsama_kalan=float(bv.kapsama_kalan.mean()), kapsama_H21=float(bv.kapsama_H21.mean()),
+OZET["berkeley"] = dict(n=len(bv), gercek_kalan_medyan=float(bv.gercek_kalan.median()), son_yas_medyan=float(bv.son_yas.median()),
+                        kapsama_kalan=float(bv.kapsama_kalan.mean()), kapsama_Hson=float(bv.kapsama_Hson.mean()),
                         MAE_sonsal=float(bv.hata_sonsal.mean()), MAE_onsel=float(bv.hata_onsel.mean()),
                         ESS_medyan=float(bv.ESS.median()), ESS_min=float(bv.ESS.min()))
+# Sapma 3 (sonradan): T1 kaldığı için kalan büyüme aralığı Berkeley'deki gerçek hata dağılımıyla genişletilir
+# (artık = gerçek − sonsal medyan; uyumlu tahmin / "conformal" yaklaşımı). Ufuk 17.2 → 18-21 yaş.
+ARTIK = dict(zip(["p2.5", "p10", "p50", "p90", "p97.5"],
+                 map(float, np.percentile(bv.gercek_kalan - bv.kalan_medyan, [2.5, 10, 50, 90, 97.5]))))
+OZET["berkeley"]["artik_yuzdelikleri"] = ARTIK
 b = OZET["berkeley"]
-test("T1", f"Berkeley (n={b['n']}): kalan büyüme 17.2→21 için %80 aralık kapsaması", f"{b['kapsama_kalan']:.2f}",
+test("T1", f"Berkeley (n={b['n']}): kalan büyüme 17.2→son ölçüm (18-21 yaş) için %80 aralık kapsaması", f"{b['kapsama_kalan']:.2f}",
      "0.68-0.92", 0.68 <= b["kapsama_kalan"] <= 0.92)
-test("T2", "Berkeley: 21 yaş boyu için %80 aralık kapsaması", f"{b['kapsama_H21']:.2f}", "0.68-0.92",
-     0.68 <= b["kapsama_H21"] <= 0.92)
+test("T2", "Berkeley: son ölçüm yaşındaki boy için %80 aralık kapsaması", f"{b['kapsama_Hson']:.2f}", "0.68-0.92",
+     0.68 <= b["kapsama_Hson"] <= 0.92)
 test("T3", "Berkeley: kalan büyüme MAE, sonsal < önsel", f"{b['MAE_sonsal']:.2f} / {b['MAE_onsel']:.2f} cm",
      "sonsal < önsel", b["MAE_sonsal"] < b["MAE_onsel"])
 
@@ -172,6 +180,11 @@ def analiz(girdi, hedef, baslik, kararlilik=False):
         sonuc["varyantlar"][ayar.etiket] = ozetle(s)
         if ayar.etiket == "ana":
             ana = s
+    m = sonuc["varyantlar"]["ana"]
+    sonuc["kalibre_sapma3"] = {
+        "not": "Sonradan eklendi (PLAN sapma 3). Sonsal medyan + Berkeley artık yüzdelikleri; ufuk ~1-4 yıl.",
+        "kalan": {q: m["kalan"]["medyan"] + ARTIK[q] for q in ("p2.5", "p10", "p90", "p97.5")} | {"medyan": m["kalan"]["medyan"]},
+        "H25": {q: m["H25"]["medyan"] + ARTIK[q] for q in ("p2.5", "p10", "p90", "p97.5")} | {"medyan": m["H25"]["medyan"]}}
     grafik(on, ana, girdi, hedef / "buyume_egrisi.png", baslik)
     if kararlilik:
         on2 = Onsel(c, N, TOHUM + 1)

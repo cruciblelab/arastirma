@@ -1,0 +1,6 @@
+test,aciklama,deger,olcut,sonuc
+T1,Berkeley (n=66): kalan büyüme 17.2→son ölçüm (18-21 yaş) için %80 aralık kapsaması,0.30,0.68-0.92,KALDI
+T2,Berkeley: son ölçüm yaşındaki boy için %80 aralık kapsaması,0.64,0.68-0.92,KALDI
+T3,"Berkeley: kalan büyüme MAE, sonsal < önsel",0.49 / 0.87 cm,sonsal < önsel,GEÇTİ
+T4,ESS: örnek kişi ve Berkeley medyanı,914 / 6001,≥ 200,GEÇTİ
+T5,Örnek kişi: iki tohumla kalan büyüme medyanı farkı,0.016 cm,< 0.1 cm,GEÇTİ

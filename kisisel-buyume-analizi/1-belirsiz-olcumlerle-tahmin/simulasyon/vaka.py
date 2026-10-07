@@ -23,8 +23,8 @@ from model import simule_et        # noqa: E402
 
 D_GUNICI = 1.44                    # cm, spor araştırması sürüm 1 (gün içi boy farkı)
 GALTON = {"erkek": (0.746, 5.83), "kiz": (0.687, 5.13)}   # sürüm 3, Ek_galton (eğim, artık SD)
-IZGARA = np.round(np.arange(11.0, 18.5 + 1e-9, 0.05), 2)
-KAYIT = list(IZGARA) + [21.0, 25.0]
+IZGARA = np.round(np.arange(11.0, 21.0 + 1e-9, 0.05), 2)   # sapma 1: 21 yaşa kadar (Berkeley son ölçüm yaşları)
+KAYIT = list(IZGARA) + [25.0]
 SAAT = {"sabah": (0.0, 0.3), "aksam": (0.7, 1.0), "bilinmiyor": (0.0, 1.0)}
 
 
@@ -40,7 +40,7 @@ class Ayar:
 
 
 class Onsel:
-    """N sanal kişinin 11-18.5 yaş (0.05 adım), 21 ve 25 yaş sabah boyları (float32)."""
+    """N sanal kişinin 11-21 yaş (0.05 adım) ve 25 yaş sabah boyları (float32)."""
 
     def __init__(self, cinsiyet, N, tohum, parca=50_000):
         rng = np.random.default_rng(tohum)
@@ -52,7 +52,7 @@ class Onsel:
             alt = {k: v[a:b] for k, v in ind.items()}
             s = simule_et(alt, pop, L0b[a:b], L0g[a:b], t1=25.0, kayit_yaslari=KAYIT)
             self.H[a:b] = s["boy"].T
-        self.H21, self.H25 = self.H[:, -2].astype(float), self.H[:, -1].astype(float)
+        self.H21, self.H25 = self.H[:, len(IZGARA) - 1].astype(float), self.H[:, -1].astype(float)
         self.mk, self.sk = float(self.H25.mean()), float(self.H25.std())
         hiz = np.diff(self.H[:, :len(IZGARA)], axis=1)
         orta = (IZGARA[:-1] + IZGARA[1:]) / 2
@@ -60,7 +60,7 @@ class Onsel:
         self.tepe_yasi = orta[sec][np.argmax(hiz[:, sec], axis=1)]
 
     def boy(self, yas):
-        """Her kişi için kendi yaşında (n,) boy; 11-18.5 arasında doğrusal aradeğer."""
+        """Her kişi için kendi yaşında (n,) boy; 11-21 arasında doğrusal aradeğer."""
         x = (np.asarray(yas, float) - IZGARA[0]) / 0.05
         i = np.clip(np.floor(x).astype(int), 0, len(IZGARA) - 2)
         f = x - i
