@@ -1,5 +1,7 @@
 # Kişisel Büyüme Analizi (tek kişilik vaka aracı)
 
+> Bu araştırma tıbbi tavsiye değildir. [Sorumluluk Reddi Beyanı](../SORUMLULUK-REDDI.md) bütün sürümleri için geçerlidir.
+
 Saati, ayakkabısı ve tarihi belirsiz okul/ev ölçümleri ve anne-baba boyundan; son yıllardaki uzama, büyümenin sürüp sürmediği ve kalan boy ne kadar dürüst tahmin edilebilir?
 
 **Gizlilik:** Gerçek kişilerin boy verisi ve kişisel sonuçları bu repoya girmez (`.kisisel/` klasörü `.gitignore` ile dışlanır). İstisna: Sürüm 2'deki seçilmiş tahlil değerleri, veri sahibinin açık isteğiyle ve kimliksizleştirilerek yayınlandı.

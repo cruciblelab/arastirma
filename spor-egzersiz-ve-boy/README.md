@@ -1,5 +1,7 @@
 # Egzersiz ve Boy: 16 Yaş ve Sonrası
 
+> Bu araştırma tıbbi tavsiye değildir. [Sorumluluk Reddi Beyanı](../SORUMLULUK-REDDI.md) bütün sürümleri için geçerlidir.
+
 Barfiks, şınav, esneme, asılma/ters asılma ve sporlar 16 yaş ve sonrasında **gerçek boyu** değiştirir mi?
 
 | Sürüm | Ad | Tarih | Ne yapıldı |

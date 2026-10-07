@@ -1,5 +1,7 @@
 # Beslenme, İştah, Vücut Yağı, Uyku ve Boy (16 yaş ve sonrası)
 
+> Bu araştırma tıbbi tavsiye değildir. [Sorumluluk Reddi Beyanı](../SORUMLULUK-REDDI.md) bütün sürümleri için geçerlidir.
+
 Gerçek besin değerleri (USDA), enerji dengesi, iştah, yağ/yağsız kütle ve uyku, plakları açık bir gencin son boyunu ne kadar değiştirir?
 
 | Sürüm | Ad | Tarih | Ne yapıldı |

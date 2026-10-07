@@ -4,6 +4,8 @@ Crucible ekibinin araştırma deposu. Her araştırma kökte kendi başlığıyl
 klasörde yaşar. Bir araştırma derinleştikçe aynı klasörün içine numaralı yeni
 sürümler eklenir.
 
+> ⚠️ **Sorumluluk reddi:** Bu depo tıbbi tavsiye vermez; sayıların çoğu model tahminidir ve hata içerebilir; içerik yapay zekâ yardımıyla hazırlandı ve hakemli değildir. Okumadan önce: **[Sorumluluk Reddi Beyanı](SORUMLULUK-REDDI.md)**.
+
 ## Araştırmalar
 
 | Klasör | Konu | Güncel sürüm |
@@ -127,5 +129,5 @@ Sonuçlar bölümündeki her madde `(A)`, `(B + D)`, `(A-B)` gibi bir etiketle b
 
 ### 8. Lisans ve kişisel veri
 
-- Bütün içerik CC BY-NC 4.0 lisanslıdır (kökteki `LICENSE`). Denetim bu dosyanın varlığını kontrol eder.
+- Bütün içerik CC BY-NC 4.0 lisanslıdır (kökteki `LICENSE`) ve [Sorumluluk Reddi Beyanı](SORUMLULUK-REDDI.md) bütün araştırmalara uygulanır. Denetim her iki dosyanın varlığını ve konu dizinlerinin beyana bağlantı verdiğini kontrol eder.
 - Gerçek bir kişinin verisi yalnızca **veri sahibinin açık isteğiyle**, yalnızca analizi etkileyen kısmıyla ve **kimliksizleştirilerek** (ad, doğum tarihi, kimlik numarası, kurum ve kesin tarih olmadan) yayınlanır. Geri kalanı `.kisisel/` klasöründe kalır (git dışı). Kaynak belgeler ayıklamadan sonra silinir.

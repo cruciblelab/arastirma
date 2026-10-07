@@ -1,5 +1,7 @@
 # Boy Uzaması: 16-18 Yaş, Büyüme Plakları Açıkken Genetik Potansiyele Ulaşmak
 
+> Bu araştırma tıbbi tavsiye değildir. [Sorumluluk Reddi Beyanı](../SORUMLULUK-REDDI.md) bütün sürümleri için geçerlidir.
+
 | Sürüm | Ad | Tarih | Ne yapıldı |
 |---|---|---|---|
 | **3 (güncel)** | [3-mekanistik-simulasyon-ve-on-kayit](3-mekanistik-simulasyon-ve-on-kayit/) | 2026-10-07 | 19 veri kaynağının envanteri; büyüme plağı dijital ikizi (önceden kayıtlı 13 test: 7 geçti, 6 kaldı); kural düzeltildi (yalnızca yavaşlayanlarda geçerli); bacak/gövde ayrımı; kuralı kanıtlayacak çalışmanın tasarımı; gerçek veri için ön kayıt |
