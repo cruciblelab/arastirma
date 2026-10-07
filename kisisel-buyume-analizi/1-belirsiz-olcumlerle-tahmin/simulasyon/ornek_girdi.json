@@ -1,0 +1,14 @@
+{
+ "not": "UYDURMA örnek kişi. Gerçek bir kişiye ait değildir.",
+ "cinsiyet": "erkek",
+ "simdiki_yas": 16.8,
+ "anne": 160,
+ "baba": 175,
+ "olcumler": [
+  {"ad": "okul 1", "yas": [14.55, 14.65], "deger": 158, "saat": "bilinmiyor", "ayakkabi": "bilinmiyor", "hata_sd": 1.0},
+  {"ad": "okul 2", "yas": [15.45, 15.70], "deger": 166, "saat": "bilinmiyor", "ayakkabi": "bilinmiyor", "hata_sd": 1.0},
+  {"ad": "işaret", "yas": [15.80, 16.05], "saat": "bilinmiyor", "isaret": true},
+  {"ad": "şimdi", "yas": [16.8, 16.8], "aralik": [171, 172], "saat": "aksam", "hata_sd": 0.7}
+ ],
+ "farklar": [{"a": "işaret", "b": "şimdi", "deger": 0.0, "sd": 0.5}]
+}
