@@ -1,0 +1,13 @@
+cinsiyet,olcum_kosulu,aralik_ay,yanlis_karar_orani
+erkek,"dikkatli (sabah, stadiometre, 3 ölçüm ort.)",6,0.209
+erkek,"dikkatli (sabah, stadiometre, 3 ölçüm ort.)",12,0.103
+erkek,"tek ölçüm, stadiometre",6,0.273
+erkek,"tek ölçüm, stadiometre",12,0.157
+erkek,saat kontrolsüz / duvara işaret,6,0.306
+erkek,saat kontrolsüz / duvara işaret,12,0.189
+kiz,"dikkatli (sabah, stadiometre, 3 ölçüm ort.)",6,0.195
+kiz,"dikkatli (sabah, stadiometre, 3 ölçüm ort.)",12,0.083
+kiz,"tek ölçüm, stadiometre",6,0.299
+kiz,"tek ölçüm, stadiometre",12,0.173
+kiz,saat kontrolsüz / duvara işaret,6,0.341
+kiz,saat kontrolsüz / duvara işaret,12,0.229

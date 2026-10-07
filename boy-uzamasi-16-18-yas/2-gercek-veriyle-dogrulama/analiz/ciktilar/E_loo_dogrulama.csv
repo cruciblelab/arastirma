@@ -1,0 +1,17 @@
+cinsiyet,yas,yontem,n,ort_mutlak_hata_cm,p90_mutlak_hata_cm,yuzde80_araligi_kapsama
+erkek,16.000,basit_kural,66,1.002,1.628,
+erkek,16.000,boy+hiz,66,1.135,2.139,0.864
+erkek,16.000,buyume_bitti_varsay,66,3.197,6.700,
+erkek,16.000,sadece_boy,66,1.780,4.184,0.864
+erkek,17.000,basit_kural,66,0.480,0.932,
+erkek,17.000,boy+hiz,66,0.445,0.972,0.894
+erkek,17.000,buyume_bitti_varsay,66,1.129,2.150,
+erkek,17.000,sadece_boy,66,0.729,1.360,0.924
+kiz,16.000,basit_kural,70,0.412,0.758,
+kiz,16.000,boy+hiz,70,0.474,0.997,0.886
+kiz,16.000,buyume_bitti_varsay,70,0.843,1.700,
+kiz,16.000,sadece_boy,70,0.551,1.234,0.871
+kiz,17.000,basit_kural,70,0.289,0.626,
+kiz,17.000,boy+hiz,70,0.326,0.589,0.971
+kiz,17.000,buyume_bitti_varsay,70,0.397,0.800,
+kiz,17.000,sadece_boy,70,0.331,0.667,0.971

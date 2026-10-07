@@ -1,0 +1,5 @@
+cinsiyet,yas,n,katsayi_18e_kadar,katsayi_sona_kadar,korelasyon_r,ortalama_mutlak_hata_kural_cm,ortalama_mutlak_hata_herkese_medyan_cm,artik_p10_cm,artik_p90_cm
+erkek,16.000,66,0.825,1.041,0.688,1.410,2.340,-1.861,0.950
+erkek,17.000,66,0.549,0.991,0.849,0.771,1.243,-1.155,0.834
+kiz,16.000,70,0.762,0.913,0.705,0.413,0.574,-0.567,0.745
+kiz,17.000,70,0.449,0.664,0.412,0.334,0.366,-0.351,0.537

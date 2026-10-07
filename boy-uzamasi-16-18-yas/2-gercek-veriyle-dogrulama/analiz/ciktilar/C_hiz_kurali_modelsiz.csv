@@ -1,0 +1,5 @@
+cinsiyet,son_olcum_en_az_yas,yas,n,katsayi_son_olcume_kadar,korelasyon_r
+erkek,19.000,16.000,35,1.069,0.640
+erkek,19.000,17.000,35,0.926,0.840
+erkek,19.500,16.000,21,1.208,0.582
+erkek,19.500,17.000,21,1.001,0.866
