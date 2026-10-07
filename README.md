@@ -9,7 +9,7 @@ sürümler eklenir.
 | Klasör | Konu | Güncel sürüm |
 |---|---|---|
 | [boy-uzamasi-16-18-yas](boy-uzamasi-16-18-yas/) | Plakları açık 16-18 yaş gençlerde genetik boy potansiyeline ulaşmak | [3 · mekanistik simülasyon ve ön kayıt](boy-uzamasi-16-18-yas/3-mekanistik-simulasyon-ve-on-kayit/) |
-| [spor-egzersiz-ve-boy](spor-egzersiz-ve-boy/) | 16 yaş ve sonrasında barfiks, şınav, esneme, asılma ve sporların gerçek boya etkisi | 1 · fizik tabanlı simülasyon (taslak: ön kayıt) |
+| [spor-egzersiz-ve-boy](spor-egzersiz-ve-boy/) | 16 yaş ve sonrasında barfiks, şınav, esneme, asılma ve sporların gerçek boya etkisi | [1 · fizik tabanlı simülasyon](spor-egzersiz-ve-boy/1-fizik-tabanli-simulasyon/) |
 
 ---
 

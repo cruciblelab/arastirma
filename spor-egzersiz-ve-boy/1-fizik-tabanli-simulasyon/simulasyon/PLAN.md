@@ -64,11 +64,11 @@ v_j' = v_j · M_j                    (sürüm 3 büyüme plağı modeline, bölm
 
 **Göreli yükler (L):**
 
-| Aktivite | Gövde L (bel diski basıncı ÷ 0.50 MPa) | Bacak L (diz yükü ÷ ayakta 1.07 BW) | Kaynak / sınıf |
+| Aktivite | Gövde L (bel diski basıncı ÷ 0.50 MPa) | Bacak L (diz yükü ÷ rahat ayakta; düzeltme 2) | Kaynak / sınıf |
 |---|---|---|---|
 | Uyku / uzanma | 0.20 | 0.0 | Wilke 1999 (ölçülmüş); bacak varsayım |
 | Oturma | 0.92 | 0.1 | Wilke 1999; bacak varsayım |
-| Ayakta + yürüme (karışık) | 1.15 | 1.3 | Wilke (yürüme 1.06-1.3); diz: yürüme tepe 2.4, gün ortalaması **varsayım** |
+| Ayakta + yürüme (karışık) | 1.15 | 1.3 | Wilke (yürüme 1.06-1.3); diz: yürüme tepe %226-267 BW, adım ortalaması tepenin ~%58'i (düzeltme 2); gün ortalaması **varsayım** |
 | Koşu | 1.3 (aralık 0.7-1.9) | 3.0 (aralık 2-5) | Wilke koşu 0.35-0.95 MPa; bacak **varsayım** |
 | Basketbol / zıplama | 1.5 | 3.5 | **Varsayım** (Wilke merdiven, iki basamak: 0.6-2.4) |
 | Ağırlık (aktif set) | 3.0 | 3.0 | Wilke 20 kg kaldırma 2.2-4.6; diz merdiven/çömelme 2.4-3.2; **varsayım** |
@@ -166,6 +166,8 @@ T5'teki en büyük etki ve T1-T3 değerleri raporlanır.
 | Tarih | Ne değişti | Neden | Ölçütleri etkiliyor mu |
 |---|---|---|---|
 | 2026-10-07, testlerden önce | **Uygulama ayrıntıları** sabitlendi (aşağıda) | Planda belirsiz kalan tanımlar sonuç görülmeden netleştirilmeli | Hayır |
+| 2026-10-07, testlerden **sonra** | **Düzeltme 1:** traksiyon kaynağının bağlantısı (parantezli adres) Markdown'da kırılıyordu, kodlanmış adresle değiştirildi | Bağlantı kontrolünde bulundu | Hayır (yalnızca bağlantı) |
+| 2026-10-07, testlerden **sonra** | **Düzeltme 2:** diz yükü için verilen "%107 (iki ayak), %261 (yürüme)" değerleri bağlantı verilen makalede **yok**. Arama özetinden gelmişti, muhtemelen başka bir çalışmaya (Kutzner 2010) ait ve doğrulanamadı. Makaledeki doğrulanmış değerler yazıldı: yürüme tepe %226-267 BW, merdiven %305-311 BW, ortalama/tepe ≈ 0.58 | Bağlantı içerik kontrolünde bulundu | Hayır. Bacak L değerleri zaten "varsayım" olarak sınıflıydı ve değiştirilmedi; doğrulanmış değerlerle de tutarlı (yürüme ortalaması ≈ 0.58 × 2.5 ≈ 1.4 BW) |
 
 **Uygulama ayrıntıları:**
 
@@ -189,9 +191,9 @@ T5'teki en büyük etki ve T1-T3 değerleri raporlanır.
 - [Stokes IAF ve ark. Modulation of vertebral and tibial growth by compression loading: diurnal versus full-time loading. J Orthop Res 2005](https://www.uvm.edu/~istokes/pdfs/diurnal.pdf)
 - [Stokes IAF. Mechanical effects on skeletal growth. J Musculoskel Neuron Interact 2002](https://www.uvm.edu/~istokes/pdfs/sun_valley.pdf)
 - [Wilke HJ ve ark. New in vivo measurements of pressures in the intervertebral disc in daily life. Spine 1999](https://www.fonar.com/pdf/spine_vol_24.No.8.pdf)
-- [Diz eklemi in vivo yükleri, enstrümanlı protez (yürüme %261, iki ayak %107 BW)](https://pmc.ncbi.nlm.nih.gov/articles/PMC3900456)
+- [Bergmann G ve ark. Standardized loads acting in knee implants. PLoS One 2014 (yürüme tepe %226-267 BW, merdiven %305-311 BW, ortalama/tepe ≈ 0.58)](https://pmc.ncbi.nlm.nih.gov/articles/PMC3900456)
 - [Gün içi boy değişimi 14.4 mm ve egzersizle kısalma (BJSM)](https://bjsm.bmj.com/content/20/3/119)
-- [Traksiyon ve omurga uzaması ölçümleri (pnömatik dekompresyon kemeri çalışması ve kaynakları)](https://www.backfitpro.com/medical-scientific-articles/2016-2017/[8]-Cannon,J.-(2016)-Evidence-on-the-ability-of-a-pneumatic-decompression-belt-to-restore-spinal-height-[J.Mani.-and-Physio-Therapeutics].pdf)
+- [Traksiyon ve omurga uzaması ölçümleri (pnömatik dekompresyon kemeri çalışması ve kaynakları)](https://www.backfitpro.com/medical-scientific-articles/2016-2017/%5B8%5D-Cannon,J.-%282016%29-Evidence-on-the-ability-of-a-pneumatic-decompression-belt-to-restore-spinal-height-%5BJ.Mani.-and-Physio-Therapeutics%5D.pdf)
 - [Kifoz düzeltici egzersiz RCT'si, ergenler (Healthcare 2022)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9778671/)
 - [13-18 yaş erkeklerde normal kifoz aralığı](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4045366/)
 - [Elit jimnastikçilerde büyüme ve olgunlaşma (Malina ve ark. 2013)](https://dro.deakin.edu.au/articles/journal_contribution/Role_of_intensive_training_in_the_growth_and_maturation_of_artistic_gymnasts/20948449)

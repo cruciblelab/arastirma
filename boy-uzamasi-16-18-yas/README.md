@@ -7,3 +7,10 @@
 | 1 | [1-ilk-tarama](1-ilk-tarama/) | 2026-10-07 | Literatür taraması, elle ayarlanmış büyüme modeli (oyuncak simülasyon), kişisel tahmin aracının ilk hali |
 
 **Hızlı cevap için:** [Sürüm 3 → En basit özet](3-mekanistik-simulasyon-ve-on-kayit/README.md#en-basit-özet)
+
+## Sonradan bulunan düzeltmeler
+
+| Nerede | Ne yazıyordu | Doğrusu | Kaynak |
+|---|---|---|---|
+| Sürüm 1 bölüm 3, sürüm 2 bölüm 3 ve "En basit özet" | Duruş düzeltmesi "1-2 cm görünür boy" kazandırır | Ölçülen boya katkı **2-4 mm** (kifotik gençlerde ~0.4 cm). Günlük hayatta kambur/dik farkı ~0.3-0.65 cm | [spor-egzersiz-ve-boy, sürüm 1, bölüm 4.4](../spor-egzersiz-ve-boy/1-fizik-tabanli-simulasyon/README.md) |
+
