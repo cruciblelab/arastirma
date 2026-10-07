@@ -1,0 +1,7 @@
+cinsiyet,yas,plagi_fonksiyonel_acik_orani,herkes_icin_medyan_kalan_cm,acik_olanlarda_p10_cm,acik_olanlarda_medyan_cm,acik_olanlarda_p90_cm,acik_olanlarda_P(kalan>2cm),acik_olanlarda_P(kalan>5cm)
+erkek,16,0.970,3.09,0.95,3.21,9.22,0.692,0.308
+erkek,17,0.791,1.04,0.56,1.37,4.15,0.331,0.066
+erkek,18,0.400,0.33,0.48,0.82,2.07,0.108,0.008
+kiz,16,0.154,0.12,0.44,0.66,1.45,0.045,0.002
+kiz,17,0.018,0.03,0.43,0.58,1.06,0.009,0.000
+kiz,18,0.001,0.01,0.44,0.54,0.83,0.000,0.000
