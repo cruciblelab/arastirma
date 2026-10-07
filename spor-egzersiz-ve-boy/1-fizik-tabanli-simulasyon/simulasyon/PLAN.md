@@ -165,7 +165,23 @@ T5'teki en büyük etki ve T1-T3 değerleri raporlanır.
 
 | Tarih | Ne değişti | Neden | Ölçütleri etkiliyor mu |
 |---|---|---|---|
-| - | (henüz yok) | - | - |
+| 2026-10-07, testlerden önce | **Uygulama ayrıntıları** sabitlendi (aşağıda) | Planda belirsiz kalan tanımlar sonuç görülmeden netleştirilmeli | Hayır |
+
+**Uygulama ayrıntıları:**
+
+1. **T4:** erkek ve kızda ayrı değerlendirilir; **ikisinde de** medyan kayıp < 1.0 cm olmalı.
+2. **T5:** erkek ve kız × P1-P8 = 16 hücre; **hepsinde** \|medyan\| < 0.2 cm olmalı. P9 (aşırı yük) karar kuralına dahil değil, bilgi amaçlı.
+3. **T6:**
+   - Erkek kifoz dağılımı N(36.5, 7.85).
+   - Boy, Türk 18 yaş erkek N(176.0, 6.24).
+   - 100.000 örnek; θ ≥ 45° alt grubunda medyan.
+4. **Disk katmanı gün düzeni** (kalibrasyon ve T1-T3):
+   - 0-1. saat ayakta (0.50)
+   - 1-8. saat oturma (0.46)
+   - 8-16. saat ayakta/yürüme (0.59 = Wilke yürüme aralığının ortası)
+   - 16-24. saat uyku (0.10)
+   - Kararlı periyodik çözüm için 10 gün ısınma.
+5. **Nihai boy:** 30 yaştaki boy. Program etkisi = programlı − programsız, aynı kişi.
 
 ## Kaynaklar
 
