@@ -51,4 +51,4 @@ Vücuttaki büyüme plakları aynı anda kapanmaz. Bacak (uzun kemikler, özelli
 
 | Tarih | Ne değişti | Neden | Sonuç görüldükten sonra mı? |
 |---|---|---|---|
-| – | – | – | – |
+| 2026-10-07 | **Uygulama ayrıntıları** (kod çalıştırılmadan önce): (a) Bir kişide yalnızca boy ve oturma boyunun birlikte ölçüldüğü yaşlar kullanılır. (b) Sansür: son ölçümden ≥ 0.9 yıl önceki en yakın ölçüme göre gövde artışı > 0.5 cm ise "gövde hâlâ büyüyor". (c) H1'de bitiş yaşları eşitse "sonra" sayılmaz. (d) H3'te 16 yaş değeri iki ölçüm arasında doğrusal aradeğerlenir; 16 yaştan sonra toplam artışı < 0.5 cm olanlarda oran kararsız olduğu için medyan payda bu kişiler dışarıda bırakılır ve sayıları raporlanır. Ayrıca bütün kişilerin toplamından birleşik pay (Σ gövde / Σ boy) verilir. (e) Sürüm 3 modeli karşılaştırması: cinsiyet başına 5000 sanal kişi; aynı tanımlar 30 yaşa kadar (sansürsüz) ve son ölçüm 19 yaşta kesilerek (Berkeley'e benzer) hesaplanır | Ön kaydın açık bıraktığı noktalar | Hayır |
