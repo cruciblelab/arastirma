@@ -1,0 +1,3 @@
+cinsiyet,rmse_bacak,rmse_govde,rmse_boy,kisi_rmse_medyan_mekanistik,kisi_rmse_medyan_pb1,parametre_sayisi_kisi_basi_mekanistik,parametre_sayisi_kisi_basi_pb1,zaman_adimi_farki_cm
+erkek,0.4288,0.3634,0.3664,0.3342,0.4361,4.0000,5.0000,0.0004
+kiz,0.4540,0.3689,0.4057,0.3328,0.3661,4.0000,5.0000,0.0003

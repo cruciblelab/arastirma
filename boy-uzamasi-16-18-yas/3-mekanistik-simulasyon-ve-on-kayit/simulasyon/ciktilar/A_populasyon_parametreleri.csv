@@ -1,0 +1,17 @@
+cinsiyet,parametre,deger
+erkek,kb,0.0318
+erkek,kg,0.0139
+erkek,gam,1.2428
+erkek,Sf,0.0005
+erkek,wE,0.4556
+erkek,eb,0.9996
+erkek,eg,0.5076
+erkek,ag,1.3448
+kiz,kb,0.0318
+kiz,kg,0.0139
+kiz,gam,1.2428
+kiz,Sf,0.0005
+kiz,wE,0.5754
+kiz,eb,1.0610
+kiz,eg,0.5861
+kiz,ag,1.7187
