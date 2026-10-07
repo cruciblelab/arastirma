@@ -191,7 +191,29 @@ Sonuç tablo olarak raporlanır.
 
 | Tarih | Ne değişti | Neden | Ölçütleri etkiliyor mu |
 |---|---|---|---|
-| - | (henüz yok) | - | - |
+| 2026-10-07, testlerden önce | **Uygulama ayrıntıları** sabitlendi (aşağıda). Ölçüt eşikleri değişmedi | Planda belirsiz kalan tanımlar sonuç görülmeden netleştirilmeli | Hayır, sadece tanımları netleştiriyor |
+
+**Uygulama ayrıntıları (sonuç görülmeden önce sabitlendi):**
+
+1. **"Medyan birey"** (Ö5a-e): tam kalibrasyondaki bireysel parametrelerin ve başlangıç uzunluklarının cinsiyete göre medyanı.
+2. **Ö5a:** "ortalama + 2 SD", kalibre edilmiş tüm erkeklerin normal koşulda simüle edilen 28 yaş boyundan hesaplanır.
+3. **Ö5b ve Ö5c erkekte değerlendirilir** (Ö5c erkek tanımlı ve Ö5b ile karşılaştırılıyor). Kızlar bilgi amaçlı raporlanır.
+4. **Ö5f:** kalibre edilmiş gerçek erkek eğrilerinin (66 kişi) her biri üzerinde.
+5. **Ö6:**
+   - "Yavaşlayan" tanımı: g(a) < g(a−1); g(a) = H(a) − H(a−1).
+   - Kalan boy: 30 yaşa kadar.
+   - Ö6a: iki cinsiyet × iki yaşın (16, 17) **hepsinde** katsayı [0.7, 1.3] içinde olmalı.
+   - Ö6b: kural katsayıları v2'deki gibi (erkek 1.0, kız 0.9). Yalnızca en az 30 hızlanan kişi bulunan cinsiyet-yaş hücrelerinde değerlendirilir ve değerlendirilebilen **tüm** hücrelerde geçmeli.
+6. **Ö7:** sanal Türk kızlarında 16.5, 17.0, 17.5 ve 18.0 yaşlarındaki 6 aylık artışlar. Her ölçümde günün saati ve hata, protokole göre bağımsız çekilir.
+7. **Ö1-Ö2:** K3 (PB1), kişinin 3 yaşından kesme yaşına kadarki boy verisini kullanır. Bu, mekanistik modelden (9 yaş ve sonrası) daha fazla bilgi demektir.
+8. **Ö3:** popülasyon parametreleri, kişinin test grubunda olduğu kattan alınır. Bireysel fit 18.0 yaşına kadarki veriyle yapılır.
+9. **Ö4:** tüm erkekler üzerinden toplamların oranı.
+10. **Çalışma tasarımı:**
+    - Ölçülen 12 aylık artış ve ölçülen sonuç kullanılır.
+    - Katsayı sıfırdan geçen regresyonla, %95 GA t dağılımıyla hesaplanır.
+    - Ortalama mutlak hata tahmin edilen k ile hesaplanır.
+    - Kayıplar dışlanır (tam vaka analizi).
+    - Yanlış kural senaryosu: her bireyin gerçek kalan boyu k_alt / k_pop ile ölçeklenir (k_pop = sanal kohortun gerçek katsayısı).
 
 ## Kaynaklar
 
