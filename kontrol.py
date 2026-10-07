@@ -132,7 +132,18 @@ def konu_denetle(konu: Path):
         hata(konu, "aynı anda birden fazla taslak sürüm olamaz")
     yayinda = [n for n in surumler if n not in taslaklar]
     if not yayinda:
-        hata(konu, "yayınlanmış (taslak olmayan) sürüm yok")
+        # Yeni konu: tek sürümü taslak olabilir (ön kayıt için). Yalnızca taslak denetimi.
+        if sorted(surumler) == [1] and taslaklar == [1]:
+            yol = surumler[1]
+            if yol.name not in dizin:
+                hata(konu / "README.md", f"sürüm listede yok: {yol.name}")
+            if "**Sürüm:**" not in (yol / "README.md").read_text(encoding="utf-8"):
+                hata(yol / "README.md", "'**Sürüm:**' satırı yok")
+            plan_denetle(yol)
+            if konu.name not in (KOK / "README.md").read_text(encoding="utf-8"):
+                hata(KOK / "README.md", f"araştırma tabloda yok: {konu.name}")
+        else:
+            hata(konu, "yayınlanmış (taslak olmayan) sürüm yok")
         return
     guncel = max(yayinda)
     for n, yol in sorted(surumler.items()):

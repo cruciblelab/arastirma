@@ -9,6 +9,7 @@ sürümler eklenir.
 | Klasör | Konu | Güncel sürüm |
 |---|---|---|
 | [boy-uzamasi-16-18-yas](boy-uzamasi-16-18-yas/) | Plakları açık 16-18 yaş gençlerde genetik boy potansiyeline ulaşmak | [3 · mekanistik simülasyon ve ön kayıt](boy-uzamasi-16-18-yas/3-mekanistik-simulasyon-ve-on-kayit/) |
+| [spor-egzersiz-ve-boy](spor-egzersiz-ve-boy/) | 16 yaş ve sonrasında barfiks, şınav, esneme, asılma ve sporların gerçek boya etkisi | 1 · fizik tabanlı simülasyon (taslak: ön kayıt) |
 
 ---
 
@@ -91,6 +92,7 @@ Sonuçlar bölümündeki her madde `(A)`, `(B + D)`, `(A-B)` gibi bir etiketle b
 ### 5c. Taslak sürüm
 
 - Ön kayıt gibi işler bitmeden önce paylaşılması gereken durumlarda sürüm, README'sinde `**Durum:** taslak` satırıyla push edilebilir.
+- Yeni bir konunun tek sürümü taslak olabilir; o konu ilk yayına kadar "taslak" olarak listelenir.
 - Taslak her zaman en yüksek numaralı sürümdür, "güncel sürüm" sayılmaz. Tam rapor denetimi taslak kalktığında uygulanır.
 
 ### 6. Sağlık konuları
