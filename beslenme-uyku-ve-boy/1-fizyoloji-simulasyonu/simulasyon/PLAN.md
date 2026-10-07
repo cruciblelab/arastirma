@@ -234,4 +234,4 @@ Her varyant tek tek değiştirilir (bir seferde bir varsayım); ayrıca en köt�
 - [Ihle & Loucks 2004, Dose-response relationships between energy availability and bone turnover, JBMR](https://pubmed.ncbi.nlm.nih.gov/15231009/)
 - [Al Khatib ve ark. 2017, The effects of partial sleep deprivation on energy balance, Eur J Clin Nutr](https://doi.org/10.1038/ejcn.2016.201)
 - [Institute of Medicine, Dietary Reference Intakes (NAP)](https://nap.nationalacademies.org/catalog/10490)
-- Bonuck ve ark., adenotonsillektomi sonrası büyüme meta-analizi (boy SMD 0.34, IGF-1 SMD 0.53). Bağlantı rapor aşamasında eklenecek.
+- [Bonuck ve ark. 2009, Growth and growth biomarker changes after adenotonsillectomy, Arch Dis Child](https://pubmed.ncbi.nlm.nih.gov/18684748/): boy SMD 0.34, IGF-1 SMD 0.53 (bağlantı rapor aşamasında eklendi)
