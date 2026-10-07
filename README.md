@@ -80,6 +80,19 @@ Sonuçlar bölümündeki her madde `(A)`, `(B + D)`, `(A-B)` gibi bir etiketle b
 - Gerçek veriyle doğrulanmamış model "kanıt seviyesi D" diye etiketlenir. Bilinmeyen parametreler için **duyarlılık analizi** zorunludur.
 - **Şaşırtıcı sonuç önce hata sayılır.** Beklenmedik bir sayı çıkarsa yayınlamadan önce kod kontrol edilir ve bulunan hata raporda yazılır.
 
+### 5b. Simülasyon kuralları (simülasyon içeren her sürüm)
+
+- Simülasyon klasöründe kod yazılmadan önce bir **`PLAN.md`** bulunur ve commit edilir. Plan şu bölümleri içerir: **Simülasyon kuralları**, **Ön kayıtlı testler** (her test için sayısal geçme ölçütüyle), **Plandan sapmalar**.
+- Her denklem bilinen bir mekanizmaya dayanır. Her parametre **ölçülmüş**, **kalibre** ya da **varsayım** diye sınıflanır. Varsayımlara duyarlılık analizi yapılır.
+- Fiziksel tutarlılık kontrolleri (korunum, işaret, zaman adımı yakınsaması) kodda assert olarak bulunur.
+- Testler çalıştırıldıktan sonra ölçüt değiştirilmez. Plan değişirse "Plandan sapmalar" tablosuna tarih ve gerekçeyle yazılır.
+- Plan yazılmadan önce görülen her sonuç planda **şeffaflık notu** olarak belirtilir (o test tamamen kör sayılmaz).
+
+### 5c. Taslak sürüm
+
+- Ön kayıt gibi işler bitmeden önce paylaşılması gereken durumlarda sürüm, README'sinde `**Durum:** taslak` satırıyla push edilebilir.
+- Taslak her zaman en yüksek numaralı sürümdür, "güncel sürüm" sayılmaz. Tam rapor denetimi taslak kalktığında uygulanır.
+
 ### 6. Sağlık konuları
 
 - Rapor başında "tıbbi tavsiye değildir" uyarısı bulunur.

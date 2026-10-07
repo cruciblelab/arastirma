@@ -82,6 +82,29 @@ def surum_denetle(yol: Path, n: int):
             hata(rd, f"kırık göreli bağlantı: {hedef}")
 
 
+PLAN_BOLUMLERI = ["Simülasyon kuralları", "Ön kayıtlı testler", "Plandan sapmalar"]
+
+
+def taslak_mi(yol: Path) -> bool:
+    rd = yol / "README.md"
+    return rd.exists() and "**Durum:** taslak" in rd.read_text(encoding="utf-8")
+
+
+def plan_denetle(yol: Path):
+    """Simülasyon klasörü varsa önceden kayıtlı plan zorunlu."""
+    sim = yol / "simulasyon"
+    if not sim.is_dir():
+        return
+    plan = sim / "PLAN.md"
+    if not plan.exists():
+        hata(sim, "PLAN.md yok (simülasyon önceden kayıtlı plan olmadan yazılamaz)")
+        return
+    metin = plan.read_text(encoding="utf-8")
+    for b in PLAN_BOLUMLERI:
+        if not re.search(rf"^## +(\d+\. +)?{re.escape(b)}", metin, flags=re.M):
+            hata(plan, f"plan bölümü eksik: '{b}'")
+
+
 def konu_denetle(konu: Path):
     if not AD.match(konu.name):
         hata(konu, "klasör adı küçük harf/rakam/tire olmalı")
@@ -102,18 +125,32 @@ def konu_denetle(konu: Path):
         return
     if sorted(surumler) != list(range(1, max(surumler) + 1)):
         hata(konu, f"sürüm numaraları boşluksuz olmalı: {sorted(surumler)}")
-    son = max(surumler)
+    taslaklar = [n for n, y in surumler.items() if taslak_mi(y)]
+    if taslaklar and max(taslaklar) != max(surumler):
+        hata(konu, "taslak yalnızca en yüksek numaralı sürüm olabilir")
+    if len(taslaklar) > 1:
+        hata(konu, "aynı anda birden fazla taslak sürüm olamaz")
+    yayinda = [n for n in surumler if n not in taslaklar]
+    if not yayinda:
+        hata(konu, "yayınlanmış (taslak olmayan) sürüm yok")
+        return
+    guncel = max(yayinda)
     for n, yol in sorted(surumler.items()):
         if yol.name not in dizin:
             hata(konu / "README.md", f"sürüm listede yok: {yol.name}")
-        if n == son:
+        rd = yol / "README.md"
+        if not rd.exists():
+            hata(yol, "README.md yok")
+            continue
+        if n in taslaklar:
+            if "**Sürüm:**" not in rd.read_text(encoding="utf-8"):
+                hata(rd, "'**Sürüm:**' satırı yok")
+            plan_denetle(yol)
+        elif n == guncel:
             surum_denetle(yol, n)
-        else:
-            rd = yol / "README.md"
-            if not rd.exists():
-                hata(yol, "README.md yok")
-            elif surumler[son].name not in rd.read_text(encoding="utf-8"):
-                hata(rd, f"eski sürüm en üstte güncel sürüme ({surumler[son].name}) bağlantı vermeli")
+            plan_denetle(yol)
+        elif surumler[guncel].name not in rd.read_text(encoding="utf-8"):
+            hata(rd, f"eski sürüm en üstte güncel sürüme ({surumler[guncel].name}) bağlantı vermeli")
     kok_readme = (KOK / "README.md").read_text(encoding="utf-8")
     if konu.name not in kok_readme:
         hata(KOK / "README.md", f"araştırma tabloda yok: {konu.name}")
