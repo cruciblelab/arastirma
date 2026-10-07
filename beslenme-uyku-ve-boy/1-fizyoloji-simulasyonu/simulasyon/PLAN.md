@@ -150,8 +150,8 @@ N(t) = min( N_E(EA), N_P ) × N_uyku
 | S0 | Referans | B1 | 0 | yok | 8.5 sa |
 | S1 | Diyet −500 kcal | B1 | −500 | yok | 8.5 |
 | S1b | Sert diyet −1000 kcal | B1 | −1000 | yok | 8.5 |
-| S2 | Yoğun spor, yemeği artırmıyor | B1 | −EEE_net (telafi yok, yalnızca iştah) | futbol 2 sa/gün, 6 gün/hafta | 8.5 |
-| S2b | Yoğun spor + kilo vermeye çalışıyor | B1 | −EEE_net − 500 | S2 gibi | 8.5 |
+| S2 | Yoğun spor, yemeği artırmıyor | B1 | 0 (telafi yok, yalnızca iştah; düzeltme 1) | futbol 2 sa/gün, 6 gün/hafta | 8.5 |
+| S2b | Yoğun spor + kilo vermeye çalışıyor | B1 | −500 (düzeltme 1) | S2 gibi | 8.5 |
 | S3 | Yüksek protein (aynı enerji) | B4 | 0 | yok | 8.5 |
 | S4 | Düşük protein (aynı enerji) | B3 | 0 | yok | 8.5 |
 | S5 | Fast food + fazla yeme | B2 | +500 | yok | 8.5 |
@@ -214,7 +214,8 @@ Her varyant tek tek değiştirilir (bir seferde bir varsayım); ayrıca en köt�
 
 | Tarih | Ne değişti | Neden | Sonuçlar görüldükten sonra mı? |
 |---|---|---|---|
-| – | – | – | – |
+| 2026-10-07 | **Düzeltme 1.** S2'de Δ_senaryo = −EEE_net yerine **0**; S2b'de −EEE_net − 500 yerine **−500** | Plan hatası: 3.4'te EI_ref, spor harcamasını yalnızca "spora göre yiyen" senaryoda (S8) içeriyor. Spor harcaması zaten TEE'ye ekleniyor. Yani "telafi yok" demek Δ = 0 demek. −EEE_net, açığı iki kez saymak olurdu: kişi spora başlayınca öncekinden daha az yemiş olurdu | Hayır. Kod yazılmadan önce fark edildi |
+| 2026-10-07 | **Uygulama ayrıntıları** (kod yazılmadan önce sabitlendi): (a) r_i = 1 + CV·z, z ~ N(0,1) kişi başına bir kez çekilir, [0.5, 1.5] aralığına kırpılır; CV varyantları aynı z'yi kullanır. (b) En kötümser kombinasyonda doğrusal N_E'nin tabanı 0.5 yerine 0.3 (N_min = 0.3 ile tutarlı). (c) F4a ve F4b-c, en dinamik senaryo olan S2b'de, bütün kişiler üzerinde en büyük mutlak farkla değerlendirilir. (d) Bir yiyecekte D vitamini kaydı yoksa 0 sayılır, eksik kayıt sayısı çıktıda raporlanır. (e) FM0 = W0 · BF%/100. (f) F3'te yarılanma süresi, artışın 10 yıllık değerinin yarısına ilk ulaşıldığı gün. (g) S6'nın "mekanik ek harcama" varyantı: 2.5 sa/gün × (1.4 − 1.1) × BMR/24. (h) F1'in paydası max(Σ\|EI − TEE\|·Δt, 1 kcal) | Planın açık bıraktığı noktalar | Hayır |
 
 ## Kaynaklar
 
