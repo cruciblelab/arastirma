@@ -14,6 +14,7 @@ sürümler eklenir.
 | [spor-egzersiz-ve-boy](spor-egzersiz-ve-boy/) | 16 yaş ve sonrasında barfiks, şınav, esneme, asılma ve sporların gerçek boya etkisi | [1 · fizik tabanlı simülasyon](spor-egzersiz-ve-boy/1-fizik-tabanli-simulasyon/) |
 | [beslenme-uyku-ve-boy](beslenme-uyku-ve-boy/) | Gerçek besin değerleri, enerji dengesi, iştah, vücut yağı ve uykunun 16 yaş sonrası boya etkisi | [1 · fizyoloji simülasyonu](beslenme-uyku-ve-boy/1-fizyoloji-simulasyonu/) |
 | [kisisel-buyume-analizi](kisisel-buyume-analizi/) | Belirsiz okul/ev ölçümlerinden kişisel kalan boy tahmini (gerçek kişi verisi repoya girmez) | [2 · tahlil bulguları](kisisel-buyume-analizi/2-tahlil-bulgulari/) |
+| [buyume-plaklari-kapanma-sirasi](buyume-plaklari-kapanma-sirasi/) | Plaklar aynı anda kapanmaz: bazıları kapanınca boy durur mu, bacaktan sonra omurga ne kadar uzar? | taslak · [1 · literatür ve Berkeley analizi](buyume-plaklari-kapanma-sirasi/1-literatur-ve-berkeley-analizi/) |
 
 ## Lisans
 
