@@ -192,6 +192,7 @@ Sonuç tablo olarak raporlanır.
 | Tarih | Ne değişti | Neden | Ölçütleri etkiliyor mu |
 |---|---|---|---|
 | 2026-10-07, testlerden önce | **Uygulama ayrıntıları** sabitlendi (aşağıda). Ölçüt eşikleri değişmedi | Planda belirsiz kalan tanımlar sonuç görülmeden netleştirilmeli | Hayır, sadece tanımları netleştiriyor |
+| 2026-10-07, testlerden önce | **Sayısal çözüm Euler → orta nokta (RK2)**, Δt = 0.02 aynı. Kalibrasyon yeniden yapıldı | İlk çalıştırmada S3 kontrolü KALDI: Euler'de Δt yarıya inince nihai boy 0.118 cm değişti (eşik 0.05). RK2'de değişim 0.0003 cm. Program bu noktada durdu; hiçbir doğrulama testi çalışmadı | Hayır. Test ölçütleri aynı, sadece sayısal hata giderildi |
 
 **Uygulama ayrıntıları (sonuç görülmeden önce sabitlendi):**
 

@@ -8,8 +8,9 @@ Büyüme plağı dijital ikizi: model çekirdeği. Denklemler ve gerekçeleri PL
     Φ(S) = σ((S − S_f)/(0.15·S_f))                                kaynaşma kapısı
     H = L_bacak + L_govde
 
-Stok güncellemesi üstel adımla yapılır (S·exp(−Δt·oran)); böylece S hiçbir zaman
-artmaz ve sıfırın altına inmez (fiziksel tutarlılık, PLAN S3).
+Stok log ölçeğinde tutulur (log S); tükenme oranı hiçbir zaman negatif olmadığı için
+S artmaz ve sıfırın altına inemez (fiziksel tutarlılık, PLAN S3). Sayısal çözüm: orta
+nokta (RK2), Δt = 0.02 yıl.
 """
 
 from dataclasses import dataclass
@@ -58,11 +59,22 @@ def simule_et(ind, pop, L0b, L0g, t1=30.0, dt=DT, senaryo=None, kayit_yaslari=No
     kayit_hedef = {int(i): j for j, i in enumerate(kayit_idx)}
     Lb = np.array(L0b, float, copy=True)
     Lg = np.array(L0g, float, copy=True)
-    Sb, Sg = np.ones(n), np.ones(n)
+    lSb, lSg = np.zeros(n), np.zeros(n)          # log stok: pozitiflik garantili
     outb = np.empty((len(kayit_idx), n))
     outg = np.empty((len(kayit_idx), n))
     sw = KAPI * pop["Sf"]
     sen = senaryo or Senaryo()
+
+    def hiz(t, lSb, lSg):
+        N, a_rom, dE = sen.degerler(t)
+        E = a_rom * expit((t - Tp) / pop["wE"]) + dE
+        I = 1.0 + Ap * E
+        Sb, Sg = np.exp(lSb), np.exp(lSg)
+        vb = Gb * I * N * Sb ** pop["gam"] * expit((Sb - pop["Sf"]) / sw)
+        vg = Gg * I ** pop["ag"] * N * Sg ** pop["gam"] * expit((Sg - pop["Sf"]) / sw)
+        return vb, vg, -(pop["kb"] * vb / Gb + pop["eb"] * E), -(pop["kg"] * vg / Gg + pop["eg"] * E)
+
+    # Orta nokta (RK2) yöntemi. Euler, S3 yakınsama kontrolünü geçemedi (bkz. PLAN, Plandan sapmalar)
     for i in range(adim + 1):
         if i in kayit_hedef:
             outb[kayit_hedef[i]] = Lb
@@ -70,20 +82,15 @@ def simule_et(ind, pop, L0b, L0g, t1=30.0, dt=DT, senaryo=None, kayit_yaslari=No
         if i == adim:
             break
         t = T0 + i * dt
-        N, a_rom, dE = sen.degerler(t)
-        E = a_rom * expit((t - Tp) / pop["wE"]) + dE
-        I = 1.0 + Ap * E
-        vb = Gb * I * N * Sb ** pop["gam"] * expit((Sb - pop["Sf"]) / sw)
-        vg = Gg * I ** pop["ag"] * N * Sg ** pop["gam"] * expit((Sg - pop["Sf"]) / sw)
-        Sb_yeni = Sb * np.exp(-dt * (pop["kb"] * vb / Gb + pop["eb"] * E))
-        Sg_yeni = Sg * np.exp(-dt * (pop["kg"] * vg / Gg + pop["eg"] * E))
+        k1 = hiz(t, lSb, lSg)
+        k2 = hiz(t + dt / 2, lSb + dt / 2 * k1[2], lSg + dt / 2 * k1[3])
         if kontrol:
-            assert np.all(vb >= 0) and np.all(vg >= 0), "S3: negatif büyüme hızı"
-            assert np.all(Sb_yeni <= Sb + 1e-12) and np.all(Sg_yeni <= Sg + 1e-12), "S3: hücre stoku arttı"
-            assert np.all(Sb_yeni > 0) and np.all(Sg_yeni > 0), "S3: stok sıfırın altına indi"
-        Sb, Sg = Sb_yeni, Sg_yeni
-        Lb = Lb + dt * vb
-        Lg = Lg + dt * vg
+            assert all(np.all(v >= 0) for v in (k1[0], k1[1], k2[0], k2[1])), "S3: negatif büyüme hızı"
+            assert np.all(k2[2] <= 1e-12) and np.all(k2[3] <= 1e-12), "S3: hücre stoku arttı"
+        Lb = Lb + dt * k2[0]
+        Lg = Lg + dt * k2[1]
+        lSb = lSb + dt * k2[2]
+        lSg = lSg + dt * k2[3]
     boy = outb + outg
     if kontrol:
         assert np.allclose(boy, outb + outg), "S3: korunum (boy = bacak + gövde)"
