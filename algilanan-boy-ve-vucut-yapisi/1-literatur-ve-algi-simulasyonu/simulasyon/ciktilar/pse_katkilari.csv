@@ -1,0 +1,5 @@
+katman,medyan,p5,p95,sinif,sifir_icinde
+K1 fiziksel,-0.001,-0.063,0.063,ihmal edilebilir (< 0.5 cm),True
+K2 algı (herkes),0.988,-1.112,3.146,küçük ama yan yana fark edilebilir (0.5-2 cm),True
+K3 kişisel,1.190,0.121,2.272,küçük ama yan yana fark edilebilir (0.5-2 cm),False
+TOPLAM (kişisel PSE),2.171,-0.257,4.677,belirgin (≥ 2 cm),False

@@ -1,0 +1,110 @@
+{
+ "kohort": {
+  "n": 1358,
+  "r_boy_biakromiyal": 0.5082335512612116,
+  "r_yapi_en": 0.9662358028964692,
+  "r_yapi_boy": -4.460513123972646e-16,
+  "bideltoid_artik_sd_mm": 29.495748503631646,
+  "kilo_artik_sd_kg": 12.086087527397094
+ },
+ "karar": {
+  "K3_herkes_gorur_mu": "bilinmiyor, deney gerekli",
+  "K4_kisisel_mi": "ikisi karışık",
+  "K2_siniflari_duyarlilikta": [
+   "belirgin (≥ 2 cm)",
+   "ihmal edilebilir (< 0.5 cm)",
+   "küçük ama yan yana fark edilebilir (0.5-2 cm)"
+  ],
+  "K3_siniflari_duyarlilikta": [
+   "küçük ama yan yana fark edilebilir (0.5-2 cm)"
+  ]
+ },
+ "katkilar": {
+  "K1 fiziksel": {
+   "medyan": -0.000552549058668646,
+   "p5": -0.06330397928263552,
+   "p95": 0.06349827478868743
+  },
+  "K2 algı (herkes)": {
+   "medyan": 0.987755153439366,
+   "p5": -1.1123892325836267,
+   "p95": 3.1457725037343622
+  },
+  "K3 kişisel": {
+   "medyan": 1.189996870907891,
+   "p5": 0.12052203810248013,
+   "p95": 2.2720299354679367
+  }
+ },
+ "olasiliklar": {
+  "K0 yalnız gürültü": {
+   "P_yan": {
+    "medyan": 0.4995,
+    "p5": 0.482,
+    "p95": 0.5185
+   },
+   "P_ayri": {
+    "medyan": 0.4995,
+    "p5": 0.4815,
+    "p95": 0.518
+   },
+   "P_kisisel_yan": {
+    "medyan": 0.4995,
+    "p5": 0.481,
+    "p95": 0.5185
+   }
+  },
+  "K1 + fiziksel": {
+   "P_yan": {
+    "medyan": 0.5,
+    "p5": 0.482,
+    "p95": 0.5185
+   },
+   "P_ayri": {
+    "medyan": 0.5,
+    "p5": 0.4815,
+    "p95": 0.518
+   },
+   "P_kisisel_yan": {
+    "medyan": 0.4995,
+    "p5": 0.481,
+    "p95": 0.518
+   }
+  },
+  "K2 + algı": {
+   "P_yan": {
+    "medyan": 0.612,
+    "p5": 0.372475,
+    "p95": 0.83
+   },
+   "P_ayri": {
+    "medyan": 0.55425,
+    "p5": 0.4375,
+    "p95": 0.6780249999999999
+   },
+   "P_kisisel_yan": {
+    "medyan": 0.6132500000000001,
+    "p5": 0.3695,
+    "p95": 0.8290249999999998
+   }
+  },
+  "K3 + kişisel": {
+   "P_yan": {
+    "medyan": 0.612,
+    "p5": 0.372475,
+    "p95": 0.83
+   },
+   "P_ayri": {
+    "medyan": 0.55425,
+    "p5": 0.4375,
+    "p95": 0.6780249999999999
+   },
+   "P_kisisel_yan": {
+    "medyan": 0.733,
+    "p5": 0.470975,
+    "p95": 0.9235
+   }
+  }
+ },
+ "sure_sn": 89
+}

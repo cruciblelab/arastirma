@@ -230,7 +230,8 @@ for ad in ("K1 + fiziksel", "K3 + kişisel"):
     t = KATMAN[ad]
     pay_olay = (t.olay_kasli / t.olay.replace(0, np.nan)).to_numpy()
     pay_hatir = (t.hatir_kasli / t.hatir.replace(0, np.nan)).to_numpy()
-    HAF.append(dict(gozlemci="yanlılıksız (gürültü + fiziksel)" if ad.startswith("K1") else "yanlılıklı (tüm katmanlar)",
+    HAF.append(dict(gozlemci="algı yanlılığı yok (gürültü + fiziksel; hatırlama yanlılığı açık)" if ad.startswith("K1")
+                    else "algı + kişisel yanlılık (tüm katmanlar; hatırlama yanlılığı açık)",
                     olay_hafta=q(t.olay)["medyan"], olay_p5=q(t.olay)["p5"], olay_p95=q(t.olay)["p95"],
                     kasli_pay_akranlarda=float(t.kasli_pay_akran.mean()),
                     kasli_pay_olaylarda=float(np.nanmedian(pay_olay)),
@@ -341,8 +342,10 @@ def siluet(ax, x0, boy, omuz, renk, etiket):
 
 
 fig, ax = plt.subplots(figsize=(7, 6.2), facecolor=YUZEY)
-siluet(ax, 0, TR_ORT, 42, "#9fb7d9", "zayıf yapılı\n(omuz −1 SD)")
-siluet(ax, 75, TR_ORT, 58, "#7fc9a6", "kaslı, kalıplı\n(omuz +1 SD)")
+OMUZ_ORT = float(g.bideltoidbreadth.mean()) / 10                  # cm, ANSUR 17-24
+OMUZ_SD = OZET["kohort"]["bideltoid_artik_sd_mm"] / 10              # boy sabitken
+siluet(ax, 0, TR_ORT, OMUZ_ORT - OMUZ_SD, "#9fb7d9", f"zayıf yapılı\n(omuz {OMUZ_ORT - OMUZ_SD:.0f} cm, −1 SD)")
+siluet(ax, 75, TR_ORT, OMUZ_ORT + OMUZ_SD, "#7fc9a6", f"kaslı, kalıplı\n(omuz {OMUZ_ORT + OMUZ_SD:.0f} cm, +1 SD)")
 ax.axhline(TR_ORT, color=MUR2, lw=1, ls="--")
 ax.text(118, TR_ORT + 2, f"ikisi de {TR_ORT:.0f} cm", ha="right", fontsize=10, color=MUR2)
 ax.set_xlim(-45, 120)
@@ -350,9 +353,9 @@ ax.set_ylim(-35, 195)
 ax.set_aspect("equal")
 ax.axis("off")
 ax.set_title("Aynı gerçek boy, farklı yapı: hangisi daha uzun görünüyor?", loc="left", fontsize=12, color=MUR)
-fig.text(0.02, 0.02, "Omuz genişlikleri ANSUR II'deki boydan bağımsız ±1 SD farkı kabaca gösterir (şematik). "
-         "Tıbbi tavsiye değildir.", fontsize=8, color=MUR2)
-fig.tight_layout(rect=(0, 0.04, 1, 1))
+fig.text(0.02, 0.02, f"Omuz (bideltoid) genişliği: ANSUR II 17-24 yaş erkek, boy sabitken ±1 SD "
+         f"(fark {2 * OMUZ_SD:.1f} cm).\nSiluetin geri kalanı şematik. Tıbbi tavsiye değildir.", fontsize=8, color=MUR2)
+fig.tight_layout(rect=(0, 0.07, 1, 1))
 fig.savefig(CIKTI / "ayni_boy_farkli_yapi.png", dpi=150)
 plt.close(fig)
 
@@ -379,8 +382,8 @@ hf = pd.DataFrame(HAF)
 x = np.arange(3)
 vals = [hf.kasli_pay_akranlarda.iloc[1], hf.kasli_pay_olaylarda.iloc[1], hf.kasli_pay_hatirlananlarda.iloc[1]]
 vals0 = [hf.kasli_pay_akranlarda.iloc[0], hf.kasli_pay_olaylarda.iloc[0], hf.kasli_pay_hatirlananlarda.iloc[0]]
-ax.bar(x - 0.18, vals0, width=0.36, color=SOLUK, label="yanlılıksız gözlemci")
-ax.bar(x + 0.18, vals, width=0.36, color="#eb6834", label="yanlılıklı gözlemci")
+ax.bar(x - 0.18, vals0, width=0.36, color=SOLUK, label="algı yanlılığı yok")
+ax.bar(x + 0.18, vals, width=0.36, color="#eb6834", label="algı + kişisel yanlılık")
 for xi, v0, v in zip(x, vals0, vals):
     ax.text(xi - 0.18, v0 + 0.01, f"%{100 * v0:.0f}", ha="center", fontsize=9, color=MUR2)
     ax.text(xi + 0.18, v + 0.01, f"%{100 * v:.0f}", ha="center", fontsize=9, color=MUR2)
@@ -389,7 +392,7 @@ ax.set_xticklabels(["akranlar\narasında", "'benden kısa ama\nuzun göründü'"
 ax.set_ylabel("Kaslıların payı")
 ax.set_ylim(0, 1)
 ax.legend(frameon=False, fontsize=8, loc="upper left")
-ax.set_title("Bir haftalık gözlem", loc="left", fontsize=11)
+ax.set_title("Bir haftalık gözlem (iki grupta da hatırlama yanlılığı açık)", loc="left", fontsize=10.5)
 ax.spines[["top", "right"]].set_visible(False)
 fig.text(0.01, 0.01, "Model: gerçek boy → görünür boy (ayakkabı, saç, duruş) → algılanan boy. Merkezi algı etkileri "
          "doğrudan ölçülmedi; aralıklar literatürden çıkarım. Tıbbi tavsiye değildir.", fontsize=8, color=MUR2)

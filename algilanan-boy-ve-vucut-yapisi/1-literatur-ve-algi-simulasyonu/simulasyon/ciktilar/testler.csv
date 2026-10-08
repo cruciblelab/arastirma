@@ -1,0 +1,6 @@
+test,aciklama,deger,olcut,sonuc
+A1,"Veri bütünlüğü: ANSUR II SHA-256, 17-24 yaş erkek sayısı, r(boy, biakromiyal)",SHA eşleşti; n = 1358; r = 0.5082,eşleşir; n = 1358; r = 0.508 ± 0.005,GEÇTİ
+A2,Sıfır kontrolü: bütün etkiler 0 iken eşit boyda 'kaslı daha uzun' olasılığı ve PSE,P = 0.4987; |PSE| en çok 0.0357 cm,P = 0.50 ± 0.01; PSE = 0 ± 0.05,GEÇTİ
+A3,Yön: β_güç arttıkça olasılık artar; β_en negatifleştikçe azalır,β_güç: 0.385 < 0.500 < 0.615 < 0.720 < 0.809 | β_en: 0.720 > 0.615 > 0.500 > 0.385,kesin monoton,GEÇTİ
+A4,Toplanabilirlik: katman katkılarının toplamı = tüm katmanlar açıkken PSE (ve analitik beklenen değer),en büyük fark 8.88e-16 cm; analitikle medyan fark 0.026 cm,< 0.1 cm,GEÇTİ
+A5,"Monte Carlo standart hatası (kişisel, yan yana olasılığın ortalaması)",SE = 0.00220,< 0.005,GEÇTİ

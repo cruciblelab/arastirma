@@ -138,4 +138,4 @@ R = 4000 Monte Carlo tekrarı. Her tekrarda parametreler aralıklarından çekil
 
 | Tarih | Sapma | Gerekçe | Etkisi |
 |---|---|---|---|
-| – | – | – | – |
+| 2026-10-08 | **Etiket düzeltmesi (kodda, sonuç görüldükten sonra):** Haftalık gözlemde karşılaştırma grubu "yanlılıksız gözlemci" diye adlandırılmıştı. Bu grupta algı katmanları kapalı, ama hatırlama yanlılığı (m) iki grupta da açık; plan 4.4(c) bunu ayırmamıştı. Etiket "algı yanlılığı yok (hatırlama yanlılığı açık)" olarak düzeltildi. Hatırlamanın tek başına etkisi duyarlılık analizindeki "m = 1" varyantından okunur. | Etiket, sayının anlamını yanlış anlatıyordu. | Hiçbir sayı değişmedi. |
