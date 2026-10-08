@@ -1,3 +1,5 @@
+> **Güncel sürüm:** [2-bilgilendirme-videosu](../2-bilgilendirme-videosu/). Bu sürüm dondurulmuştur.
+
 # Omurga Büyümesi · Sürüm 1: Kaldıraçlar, Ölçüm Protokolü ve Animasyon
 
 > **Sürüm:** 1 · **Tarih:** 2026-10-08 · **Durum:** güncel

@@ -1,0 +1,5 @@
+test,aciklama,deger,olcut,sonuc
+V1,"Video biçimi: H.264, 1280x720, yuv420p","h264, 1280x720, yuv420p","h264, 1280x720, yuv420p",GEÇTİ
+V2,Süre ve boyut,"155.7 sn, 2.3 MB","60-180 sn, < 25 MB",GEÇTİ
+V3,Simülasyon sahnesindeki boy/oturma boyu/bacak = sürüm 3 modeli,1.4e-14 cm,< 1e-6 cm,GEÇTİ
+V4,"Örnek sayılar bağımsız yeniden okumayla aynı (skolyoz 30°, protokol gücü, gövde payı)",aynı,aynı,GEÇTİ

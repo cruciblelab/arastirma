@@ -1,0 +1,152 @@
+1
+00:00:00,000 --> 00:00:04,500
+Omurga Büyümesi: 16 yaşından sonra boy nereden gelir?
+
+2
+00:00:05,080 --> 00:00:07,580
+Boy iki yerden uzar: bacaklar ve gövde (omurga + leğen).
+
+3
+00:00:08,374 --> 00:00:10,874
+Bacak önce biter: erkeklerde medyan 16 yaş.
+
+4
+00:00:10,904 --> 00:00:13,404
+Gövde devam eder: en az 18 yaşına kadar (kişilerin %92'sinde).
+
+5
+00:00:14,551 --> 00:00:17,051
+Bacak bittikten sonra gövde en az ~3.4 cm daha uzar.
+
+6
+00:00:17,609 --> 00:00:20,109
+16 yaştan sonraki uzamanın ~%90'ı gövdeden gelir.
+
+7
+00:00:20,492 --> 00:00:22,992
+Kaynak: Berkeley verisi, 66 erkek (bu depodaki analiz).
+
+8
+00:00:25,320 --> 00:00:34,600
+Simülasyon: bacak önce durur, gövde (omurga) birkaç yıl daha uzar. Model: tipik erkek.
+
+9
+00:00:35,200 --> 00:00:37,700
+Gün içinde diskler sıkışır: akşam ~1.4 cm daha kısa ölçülürsün.
+
+10
+00:00:38,906 --> 00:00:41,406
+Gece yatınca diskler su çeker; sabah boy geri gelir.
+
+11
+00:00:41,965 --> 00:00:44,465
+Bu ne büyümedir ne kayıp. Boyunu hep sabah ölç.
+
+12
+00:00:44,729 --> 00:00:47,229
+Asılma ve esneme sonrası 'uzama' da aynı nedenle geçici: ertesi sabah ~0 mm.
+
+13
+00:00:50,720 --> 00:00:53,220
+30° skolyoz eğrisi ölçülen boyu ~11 mm azaltır; 45°'de ~21 mm.
+
+14
+00:00:54,367 --> 00:00:56,867
+Omurga kısalmaz; eğildiği için dik boy kısa ölçülür.
+
+15
+00:00:57,426 --> 00:00:59,926
+Scheuermann kifozu (omurlarda kama şekli) kişilerin %0.4-10'unda görülür.
+
+16
+00:01:01,226 --> 00:01:03,726
+Sırtında eğrilik ya da kamburluk fark edersen hekime git. Amaç boy değil, sağlık.
+
+17
+00:01:07,240 --> 00:01:09,740
+Boyu gerçekten artıran tek şey: kalan biyolojik büyüme.
+
+18
+00:01:10,475 --> 00:01:12,975
+Tipik erkek, 17 → 25 yaş: gövde ~16 mm, bacak ~1 mm.
+
+19
+00:01:13,534 --> 00:01:16,034
+Duruş 2-4 mm; egzersizin plağa etkisi < 0.5 mm.
+
+20
+00:01:16,299 --> 00:01:18,799
+Eğrilik ve günün saati, ölçülen boyu büyümeden fazla değiştirebilir.
+
+21
+00:01:22,280 --> 00:01:24,780
+Asılma, esneme, ters asılma: kalıcı uzama yok.
+
+22
+00:01:24,986 --> 00:01:27,486
+Fazla protein, protein tozu, 'boy uzatan' takviye: yeterli beslenen gençte ek uzama yok.
+
+23
+00:01:28,786 --> 00:01:31,286
+Ağırlık antrenmanı omurgayı kısaltmaz; doğru teknikle güvenli.
+
+24
+00:01:32,433 --> 00:01:34,933
+Yapma: steroid, reçetesiz hormon, yoğun spor + aşırı diyet.
+
+25
+00:01:35,904 --> 00:01:38,404
+Taban: yeterli enerji ve protein, D vitamini (güneş), düzenli uyku.
+
+26
+00:01:39,704 --> 00:01:42,204
+Horlama, uykuda nefes durması, eğrilik, yavaşlayan büyüme: hekim.
+
+27
+00:01:45,720 --> 00:01:48,220
+Sabah, çıplak ayak, aynı duvar, kafaya düz bir kitap.
+
+28
+00:01:48,838 --> 00:01:51,338
+Boy ve oturma boyu, 3'er kez; ortalamasını yaz.
+
+29
+00:01:51,602 --> 00:01:54,102
+Ayda bir, 18 ay (57 ölçüm): omurga uzamasını yakalama ~%86.
+
+30
+00:01:55,073 --> 00:01:57,573
+3 ayda bir ölçersen ~%50.
+
+31
+00:01:57,073 --> 00:01:59,573
+En büyük kazanç koşulları sabitlemek: ~%99.
+
+32
+00:01:59,602 --> 00:02:02,102
+'Dizlerim hâlâ uzuyor mu?' evde anlaşılmaz (~%25). Görüntüleme hekimin kararı.
+
+33
+00:02:05,600 --> 00:02:08,100
+16 yaştan sonra uzamanın çoğu (~%90) omurgadan; bacaklar önce biter.
+
+34
+00:02:09,400 --> 00:02:11,900
+Omurgayı genetiğinin üstüne uzatan bilinen bir yöntem yok.
+
+35
+00:02:12,812 --> 00:02:15,312
+Desteklemek = eksik bırakmamak: beslenme, D vitamini, uyku, hastalığı tedavi.
+
+36
+00:02:16,612 --> 00:02:19,112
+Eğrilik ve günün saati ölçülen boyu değiştirir; ikisini büyümeyle karıştırma.
+
+37
+00:02:20,412 --> 00:02:22,912
+Ölçeceksen: sabah, aynı koşulda, ayda bir. Kesin cevap hekimde.
+
+38
+00:02:26,720 --> 00:02:35,720
+Tıbbi tavsiye değildir. Kaynaklar: github.com/cruciblelab/arastirma
+
