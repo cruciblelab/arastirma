@@ -1,0 +1,6 @@
+test,aciklama,deger,olcut,sonuc
+T2,Stokes formülü: Cobb 30 → 40° kayıp farkı (kaynak örneği ~6.7 mm),6.54 mm,|Δ − 6.7| < 0.3,GEÇTİ
+T3,Protokol testi: büyüme yokken (v = 0) yanlış pozitif oranı,0.048,0.04-0.06,GEÇTİ
+T4,Monte Carlo kararlılığı: önerilen tasarımda iki tohumla güç farkı,0.0024,< 0.02,GEÇTİ
+T1,Animasyondaki boy/oturma boyu/bacak = sürüm 3 modeli (aynı kişi ve yaşlar),0.00e+00 cm,< 1e-6,GEÇTİ
+T5,"Animasyon dosyası (GIF boyutu, kare sayısı)","1.04 MB, 139 kare","< 5 MB, ≥ 60 kare",GEÇTİ

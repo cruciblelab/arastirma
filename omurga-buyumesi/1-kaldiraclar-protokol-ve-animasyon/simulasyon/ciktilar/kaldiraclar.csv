@@ -1,0 +1,16 @@
+cinsiyet,kaldirac,tur,mm_medyan,mm_p10,mm_p90,kaynak
+erkek,Kalan gövde büyümesi (16 → 25 yaş),kalıcı büyüme,30.04,13.64,65.51,Sürüm 3 modeli (D)
+erkek,Kalan bacak büyümesi (16 → 25 yaş),kalıcı büyüme,3.94,0.77,20.29,Sürüm 3 modeli (D)
+erkek,Kalan gövde büyümesi (17 → 25 yaş),kalıcı büyüme,15.88,7.22,35.15,Sürüm 3 modeli (D)
+erkek,Kalan bacak büyümesi (17 → 25 yaş),kalıcı büyüme,1.13,0.22,6.11,Sürüm 3 modeli (D)
+kiz,Kalan gövde büyümesi (16 → 25 yaş),kalıcı büyüme,4.71,2.07,10.78,Sürüm 3 modeli (D)
+kiz,Kalan bacak büyümesi (16 → 25 yaş),kalıcı büyüme,0.18,0.04,0.78,Sürüm 3 modeli (D)
+kiz,Kalan gövde büyümesi (17 → 25 yaş),kalıcı büyüme,2.26,0.99,5.19,Sürüm 3 modeli (D)
+kiz,Kalan bacak büyümesi (17 → 25 yaş),kalıcı büyüme,0.04,0.00,0.20,Sürüm 3 modeli (D)
+her ikisi,Skolyoz eğrisi 10° (Cobb): ölçülen boy kaybı,ölçülen boy kaybı,2.50,,,Stokes 2008 (C)
+her ikisi,Skolyoz eğrisi 20° (Cobb): ölçülen boy kaybı,ölçülen boy kaybı,5.68,,,Stokes 2008 (C)
+her ikisi,Skolyoz eğrisi 30° (Cobb): ölçülen boy kaybı,ölçülen boy kaybı,10.54,,,Stokes 2008 (C)
+her ikisi,Skolyoz eğrisi 45° (Cobb): ölçülen boy kaybı,ölçülen boy kaybı,20.98,,,Stokes 2008 (C)
+her ikisi,Duruş (kambur ↔ dik),ölçülen boy (geri dönüşlü),3.00,2.00,4.00,"Spor ve boy sürüm 1, bölüm 4.4 (D)"
+her ikisi,Egzersizin plağa mekanik etkisi (üst sınır),kalıcı büyüme,0.50,0.00,0.50,Spor ve boy sürüm 1 (D)
+her ikisi,Gün içi disk değişimi (sabah → akşam),geçici,14.40,,,Spor ve boy sürüm 1 (C)

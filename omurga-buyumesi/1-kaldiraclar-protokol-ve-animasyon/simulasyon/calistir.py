@@ -91,7 +91,7 @@ test("T2", "Stokes formülü: Cobb 30 → 40° kayıp farkı (kaynak örneği ~6
 
 # Kaldıraç grafiği (erkek, 17 → 25)
 e = kal[(kal.cinsiyet.isin(["erkek", "her ikisi"])) & ~kal.kaldirac.str.contains("16 →")]
-e = e[~e.kaldirac.str.contains("Skolyoz eğrisi (10|20)°")].copy()
+e = e[~e.kaldirac.str.contains("Skolyoz eğrisi (?:10|20)°")].copy()
 renk = {"kalıcı büyüme": animasyon.GOVDE, "ölçülen boy kaybı": animasyon.EGRI, "ölçülen boy (geri dönüşlü)": SOLUK,
         "geçici": SOLUK}
 e = e.sort_values("mm_medyan")
@@ -160,25 +160,26 @@ if oneri:
     test("T4", "Monte Carlo kararlılığı: önerilen tasarımda iki tohumla güç farkı", f"{abs(g1 - g2):.4f}", "< 0.02",
          abs(g1 - g2) < 0.02)
 
-# Protokol grafiği: süreye göre güç (aralık 3 ay), çizgiler = tekrar sayısı; gövde ve bacak yan yana
+# Protokol grafiği: süreye göre güç; çizgiler = ölçüm sıklığı (seans başına 3 tekrar); gövde ve bacak yan yana
 fig, axs = plt.subplots(1, 2, figsize=(11, 4.2), facecolor=YUZEY, sharey=True)
-renkler = {1: SOLUK, 3: animasyon.BACAK, 5: MUREKKEP}
+renkler = {1: animasyon.BACAK, 2: animasyon.EGRI, 3: animasyon.GOVDE}
+etiket = {1: "her ay", 2: "2 ayda bir", 3: "3 ayda bir"}
 for ax, hedef, baslik in ((axs[0], "guc_govde", f"Gövde (oturma boyu), {ANA['v_g']} cm/yıl"),
                           (axs[1], "guc_bacak", f"Bacak (boy − oturma boyu), {ANA['v_b']} cm/yıl")):
-    for k in (1, 3, 5):
-        t = tas[(tas.aralik_ay == 3) & (tas.k == k)].sort_values("sure_ay")
-        ax.plot(t.sure_ay, t[hedef], "-o", color=renkler[k], lw=2, ms=8, mec=YUZEY, mew=2, label=f"seans başına {k} ölçüm")
-        ax.text(t.sure_ay.iloc[-1] + 0.4, t[hedef].iloc[-1], f"k={k}", fontsize=8.5, color=MUREKKEP2, va="center")
+    for aralik in (1, 2, 3):
+        t = tas[(tas.aralik_ay == aralik) & (tas.k == 3)].sort_values("sure_ay")
+        ax.plot(t.sure_ay, t[hedef], "-o", color=renkler[aralik], lw=2, ms=8, mec=YUZEY, mew=2, label=etiket[aralik])
     ax.axhline(0.8, color=MUREKKEP2, lw=0.8, ls=":")
     ax.text(6.1, 0.82, "hedef güç 0.80", fontsize=8, color=MUREKKEP2)
     ax.set_title(baslik, fontsize=10, color=MUREKKEP, loc="left")
-    ax.set_xlabel("Toplam süre (ay), 3 ayda bir seans", color=MUREKKEP2)
+    ax.set_xlabel("Toplam süre (ay); her seansta 3 ölçüm, ortalaması", color=MUREKKEP2)
     ax.set_xticks([6, 12, 18])
-    ax.set_xlim(5, 20)
+    ax.set_xlim(5, 19)
     ax.set_ylim(0, 1.02)
     stil(ax)
 axs[0].set_ylabel("Uzamayı yakalama olasılığı (güç)", color=MUREKKEP2)
-axs[0].legend(frameon=False, fontsize=8, loc="lower right")
+axs[0].legend(frameon=False, fontsize=8.5, loc="upper left", bbox_to_anchor=(0.0, 0.78), title="Ölçüm sıklığı",
+              title_fontsize=8.5)
 fig.tight_layout()
 fig.savefig(CIKTI / "protokol_guc.png", dpi=150)
 plt.close(fig)

@@ -46,7 +46,7 @@ def ciz_omurga(ax, aktivite_g, aktivite_b, disk_ezilme=0.0, cobb=0.0):
     """Şematik omurga (24 omur) + leğen + bacak. disk_ezilme 0-1, cobb derece (yanal S eğrisi)."""
     ax.clear()
     ax.set_xlim(-3, 3)
-    ax.set_ylim(-0.5, 21)
+    ax.set_ylim(-0.5, 25.5)
     ax.axis("off")
     n = 24
     omur_h, disk_h0 = 0.42, 0.16
@@ -55,7 +55,7 @@ def ciz_omurga(ax, aktivite_g, aktivite_b, disk_ezilme=0.0, cobb=0.0):
     y0 = 9.0
     plak_renk = _karisim(GOVDE, aktivite_g)
     # yanal eğrilik: x(s) = A·sin(2πs) (S eğrisi), A Cobb'a orantılı (şematik)
-    A = 0.9 * np.sin(np.radians(cobb) / 2)
+    A = 0.75 * cobb / 30.0   # şematik genlik (30°'de 0.75 birim)
     y = y0
     for i in range(n):
         s = (i + 0.5) / n
@@ -63,8 +63,8 @@ def ciz_omurga(ax, aktivite_g, aktivite_b, disk_ezilme=0.0, cobb=0.0):
         w = 1.0 + 0.35 * (1 - i / n)
         ax.add_patch(FancyBboxPatch((x - w / 2, y), w, omur_h, boxstyle="round,pad=0,rounding_size=0.06",
                                     fc="#f4f1ea", ec=MUREKKEP2, lw=0.8))
-        ax.add_patch(Rectangle((x - w / 2, y), w, 0.05, fc=plak_renk, ec="none"))
-        ax.add_patch(Rectangle((x - w / 2, y + omur_h - 0.05), w, 0.05, fc=plak_renk, ec="none"))
+        ax.add_patch(Rectangle((x - w / 2, y), w, 0.08, fc=plak_renk, ec="none"))
+        ax.add_patch(Rectangle((x - w / 2, y + omur_h - 0.08), w, 0.08, fc=plak_renk, ec="none"))
         y += omur_h
         if i < n - 1:
             ax.add_patch(Rectangle((x - w * 0.42, y), w * 0.84, disk_h, fc=DISK, ec="none"))
@@ -83,6 +83,7 @@ def ciz_omurga(ax, aktivite_g, aktivite_b, disk_ezilme=0.0, cobb=0.0):
         ax.add_patch(Rectangle((xs - 0.2, 0.3), 0.4, 3.45, fc="#f4f1ea", ec=MUREKKEP2, lw=0.8))
     ax.text(-2.95, 4.0, "diz\nplakları", fontsize=7.5, color=MUREKKEP2, va="center")
     ax.text(-2.95, 13.5, "omur\nplakları", fontsize=7.5, color=MUREKKEP2, va="center")
+    ax.text(2.0, 24.6, "renkli = aktif\ngri = kapanmış", fontsize=7, color=MUREKKEP2, va="top")
     ax.text(0, -0.45, "Şematik, ölçekli değil", fontsize=7, color=MUREKKEP2, ha="center", style="italic")
     return toplam
 
@@ -138,8 +139,10 @@ def uret(yol_mp4, yol_gif, cinsiyet="erkek", fps=10):
         db, dg = B[j] - B[i13], G[j] - G[i13]
         ax_b.bar([0], [db], color=BACAK, width=0.6)
         ax_b.bar([0], [dg], bottom=[db], color=GOVDE, width=0.6)
-        ax_b.text(0.38, db / 2, f"bacak\n+{db:.1f} cm", va="center", fontsize=9, color=MUREKKEP)
-        ax_b.text(0.38, db + dg / 2, f"gövde\n+{dg:.1f} cm", va="center", fontsize=9, color=MUREKKEP)
+        yb = max(db / 2, 1.2)
+        yg = max(db + dg / 2, yb + 2.6)          # etiketler üst üste binmesin
+        ax_b.text(0.38, yb, f"bacak\n+{db:.1f} cm", va="center", fontsize=9, color=MUREKKEP)
+        ax_b.text(0.38, yg, f"gövde\n+{dg:.1f} cm", va="center", fontsize=9, color=MUREKKEP)
         ax_b.set_xlim(-0.5, 1.4)
         ax_b.set_ylim(0, (B[-1] - B[i13] + G[-1] - G[i13]) * 1.08)
         ax_b.set_title("13 yaşından beri\nuzama (model)", fontsize=10, color=MUREKKEP, loc="left")

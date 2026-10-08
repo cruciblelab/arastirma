@@ -114,7 +114,9 @@ Analiz: Seans ortalamalarına en küçük kareler doğrusu oturtulur. Tek yönl�
 
 | Tarih | Ne değişti | Neden | Sonuçlar görüldükten sonra mı? |
 |---|---|---|---|
-| – | – | – | – |
+| 2026-10-08 | **Görsel düzeltme (animasyon):** omurga çiziminin dikey sınırı 21 → 25.5 (kafa kırpılıyordu); skolyoz genliği şematik olarak büyütüldü; plak çizgileri kalınlaştırıldı; "renkli = aktif, gri = kapanmış" açıklaması eklendi. Ayrıca kaldıraç grafiğinde regex uyarısı giderildi | İlk çıktının kareleri incelendi; okunurluk sorunu. Sayılar, model ve testler değişmedi | Evet (görsel) |
+| 2026-10-08 | **Görsel düzeltme 2:** animasyonda küçük değerlerde çubuk etiketlerinin üst üste binmesi giderildi; protokol grafiği "3 ayda bir, çizgi = tekrar sayısı" yerine "çizgi = ölçüm sıklığı (her seansta 3 tekrar)" olarak çizildi, çünkü önerilen tasarım aylık çıktı. Bütün tasarımlar `protokol_tasarimlar.csv`'de | İkinci çıktının kareleri ve grafik incelendi. Sayılar değişmedi | Evet (görsel) |
+| 2026-10-08 | **Not:** Model kayıt yaşlarını 0.02 yıllık adıma yuvarlıyor. Animasyonun yaş ızgarası bu yüzden 0.1 seçildi (plan 0.1 adım belirtmemişti) | Kişisel büyüme analizi sürüm 1'de 0.05 ızgarası kullanılmıştı; etkisi en fazla 1.7 mm (o konunun düzeltmeler tablosuna yazıldı) | Hayır (kod yazılırken fark edildi) |
 
 **Şeffaflık notu:** Plan yazılmadan önce görülen sonuçlar:
 - plak kapanma sırası araştırmasının Berkeley bulguları (gövde hızı 18-20 yaşta ~0.6-0.8 cm/yıl);

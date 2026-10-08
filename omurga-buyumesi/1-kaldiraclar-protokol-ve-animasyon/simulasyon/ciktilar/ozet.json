@@ -1,0 +1,61 @@
+{
+ "protokol_oneri": {
+  "aralik_ay": 1.0,
+  "sure_ay": 18.0,
+  "k": 3.0,
+  "n_seans": 19.0,
+  "toplam_olcum": 57.0,
+  "guc_govde": 0.8607,
+  "ci90_govde": 0.7150040442778689,
+  "guc_bacak": 0.24835,
+  "ci90_bacak": 1.0111684165693753
+ },
+ "animasyon_olaylar": {
+  "tepe": 13.8,
+  "bacak_bitis": 16.4,
+  "govde_yavas": 17.1,
+  "govde_bitis": 20.7
+ },
+ "animasyon": {
+  "kare": 139,
+  "gif_mb": 1.043238,
+  "mp4_mb": 0.933813
+ },
+ "testler": [
+  {
+   "test": "T2",
+   "aciklama": "Stokes formülü: Cobb 30 → 40° kayıp farkı (kaynak örneği ~6.7 mm)",
+   "deger": "6.54 mm",
+   "olcut": "|Δ − 6.7| < 0.3",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T3",
+   "aciklama": "Protokol testi: büyüme yokken (v = 0) yanlış pozitif oranı",
+   "deger": "0.048",
+   "olcut": "0.04-0.06",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T4",
+   "aciklama": "Monte Carlo kararlılığı: önerilen tasarımda iki tohumla güç farkı",
+   "deger": "0.0024",
+   "olcut": "< 0.02",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T1",
+   "aciklama": "Animasyondaki boy/oturma boyu/bacak = sürüm 3 modeli (aynı kişi ve yaşlar)",
+   "deger": "0.00e+00 cm",
+   "olcut": "< 1e-6",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T5",
+   "aciklama": "Animasyon dosyası (GIF boyutu, kare sayısı)",
+   "deger": "1.04 MB, 139 kare",
+   "olcut": "< 5 MB, ≥ 60 kare",
+   "sonuc": "GEÇTİ"
+  }
+ ]
+}

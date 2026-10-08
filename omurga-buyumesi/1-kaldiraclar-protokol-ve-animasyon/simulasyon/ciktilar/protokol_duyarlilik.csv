@@ -1,0 +1,13 @@
+hedef,parametre,deger,guc
+gövde,v_g,0.300,0.393
+gövde,v_g,1.000,0.998
+gövde,sigma_o,0.300,0.950
+gövde,sigma_o,0.800,0.673
+gövde,sigma_s,0.000,0.989
+gövde,sigma_s,0.500,0.635
+bacak,v_b (süre 12 ay),0.100,0.071
+bacak,v_b (süre 18 ay),0.100,0.091
+bacak,v_b (süre 12 ay),0.300,0.134
+bacak,v_b (süre 18 ay),0.300,0.248
+bacak,v_b (süre 12 ay),0.500,0.225
+bacak,v_b (süre 18 ay),0.500,0.487
