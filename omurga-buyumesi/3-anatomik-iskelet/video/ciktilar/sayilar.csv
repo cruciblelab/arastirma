@@ -1,0 +1,17 @@
+ad,deger,gosterim,kaynak
+Berkeley erkek bacak bitiş yaşı (medyan),16.0,16,buyume-plaklari-kapanma-sirasi/1/ozet.json
+"Berkeley erkek gövde bitiş yaşı (medyan, alt sınır)",18.0,18,buyume-plaklari-kapanma-sirasi/1/ozet.json
+16 yaş sonrası gövde payı (%),90.00000000000009,90,buyume-plaklari-kapanma-sirasi/1/ozet.json
+Gövdesi bacaktan sonra biten (%),92.42424242424242,92,buyume-plaklari-kapanma-sirasi/1/ozet.json
+"Bacak bittikten sonra gövde (cm, alt sınır)",3.3500000000000014,3.4,buyume-plaklari-kapanma-sirasi/1/ozet.json
+Gün içi disk değişimi (cm),1.44,1.4,omurga-buyumesi/1/kaldiraclar.csv
+Skolyoz 30° boy kaybı (mm),10.54,11,omurga-buyumesi/1/kaldiraclar.csv
+Skolyoz 45° boy kaybı (mm),20.98,21,omurga-buyumesi/1/kaldiraclar.csv
+Kalan gövde büyümesi 17→25 erkek (mm),15.88,16,omurga-buyumesi/1/kaldiraclar.csv
+Kalan bacak büyümesi 17→25 erkek (mm),1.13,1,omurga-buyumesi/1/kaldiraclar.csv
+Egzersizin mekanik etkisi üst sınır (mm),0.5,0.5,omurga-buyumesi/1/kaldiraclar.csv
+Önerilen protokolde gövde gücü (%),86.07000000000001,86,omurga-buyumesi/1/protokol_tasarimlar.csv
+Önerilen protokolde bacak gücü (%),24.834999999999997,25,omurga-buyumesi/1/protokol_tasarimlar.csv
+"3 ayda bir, 18 ay, k=3 gövde gücü (%)",49.6,50,omurga-buyumesi/1/protokol_tasarimlar.csv
+Koşul farkı 0 iken gövde gücü (%),98.9,99,omurga-buyumesi/1/protokol_duyarlilik.csv
+Önerilen protokol toplam ölçüm,57.0,57,omurga-buyumesi/1/protokol_tasarimlar.csv

@@ -1,0 +1,172 @@
+1
+00:00:00,000 --> 00:00:04,500
+Omurga Büyümesi: 16 yaşından sonra boy nereden gelir?
+
+2
+00:00:05,080 --> 00:00:07,580
+Boyu iki bölge belirler: bacak kemikleri ve omurga.
+
+3
+00:00:08,080 --> 00:00:10,580
+Bacakta büyüme dizdeki plaklarda olur: uyluk kemiğinin alt, kaval kemiğinin üst ucu.
+
+4
+00:00:11,880 --> 00:00:14,380
+Omurgada büyüme her omurun alt ve üst sonlanma plağında olur.
+
+5
+00:00:15,468 --> 00:00:17,968
+Omurlar arasındaki diskler gün içinde sıkışır; bu büyüme değildir.
+
+6
+00:00:19,268 --> 00:00:21,768
+El ve ayak plakları boya katkı yapmaz; yalnızca olgunluğu gösterir.
+
+7
+00:00:25,280 --> 00:00:27,780
+Boy iki yerden uzar: bacaklar ve gövde (omurga + leğen).
+
+8
+00:00:28,574 --> 00:00:31,074
+Bacak önce biter: erkeklerde medyan 16 yaş.
+
+9
+00:00:31,104 --> 00:00:33,604
+Gövde devam eder: en az 18 yaşına kadar (kişilerin %92'sinde).
+
+10
+00:00:34,751 --> 00:00:37,251
+Bacak bittikten sonra gövde en az ~3.4 cm daha uzar.
+
+11
+00:00:37,809 --> 00:00:40,309
+16 yaştan sonraki uzamanın ~%90'ı gövdeden gelir.
+
+12
+00:00:40,692 --> 00:00:43,192
+Kaynak: Berkeley verisi, 66 erkek (bu depodaki analiz).
+
+13
+00:00:45,520 --> 00:00:54,800
+Simülasyon: bacak önce durur, gövde (omurga) birkaç yıl daha uzar. Model: tipik erkek.
+
+14
+00:00:55,400 --> 00:00:57,900
+Gün içinde diskler sıkışır: akşam ~1.4 cm daha kısa ölçülürsün.
+
+15
+00:00:59,106 --> 00:01:01,606
+Gece yatınca diskler su çeker; sabah boy geri gelir.
+
+16
+00:01:02,165 --> 00:01:04,665
+Bu ne büyümedir ne kayıp. Boyunu hep sabah ölç.
+
+17
+00:01:04,929 --> 00:01:07,429
+Asılma ve esneme sonrası 'uzama' da aynı nedenle geçici: ertesi sabah ~0 mm.
+
+18
+00:01:10,920 --> 00:01:13,420
+30° skolyoz eğrisi ölçülen boyu ~11 mm azaltır; 45°'de ~21 mm.
+
+19
+00:01:14,567 --> 00:01:17,067
+Omurga kısalmaz; eğildiği için dik boy kısa ölçülür.
+
+20
+00:01:17,626 --> 00:01:20,126
+Scheuermann kifozu (omurlarda kama şekli) kişilerin %0.4-10'unda görülür.
+
+21
+00:01:21,426 --> 00:01:23,926
+Sırtında eğrilik ya da kamburluk fark edersen hekime git. Amaç boy değil, sağlık.
+
+22
+00:01:27,440 --> 00:01:29,940
+Boyu gerçekten artıran tek şey: kalan biyolojik büyüme.
+
+23
+00:01:30,675 --> 00:01:33,175
+Tipik erkek, 17 → 25 yaş: gövde ~16 mm, bacak ~1 mm.
+
+24
+00:01:33,734 --> 00:01:36,234
+Duruş 2-4 mm; egzersizin plağa etkisi < 0.5 mm.
+
+25
+00:01:36,499 --> 00:01:38,999
+Eğrilik ve günün saati, ölçülen boyu büyümeden fazla değiştirebilir.
+
+26
+00:01:42,480 --> 00:01:44,980
+Asılma, esneme, ters asılma: kalıcı uzama yok.
+
+27
+00:01:45,186 --> 00:01:47,686
+Fazla protein, protein tozu, 'boy uzatan' takviye: yeterli beslenen gençte ek uzama yok.
+
+28
+00:01:48,986 --> 00:01:51,486
+Ağırlık antrenmanı omurgayı kısaltmaz; doğru teknikle güvenli.
+
+29
+00:01:52,633 --> 00:01:55,133
+Yapma: steroid, reçetesiz hormon, yoğun spor + aşırı diyet.
+
+30
+00:01:56,104 --> 00:01:58,604
+Taban: yeterli enerji ve protein, D vitamini (güneş), düzenli uyku.
+
+31
+00:01:59,904 --> 00:02:02,404
+Horlama, uykuda nefes durması, eğrilik, yavaşlayan büyüme: hekim.
+
+32
+00:02:05,920 --> 00:02:08,420
+Sabah, çıplak ayak, aynı duvar, kafaya düz bir kitap.
+
+33
+00:02:09,038 --> 00:02:11,538
+Boy ve oturma boyu, 3'er kez; ortalamasını yaz.
+
+34
+00:02:11,802 --> 00:02:14,302
+Ayda bir, 18 ay (57 ölçüm): omurga uzamasını yakalama ~%86.
+
+35
+00:02:15,273 --> 00:02:17,773
+3 ayda bir ölçersen ~%50.
+
+36
+00:02:17,273 --> 00:02:19,773
+En büyük kazanç koşulları sabitlemek: ~%99.
+
+37
+00:02:19,802 --> 00:02:22,302
+'Dizlerim hâlâ uzuyor mu?' evde anlaşılmaz (~%25). Görüntüleme hekimin kararı.
+
+38
+00:02:25,800 --> 00:02:28,300
+16 yaştan sonra uzamanın çoğu (~%90) omurgadan; bacaklar önce biter.
+
+39
+00:02:29,600 --> 00:02:32,100
+Omurgayı genetiğinin üstüne uzatan bilinen bir yöntem yok.
+
+40
+00:02:33,012 --> 00:02:35,512
+Desteklemek = eksik bırakmamak: beslenme, D vitamini, uyku, hastalığı tedavi.
+
+41
+00:02:36,812 --> 00:02:39,312
+Eğrilik ve günün saati ölçülen boyu değiştirir; ikisini büyümeyle karıştırma.
+
+42
+00:02:40,612 --> 00:02:43,112
+Ölçeceksen: sabah, aynı koşulda, ayda bir. Kesin cevap hekimde.
+
+43
+00:02:46,920 --> 00:02:55,920
+Tıbbi tavsiye değildir. Kaynaklar: github.com/cruciblelab/arastirma
+

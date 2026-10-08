@@ -1,4 +1,4 @@
-> **Güncel sürüm:** [2-bilgilendirme-videosu](../2-bilgilendirme-videosu/). Bu sürüm dondurulmuştur.
+> **Güncel sürüm:** [3-anatomik-iskelet](../3-anatomik-iskelet/). Bu sürüm dondurulmuştur.
 
 # Omurga Büyümesi · Sürüm 1: Kaldıraçlar, Ölçüm Protokolü ve Animasyon
 

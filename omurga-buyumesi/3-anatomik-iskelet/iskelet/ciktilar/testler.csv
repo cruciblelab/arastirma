@@ -1,0 +1,4 @@
+test,aciklama,deger,olcut,sonuc
+I1,Anatomi kartı: iskeletin tepesi = model boyu,177.21 / 177.21 cm,göreli fark < %0.2,GEÇTİ
+I2,Omur sayıları,"{'C': 7, 'T': 12, 'L': 5}","C7, T12, L5",GEÇTİ
+I3,"16 → 22 yaş: gövde artışı > bacak artışı (model, iskelet aynı değerlerle çiziliyor)","gövde 2.91, bacak 0.39 cm",gövde > bacak,GEÇTİ

@@ -1,3 +1,5 @@
+> **Güncel sürüm:** [3-anatomik-iskelet](../3-anatomik-iskelet/). Bu sürüm dondurulmuştur.
+
 # Omurga Büyümesi · Sürüm 2: Bilgilendirme Videosu
 
 > **Sürüm:** 2 · **Tarih:** 2026-10-08 · **Durum:** güncel
