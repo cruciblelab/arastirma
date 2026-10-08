@@ -1,0 +1,126 @@
+{
+ "bicim": "boy-olcum-gunlugu/arastirma/v1",
+ "seans": 12,
+ "satirlar": [
+  {
+   "gun": 0,
+   "yas": 17.3,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 175.43,
+   "oturma_ort": 92.25,
+   "bacak_ort": 83.19,
+   "uyari": ""
+  },
+  {
+   "gun": 40,
+   "yas": 17.4,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 175.02,
+   "oturma_ort": 92.13,
+   "bacak_ort": 82.9,
+   "uyari": ""
+  },
+  {
+   "gun": 80,
+   "yas": 17.5,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 174.55,
+   "oturma_ort": 91.86,
+   "bacak_ort": 82.69,
+   "uyari": ""
+  },
+  {
+   "gun": 120,
+   "yas": 17.6,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 175.98,
+   "oturma_ort": 92.96,
+   "bacak_ort": 83.02,
+   "uyari": ""
+  },
+  {
+   "gun": 160,
+   "yas": 17.7,
+   "saat": 19,
+   "uyanma_dk": 600,
+   "boy_ort": 173.58,
+   "oturma_ort": 91.26,
+   "bacak_ort": 82.32,
+   "uyari": "sabah değil; kalkıştan 1 saatten fazla sonra"
+  },
+  {
+   "gun": 200,
+   "yas": 17.8,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 175.43,
+   "oturma_ort": 92.6,
+   "bacak_ort": 82.83,
+   "uyari": ""
+  },
+  {
+   "gun": 240,
+   "yas": 18.0,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 175.1,
+   "oturma_ort": 92.36,
+   "bacak_ort": 82.74,
+   "uyari": ""
+  },
+  {
+   "gun": 280,
+   "yas": 18.1,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 175.58,
+   "oturma_ort": 92.52,
+   "bacak_ort": 83.05,
+   "uyari": ""
+  },
+  {
+   "gun": 320,
+   "yas": 18.2,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 176.16,
+   "oturma_ort": 92.56,
+   "bacak_ort": 83.61,
+   "uyari": ""
+  },
+  {
+   "gun": 360,
+   "yas": 18.3,
+   "saat": 19,
+   "uyanma_dk": 600,
+   "boy_ort": 173.74,
+   "oturma_ort": 90.82,
+   "bacak_ort": 82.93,
+   "uyari": "sabah değil; kalkıştan 1 saatten fazla sonra"
+  },
+  {
+   "gun": 400,
+   "yas": 18.4,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 175.3,
+   "oturma_ort": 92.45,
+   "bacak_ort": 82.84,
+   "uyari": ""
+  },
+  {
+   "gun": 440,
+   "yas": 18.5,
+   "saat": 7,
+   "uyanma_dk": 15,
+   "boy_ort": 175.3,
+   "oturma_ort": 92.4,
+   "bacak_ort": 82.9,
+   "uyari": ""
+  }
+ ]
+}

@@ -1,0 +1,47 @@
+[
+ {
+  "test": "U1",
+  "sonuc": "GEÇTİ",
+  "deger": "{\"fetch\": \"engellendi\", \"resim\": \"engellendi\"}"
+ },
+ {
+  "test": "U2",
+  "sonuc": "GEÇTİ",
+  "deger": "10 seans; ilk oturma boyu 92.00 cm (beklenen ~92.0)"
+ },
+ {
+  "test": "U3",
+  "sonuc": "GEÇTİ",
+  "deger": "gövde +0.62, bacak -0.00, boy +0.62 cm/yıl"
+ },
+ {
+  "test": "U4",
+  "sonuc": "GEÇTİ",
+  "deger": "yeniden açılışta 10 seans"
+ },
+ {
+  "test": "U5",
+  "sonuc": "GEÇTİ",
+  "deger": "yedekte 10 seans; geri yüklemeden sonra 10 (tekrar yok)"
+ },
+ {
+  "test": "U6",
+  "sonuc": "GEÇTİ",
+  "deger": "yasak içerik yok: True; gün 0…405; yaş 22.6…23.7"
+ },
+ {
+  "test": "U8",
+  "sonuc": "GEÇTİ",
+  "deger": "içi boş nokta 1; gövde eğimi +0.62 (uyarılı seans öncesi +0.62)"
+ },
+ {
+  "test": "U9",
+  "sonuc": "GEÇTİ",
+  "deger": "SD 0.3 haftada 12, ayda 19; SD 0.2 haftada 9; SD 0.5 ayda 27 ay"
+ },
+ {
+  "test": "U7",
+  "sonuc": "GEÇTİ",
+  "deger": "ekran görüntüleri ciktilar/ altında"
+ }
+]

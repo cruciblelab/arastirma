@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Veri güvenliği: bu sayfa hiçbir sunucuya bağlanamaz. Tarayıcı, aşağıdaki kural yüzünden
+     ağ isteklerini (fetch, resim, yazı tipi, form gönderimi) engeller. Veri yalnız bu bilgisayarda kalır. -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; font-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Boy Ölçüm Günlüğü</title>
+<style>
+:root {
+  color-scheme: light;
+  --zemin: #f6f5f1; --yuzey: #fcfcfb; --kenar: #e4e3df; --izgara: #e4e3df;
+  --yazi: #0b0b0b; --yazi2: #52514e; --soluk: #8a8984;
+  --govde: #1baf7a; --bacak: #2a78d6; --boy: #0b0b0b; --vurgu: #1baf7a;
+  --uyari-zemin: #fdf3e2; --uyari: #8a5a00; --hata-zemin: #fdeeee; --hata: #a12a2a;
+  --tamam-zemin: #e8f6ef; --tamam: #136b4c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --zemin: #121211; --yuzey: #1a1a19; --kenar: #34332f; --izgara: #2c2b28;
+    --yazi: #ffffff; --yazi2: #c3c2b7; --soluk: #8f8e86;
+    --govde: #199e70; --bacak: #3987e5; --boy: #ffffff; --vurgu: #199e70;
+    --uyari-zemin: #3a2e14; --uyari: #f0c46a; --hata-zemin: #3d1d1d; --hata: #f19a9a;
+    --tamam-zemin: #163327; --tamam: #8fe0bd;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --zemin: #121211; --yuzey: #1a1a19; --kenar: #34332f; --izgara: #2c2b28;
+  --yazi: #ffffff; --yazi2: #c3c2b7; --soluk: #8f8e86;
+  --govde: #199e70; --bacak: #3987e5; --boy: #ffffff; --vurgu: #199e70;
+  --uyari-zemin: #3a2e14; --uyari: #f0c46a; --hata-zemin: #3d1d1d; --hata: #f19a9a;
+  --tamam-zemin: #163327; --tamam: #8fe0bd;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--zemin); color: var(--yazi);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+header { background: var(--yuzey); border-bottom: 1px solid var(--kenar); padding: 14px 16px; }
+.ust { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 20px; margin: 0; font-weight: 650; }
+.rozet { font-size: 12px; color: var(--tamam); background: var(--tamam-zemin); padding: 3px 9px; border-radius: 999px; }
+nav { max-width: 980px; margin: 10px auto 0; display: flex; gap: 4px; flex-wrap: wrap; }
+nav button { border: 1px solid var(--kenar); background: transparent; color: var(--yazi2); padding: 7px 12px;
+  border-radius: 8px; font: inherit; cursor: pointer; }
+nav button[aria-selected="true"] { background: var(--yazi); color: var(--yuzey); border-color: var(--yazi); }
+main { max-width: 980px; margin: 0 auto; padding: 16px; }
+section.panel { display: none; }
+section.panel.acik { display: block; }
+.kart { background: var(--yuzey); border: 1px solid var(--kenar); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+h2 { font-size: 17px; margin: 0 0 10px; }
+h3 { font-size: 15px; margin: 14px 0 6px; }
+.izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 14px; }
+label { display: block; font-size: 13px; color: var(--yazi2); margin-bottom: 3px; }
+input[type=text], input[type=number], input[type=date], input[type=time], input[type=month], textarea, select {
+  width: 100%; padding: 8px 9px; border: 1px solid var(--kenar); border-radius: 8px; background: var(--zemin);
+  color: var(--yazi); font: inherit; }
+textarea { min-height: 60px; resize: vertical; }
+input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--bacak); outline-offset: 1px; }
+.uclu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.onay { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--yazi); }
+.onay input { width: 18px; height: 18px; }
+.dugmeler { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+button.ana, button.ikinci, button.tehlike { font: inherit; padding: 9px 14px; border-radius: 8px; cursor: pointer; }
+button.ana { background: var(--yazi); color: var(--yuzey); border: 1px solid var(--yazi); }
+button.ikinci { background: transparent; color: var(--yazi); border: 1px solid var(--kenar); }
+button.tehlike { background: transparent; color: var(--hata); border: 1px solid var(--hata); }
+.mesaj { border-radius: 8px; padding: 9px 12px; margin: 10px 0 0; font-size: 14px; }
+.mesaj.uyari { background: var(--uyari-zemin); color: var(--uyari); }
+.mesaj.hata { background: var(--hata-zemin); color: var(--hata); }
+.mesaj.tamam { background: var(--tamam-zemin); color: var(--tamam); }
+.kucuk { font-size: 13px; color: var(--yazi2); }
+.ozet { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.sayi { background: var(--zemin); border-radius: 10px; padding: 10px 12px; }
+.sayi .d { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.sayi .a { font-size: 12.5px; color: var(--yazi2); }
+.grafik { width: 100%; position: relative; }
+.grafik svg { width: 100%; height: auto; display: block; }
+.ipucu { position: absolute; pointer-events: none; background: var(--yuzey); border: 1px solid var(--kenar);
+  border-radius: 8px; padding: 6px 9px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.12); display: none;
+  white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lejant { display: flex; gap: 16px; font-size: 13px; color: var(--yazi2); margin: 4px 0 6px; flex-wrap: wrap; }
+.lejant i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.lejant i.halka { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--yazi2); background: transparent; box-sizing: border-box; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--kenar); vertical-align: top; }
+th { color: var(--yazi2); font-weight: 600; }
+td.bayrak { color: var(--uyari); font-size: 12.5px; }
+.tablo-kap { overflow-x: auto; }
+ol, ul { padding-left: 20px; margin: 6px 0; }
+li { margin: 3px 0; }
+code { background: var(--zemin); padding: 1px 5px; border-radius: 5px; }
+footer { max-width: 980px; margin: 0 auto; padding: 0 16px 24px; font-size: 12.5px; color: var(--soluk); }
+@media (max-width: 520px) { .uclu { grid-template-columns: 1fr 1fr 1fr; } h1 { font-size: 18px; } }
+@media print { header nav, .dugmeler, footer { display: none; } section.panel { display: block; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="ust">
+    <h1>Boy Ölçüm Günlüğü</h1>
+    <span class="rozet" title="Bu sayfa internete bağlanamaz; veriler yalnız bu bilgisayarda">Çevrimdışı · veri bu bilgisayarda</span>
+    <span class="kucuk" id="kayitDurumu"></span>
+  </div>
+  <nav role="tablist" aria-label="Bölümler">
+    <button role="tab" data-panel="olcum" aria-selected="true">Yeni ölçüm</button>
+    <button role="tab" data-panel="grafik" aria-selected="false">Grafikler</button>
+    <button role="tab" data-panel="liste" aria-selected="false">Ölçümler</button>
+    <button role="tab" data-panel="rehber" aria-selected="false">Nasıl ölçülür</button>
+    <button role="tab" data-panel="veri" aria-selected="false">Veri ve yedek</button>
+  </nav>
+</header>
+
+<main>
+<div id="yedekUyari"></div>
+
+<!-- ============ YENİ ÖLÇÜM ============ -->
+<section class="panel acik" id="p-olcum" role="tabpanel">
+  <div class="kart">
+    <h2>Yeni ölçüm seansı</h2>
+    <p class="kucuk">Her seansta aynı koşul: sabah kalktıktan sonraki ilk saat, çıplak ayak, aynı duvar. Boy ve oturma boyunu 3'er kez ölç.</p>
+    <div class="izgara">
+      <div><label for="tarih">Tarih</label><input type="date" id="tarih"></div>
+      <div><label for="saat">Saat</label><input type="time" id="saat"></div>
+      <div><label for="uyanma">Kalktıktan sonra kaç dakika?</label><input type="number" id="uyanma" min="0" max="900" step="5" placeholder="ör. 20"></div>
+    </div>
+    <h3>Boy (cm)</h3>
+    <div class="uclu">
+      <input type="number" step="0.1" id="b1" aria-label="Boy 1" placeholder="1. ölçüm">
+      <input type="number" step="0.1" id="b2" aria-label="Boy 2" placeholder="2. ölçüm">
+      <input type="number" step="0.1" id="b3" aria-label="Boy 3" placeholder="3. ölçüm">
+    </div>
+    <h3>Oturma boyu (cm)</h3>
+    <p class="kucuk" id="oturmaAciklama"></p>
+    <div class="uclu">
+      <input type="number" step="0.1" id="o1" aria-label="Oturma 1" placeholder="1. ölçüm">
+      <input type="number" step="0.1" id="o2" aria-label="Oturma 2" placeholder="2. ölçüm">
+      <input type="number" step="0.1" id="o3" aria-label="Oturma 3" placeholder="3. ölçüm">
+    </div>
+    <h3>İsteğe bağlı</h3>
+    <div class="izgara">
+      <div><label for="kilo">Kilo (kg)</label><input type="number" step="0.1" id="kilo"></div>
+      <div><label for="uyku">Önceki gece uyku (saat)</label><input type="number" step="0.5" id="uyku"></div>
+      <div style="align-self:end"><label class="onay"><input type="checkbox" id="egzersiz"> Ölçümden önce yoğun egzersiz / asılma</label></div>
+    </div>
+    <div style="margin-top:10px"><label for="not">Not (yalnız sende kalır; araştırma dosyasına varsayılan olarak girmez)</label><textarea id="not"></textarea></div>
+    <div id="olcumMesaj"></div>
+    <div class="dugmeler">
+      <button class="ana" id="kaydet">Seansı kaydet</button>
+      <button class="ikinci" id="temizle">Formu temizle</button>
+    </div>
+  </div>
+  <div class="kart" id="sonSeans"></div>
+</section>
+
+<!-- ============ GRAFİKLER ============ -->
+<section class="panel" id="p-grafik" role="tabpanel">
+  <div class="kart">
+    <h2>Özet</h2>
+    <div class="ozet" id="ozetKutular"></div>
+    <div id="egilimMesaj"></div>
+  </div>
+  <div class="kart">
+    <h2>Boy (sabah, seans ortalaması)</h2>
+    <div class="lejant"><span><i style="background:var(--boy)"></i>ölçüm</span><span><i class="halka"></i>uyarılı seans (eğilime katılmaz)</span><span><i style="background:var(--soluk)"></i>eğilim çizgisi (uyarısız seanslar)</span></div>
+    <div class="grafik" id="g-boy"></div>
+  </div>
+  <div class="kart">
+    <h2>İlk uyarısız ölçüme göre değişim: gövde ve bacak</h2>
+    <div class="lejant"><span><i style="background:var(--govde)"></i>oturma boyu (gövde)</span><span><i style="background:var(--bacak)"></i>bacak (boy − oturma)</span><span><i class="halka"></i>uyarılı seans</span></div>
+    <div class="grafik" id="g-parca"></div>
+    <p class="kucuk">Tek iki ölçüm arasındaki fark anlamlı değildir: ölçüm hatası (~0.5 cm), geç dönemde bir yıllık uzamayla aynı büyüklükte. Eğilim ancak aylar içinde görünür.</p>
+  </div>
+</section>
+
+<!-- ============ ÖLÇÜMLER ============ -->
+<section class="panel" id="p-liste" role="tabpanel">
+  <div class="kart">
+    <h2>Bütün ölçümler</h2>
+    <div class="tablo-kap"><table id="tablo"></table></div>
+  </div>
+</section>
+
+<!-- ============ REHBER ============ -->
+<section class="panel" id="p-rehber" role="tabpanel">
+  <div class="kart">
+    <h2>Nasıl ölçülür</h2>
+    <p><b>En önemli kural: koşulu sabitle.</b> Simülasyonda seanslar arası koşul farkı sıfıra inince ölçümün gücü %64-86'dan %99'a çıktı. Tekrar sayısını artırmaktan daha etkili.</p>
+    <h3>Her seansta</h3>
+    <ul>
+      <li>Sabah kalktıktan sonraki <b>ilk 1 saat</b> içinde ölç. Gün içinde 1.4 cm'ye kadar kısalırsın.</li>
+      <li>Ölçümden önce yoğun egzersiz, uzun oturma ya da asılma olmasın.</li>
+      <li>Çıplak ayak, saç düz; aynı duvar, aynı alet.</li>
+      <li>Kafaya düz bir kitap ya da gönye koy; duvara dik dursun. İşareti kitabın alt yüzünden al.</li>
+    </ul>
+    <h3>Boy</h3>
+    <ol>
+      <li>Topuklar, kalça ve kürek kemikleri duvara değsin.</li>
+      <li>Bakış ileri, düz.</li>
+      <li>Derin nefes al, ver; dik dur ve işaretle.</li>
+      <li>Uzaklaş, tekrar yerleş; 3 kez yap.</li>
+    </ol>
+    <h3>Oturma boyu</h3>
+    <ol>
+      <li>Sert, düz bir tabure ya da kutuyu duvara daya. Yüksekliğini bir kez ölç ve "Veri ve yedek" bölümüne yaz.</li>
+      <li>Kalça ve sırt duvara değsin; dizler 90°, ayaklar yerde, eller dizde.</li>
+      <li>Kafa düz; işareti kitapla al. Duvardaki işaretin yerden yüksekliğini gir; uygulama taburenin yüksekliğini çıkarır.</li>
+      <li>3 kez yap.</li>
+    </ol>
+    <h3>Sıklık</h3>
+    <p><b>Önerilen: haftada bir</b>, aynı gün sabah (5 dakika sürer). En az ayda bir. Seans sayısı arttıkça eğilimin aralığı daralır:</p>
+    <table><tr><th>Seanslar arası oynaklık</th><th>Haftada bir</th><th>Ayda bir</th></tr>
+      <tr><td>0,2 cm (çok tutarlı)</td><td>~9 ay</td><td>~15 ay</td></tr>
+      <tr><td>0,3 cm</td><td>~12 ay</td><td>~19 ay</td></tr>
+      <tr><td>0,5 cm (tutarsız)</td><td>~17 ay</td><td>~27 ay</td></tr></table>
+    <p class="kucuk">Tablo: eğilimin %95 aralığı ±0,3 cm/yıl'a inene kadar geçen süre. Senin oynaklığın 6 ay sonra Grafikler sekmesinde hesaplanır. Yılda ~0,6 cm'lik gövde uzaması bu sürede büyük olasılıkla görünür; yılda ~0,3 cm'lik bacak uzamasını evde ölçümle ayırt etmek zordur. "Dizim hâlâ açık mı?" sorusunu bu yöntem güvenilir biçimde cevaplayamaz.</p>
+    <p class="kucuk">Kaynak: arastirma deposu, omurga büyümesi sürüm 1, ölçüm protokolü. Bu uygulama tıbbi tavsiye değildir; hekim değerlendirmesinin ve görüntülemenin yerini tutmaz.</p>
+  </div>
+</section>
+
+<!-- ============ VERİ ============ -->
+<section class="panel" id="p-veri" role="tabpanel">
+  <div class="kart">
+    <h2>Ayarlar</h2>
+    <div class="izgara">
+      <div><label for="tabure">Tabure yüksekliği (cm)</label><input type="number" step="0.1" id="tabure" placeholder="ör. 45.0"></div>
+      <div><label for="oturmaGiris">Oturma ölçümünü nasıl giriyorsun?</label>
+        <select id="oturmaGiris"><option value="duvar">Duvardaki işaretin yerden yüksekliği</option><option value="net">Doğrudan oturma boyu</option></select></div>
+      <div><label for="dogum">Doğum ayı (yaş hesabı için; isteğe bağlı)</label><input type="month" id="dogum"></div>
+      <div><label for="tema">Görünüm</label><select id="tema"><option value="">Sistem</option><option value="light">Açık</option><option value="dark">Koyu</option></select></div>
+    </div>
+    <div class="dugmeler"><button class="ana" id="ayarKaydet">Ayarları kaydet</button></div>
+    <div id="ayarMesaj"></div>
+  </div>
+
+  <div class="kart">
+    <h2>Veri nerede, nasıl korunuyor?</h2>
+    <ul>
+      <li><b>Bu sayfa internete bağlanamaz.</b> Sayfanın başındaki güvenlik kuralı (Content-Security-Policy) bütün ağ isteklerini engeller; veriler hiçbir sunucuya gitmez.</li>
+      <li>Ölçümler bu tarayıcının yerel deposunda otomatik saklanır. <b>Tarayıcı verilerini temizlersen ya da başka tarayıcı açarsan görünmez.</b> Bu yüzden düzenli <b>yedek dosyası</b> al.</li>
+      <li>Chrome ve Edge'de bir <b>kayıt dosyası bağlarsan</b>, her değişiklikte o dosyaya da otomatik yazılır. Sayfayı yeniden açınca bir kez "Yeniden bağlan"a basman gerekir (tarayıcının güvenlik kuralı).</li>
+    </ul>
+    <div class="dugmeler">
+      <button class="ana" id="yedekAl">Yedek dosyası indir (.json)</button>
+      <button class="ikinci" id="dosyaBagla">Kayıt dosyası bağla (Chrome / Edge)</button>
+      <button class="ikinci" id="yenidenBagla" hidden>Kayıt dosyasına yeniden bağlan</button>
+      <label class="ikinci" style="display:inline-block;margin:0;padding:9px 14px;border:1px solid var(--kenar);border-radius:8px;cursor:pointer;color:var(--yazi);font-size:15px">
+        Yedekten geri yükle<input type="file" id="yedekYukle" accept=".json,application/json" hidden></label>
+    </div>
+    <div id="veriMesaj"></div>
+  </div>
+
+  <div class="kart">
+    <h2>Araştırma dosyası</h2>
+    <p>Yeterli veri biriktiğinde (öneri: haftada bir ölçümle en az 12 ay; Grafikler sekmesi "aralık karar için yeterince dar" dediğinde) bu dosyayı oluşturup paylaşırsın. İçeriği <b>kimliksizdir</b>:</p>
+    <ul>
+      <li>Tarih yok: her seans, ilk seanstan bu yana geçen <b>gün</b> olarak yazılır.</li>
+      <li>Doğum tarihi yok: yalnız seanstaki <b>yaş</b>, 1 ondalıkla (doğum ayını girdiysen).</li>
+      <li>Ad, notlar ve dosya adları yok. Notları eklemek istersen aşağıdan seçebilirsin.</li>
+    </ul>
+    <label class="onay"><input type="checkbox" id="xKilo" checked> Kiloyu ekle</label>
+    <label class="onay"><input type="checkbox" id="xUyku" checked> Uyku saatini ekle</label>
+    <label class="onay"><input type="checkbox" id="xNot"> Notları ekle</label>
+    <div class="dugmeler"><button class="ana" id="arastirmaDosyasi">Araştırma dosyası oluştur (.json + .csv)</button></div>
+    <div id="arastirmaMesaj"></div>
+  </div>
+
+  <div class="kart">
+    <h2>Tehlikeli bölge</h2>
+    <p class="kucuk">Önce yedek al. Silinen veri geri gelmez.</p>
+    <div class="dugmeler"><button class="tehlike" id="hepsiniSil">Bu tarayıcıdaki bütün verileri sil</button></div>
+  </div>
+</section>
+</main>
+<footer>Boy Ölçüm Günlüğü · arastirma deposu (kisisel-buyume-analizi, sürüm 3) · CC BY-NC 4.0 · Tıbbi tavsiye değildir.</footer>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------------------
+// Depolama
+// ---------------------------------------------------------------------------
+const ANAHTAR = "boyOlcumGunlugu.v1";
+const BICIM = "boy-olcum-gunlugu/yedek/v1";
+let durum = { bicim: BICIM, ayarlar: { tabure: null, oturmaGiris: "duvar", dogum: "", tema: "", sonYedek: null }, seanslar: [] };
+let dosyaTutamac = null;
+
+function oku() {
+  try {
+    const ham = localStorage.getItem(ANAHTAR);
+    if (ham) { const v = JSON.parse(ham); if (v && v.bicim === BICIM) durum = Object.assign(durum, v); }
+  } catch (e) { mesaj("veriMesaj", "hata", "Tarayıcı deposu okunamadı. Yedekten geri yükleyebilirsin."); }
+}
+async function yaz() {
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(durum)); }
+  catch (e) { mesaj("veriMesaj", "hata", "Tarayıcı deposuna yazılamadı. Hemen yedek dosyası indir."); }
+  if (dosyaTutamac) {
+    try {
+      const w = await dosyaTutamac.createWritable();
+      await w.write(JSON.stringify(durum, null, 1)); await w.close();
+      durum.ayarlar.sonYedek = new Date().toISOString();
+      try { localStorage.setItem(ANAHTAR, JSON.stringify(durum)); } catch (e) {}
+    } catch (e) { dosyaTutamac = null; kayitDurumuGoster(); }
+  }
+  kayitDurumuGoster();
+}
+
+// Kayıt dosyası tutamacı IndexedDB'de saklanır (Chrome/Edge); izin her açılışta kullanıcı tıklamasıyla yenilenir.
+function idb() {
+  return new Promise((ok, ret) => {
+    try { const r = indexedDB.open("boyOlcumGunlugu", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("t");
+      r.onsuccess = () => ok(r.result); r.onerror = () => ret(r.error);
+    } catch (e) { ret(e); }
+  });
+}
+async function tutamacKaydet(h) { try { const db = await idb(); db.transaction("t", "readwrite").objectStore("t").put(h, "dosya"); } catch (e) {} }
+async function tutamacOku() {
+  try { const db = await idb();
+    return await new Promise(ok => { const r = db.transaction("t").objectStore("t").get("dosya"); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); });
+  } catch (e) { return null; }
+}
+
+// ---------------------------------------------------------------------------
+// Yardımcılar
+// ---------------------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const sayiOku = id => { const v = $(id).value.trim().replace(",", "."); return v === "" ? null : Number(v); };
+const ort = a => a.reduce((s, x) => s + x, 0) / a.length;
+const sifirla = (x, d) => Math.abs(x) < 0.5 * 10 ** -d ? 0 : x;            // "−0,0" görünmesin
+const fmt = (x, d = 1) => (x === null || x === undefined || Number.isNaN(x)) ? "–"
+  : sifirla(x, d).toFixed(d).replace(".", ",").replace("-", "−");
+const isaretli = (x, d = 1) => { const y = sifirla(x, d); return (y > 0 ? "+" : y < 0 ? "−" : "") + fmt(Math.abs(y), d); };
+function mesaj(kutu, tur, metin) { $(kutu).innerHTML = metin ? `<div class="mesaj ${tur}">${metin}</div>` : ""; }
+function bugun() { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+function gunFarki(a, b) { return (Date.parse(b) - Date.parse(a)) / 864e5; }
+function yasHesapla(tarih) {
+  const d = durum.ayarlar.dogum; if (!d) return null;
+  return gunFarki(d + "-15", tarih) / 365.25;
+}
+// t dağılımı %97.5 yüzdeliği (df 1-30; üstü 1.96)
+const T975 = [12.71, 4.30, 3.18, 2.78, 2.57, 2.45, 2.36, 2.31, 2.26, 2.23, 2.20, 2.18, 2.16, 2.14, 2.13, 2.12, 2.11,
+  2.10, 2.09, 2.09, 2.08, 2.07, 2.07, 2.06, 2.06, 2.06, 2.05, 2.05, 2.05, 2.04];
+function egim(xs, ys) {
+  const n = xs.length; if (n < 3) return null;
+  const mx = ort(xs), my = ort(ys);
+  let sxx = 0, sxy = 0; for (let i = 0; i < n; i++) { sxx += (xs[i] - mx) ** 2; sxy += (xs[i] - mx) * (ys[i] - my); }
+  if (sxx === 0) return null;
+  const b = sxy / sxx, a = my - b * mx;
+  let sse = 0; for (let i = 0; i < n; i++) sse += (ys[i] - a - b * xs[i]) ** 2;
+  const se = Math.sqrt(sse / (n - 2) / sxx), t = n - 2 <= 30 ? T975[n - 3] : 1.96;
+  return { b, a, lo: b - t * se, hi: b + t * se, n, sd: Math.sqrt(sse / (n - 2)) };
+}
+// Eşit aralıklı seanslarla %95 aralığın yarı genişliği kaç ayda 0.3 cm/yıl altına iner (analiz/calistir.py, adım 5)
+function gerekenAy(sd, gunAra) {
+  for (let ay = 2; ay <= 60; ay++) {
+    const xs = []; for (let g = 0; g <= ay * 30.44 + 1e-9; g += gunAra) xs.push(g / 365.25);
+    const n = xs.length; if (n < 4) continue;
+    const mx = ort(xs); let sxx = 0; for (const x of xs) sxx += (x - mx) ** 2;
+    if ((n - 2 <= 30 ? T975[n - 3] : 1.96) * sd / Math.sqrt(sxx) < 0.3) return ay;
+  }
+  return null;
+}
+
+// Seanstan türetilmiş değerler
+function turet(s) {
+  const boy = ort(s.boy), oturmaHam = ort(s.oturma);
+  const oturma = s.oturmaGiris === "duvar" ? oturmaHam - s.tabure : oturmaHam;
+  return { boy, oturma, bacak: boy - oturma, boyAralik: Math.max(...s.boy) - Math.min(...s.boy),
+           oturmaAralik: Math.max(...s.oturma) - Math.min(...s.oturma) };
+}
+function bayraklar(s) {
+  const t = turet(s), b = [];
+  if (t.boyAralik > 0.8) b.push(`boy ölçümleri ${fmt(t.boyAralik)} cm farklı`);
+  if (t.oturmaAralik > 0.8) b.push(`oturma ölçümleri ${fmt(t.oturmaAralik)} cm farklı`);
+  if (s.saat) { const h = Number(s.saat.slice(0, 2)); if (h < 5 || h >= 11) b.push("sabah değil"); }
+  if (s.uyanma !== null && s.uyanma > 60) b.push("kalkıştan 1 saatten fazla sonra");
+  if (s.egzersiz) b.push("öncesinde egzersiz");
+  return b;
+}
+function sirali() { return [...durum.seanslar].sort((a, b) => (a.tarih + (a.saat || "")).localeCompare(b.tarih + (b.saat || ""))); }
+
+// ---------------------------------------------------------------------------
+// Yeni ölçüm
+// ---------------------------------------------------------------------------
+function formHazirla() {
+  $("tarih").value = bugun();
+  const d = new Date(); $("saat").value = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  const a = durum.ayarlar;
+  $("oturmaAciklama").textContent = a.oturmaGiris === "duvar"
+    ? (a.tabure ? `Duvardaki işaretin yerden yüksekliğini gir; tabure (${fmt(a.tabure)} cm) otomatik çıkarılır.`
+                : "Önce \"Veri ve yedek\" bölümünde tabure yüksekliğini gir.")
+    : "Doğrudan oturma boyunu gir (tabure çıkarılmış).";
+}
+function formTemizle() {
+  for (const id of ["b1", "b2", "b3", "o1", "o2", "o3", "kilo", "uyku", "uyanma", "not"]) $(id).value = "";
+  $("egzersiz").checked = false; mesaj("olcumMesaj"); formHazirla();
+}
+function seansKaydet() {
+  const a = durum.ayarlar;
+  const boy = ["b1", "b2", "b3"].map(sayiOku), oturma = ["o1", "o2", "o3"].map(sayiOku);
+  const hatalar = [];
+  if (!$("tarih").value) hatalar.push("tarih");
+  if (boy.some(x => x === null || !(x > 100 && x < 230))) hatalar.push("3 boy ölçümü (100-230 cm)");
+  if (oturma.some(x => x === null)) hatalar.push("3 oturma ölçümü");
+  if (a.oturmaGiris === "duvar" && !(a.tabure > 0)) hatalar.push("tabure yüksekliği (Veri ve yedek bölümünde)");
+  if (hatalar.length) return mesaj("olcumMesaj", "hata", "Eksik ya da hatalı: " + hatalar.join(", ") + ".");
+  const s = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), tarih: $("tarih").value,
+    saat: $("saat").value || null, uyanma: sayiOku("uyanma"), boy, oturma, oturmaGiris: a.oturmaGiris,
+    tabure: a.oturmaGiris === "duvar" ? a.tabure : null, kilo: sayiOku("kilo"), uyku: sayiOku("uyku"),
+    egzersiz: $("egzersiz").checked, not: $("not").value.trim() };
+  const t = turet(s);
+  if (!(t.oturma > 60 && t.oturma < 120)) return mesaj("olcumMesaj", "hata",
+    `Oturma boyu ${fmt(t.oturma)} cm çıktı; bu olası değil. Tabure yüksekliğini ve giriş biçimini kontrol et.`);
+  durum.seanslar.push(s); yaz(); formTemizle();
+  const b = bayraklar(s);
+  mesaj("olcumMesaj", b.length ? "uyari" : "tamam", "Kaydedildi." + (b.length ? " Dikkat: " + b.join("; ") +
+    ". Mümkünse bir sonraki seansta koşulu sabitle." : ""));
+  ciz();
+}
+
+// ---------------------------------------------------------------------------
+// Grafikler (SVG, kütüphanesiz)
+// ---------------------------------------------------------------------------
+function cizgiGrafik(kap, seriler, opt) {
+  const W = 760, H = 280, sol = 52, sag = 70, ust = 14, alt = 34;
+  const tum = seriler.flatMap(s => s.noktalar);
+  if (tum.length === 0) { kap.innerHTML = `<p class="kucuk">Henüz ölçüm yok.</p>`; return; }
+  let x0 = Math.min(...tum.map(p => p.x)), x1 = Math.max(...tum.map(p => p.x));
+  if (x1 - x0 < 30) { x1 = x0 + 30; }
+  let y0 = Math.min(...tum.map(p => p.y)), y1 = Math.max(...tum.map(p => p.y));
+  const pad = Math.max(0.6, (y1 - y0) * 0.15); y0 -= pad; y1 += pad;
+  const X = x => sol + (x - x0) / (x1 - x0) * (W - sol - sag), Y = y => ust + (1 - (y - y0) / (y1 - y0)) * (H - ust - alt);
+  const adim = (() => { const r = y1 - y0; return r > 8 ? 2 : r > 4 ? 1 : r > 2 ? 0.5 : 0.2; })();
+  let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.etiket}">`;
+  for (let v = Math.ceil(y0 / adim) * adim; v <= y1; v += adim) {
+    g += `<line x1="${sol}" x2="${W - sag}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--izgara)" stroke-width="1"/>`;
+    g += `<text x="${sol - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--yazi2)">${fmt(v, adim < 1 ? 1 : 0)}</text>`;
+  }
+  const ayAdim = (x1 - x0) > 400 ? 90 : (x1 - x0) > 120 ? 30 : 7;
+  for (let d = 0; d <= x1 - x0 + 0.1; d += ayAdim) {
+    const xx = X(x0 + d);
+    g += `<text x="${xx}" y="${H - 12}" text-anchor="middle" font-size="11" fill="var(--yazi2)">${ayAdim >= 30 ? Math.round(d / 30.44) + ". ay" : Math.round(d) + ". gün"}</text>`;
+  }
+  g += `<line x1="${sol}" x2="${W - sag}" y1="${H - alt}" y2="${H - alt}" stroke="var(--kenar)"/>`;
+  for (const s of seriler) {
+    if (s.egilim) {
+      const e = s.egilim;
+      g += `<line x1="${X(x0)}" x2="${X(x1)}" y1="${Y(e.a + e.b * x0)}" y2="${Y(e.a + e.b * x1)}" stroke="var(--soluk)" stroke-width="2" stroke-dasharray="6 5"/>`;
+    }
+    const p = s.noktalar;
+    if (p.length > 1) g += `<polyline fill="none" stroke="${s.renk}" stroke-width="2" stroke-linejoin="round" points="${p.map(q => X(q.x) + "," + Y(q.y)).join(" ")}"/>`;
+    for (const q of p) g += q.bos
+      ? `<circle cx="${X(q.x)}" cy="${Y(q.y)}" r="4.5" fill="var(--yuzey)" stroke="${s.renk}" stroke-width="2"/>`
+      : `<circle cx="${X(q.x)}" cy="${Y(q.y)}" r="4.5" fill="${s.renk}" stroke="var(--yuzey)" stroke-width="2"/>`;
+    const son = p[p.length - 1];
+    if (son && s.ad) g += `<text x="${X(son.x) + 9}" y="${Y(son.y) + 4}" font-size="12" fill="var(--yazi)">${s.ad}</text>`;
+  }
+  g += `<line id="${kap.id}-dik" x1="0" x2="0" y1="${ust}" y2="${H - alt}" stroke="var(--yazi2)" stroke-width="1" visibility="hidden"/>`;
+  g += `<rect x="${sol}" y="${ust}" width="${W - sol - sag}" height="${H - ust - alt}" fill="transparent" id="${kap.id}-alan"/>`;
+  g += `</svg><div class="ipucu" id="${kap.id}-ipucu"></div>`;
+  kap.innerHTML = g;
+  const svg = kap.querySelector("svg"), alan = $(kap.id + "-alan"), dik = $(kap.id + "-dik"), ip = $(kap.id + "-ipucu");
+  const xs = [...new Set(tum.map(p => p.x))].sort((a, b) => a - b);
+  alan.addEventListener("pointermove", ev => {
+    const r = svg.getBoundingClientRect(), vx = (ev.clientX - r.left) / r.width * W;
+    const gx = x0 + (vx - sol) / (W - sol - sag) * (x1 - x0);
+    const en = xs.reduce((b, x) => Math.abs(x - gx) < Math.abs(b - gx) ? x : b, xs[0]);
+    dik.setAttribute("x1", X(en)); dik.setAttribute("x2", X(en)); dik.setAttribute("visibility", "visible");
+    ip.innerHTML = opt.ipucu(en); ip.style.display = "block";
+    const px = X(en) / W * r.width; ip.style.left = Math.min(px + 12, r.width - ip.offsetWidth - 4) + "px"; ip.style.top = "8px";
+  });
+  alan.addEventListener("pointerleave", () => { dik.setAttribute("visibility", "hidden"); ip.style.display = "none"; });
+}
+
+function ciz() {
+  const s = sirali();
+  // Son seans kartı
+  if (s.length) {
+    const son = s[s.length - 1], t = turet(son), b = bayraklar(son);
+    $("sonSeans").innerHTML = `<h2>Son seans</h2><div class="ozet">
+      <div class="sayi"><div class="d">${fmt(t.boy)}</div><div class="a">boy, cm (${son.tarih})</div></div>
+      <div class="sayi"><div class="d">${fmt(t.oturma)}</div><div class="a">oturma boyu, cm</div></div>
+      <div class="sayi"><div class="d">${fmt(t.bacak)}</div><div class="a">bacak, cm</div></div>
+      <div class="sayi"><div class="d">${s.length}</div><div class="a">toplam seans</div></div></div>
+      ${b.length ? `<div class="mesaj uyari">Dikkat: ${b.join("; ")}</div>` : ""}`;
+  } else $("sonSeans").innerHTML = `<h2>Henüz ölçüm yok</h2><p class="kucuk">İlk seansı kaydet; grafikler ve özet burada birikir.</p>`;
+
+  // Özet ve eğilim
+  const ilk = s.length ? s[0].tarih : null;
+  const gun = s.map(x => gunFarki(ilk, x.tarih)), yil = gun.map(g => g / 365.25);
+  const T = s.map(turet);
+  // Eğilim yalnız koşulu uygun (uyarısız) seanslarla; ön kayıtlı analizle aynı kural
+  const temiz = s.map(x => bayraklar(x).length === 0), ti = s.map((x, i) => i).filter(i => temiz[i]);
+  const tY = ti.map(i => yil[i]), sec = f => ti.map(i => f(T[i]));
+  const eB = egim(tY, sec(t => t.boy)), eO = egim(tY, sec(t => t.oturma)), eL = egim(tY, sec(t => t.bacak));
+  const temizAy = ti.length ? (gun[ti[ti.length - 1]] - gun[ti[0]]) / 30.44 : 0;
+  const sure = s.length ? gun[gun.length - 1] / 30.44 : 0;
+  const kutu = (d, a) => `<div class="sayi"><div class="d">${d}</div><div class="a">${a}</div></div>`;
+  const egimYazi = e => e ? `${isaretli(e.b)} cm/yıl` : "–";
+  $("ozetKutular").innerHTML = kutu(s.length, "seans") + kutu(fmt(sure, 1), "ay (ilk seanstan bu yana)") +
+    kutu(egimYazi(eB), "boy eğilimi") + kutu(egimYazi(eO), "gövde (oturma) eğilimi") + kutu(egimYazi(eL), "bacak eğilimi");
+  let m = "";
+  const disari = s.length - ti.length;
+  const disariYazi = disari ? ` ${disari} uyarılı seans eğilime katılmadı (Ölçümler sekmesinde nedeni yazıyor).` : "";
+  if (ti.length < 6 || temizAy < 6) m = `<div class="mesaj uyari">Henüz yorum için erken: en az 6 ay ve 6 uyarısız seans gerekir. Şu an ${ti.length} uyarısız seans, ${fmt(temizAy, 1)} ay.${disariYazi}</div>`;
+  else if (eB) {
+    const ara = e => `${isaretli(e.lo)} … ${isaretli(e.hi)}`;
+    const yorum = eB.lo > 0 ? "Boy eğilimi sıfırın belirgin üstünde: hâlâ uzuyor görünüyorsun."
+      : eB.hi < 0 ? "Boy eğilimi sıfırın altında: büyük olasılıkla ölçüm koşulu değişti (saat, duruş). Koşulları kontrol et."
+      : "Eğilim sıfırdan ayırt edilemiyor: ya uzama çok yavaş ya da henüz yeterli veri yok.";
+    const araGun = (gun[ti[ti.length - 1]] - gun[ti[0]]) / (ti.length - 1), gA = gerekenAy(eB.sd, Math.max(1, araGun));
+    const sureYazi = eB.hi - eB.lo < 0.6 ? "Aralık karar için yeterince dar."
+      : gA ? `Şu anki oynaklıkla (seanslar arası SD ${fmt(eB.sd, 2)} cm) ve ölçüm sıklığınla (${fmt(araGun, 0)} günde bir) karar verecek kadar dar bir aralık için toplam ~${gA} ay gerekir.`
+      : `Şu anki oynaklıkla (SD ${fmt(eB.sd, 2)} cm) 5 yılda bile aralık daralmıyor: ölçüm koşulunu sabitle ya da daha sık ölç.`;
+    m = `<div class="mesaj tamam">${yorum}<br><span class="kucuk">%95 aralık: boy ${ara(eB)}; gövde ${eO ? ara(eO) : "–"}; bacak ${eL ? ara(eL) : "–"} cm/yıl (${ti.length} uyarısız seans).${disariYazi} ${sureYazi} Bu bir eğilim tahminidir, tıbbi değerlendirme değildir.</span></div>`;
+  }
+  $("egilimMesaj").innerHTML = m;
+
+  // Grafikler
+  const taban = T[ti.length ? ti[0] : 0];   // değişimin başlangıcı: ilk uyarısız seans
+  const nB = s.map((x, i) => ({ x: gun[i], y: T[i].boy, bos: !temiz[i] })),
+        nO = s.map((x, i) => ({ x: gun[i], y: T[i].oturma - (taban ? taban.oturma : 0), bos: !temiz[i] })),
+        nL = s.map((x, i) => ({ x: gun[i], y: T[i].bacak - (taban ? taban.bacak : 0), bos: !temiz[i] }));
+  cizgiGrafik($("g-boy"), [{ noktalar: nB, renk: "var(--boy)", ad: "boy", egilim: eB ? { a: eB.a, b: eB.b / 365.25 } : null }],
+    { etiket: "Boy zaman grafiği", ipucu: x => { const i = gun.indexOf(x);
+      return `<b>${s[i].tarih}</b><br>boy ${fmt(T[i].boy)} cm<br>3 ölçüm: ${s[i].boy.map(v => fmt(v)).join(" · ")}`; } });
+  cizgiGrafik($("g-parca"), [{ noktalar: nO, renk: "var(--govde)", ad: "gövde" }, { noktalar: nL, renk: "var(--bacak)", ad: "bacak" }],
+    { etiket: "Gövde ve bacak değişimi", ipucu: x => { const i = gun.indexOf(x);
+      return `<b>${s[i].tarih}</b><br>gövde ${isaretli(nO[i].y)} cm (${fmt(T[i].oturma)})<br>bacak ${isaretli(nL[i].y)} cm (${fmt(T[i].bacak)})`; } });
+
+  // Tablo
+  let h = `<thead><tr><th>Tarih</th><th>Saat</th><th>Boy</th><th>Oturma</th><th>Bacak</th><th>Kilo</th><th>Uyku</th><th>Uyarı</th><th></th></tr></thead><tbody>`;
+  for (const x of [...s].reverse()) {
+    const t = turet(x);
+    h += `<tr><td>${x.tarih}</td><td>${x.saat || "–"}</td><td>${fmt(t.boy)}</td><td>${fmt(t.oturma)}</td><td>${fmt(t.bacak)}</td>
+      <td>${fmt(x.kilo)}</td><td>${fmt(x.uyku)}</td><td class="bayrak">${bayraklar(x).join("; ")}</td>
+      <td><button class="ikinci" data-sil="${x.id}" style="padding:4px 9px;font-size:13px">Sil</button></td></tr>`;
+  }
+  $("tablo").innerHTML = h + "</tbody>";
+  $("tablo").querySelectorAll("[data-sil]").forEach(b => b.addEventListener("click", () => {
+    if (confirm("Bu seans silinsin mi?")) { durum.seanslar = durum.seanslar.filter(z => z.id !== b.dataset.sil); yaz(); ciz(); }
+  }));
+  yedekUyarisi();
+}
+
+// ---------------------------------------------------------------------------
+// Veri: yedek, kayıt dosyası, araştırma dosyası
+// ---------------------------------------------------------------------------
+function indir(ad, icerik, tur) {
+  const url = URL.createObjectURL(new Blob([icerik], { type: tur }));
+  const a = document.createElement("a"); a.href = url; a.download = ad; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+function yedekAl() {
+  durum.ayarlar.sonYedek = new Date().toISOString();
+  indir(`boy-olcum-yedek-${bugun()}.json`, JSON.stringify(durum, null, 1), "application/json"); yaz();
+  mesaj("veriMesaj", "tamam", "Yedek indirildi. Dosyayı güvenli bir klasöre ya da USB belleğe koy.");
+}
+function yedekYukle(ev) {
+  const f = ev.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const v = JSON.parse(r.result);
+      if (!v || v.bicim !== BICIM || !Array.isArray(v.seanslar)) throw new Error("biçim");
+      if (!confirm(`Yedekte ${v.seanslar.length} seans var. Bu tarayıcıdaki ${durum.seanslar.length} seansla birleştirilsin mi? (Aynı seanslar tekrar eklenmez.)`)) return;
+      const var_ = new Set(durum.seanslar.map(s => s.id));
+      for (const s of v.seanslar) if (!var_.has(s.id)) durum.seanslar.push(s);
+      if (!durum.ayarlar.tabure && v.ayarlar) durum.ayarlar = Object.assign({}, v.ayarlar, { tema: durum.ayarlar.tema });
+      yaz(); ayarlariGoster(); ciz(); mesaj("veriMesaj", "tamam", "Yedek yüklendi.");
+    } catch (e) { mesaj("veriMesaj", "hata", "Bu dosya bir Boy Ölçüm Günlüğü yedeği değil."); }
+  };
+  r.readAsText(f); ev.target.value = "";
+}
+async function dosyaBagla() {
+  if (!window.showSaveFilePicker) return mesaj("veriMesaj", "uyari", "Bu tarayıcı otomatik dosya kaydını desteklemiyor (Chrome ya da Edge gerekir). Düzenli olarak \"Yedek dosyası indir\"i kullan.");
+  try {
+    dosyaTutamac = await showSaveFilePicker({ suggestedName: "boy-olcum-gunlugu.json", types: [{ description: "JSON", accept: { "application/json": [".json"] } }] });
+    await tutamacKaydet(dosyaTutamac); await yaz();
+    mesaj("veriMesaj", "tamam", "Kayıt dosyası bağlandı: her değişiklik bu dosyaya da yazılacak.");
+  } catch (e) { if (e.name !== "AbortError") mesaj("veriMesaj", "hata", "Dosya bağlanamadı."); }
+}
+async function yenidenBagla() {
+  const h = await tutamacOku(); if (!h) return;
+  try { if ((await h.requestPermission({ mode: "readwrite" })) === "granted") { dosyaTutamac = h; await yaz();
+    $("yenidenBagla").hidden = true; mesaj("veriMesaj", "tamam", "Kayıt dosyasına yeniden bağlandı."); } }
+  catch (e) { mesaj("veriMesaj", "hata", "Yeniden bağlanılamadı; dosyayı tekrar bağla."); }
+}
+function kayitDurumuGoster() {
+  const n = durum.seanslar.length;
+  $("kayitDurumu").textContent = `${n} seans · ` + (dosyaTutamac ? "dosyaya otomatik kaydediliyor" : "tarayıcıda saklanıyor");
+}
+function yedekUyarisi() {
+  const n = durum.seanslar.length, son = durum.ayarlar.sonYedek;
+  const gun = son ? gunFarki(son.slice(0, 10), bugun()) : Infinity;
+  $("yedekUyari").innerHTML = (n > 0 && !dosyaTutamac && gun > 30)
+    ? `<div class="mesaj uyari" style="margin:0 0 14px">${son ? Math.floor(gun) + " gündür" : "Hiç"} yedek alınmadı. Tarayıcı verileri silinirse ölçümler kaybolur. "Veri ve yedek" bölümünden yedek al.</div>` : "";
+}
+function arastirmaDosyasi() {
+  const s = sirali(); if (s.length === 0) return mesaj("arastirmaMesaj", "uyari", "Henüz ölçüm yok.");
+  const ilk = s[0].tarih, xk = $("xKilo").checked, xu = $("xUyku").checked, xn = $("xNot").checked;
+  const satir = s.map(x => { const t = turet(x), y = yasHesapla(x.tarih);
+    const r = { gun: Math.round(gunFarki(ilk, x.tarih)), yas: y === null ? null : Math.round(y * 10) / 10,
+      saat: x.saat ? Number(x.saat.slice(0, 2)) : null, uyanma_dk: x.uyanma,
+      boy_1: x.boy[0], boy_2: x.boy[1], boy_3: x.boy[2], boy_ort: Math.round(t.boy * 100) / 100,
+      oturma_ort: Math.round(t.oturma * 100) / 100, bacak_ort: Math.round(t.bacak * 100) / 100,
+      oturma_1: Math.round((x.oturmaGiris === "duvar" ? x.oturma[0] - x.tabure : x.oturma[0]) * 100) / 100,
+      oturma_2: Math.round((x.oturmaGiris === "duvar" ? x.oturma[1] - x.tabure : x.oturma[1]) * 100) / 100,
+      oturma_3: Math.round((x.oturmaGiris === "duvar" ? x.oturma[2] - x.tabure : x.oturma[2]) * 100) / 100,
+      egzersiz: x.egzersiz ? 1 : 0, uyari: bayraklar(x).join("; ") };
+    if (xk) r.kilo = x.kilo; if (xu) r.uyku_saat = x.uyku; if (xn) r.not = x.not;
+    return r; });
+  const ust = { bicim: "boy-olcum-gunlugu/arastirma/v1", olusturuldu_gun: Math.round(gunFarki(ilk, bugun())),
+    seans: satir.length, aciklama: "Kimliksiz araştırma dosyası. Tarih yerine ilk seanstan bu yana gün; yaş 1 ondalık.",
+    satirlar: satir };
+  const sutun = Object.keys(satir[0]);
+  const csv = [sutun.join(",")].concat(satir.map(r => sutun.map(k => { const v = r[k];
+    return v === null || v === undefined ? "" : typeof v === "string" ? `"${v.replace(/"/g, '""')}"` : v; }).join(","))).join("\n");
+  indir("boy-olcum-arastirma.json", JSON.stringify(ust, null, 1), "application/json");
+  setTimeout(() => indir("boy-olcum-arastirma.csv", csv, "text/csv"), 400);
+  mesaj("arastirmaMesaj", "tamam", `${satir.length} seanslık kimliksiz araştırma dosyası indirildi (.json ve .csv). Paylaşmadan önce açıp içine bakabilirsin.`);
+}
+
+// ---------------------------------------------------------------------------
+// Ayarlar, sekmeler, başlatma
+// ---------------------------------------------------------------------------
+function temaUygula() { const t = durum.ayarlar.tema; if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+function ayarlariGoster() {
+  const a = durum.ayarlar; $("tabure").value = a.tabure ?? ""; $("oturmaGiris").value = a.oturmaGiris || "duvar";
+  $("dogum").value = a.dogum || ""; $("tema").value = a.tema || ""; temaUygula(); formHazirla();
+}
+function ayarKaydet() {
+  const tb = sayiOku("tabure");
+  if ($("oturmaGiris").value === "duvar" && !(tb > 10 && tb < 90)) return mesaj("ayarMesaj", "hata", "Tabure yüksekliği 10-90 cm arasında olmalı.");
+  Object.assign(durum.ayarlar, { tabure: tb, oturmaGiris: $("oturmaGiris").value, dogum: $("dogum").value, tema: $("tema").value });
+  yaz(); ayarlariGoster(); ciz(); mesaj("ayarMesaj", "tamam", "Ayarlar kaydedildi.");
+}
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b ? "true" : "false"));
+  document.querySelectorAll("section.panel").forEach(p => p.classList.toggle("acik", p.id === "p-" + b.dataset.panel));
+  if (b.dataset.panel === "grafik") ciz();
+}));
+$("kaydet").addEventListener("click", seansKaydet);
+$("temizle").addEventListener("click", formTemizle);
+$("ayarKaydet").addEventListener("click", ayarKaydet);
+$("yedekAl").addEventListener("click", yedekAl);
+$("yedekYukle").addEventListener("change", yedekYukle);
+$("dosyaBagla").addEventListener("click", dosyaBagla);
+$("yenidenBagla").addEventListener("click", yenidenBagla);
+$("arastirmaDosyasi").addEventListener("click", arastirmaDosyasi);
+$("hepsiniSil").addEventListener("click", () => {
+  if (confirm("Bu tarayıcıdaki BÜTÜN ölçümler silinecek. Yedek aldın mı?") && confirm("Emin misin? Geri alınamaz.")) {
+    durum.seanslar = []; yaz(); ciz(); mesaj("veriMesaj", "tamam", "Veriler silindi."); }
+});
+oku(); ayarlariGoster(); ciz(); kayitDurumuGoster();
+tutamacOku().then(h => { if (h && window.showSaveFilePicker) $("yenidenBagla").hidden = false; });
+</script>
+</body>
+</html>

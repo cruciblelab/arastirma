@@ -1,3 +1,5 @@
+> **Güncel sürüm:** [3-olcum-gunlugu](../3-olcum-gunlugu/). Bu sürüm dondurulmuştur.
+
 # Kişisel Büyüme Analizi · Sürüm 2: Tahlil Bulguları
 
 > **Sürüm:** 2 · **Tarih:** 2026-10-07 · **Durum:** güncel

@@ -1,0 +1,50 @@
+{
+ "SD 0.2 cm, haftada bir": {
+  "ay": 9,
+  "seans": 40
+ },
+ "SD 0.2 cm, 2 haftada bir": {
+  "ay": 12,
+  "seans": 27
+ },
+ "SD 0.2 cm, ayda bir": {
+  "ay": 15,
+  "seans": 16
+ },
+ "SD 0.3 cm, haftada bir": {
+  "ay": 12,
+  "seans": 53
+ },
+ "SD 0.3 cm, 2 haftada bir": {
+  "ay": 15,
+  "seans": 33
+ },
+ "SD 0.3 cm, ayda bir": {
+  "ay": 19,
+  "seans": 20
+ },
+ "SD 0.4 cm, haftada bir": {
+  "ay": 15,
+  "seans": 66
+ },
+ "SD 0.4 cm, 2 haftada bir": {
+  "ay": 18,
+  "seans": 40
+ },
+ "SD 0.4 cm, ayda bir": {
+  "ay": 23,
+  "seans": 24
+ },
+ "SD 0.5 cm, haftada bir": {
+  "ay": 17,
+  "seans": 74
+ },
+ "SD 0.5 cm, 2 haftada bir": {
+  "ay": 21,
+  "seans": 46
+ },
+ "SD 0.5 cm, ayda bir": {
+  "ay": 27,
+  "seans": 28
+ }
+}

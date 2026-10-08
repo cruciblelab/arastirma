@@ -1,4 +1,4 @@
-> **Güncel sürüm:** [2-tahlil-bulgulari](../2-tahlil-bulgulari/). Bu sürüm dondurulmuştur.
+> **Güncel sürüm:** [3-olcum-gunlugu](../3-olcum-gunlugu/). Bu sürüm dondurulmuştur.
 
 # Kişisel Büyüme Analizi · Sürüm 1: Belirsiz Ölçümlerle Tahmin
 
