@@ -174,6 +174,14 @@ Aynı darbe 14 yaşında 17 yaşındakinin yedi katı zarar veriyor, çünkü 14
 
 **Duyarlılık** ([duyarlilik.csv](simulasyon/ciktilar/duyarlilik.csv), [karar_K3.csv](simulasyon/ciktilar/karar_K3.csv)): Enerji eşiğinin biçimi, en düşük çarpan, iştah geri beslemesi ve başlangıç kilosu değiştirildi. Hiçbir senaryonun sınıfı değişmedi; hepsi "sağlam".
 
+### Kişisel uyarlama (ek, ön kayıtlı değil)
+
+[simulasyon/kisisel.py](simulasyon/kisisel.py), aynı senaryoları bir kişinin kendi büyüme sonsalı üzerinde çalıştırır. Sonsal, [kişisel büyüme analizi sürüm 1](../../kisisel-buyume-analizi/1-belirsiz-olcumlerle-tahmin/)'den gelir (aynı tohum, 1.2 milyon sanal kişi). Yöntem:
+- Ölçümlerle uyumlu 2000 kişi, ağırlıklarına göre seçilir ve kişinin bugünkü yaşından itibaren yeniden simüle edilir. Tutarlılık kontrolü: 25 yaş boyu sonsaldakiyle aynı (fark < 0.0001 cm).
+- Kilo bilinmediği için enerji senaryolarında ana çalışmadaki BMI dağılımı kullanılır.
+- Gerçek kişinin verisi ve sonuçları yalnızca `.kisisel/` klasörüne yazılır ve repoya girmez. Repoda yalnızca **uydurma örnek kişinin** çıktısı var: [ciktilar/kisisel_ornek/](simulasyon/ciktilar/kisisel_ornek/kisisel_senaryolar.csv).
+- **Uyarı:** Kişisel analiz sürüm 1, sonsal aralıkların fazla dar olduğunu buldu (%80 aralığın gerçek kapsaması %30). Kalan büyüme için Berkeley hatalarıyla genişletilmiş aralık kullanılmalı. Senaryo etkileri kalan payla orantılı ölçeklendiği için bu genişletme etkilerin büyüklük sınıfını değiştirmiyor; ama kişisel sayılar, gösterdiklerinden daha belirsizdir.
+
 ## Sonuçlar
 
 1. **Günde 3 g kreatinin boy potansiyeline ulaşmayı desteklediğine dair kanıt yok; engellediğine dair de yok.** Boy ya da büyüme plağı ölçen tek bir kreatin çalışması bulunamadı. (C)

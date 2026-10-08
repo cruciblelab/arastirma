@@ -1,0 +1,11 @@
+senaryo,etiket,medyan,p5,p95,en_iyi,en_kotu
+K2a Varsayımsal: kreatin plağı %5 hızlandırsaydı,"D, varsayımsal",0.1483,0.1225,0.1761,0.2107,0.0969
+K2b Varsayımsal: %10 hızlandırsaydı,"D, varsayımsal",0.2965,0.2448,0.3519,0.4210,0.1938
+K3 Varsayımsal: %5 yavaşlatsaydı (efsane),"D, varsayımsal",-0.1485,-0.1764,-0.1226,-0.0970,-0.2110
+P4 Varsayımsal: kortizol bir yıl %5 yavaşlatsaydı,"D, varsayımsal",-0.0736,-0.0878,-0.0605,-0.0475,-0.1061
+X1 Tavan: bir yıl boyunca yarı hız,"D, varsayımsal",-0.7381,-0.8809,-0.6064,-0.4761,-1.0639
+"P1 Stresle kısa uyku (6 sa), bir yıl",D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000
+"P2 Stresle iştah kaybı (-300 kcal), bir yıl",D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000
+"P3 Sert kısıtlama (-1000 kcal), bir yıl",D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000
+"T2 Tavuk-pirinç, süt ürünü yok",D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000
+T3 Tavukla kilo verme (-500 kcal),D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000
