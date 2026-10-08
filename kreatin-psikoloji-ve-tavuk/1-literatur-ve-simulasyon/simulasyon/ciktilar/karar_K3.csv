@@ -1,0 +1,8 @@
+senaryo,siniflar,karar,aralik_cm
+P1 Stresle kısa uyku (6 sa),etki yok (< 0.1 cm),sağlam,-0.041 … +0.000
+P2 Stresle iştah kaybı (-300 kcal),etki yok (< 0.1 cm),sağlam,+0.000 … +0.000
+P3 Yeme bozukluğu düzeyinde kısıtlama (-1000 kcal),etki yok (< 0.1 cm),sağlam,-0.009 … +0.000
+"T1 Çok tavuk, dengeli",etki yok (< 0.1 cm),sağlam,+0.000 … +0.000
+"T2 Tavuk-pirinç, süt ürünü yok",etki yok (< 0.1 cm),sağlam,+0.000 … +0.000
+T3 Tavukla kilo verme (-500 kcal),etki yok (< 0.1 cm),sağlam,-0.000 … +0.000
+K2b Varsayımsal: %10 hızlandırsaydı,ölçülemeyecek kadar küçük (0.1-0.5 cm),sağlam,+0.338 … +0.338

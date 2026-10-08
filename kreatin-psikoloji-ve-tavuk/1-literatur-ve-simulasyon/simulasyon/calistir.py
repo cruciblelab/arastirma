@@ -305,6 +305,22 @@ pd.DataFrame(K3).to_csv(CIKTI / "karar_K3.csv", index=False)
 
 
 # ---------------------------------------------------------------------------
+# 4b. Keşifsel (ön kayıtlı DEĞİL; PLAN 7, sapma 1): gerçek yeme bozukluğu düzeyi ve en kötü durum tavanı
+# ---------------------------------------------------------------------------
+
+KES = []
+# Enerji modeliyle ağır kısıtlama (-1500 / -2000 kcal, iştah sinyali kapalı) denendi: bir yıllık sabit açık, metabolik
+# uyum modellenmediği için zayıf kişilerde yağ kütlesini sıfırın altına indiriyor (S5 assert). Model yeme bozukluğunu
+# temsil edemiyor; yerine modelin izin verdiği en kötü durum (N = N_min = 0.5) tavan olarak hesaplanır.
+for ad, (c, bas, bit) in {"X1 Tavan: bir yıl boyunca N = 0.5 (17-18)": (0.5, 17.0, 18.0),
+                           "X2 Karşılaştırma: aynı tavan 14-15 yaşta": (0.5, 14.0, 15.0)}.items():
+    log(ad)
+    d, _ = satir(ad, "keşifsel", "D, keşifsel", KOH.boy(sabit_N(c, bas=bas, bit=bit)))
+    KES.append(d)
+pd.DataFrame(KES).to_csv(CIKTI / "kesifsel.csv", index=False, float_format="%.4f")
+
+
+# ---------------------------------------------------------------------------
 # 5. Sepet profilleri ve grafik
 # ---------------------------------------------------------------------------
 
@@ -320,6 +336,7 @@ sirali = TAB.iloc[::-1].reset_index(drop=True)
 for i, r in sirali.iterrows():
     ax.barh(i, r.fark25_medyan, color=renk[r.etiket], height=0.6)
     ax.plot([r.fark25_p5, r.fark25_p95], [i, i], color="#0b0b0b", lw=1)
+    ax.text(0.62, i, f"{r.fark25_medyan:+.2f} cm", va="center", ha="right", fontsize=8.5, color="#52514e")
 ax.set_yticks(range(len(sirali)))
 ax.set_yticklabels(sirali.senaryo, fontsize=9)
 for x in (-0.5, -0.1, 0.1, 0.5):
@@ -327,9 +344,9 @@ for x in (-0.5, -0.1, 0.1, 0.5):
 ax.axvline(0, color="#0b0b0b", lw=0.8)
 ax.set_xlabel("25 yaşta boy farkı, referansa göre (cm; çubuk medyan, çizgi %5-%95)")
 ax.set_title("17 yaşından sonra: kreatin, psikoloji, tavuk (tipik erkek, model)", loc="left", fontsize=12)
-for e, c in renk.items():
-    ax.barh([], [], color=c, label=e)
-ax.legend(frameon=False, fontsize=8, loc="lower left")
+from matplotlib.patches import Patch  # noqa: E402
+ax.legend(handles=[Patch(color=c, label=e) for e, c in renk.items()], frameon=False, fontsize=8, loc="lower left")
+ax.set_xlim(-0.6, 0.65)
 ax.spines[["top", "right"]].set_visible(False)
 fig.text(0.01, 0.01, "Kesik çizgiler: ±0.1 ve ±0.5 cm karar eşikleri. Gri = kanıtı olmayan varsayımsal sınır. "
          "Tıbbi tavsiye değildir.", fontsize=8, color="#52514e")
@@ -345,3 +362,4 @@ print(pd.DataFrame(K3).to_string(index=False))
 print(PROF[["protein_g_kg", "enerji_protein_yuzde", "kalsiyum_rda_yuzde", "d_rda_yuzde", "demir_rda_yuzde",
             "cinko_rda_yuzde"]].round(1).to_string())
 print(pd.DataFrame(TESTLER)[["test", "deger", "sonuc"]].to_string(index=False))
+print(pd.DataFrame(KES)[["senaryo", "fark18_medyan", "fark25_medyan", "fark25_p5", "fark25_p95"]].to_string(index=False))

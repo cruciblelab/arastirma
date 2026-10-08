@@ -1,0 +1,12 @@
+senaryo,grup,etiket,fark18_medyan,fark18_p5,fark18_p95,fark25_medyan,fark25_p5,fark25_p95,fark25_en_kotu,fark25_en_iyi,sinif,min_EA_medyan,min_N_medyan,kilo_degisim18_medyan,protein_gkg18_medyan,F1_max
+"K1 Kreatin, kanıta göre (N = 1)",kreatin,D (kanıt boşluğu),0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,etki yok (< 0.1 cm),,,,,
+K2a Varsayımsal: kreatin plağı %5 hızlandırsaydı,kreatin,"D, varsayımsal",0.0417,0.0144,0.1359,0.0849,0.0300,0.2610,0.0073,0.7322,etki yok (< 0.1 cm),,,,,
+K2b Varsayımsal: %10 hızlandırsaydı,kreatin,"D, varsayımsal",0.0834,0.0288,0.2716,0.1698,0.0600,0.5216,0.0147,1.4607,ölçülemeyecek kadar küçük (0.1-0.5 cm),,,,,
+K3 Varsayımsal: %5 yavaşlatsaydı (efsane),kreatin,"D, varsayımsal",-0.0417,-0.1360,-0.0144,-0.0850,-0.2615,-0.0300,-0.7360,-0.0073,etki yok (< 0.1 cm),,,,,
+P4 Varsayımsal: kortizol bir yıl %5 yavaşlatsaydı,psikoloji,"D, varsayımsal",-0.0417,-0.1360,-0.0144,-0.0414,-0.1335,-0.0143,-0.3447,-0.0035,etki yok (< 0.1 cm),,,,,
+P1 Stresle kısa uyku (6 sa),psikoloji,D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,etki yok (< 0.1 cm),51.6359,1.0000,3.0771,1.5365,0.0000
+P2 Stresle iştah kaybı (-300 kcal),psikoloji,D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,etki yok (< 0.1 cm),47.5422,1.0000,-2.3986,2.0512,0.0000
+P3 Yeme bozukluğu düzeyinde kısıtlama (-1000 kcal),psikoloji,D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,etki yok (< 0.1 cm),34.0157,1.0000,-7.9979,2.6777,0.0000
+"T1 Çok tavuk, dengeli",tavuk,D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,etki yok (< 0.1 cm),49.6368,1.0000,0.0000,2.9439,0.0000
+"T2 Tavuk-pirinç, süt ürünü yok",tavuk,D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,etki yok (< 0.1 cm),49.6368,1.0000,0.0000,3.5475,0.0000
+T3 Tavukla kilo verme (-500 kcal),tavuk,D (enerji modeli),0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,etki yok (< 0.1 cm),43.6392,1.0000,-3.9980,3.6364,0.0000

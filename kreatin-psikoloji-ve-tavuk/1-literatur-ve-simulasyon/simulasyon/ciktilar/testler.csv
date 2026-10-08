@@ -1,0 +1,7 @@
+test,aciklama,deger,olcut,sonuc
+R1,"Sıfır kontrolü: R0 (N ≡ 1, enerji modelli referans dahil) ve K1 = senaryosuz model",en büyük fark 0.0e+00 cm,< 1e-9 cm,GEÇTİ
+R2,Enerji korunumu (enerji modelli bütün senaryolar),en büyük göreli hata 3.1e-13,< %0.1,GEÇTİ
+R3,Tavan: N ≤ 1 olan hiçbir senaryoda hiçbir kişi referanstan uzun değil,en büyük fark 0.0e+00 cm,≤ 1e-9 cm,GEÇTİ
+R4,Yön: 25 yaş medyan fark sırası K3 < R0 < K2a < K2b,-0.085 < +0.000 < +0.085 < +0.170,kesin artan,GEÇTİ
+R5,Korovljev katsayısı nedensel okunursa (3 g/gün → +9 cm) 17 → 25 kalan büyüme payından büyük mü,kişilerin %98.9'inde 9 cm > kalan pay (medyan pay 1.71 cm),≥ %95,GEÇTİ
+R6,"Sayısal yakınsama (K2b, RK2 Δt ve Δt/2, 25 yaş boy)",en büyük fark 5.2e-04 cm,< 0.01 cm,GEÇTİ

@@ -16,7 +16,7 @@ sürümler eklenir.
 | [kisisel-buyume-analizi](kisisel-buyume-analizi/) | Belirsiz okul/ev ölçümlerinden kişisel kalan boy tahmini (gerçek kişi verisi repoya girmez) | [2 · tahlil bulguları](kisisel-buyume-analizi/2-tahlil-bulgulari/) |
 | [buyume-plaklari-kapanma-sirasi](buyume-plaklari-kapanma-sirasi/) | Plaklar aynı anda kapanmaz: bazıları kapanınca boy durur mu, bacaktan sonra omurga ne kadar uzar? | [1 · literatür ve Berkeley analizi](buyume-plaklari-kapanma-sirasi/1-literatur-ve-berkeley-analizi/) |
 | [omurga-buyumesi](omurga-buyumesi/) | Omurga uzamasını etkileyen kaldıraçlar, evde ölçüm protokolü ve notlu animasyon | [4 · referansla düzeltilmiş anatomi](omurga-buyumesi/4-referansla-duzeltilmis-anatomi/) |
-| [kreatin-psikoloji-ve-tavuk](kreatin-psikoloji-ve-tavuk/) | 17 yaşta kreatin, stres ve "bilinçaltı", çok tavuk yemek: boy potansiyeline etkisi | [1 · literatür ve simülasyon](kreatin-psikoloji-ve-tavuk/1-literatur-ve-simulasyon/) (taslak) |
+| [kreatin-psikoloji-ve-tavuk](kreatin-psikoloji-ve-tavuk/) | 17 yaşta kreatin, stres ve "bilinçaltı", çok tavuk yemek: boy potansiyeline etkisi | [1 · literatür ve simülasyon](kreatin-psikoloji-ve-tavuk/1-literatur-ve-simulasyon/) |
 
 ## Lisans
 
