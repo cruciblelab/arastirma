@@ -1,0 +1,9 @@
+test,aciklama,deger,olcut,sonuc
+V1,"Video biçimi: H.264, 1280x720, yuv420p","h264, 1280x720, yuv420p","h264, 1280x720, yuv420p",GEÇTİ
+V2,Süre ve boyut,"175.9 sn, 2.4 MB","60-180 sn, < 25 MB",GEÇTİ
+V3,Simülasyon sahnesindeki boy/oturma boyu/bacak = sürüm 3 modeli,1.4e-14 cm,< 1e-6 cm,GEÇTİ
+V4,"Örnek sayılar bağımsız yeniden okumayla aynı (skolyoz 30°, protokol gücü, gövde payı)",aynı,aynı,GEÇTİ
+A1,"Çizilen iskeletin tepesi = modelin boyu (her kare), taban = 0","tepe en büyük göreli fark 5.40e-06, taban 0.07 cm","< %0.2, < 0.2 cm",GEÇTİ
+A2,"Omur sayıları (boyun, sırt, bel)","{(('C', 7), ('L', 5), ('T', 12))}","C7, T12, L5",GEÇTİ
+A4,"Videodaki her yan görünüm iskeletinde 12 kaburga; 7 göğüs kemiğine, 3 kavse bağlı","{(12, 7, 3)}","{(12, 7, 3)}",GEÇTİ
+A3,Simülasyon sahnesinde iskeletin bacağı ve gövdesi hiç kısalmıyor (yalnız büyüme),evet,evet,GEÇTİ

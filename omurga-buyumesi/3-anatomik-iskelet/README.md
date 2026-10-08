@@ -1,3 +1,5 @@
+> **Güncel sürüm:** [4-referansla-duzeltilmis-anatomi](../4-referansla-duzeltilmis-anatomi/). Bu sürüm dondurulmuştur.
+
 # Omurga Büyümesi · Sürüm 3: Anatomik İskelet
 
 > **Sürüm:** 3 · **Tarih:** 2026-10-08 · **Durum:** güncel

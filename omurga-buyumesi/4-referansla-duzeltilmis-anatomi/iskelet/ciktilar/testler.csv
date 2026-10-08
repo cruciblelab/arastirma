@@ -1,0 +1,8 @@
+test,aciklama,deger,olcut,sonuc
+I1,Anatomi kartı: iskeletin tepesi = model boyu,177.21 / 177.21 cm,göreli fark < %0.2,GEÇTİ
+I2,Omur sayıları,"{'C': 7, 'T': 12, 'L': 5}","C7, T12, L5",GEÇTİ
+I3,"16 → 22 yaş: gövde artışı > bacak artışı (model, iskelet aynı değerlerle çiziliyor)","gövde 2.91, bacak 0.39 cm",gövde > bacak,GEÇTİ
+I4,"Kaburga sayısı ve bağlantılar: 12 kaburga; 1-7 göğüs kemiğine, 8-10 kavse, 11-12 serbest","12 kaburga; 7 sternal, 3 kavis, 2 serbest",12; 7 / 3 / 2,GEÇTİ
+I5,Kaburga eğimi: her kaburganın ön ucu kendi omurundan aşağıda; en çok orta kaburgalar iner,"omur seviyesi: 1:1.6, 4:3.9, 7:4.4, 10:3.2, 12:1.8",hepsi > 1; en büyük 4-9 arası; 1 ve 12 < 6,GEÇTİ
+I6,"Göğüs kemiği seviyesi: üst ucu T2-T3 arası, alt ucu T9'un altında","üst 141.6 (T2 142.4, T3 140.3); alt 123.3 (T9 126.5)",T3 ≤ üst ≤ T2; alt < T9,GEÇTİ
+I7,Köprücük kafesin tepesinde: en alçak noktası göğüs kemiği sapının üst ucunun üstünde,"köprücük alt 142.1, sap üstü 141.6 cm",köprücük ≥ sap üstü,GEÇTİ

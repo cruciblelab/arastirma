@@ -1,4 +1,4 @@
-> **Güncel sürüm:** [3-anatomik-iskelet](../3-anatomik-iskelet/). Bu sürüm dondurulmuştur.
+> **Güncel sürüm:** [4-referansla-duzeltilmis-anatomi](../4-referansla-duzeltilmis-anatomi/). Bu sürüm dondurulmuştur.
 
 # Omurga Büyümesi · Sürüm 1: Kaldıraçlar, Ölçüm Protokolü ve Animasyon
 
