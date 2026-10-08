@@ -19,6 +19,8 @@ sürümler eklenir.
 | [kreatin-psikoloji-ve-tavuk](kreatin-psikoloji-ve-tavuk/) | 17 yaşta kreatin, stres ve "bilinçaltı", çok tavuk yemek: boy potansiyeline etkisi | [1 · literatür ve simülasyon](kreatin-psikoloji-ve-tavuk/1-literatur-ve-simulasyon/) |
 | [algilanan-boy-ve-vucut-yapisi](algilanan-boy-ve-vucut-yapisi/) | Kaslı biri neden daha uzun görünür: gerçek fark, herkesin algısı, yoksa bakanın algısı mı? | [2 · deney protokolü](algilanan-boy-ve-vucut-yapisi/2-deney-protokolu/) |
 
+Sonraya bırakılan, kararı verilmemiş işler: **[Bekleyen işler](BEKLEYEN-ISLER.md)**.
+
 ## Lisans
 
 Bu depodaki bütün araştırmalar (metin, kod, grafik ve üretilen veriler) **[Creative Commons Atıf-GayriTicari 4.0 Uluslararası (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/deed.tr)** lisansıyla yayınlanır. Tam metin: [LICENSE](LICENSE).
