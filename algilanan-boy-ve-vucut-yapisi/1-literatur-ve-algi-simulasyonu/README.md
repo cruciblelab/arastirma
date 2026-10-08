@@ -1,3 +1,5 @@
+> **Güncel sürüm:** [2-deney-protokolu](../2-deney-protokolu/). Bu sürüm dondurulmuştur.
+
 # Algılanan Boy ve Vücut Yapısı · Sürüm 1: Literatür ve Algı Simülasyonu
 
 > **Sürüm:** 1 · **Tarih:** 2026-10-08 · **Durum:** güncel

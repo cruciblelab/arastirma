@@ -1,0 +1,14 @@
+ad,deger,gosterim,kaynak
+Önerilen fotoğraflanan kişi,10.0,10,algilanan-boy/2/simulasyon/ciktilar/ozet.json
+Önerilen değerlendirici,30.0,30,algilanan-boy/2/simulasyon/ciktilar/ozet.json
+Değerlendirici başına çift,60.0,60,algilanan-boy/2/simulasyon/ciktilar/ozet.json
+"Güç, etki 2 cm (%)",80.66666666666666,81,algilanan-boy/2/simulasyon/ciktilar/ozet.json
+"Güç, etki 1 cm (%)",37.666666666666664,38,algilanan-boy/2/simulasyon/ciktilar/ozet.json
+"Yanlış alarm, doğru analiz (%)",7.199999999999999,7,algilanan-boy/2/simulasyon/ciktilar/ozet.json
+"Yanlış alarm, naif analiz (%)",59.4,59,algilanan-boy/2/simulasyon/ciktilar/ozet.json
+Pratik öneri: fotoğraflanan kişi,30.0,30,algilanan-boy/2/simulasyon/ciktilar/kesifsel_tau.csv
+Pratik öneri: değerlendirici,30.0,30,algilanan-boy/2/simulasyon/ciktilar/kesifsel_tau.csv
+"Pratik öneri güç, 2 cm (%)",99.3,99,algilanan-boy/2/simulasyon/ciktilar/guc.csv
+"Pratik öneri güç, 1 cm (%)",86.3,86,algilanan-boy/2/simulasyon/ciktilar/guc.csv
+"Pratik öneri güç, 2 cm, τ = 2 (%)",89.3,89,algilanan-boy/2/simulasyon/ciktilar/kesifsel_tau.csv
+"Asgari tasarım güç, 2 cm, τ = 2 (%)",34.699999999999996,35,algilanan-boy/2/simulasyon/ciktilar/kesifsel_tau.csv

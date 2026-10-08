@@ -1,0 +1,4 @@
+test,aciklama,deger,olcut,sonuc
+V1,"Biçim: H.264, 1280x720, yuv420p","h264, 1280x720, yuv420p","h264, 1280x720, yuv420p",GEÇTİ
+V2,Süre ve boyut,"195.8 sn, 1.6 MB","90-240 sn, < 25 MB",GEÇTİ
+V3,Ekrandaki sayılar kaynak dosyadan bağımsız yeniden okumayla aynı,aynı,aynı,GEÇTİ

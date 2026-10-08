@@ -1,0 +1,180 @@
+1
+00:00:06,599 --> 00:00:10,800
+Aynı boyda kaslı ve zayıf iki kişiyi karşılaştıran bir çalışma bulunamadı.
+
+2
+00:00:10,800 --> 00:00:14,211
+"Güçlü görünen büyük görünür" etkisi boyu 1-4 cm uzatıyor.
+
+3
+00:00:14,211 --> 00:00:17,858
+Geometri ise tersine çekiyor: geniş vücut daha kısa görünüyor.
+
+4
+00:00:17,858 --> 00:00:23,858
+Simülasyon net etkiyi ~1 cm buldu, ama yönü belirsiz. Cevap ancak ölçerek bulunur.
+
+5
+00:00:24,458 --> 00:00:28,282
+Boyları ölçülmüş kişilerin fotoğrafları ikişer ikişer gösterilir.
+
+6
+00:00:28,282 --> 00:00:31,223
+Tanımayan kişiler "hangisi daha uzun?" diye seçer.
+
+7
+00:00:31,223 --> 00:00:35,423
+Gerçek fark bilindiği için cevapların kalıplının lehine kayıp kaymadığı ölçülür.
+
+8
+00:00:35,423 --> 00:00:41,423
+Kayma, "aynı boyda görünme" noktası (PSE) olarak santimetreyle ifade edilir.
+
+9
+00:00:42,023 --> 00:00:46,199
+30 fotoğraflanan erkek: yarısı belirgin zayıf, yarısı belirgin kalıplı.
+
+10
+00:00:46,199 --> 00:00:50,399
+Boyları birbirine yakın olsun (ör. 170-182 cm); çok farklı boylar bilgi vermez.
+
+11
+00:00:50,399 --> 00:00:54,047
+30 değerlendirici: fotoğraftakileri tanımayan, 16 yaş ve üstü.
+
+12
+00:00:54,047 --> 00:00:59,023
+Her değerlendirici 60 çift görür; yaklaşık 6-8 dakika.
+
+13
+00:00:59,623 --> 00:01:02,917
+Herkesten yazılı onam; 18 yaş altında ayrıca veli onamı.
+
+14
+00:01:02,917 --> 00:01:05,505
+İsteyen istediği an çekilir; verisi silinir.
+
+15
+00:01:05,505 --> 00:01:08,682
+Yüzler bulanıklaştırılır, adlar yerine kod kullanılır.
+
+16
+00:01:08,682 --> 00:01:12,741
+Fotoğraflar paylaşılmaz, internete yüklenmez; analiz bitince silinir.
+
+17
+00:01:12,741 --> 00:01:18,741
+Kimseye bedeniyle ilgili kişisel sonuç söylenmez; yalnız toplu sonuç paylaşılır.
+
+18
+00:01:19,341 --> 00:01:23,541
+Boy: ayakkabısız, duvarda, başın üstüne dik kitap; 3 ölçümün ortalaması.
+
+19
+00:01:23,541 --> 00:01:27,741
+Herkes aynı gün, aynı saat aralığında ölçülür; boy gün içinde 1-2 cm değişir.
+
+20
+00:01:27,741 --> 00:01:29,941
+Kilo: hep aynı tartı.
+
+21
+00:01:29,941 --> 00:01:35,447
+Omuz genişliği: fotoğraftan, cetvelle ölçeklenerek; dokunmadan.
+
+22
+00:01:36,047 --> 00:01:40,247
+Tripod: kişiden 3 m uzakta, yerden 100 cm yükseklikte; her çekimde aynı yer.
+
+23
+00:01:40,247 --> 00:01:42,447
+Düz arka plan: kapı, çizgi, eşya yok.
+
+24
+00:01:42,447 --> 00:01:44,976
+Aynı tip düz tişört, koyu alt, ayakkabısız.
+
+25
+00:01:44,976 --> 00:01:49,482
+Ayak hizasında 1 m'lik cetvel; ölçekleme için.
+
+26
+00:01:50,082 --> 00:01:54,282
+Bütün fotoğraflar aynı piksel/cm oranına getirilir: gerçek fark görüntüde korunur.
+
+27
+00:01:54,282 --> 00:01:56,482
+Yüzler bulanıklaştırılır.
+
+28
+00:01:56,482 --> 00:01:59,364
+İki kişi yan yana, ayaklar aynı zemin çizgisinde.
+
+29
+00:01:59,364 --> 00:02:04,929
+Hazır kod, her değerlendiriciye dengeli bir çift listesi üretir.
+
+30
+00:02:05,529 --> 00:02:09,470
+Yönerge aynen okunur: "Hangisi daha uzun? İlk izleniminiz yeterli."
+
+31
+00:02:09,470 --> 00:02:12,588
+Değerlendirici hipotezi bilmez; amaç sonra anlatılır.
+
+32
+00:02:12,588 --> 00:02:15,588
+Görevden SONRA: yaş ve "Bedenimden memnunum" (1-7).
+
+33
+00:02:15,588 --> 00:02:20,976
+Fotoğraftakilerden birini tanıyorsa oturum analiz dışı kalır.
+
+34
+00:02:21,576 --> 00:02:25,776
+Tekrar birimi fotoğraflanan kişidir; değerlendiricilerin cevapları bağımsız değildir.
+
+35
+00:02:25,776 --> 00:02:29,976
+Aşama 1: her kişinin "algılanan boy" puanı. Aşama 2: bu puanın gerçek boy ve yapıyla ilişkisi.
+
+36
+00:02:29,976 --> 00:02:34,176
+Simülasyonda etki yokken yanlış analiz %59, doğru analiz %7 oranında "var" dedi.
+
+37
+00:02:34,176 --> 00:02:39,917
+Hazır kod tek komutla analiz eder; karar kuralları önceden yazıldı.
+
+38
+00:02:40,517 --> 00:02:43,517
+Önerilen: 30 fotoğraflanan kişi, 30 değerlendirici.
+
+39
+00:02:43,517 --> 00:02:46,929
+Gerçek etki 2 cm ise yakalama olasılığı %99; 1 cm ise %86.
+
+40
+00:02:46,929 --> 00:02:51,129
+Asgari 10 kişi yeterli görünür, ama kişiler arası farklar büyükse güç %35'e düşer (30 kişide %89).
+
+41
+00:02:51,129 --> 00:02:57,129
+Gücü asıl belirleyen fotoğraflanan kişi sayısı; yarı zayıf, yarı kalıplı seçmek çok daha güçlü.
+
+42
+00:02:57,729 --> 00:03:01,929
+Ölç, standart çek, yüzleri bulanıklaştır, tanımayanlara sor, hazır kodla analiz et.
+
+43
+00:03:01,929 --> 00:03:05,576
+Sonuç ne çıkarsa çıksın yayımlanır; yalnız toplu ve kimliksiz.
+
+44
+00:03:05,576 --> 00:03:09,776
+Ayrıntılar, formlar ve şablonlar: deney protokolü PDF'i ve depodaki kod.
+
+45
+00:03:09,776 --> 00:03:15,776
+Bu deney, "kalıplı biri gerçekten daha uzun mu görünüyor?" sorusuna ilk doğrudan cevabı verebilir.
+

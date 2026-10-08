@@ -11,9 +11,12 @@ Adımlar
 Sabit tohum; tüm çıktılar ciktilar/ altında.
 """
 
+import os
+
+for _d in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):   # paralel işlemler BLAS iş parçacıklarıyla
+    os.environ.setdefault(_d, "1")                                          # çekişmesin (sonucu değil, hızı etkiler)
 import itertools
 import json
-import os
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor

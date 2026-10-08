@@ -6,9 +6,9 @@ Aynı boyda ya da daha kısa ama kaslı, kalıplı biri neden daha uzun görün�
 
 | Sürüm | Ad | Tarih | Ne yapıldı |
 |---|---|---|---|
-| 2 (taslak) | [2-deney-protokolu](2-deney-protokolu/) | 2026-10-08 | Ön kayıt. Deney paketi (PDF, video, güç analizi, analiz kodu) hazırlanıyor |
-| **1 (güncel)** | [1-literatur-ve-algi-simulasyonu](1-literatur-ve-algi-simulasyonu/) | 2026-10-08 | Literatür (algı, öz-algı, antropometri) ve ön kayıtlı simülasyon: gerçek boy → görünür boy → algılanan boy; ANSUR II (n = 1358) yapı verisi, 4000 Monte Carlo tekrarı. Zayıf gözlemciye ~2 cm kısa kaslı akran "aynı boyda" görünüyor (−0.3 … +4.7); kabaca yarısı herkesin algısı, yarısı bakanın kendisi; herkesin algısı kısmının yönü belirsiz, deney önerildi. Ön kayıtlı 5 testin 5'i geçti |
+| **2 (güncel)** | [2-deney-protokolu](2-deney-protokolu/) | 2026-10-08 | Merkezi soruyu doğrudan ölçecek fotoğraf deneyi: ön kayıt, 12 sayfalık PDF protokol (etik, ölçüm, çekim, yönerge, formlar), video, analiz aracı ve şablonlar. Güç analizi (36 000 sentetik deney): önerilen 30 fotoğraflanan kişi ve 30 değerlendirici. Ön kayıtlı 5 testin 5'i geçti |
+| 1 | [1-literatur-ve-algi-simulasyonu](1-literatur-ve-algi-simulasyonu/) | 2026-10-08 | Literatür (algı, öz-algı, antropometri) ve ön kayıtlı simülasyon: gerçek boy → görünür boy → algılanan boy; ANSUR II (n = 1358) yapı verisi, 4000 Monte Carlo tekrarı. Zayıf gözlemciye ~2 cm kısa kaslı akran "aynı boyda" görünüyor (−0.3 … +4.7); kabaca yarısı herkesin algısı, yarısı bakanın kendisi; herkesin algısı kısmının yönü belirsiz, deney önerildi. Ön kayıtlı 5 testin 5'i geçti |
 
-**Hızlı cevap için:** [Sürüm 1 → En basit özet](1-literatur-ve-algi-simulasyonu/README.md#en-basit-özet)
+**Hızlı cevap için:** [Sürüm 1 → En basit özet](1-literatur-ve-algi-simulasyonu/README.md#en-basit-özet) · **Deneyi yapmak için:** [PDF protokol](2-deney-protokolu/protokol/ciktilar/deney_protokolu.pdf) · [Video](2-deney-protokolu/video/ciktilar/deney_protokolu.mp4)
 
 İlgili: [omurga-buyumesi](../omurga-buyumesi/) (duruş), [kreatin-psikoloji-ve-tavuk](../kreatin-psikoloji-ve-tavuk/) (psikoloji), [boy-uzamasi-16-18-yas](../boy-uzamasi-16-18-yas/).

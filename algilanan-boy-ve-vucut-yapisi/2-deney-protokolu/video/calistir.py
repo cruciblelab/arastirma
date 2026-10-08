@@ -51,6 +51,18 @@ N = dict(N=sayi("Önerilen fotoğraflanan kişi", on["N"], OS), R=sayi("Önerile
          g2=sayi("Güç, etki 2 cm (%)", 100 * on["guc"]["2.0"], OS), g1=sayi("Güç, etki 1 cm (%)", 100 * on["guc"]["1.0"], OS),
          fp=sayi("Yanlış alarm, doğru analiz (%)", 100 * oz["D2_yanlis_alarm"], OS),
          fpn=sayi("Yanlış alarm, naif analiz (%)", 100 * oz["D5_naif_yanlis_alarm"], OS))
+kt = pd.read_csv(SIM / "kesifsel_tau.csv")
+KS = "algilanan-boy/2/simulasyon/ciktilar/kesifsel_tau.csv"
+_k2 = kt[(kt.pse2_gercek == 2.0) & (kt.guc_ya_da_yanlis_alarm >= 0.8)]
+N_PR, R_PR = (int(_k2.N.min()) if len(_k2) else int(kt.N.max())), int(kt.R.iloc[0])
+_g = guc[(guc.secim == "amacli") & (guc.N == N_PR) & (guc.R == R_PR)].set_index("pse2_gercek").guc
+N.update(Np=sayi("Pratik öneri: fotoğraflanan kişi", N_PR, KS), Rp=sayi("Pratik öneri: değerlendirici", R_PR, KS),
+         gp2=sayi("Pratik öneri güç, 2 cm (%)", 100 * _g[2.0], "algilanan-boy/2/simulasyon/ciktilar/guc.csv"),
+         gp1=sayi("Pratik öneri güç, 1 cm (%)", 100 * _g[1.0], "algilanan-boy/2/simulasyon/ciktilar/guc.csv"),
+         gptau=sayi("Pratik öneri güç, 2 cm, τ = 2 (%)",
+                    100 * float(kt[(kt.N == N_PR) & (kt.pse2_gercek == 2.0)].guc_ya_da_yanlis_alarm.iloc[0]), KS),
+         gotau=sayi("Asgari tasarım güç, 2 cm, τ = 2 (%)",
+                    100 * float(kt[(kt.N == on["N"]) & (kt.pse2_gercek == 2.0)].guc_ya_da_yanlis_alarm.iloc[0]), KS))
 a = guc[(guc.secim == "amacli") & (guc.R == on["R"]) & (guc.pse2_gercek == 2.0)].sort_values("N")
 r_ = guc[(guc.secim == "rastgele") & (guc.R == on["R"]) & (guc.pse2_gercek == 2.0)].sort_values("N")
 
@@ -226,9 +238,9 @@ def fikir():
 @sahne
 def kimler():
     return madde_sahnesi("Kimler", "Kimler katılır?", [
-        f"En az {N['N']} fotoğraflanan erkek: yarısı belirgin zayıf, yarısı belirgin kalıplı.",
+        f"{N['Np']} fotoğraflanan erkek: yarısı belirgin zayıf, yarısı belirgin kalıplı.",
         "Boyları birbirine yakın olsun (ör. 170-182 cm); çok farklı boylar bilgi vermez.",
-        f"En az {N['R']} değerlendirici: fotoğraftakileri tanımayan, 16 yaş ve üstü.",
+        f"{N['Rp']} değerlendirici: fotoğraftakileri tanımayan, 16 yaş ve üstü.",
         f"Her değerlendirici {N['K']} çift görür; yaklaşık 6-8 dakika."])
 
 
@@ -338,10 +350,11 @@ def analiz():
 
 @sahne
 def kac_kisi():
-    liste = [f"Önerilen: {N['N']} fotoğraflanan kişi, {N['R']} değerlendirici.",
-             f"Gerçek etki 2 cm ise yakalama olasılığı %{N['g2']}; 1 cm ise %{N['g1']}.",
-             "Gücü asıl belirleyen fotoğraflanan kişi sayısı.",
-             "Yarı zayıf, yarı kalıplı seçmek, rastgele seçmekten çok daha güçlü."]
+    liste = [f"Önerilen: {N['Np']} fotoğraflanan kişi, {N['Rp']} değerlendirici.",
+             f"Gerçek etki 2 cm ise yakalama olasılığı %{N['gp2']}; 1 cm ise %{N['gp1']}.",
+             f"Asgari {N['N']} kişi yeterli görünür, ama kişiler arası farklar büyükse güç %{N['gotau']}'e düşer "
+             f"({N['Np']} kişide %{N['gptau']}).",
+             "Gücü asıl belirleyen fotoğraflanan kişi sayısı; yarı zayıf, yarı kalıplı seçmek çok daha güçlü."]
 
     def sag(t, T):
         ax = fig.add_axes([0.6, 0.18, 0.36, 0.6])
@@ -418,6 +431,8 @@ TEST.append(dict(test="V2", aciklama="Süre ve boyut", deger=f"{sure:.1f} sn, {b
                  sonuc="GEÇTİ" if 90 <= sure <= 240 and boyut < 25 else "KALDI"))
 oz2 = json.loads((SIM / "ozet.json").read_text(encoding="utf-8"))
 kontrol = {"Önerilen fotoğraflanan kişi": oz2["oneri"]["N"], "Önerilen değerlendirici": oz2["oneri"]["R"],
+           "Pratik öneri: fotoğraflanan kişi": int(pd.read_csv(SIM / "kesifsel_tau.csv").query(
+               "pse2_gercek == 2.0 and guc_ya_da_yanlis_alarm >= 0.8").N.min()),
            "Güç, etki 2 cm (%)": 100 * oz2["oneri"]["guc"]["2.0"],
            "Yanlış alarm, doğru analiz (%)": 100 * oz2["D2_yanlis_alarm"]}
 ok = all(abs(next(s["deger"] for s in SAYILAR if s["ad"] == k) - v) < 1e-9 for k, v in kontrol.items())

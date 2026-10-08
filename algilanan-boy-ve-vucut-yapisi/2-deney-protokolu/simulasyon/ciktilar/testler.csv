@@ -1,0 +1,6 @@
+test,aciklama,deger,olcut,sonuc
+D1,"Yansızlık: N = 40, R = 200, gerçek PSE₂ = 2 cm; 100 tekrarın ortalama tahmini",2.021 cm (SD 0.307),2 ± 0.2 cm,GEÇTİ
+D2,"Yanlış alarm: önerilen tasarım (N = 10, R = 30), gerçek PSE₂ = 0, 500 tekrar",%7.2,%2.5 - %8,GEÇTİ
+D3,"Kapsama: önerilen tasarım, gerçek PSE₂ = 2 cm, 500 tekrar",%92.4,%90 - %98,GEÇTİ
+D4,Tasarım dengesi: gösterilme en çok/en az oranı; sol-sağ dengesi (R = 30),"oran 1.00 (en az 270, en çok 270); solda %50.2",≤ 1.5; %50 ± 3,GEÇTİ
+D5,Gösterim: yanıtları bağımsız sayan naif analizin yanlış alarm oranı (D2 ile aynı veriler),%59.4 (iki aşamalı analizde %7.2),raporlanır (geçme ölçütü değil),GEÇTİ

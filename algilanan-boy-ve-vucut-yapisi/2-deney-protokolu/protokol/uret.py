@@ -49,6 +49,15 @@ G1 = 100 * on["guc"]["1.0"]
 G3 = 100 * on["guc"]["3.0"]
 FP = 100 * oz["D2_yanlis_alarm"]
 FP_NAIF = 100 * oz["D5_naif_yanlis_alarm"]
+# Pratik öneri (keşifsel; PLAN 7 sapma 2): τ = 2 cm'de de güç ≥ %80 olan en küçük N, R = 30
+kt = pd.read_csv(SIM / "kesifsel_tau.csv")
+_k2 = kt[(kt.pse2_gercek == 2.0) & (kt.guc_ya_da_yanlis_alarm >= 0.8)]
+N_PR = int(_k2.N.min()) if len(_k2) else int(kt.N.max())
+R_PR = int(kt.R.iloc[0])
+_g = guc[(guc.secim == "amacli") & (guc.N == N_PR) & (guc.R == R_PR)].set_index("pse2_gercek").guc
+PR1, PR2 = 100 * _g[1.0], 100 * _g[2.0]
+PR2_TAU = 100 * float(kt[(kt.N == N_PR) & (kt.pse2_gercek == 2.0)].guc_ya_da_yanlis_alarm.iloc[0])
+ON2_TAU = 100 * float(kt[(kt.N == N_ON) & (kt.pse2_gercek == 2.0)].guc_ya_da_yanlis_alarm.iloc[0])
 
 # ---------------------------------------------------------------------------
 # Şekiller
@@ -102,7 +111,7 @@ def sekil_kurulum():
     ax.text(50, 92, "Yasaklar", ha="center", fontsize=10, weight="bold", color=MUR)
     for i, t in enumerate(["kapı, çerçeve, çizgili duvar", "arkada eşya ya da insan", "ayakkabı, şapka, bol giysi",
                            "geniş açı / yakın çekim", "yüzü bulanıklaştırmadan paylaşmak"]):
-        ax.text(8, 80 - i * 10, "✗ " + t, fontsize=8.5, color=MUR2)
+        ax.text(8, 80 - i * 10, "× " + t, fontsize=8.5, color=MUR2)
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.axis("off")
@@ -161,9 +170,10 @@ def liste(maddeler, numarali=False):
                         bulletFontName="G", bulletFontSize=9.5, leftIndent=14, bulletColor=MUR2)
 
 
-def tablo(satirlar, gen, baslik=True, zemin="#f1efe8"):
+def tablo(satirlar, gen, baslik=True, zemin="#f1efe8", satir_h=None):
     veri = [[P(str(h), "hucreb" if (baslik and i == 0) else "hucre") for h in r] for i, r in enumerate(satirlar)]
-    t = Table(veri, colWidths=[g * cm for g in gen], repeatRows=1 if baslik else 0)
+    yuk = None if satir_h is None else [None] + [satir_h * cm] * (len(satirlar) - 1)
+    t = Table(veri, colWidths=[g * cm for g in gen], repeatRows=1 if baslik else 0, rowHeights=yuk)
     stil = [("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor(SOLUK)), ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]
     if baslik:
@@ -204,10 +214,13 @@ S += [P("Bir sayfada deney", "h1"),
              f"<b>Yöntem:</b> Boyları ölçülmüş erkeklerin standart fotoğrafları ikişer ikişer gösterilir. Onları "
              f"tanımayan değerlendiriciler \"hangisi daha uzun?\" diye seçer. Gerçek boy farkı bilindiği için "
              f"seçimlerin kalıplı olanın lehine kayıp kaymadığı ölçülür.<br/>"
-             f"<b>Gereken:</b> en az <b>{N_ON} fotoğraflanan kişi</b> (yarısı zayıf, yarısı kalıplı; boyları birbirine "
-             f"yakın) ve en az <b>{R_ON} değerlendirici</b>. Değerlendirici başına {K} çift, ~6-8 dakika.<br/>"
-             f"<b>Güç:</b> Gerçek etki 2 cm ise bu tasarım onu %{G2:.0f} olasılıkla yakalar (1 cm için %{G1:.0f}, "
-             f"3 cm için %{G3:.0f}). Gerçek etki yokken yanlışlıkla \"var\" deme olasılığı %{FP:.0f}.", "kutu")),
+             f"<b>Önerilen:</b> <b>{N_PR} fotoğraflanan kişi</b> (yarısı zayıf, yarısı kalıplı; boyları birbirine yakın) "
+             f"ve <b>{R_PR} değerlendirici</b>. Değerlendirici başına {K} çift, ~6-8 dakika. Bu tasarım gerçek 2 cm'lik "
+             f"etkiyi %{PR2:.0f}, 1 cm'lik etkiyi %{PR1:.0f} olasılıkla yakalar; kişiler arası görünüş farkı büyük olsa "
+             f"bile 2 cm için %{PR2_TAU:.0f}.<br/>"
+             f"<b>Asgari:</b> Önceden yazılan kurala göre en küçük tasarım {N_ON} kişi ve {R_ON} değerlendirici "
+             f"(2 cm için %{G2:.0f}). Ama görünüş farkı büyükse gücü %{ON2_TAU:.0f}'e düşer; bu yüzden önerilmez.<br/>"
+             f"<b>Yanlış alarm:</b> Gerçek etki yokken \"var\" deme olasılığı ~%{FP:.0f}.", "kutu")),
       Spacer(1, 10),
       P("Akış", "h2"),
       liste(["Hazırlık: onam formları, malzeme, çekim yeri (bölüm 3-4).",
@@ -365,7 +378,7 @@ sat = [["Kişi (N)", "Değerlendirici (R)", "Etki 1 cm", "Etki 2 cm", "Etki 3 cm
 for N in sorted(a.N.unique()):
     for R in sorted(a.R.unique()):
         g = a[(a.N == N) & (a.R == R)].set_index("pse2_gercek").guc
-        isaret = " ◀ önerilen" if (N == N_ON and R == R_ON) else ""
+        isaret = " (önerilen)" if (N == N_PR and R == R_PR) else " (asgari)" if (N == N_ON and R == R_ON) else ""
         sat.append([f"{N}{isaret}", R, f"%{100 * g[1.0]:.0f}", f"%{100 * g[2.0]:.0f}", f"%{100 * g[3.0]:.0f}",
                     f"%{100 * g[0.0]:.0f}"])
 S += [P("10. Kaç kişi gerekiyor?", "h1"),
@@ -375,6 +388,10 @@ S += [P("10. Kaç kişi gerekiyor?", "h1"),
       tablo(sat, [3.0, 3.0, 2.4, 2.4, 2.4, 3.2]),
       Spacer(1, 6),
       Image(str(SIM / "guc.png"), width=16.4 * cm, height=5.3 * cm),
+      P("<b>Sağlamlık kontrolü (keşifsel):</b> Fotoğraflanan kişilerin yapıyla ilgisiz görünüş farkları (saç, duruş) "
+        "varsayılandan büyükse (τ = 2 cm) güç düşer. Bu durumda 2 cm'lik etki için güç: " +
+        ", ".join(f"{int(r.N)} kişi %{100 * r.guc_ya_da_yanlis_alarm:.0f}" for r in kt[kt.pse2_gercek == 2.0].itertuples()) +
+        f" (30 değerlendirici). Önerilen {N_PR} kişi bu yüzden seçildi."),
       P("Önemli: güç büyük ölçüde <b>fotoğraflanan kişi sayısına</b> bağlı; değerlendirici sayısını artırmak belli "
         "bir noktadan sonra az kazandırır. Varsayımlar (kişiye özgü görünüş farkı, göz gürültüsü) simulasyon/PLAN.md'de; "
         "bunlar gerçekte daha büyükse daha çok kişi gerekir.", "kucuk"),
@@ -393,8 +410,8 @@ S += [P("11. Kontrol listesi ve sık hatalar", "h1"),
              ["Sonuç beğenilmezse yayımlamamak", "Yayın yanlılığı", "Her sonuç yayımlanır (K4)"]], [4.6, 5.8, 6.0]),
       Spacer(1, 10),
       P("Simülasyonun doğruladıkları", "h2"),
-      tablo([["Test", "Sonuç", ""]] + [[r.test, r.deger, "✓" if r.sonuc == "GEÇTİ" else "✗"]
-                                         for r in testler.itertuples()], [1.4, 13.8, 1.2]),
+      tablo([["Test", "Sonuç", ""]] + [[r.test, r.deger, "geçti" if r.sonuc == "GEÇTİ" else "KALDI"]
+                                         for r in testler.itertuples()], [1.4, 13.4, 1.6]),
       PageBreak()]
 
 S += [P("Ek A · Katılımcı bilgilendirme ve onam formu (fotoğraflanan, taslak)", "h1"),
@@ -408,28 +425,28 @@ S += [P("Ek A · Katılımcı bilgilendirme ve onam formu (fotoğraflanan, tasla
       P("<b>Haklarınız:</b> Katılım gönüllüdür. İstediğiniz an, gerekçe göstermeden çekilebilirsiniz; verileriniz silinir. "
         "6698 sayılı KVKK kapsamındaki haklarınızı kullanmak için iletişim: ______________________"),
       Spacer(1, 6),
-      tablo([["Ad soyad", "Tarih", "İmza"], ["", "", ""]], [7.0, 4.0, 5.4]),
+      tablo([["Ad soyad", "Tarih", "İmza"], ["", "", ""]], [7.0, 4.0, 5.4], satir_h=1.2),
       Spacer(1, 4),
-      P("☐ Okudum, anladım, katılmayı kabul ediyorum.  ☐ Fotoğrafımın yukarıdaki koşullarla kullanılmasına izin "
-        "veriyorum."),
+      P("[   ] Okudum, anladım, katılmayı kabul ediyorum.<br/>[   ] Fotoğrafımın yukarıdaki koşullarla kullanılmasına "
+        "izin veriyorum."),
       Spacer(1, 12),
       P("Ek B · Veli onam formu (18 yaş altı için, taslak)", "h1"),
       P("Velisi bulunduğum ________________________ adlı çocuğumun, Ek A'da açıklanan koşullarla (ölçüm, yüzü "
         "bulanıklaştırılmış fotoğraf, kod ile saklama, analiz sonunda silme) bu araştırmaya katılmasına izin veriyorum. "
         "Çocuğum ya da ben istediğimiz an katılımı sonlandırabiliriz."),
-      tablo([["Veli ad soyad", "Yakınlık", "Tarih", "İmza"], ["", "", "", ""]], [6.0, 3.0, 3.0, 4.4]),
+      tablo([["Veli ad soyad", "Yakınlık", "Tarih", "İmza"], ["", "", "", ""]], [6.0, 3.0, 3.0, 4.4], satir_h=1.2),
       PageBreak()]
 
 S += [P("Ek C · Ölçüm kayıt formu", "h1"),
       P("Ad bu forma yazılmaz. Kod-ad listesi ayrı ve kilitli tutulur.", "kucuk"),
       tablo([["Kod", "Boy 1", "Boy 2", "Boy 3", "Kilo", "Saç (cm)", "Saat", "Fotoğraf no", "Not"]] +
-            bos_satirlar(18, range(9)), [1.4, 1.5, 1.5, 1.5, 1.5, 1.6, 1.4, 2.2, 3.8]),
+            bos_satirlar(22, range(9)), [1.4, 1.5, 1.5, 1.5, 1.5, 1.6, 1.4, 2.2, 3.8], satir_h=0.85),
       PageBreak(),
       P("Ek D · Değerlendirici formu", "h1"),
       P("Görevden <b>sonra</b> doldurulur.", "kucuk"),
       tablo([["Değerlendirici no", "Yaş", "\"Bedenimden memnunum\" (1 hiç - 7 tamamen)",
               "Fotoğraflardaki kişileri tanıyor musunuz?", "Tarih"]] + bos_satirlar(16, range(5)),
-            [3.0, 1.6, 5.2, 4.2, 2.4]),
+            [3.0, 1.6, 5.2, 4.2, 2.4], satir_h=0.8),
       Spacer(1, 10),
       P("Kaynaklar", "h2"),
       P("Beck DM, Emanuele B, Savazzi S. Psychon Bull Rev 2013;20:1154. · Duguid MM, Goncalo JA. Psychol Sci "

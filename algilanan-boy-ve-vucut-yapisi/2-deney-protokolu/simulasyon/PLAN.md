@@ -118,4 +118,5 @@ Izgara: hedef sayısı N ∈ {10, 16, 20, 30, 40}; değerlendirici sayısı R �
 
 | Tarih | Sapma | Gerekçe | Etkisi |
 |---|---|---|---|
-| – | – | – | – |
+| 2026-10-08 | **Hız ayarı:** `calistir.py` paralel işlemlerde matris kütüphanesi iş parçacıklarını 1'e sabitliyor (`OMP_NUM_THREADS=1` vb.). İlk çalıştırma 4 işlem × çok iş parçacığı çekişmesi yüzünden ~25 dakikada bitmedi ve durduruldu; aynı kodla tek iş parçacığıyla yeniden çalıştırıldı. | Yalnız hız. | Sabit tohumlar aynı; sonuçlar değişmez. |
+| 2026-10-08 | **Keşifsel ek (ön kayıtlı değil):** Bölüm 5 kuralı en küçük tasarımı seçti: N = 10, R = 30 (PSE₂ = 2 cm için güç %81). Duyarlılık analizinde hedefe özgü görünüş farkı τ = 2 cm iken bu tasarımın gücü %36'ya düştü. `kesifsel_tau.py`, τ = 2 cm için N ∈ {10, 20, 30, 40} (R = 30) gücünü hesapladı. | Ön kayıtlı öneri, bilinmeyen bir varsayıma (τ) karşı kırılgan çıktı. | Ön kayıtlı öneri (N = 10) "asgari tasarım" olarak korunur. Protokolde ayrıca "pratik öneri" verilir: τ = 2 cm'de de güç ≥ %80 olan en küçük N (R = 30). Açıkça keşifsel etiketlidir. |

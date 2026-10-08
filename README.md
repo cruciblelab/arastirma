@@ -17,7 +17,7 @@ sürümler eklenir.
 | [buyume-plaklari-kapanma-sirasi](buyume-plaklari-kapanma-sirasi/) | Plaklar aynı anda kapanmaz: bazıları kapanınca boy durur mu, bacaktan sonra omurga ne kadar uzar? | [1 · literatür ve Berkeley analizi](buyume-plaklari-kapanma-sirasi/1-literatur-ve-berkeley-analizi/) |
 | [omurga-buyumesi](omurga-buyumesi/) | Omurga uzamasını etkileyen kaldıraçlar, evde ölçüm protokolü ve notlu animasyon | [4 · referansla düzeltilmiş anatomi](omurga-buyumesi/4-referansla-duzeltilmis-anatomi/) |
 | [kreatin-psikoloji-ve-tavuk](kreatin-psikoloji-ve-tavuk/) | 17 yaşta kreatin, stres ve "bilinçaltı", çok tavuk yemek: boy potansiyeline etkisi | [1 · literatür ve simülasyon](kreatin-psikoloji-ve-tavuk/1-literatur-ve-simulasyon/) |
-| [algilanan-boy-ve-vucut-yapisi](algilanan-boy-ve-vucut-yapisi/) | Kaslı biri neden daha uzun görünür: gerçek fark, herkesin algısı, yoksa bakanın algısı mı? | [1 · literatür ve algı simülasyonu](algilanan-boy-ve-vucut-yapisi/1-literatur-ve-algi-simulasyonu/) |
+| [algilanan-boy-ve-vucut-yapisi](algilanan-boy-ve-vucut-yapisi/) | Kaslı biri neden daha uzun görünür: gerçek fark, herkesin algısı, yoksa bakanın algısı mı? | [2 · deney protokolü](algilanan-boy-ve-vucut-yapisi/2-deney-protokolu/) |
 
 ## Lisans
 
