@@ -4,7 +4,7 @@
 >
 > **Acelen varsa:** en alttaki [En basit özet](#en-basit-özet) bölümüne atla.
 >
-> Bu doküman **tıbbi ya da hukuki tavsiye değildir.** Deney insanlarla yapılır: onam, 18 yaş altı için veli onamı ve kişisel verilerin korunması protokolün zorunlu parçasıdır.
+> Bu doküman **tıbbi tavsiye değildir** ve hukuki görüş değildir. Deney insanlarla yapılır: onam, 18 yaş altı için veli onamı ve kişisel verilerin korunması protokolün zorunlu parçasıdır.
 
 **Kanıt seviyeleri:**
 
