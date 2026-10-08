@@ -1,0 +1,12 @@
+{
+ "not": "UYDURMA örnek profil. Gerçek bir kişiye ait değildir. Biçim örneği: gerçek profil .kisisel/profil.json'a yazılır.",
+ "kilo": 60,
+ "pal": 1.55,
+ "anne_aralik": [158, 160],
+ "baba_aralik": [174, 176],
+ "ek_yiyecekler": {"zeytin": 169094, "simit": 175049, "salca": 170459},
+ "sepetler": {
+  "dusuk": {"beyaz_peynir": 30, "simit": 100, "domates": 100, "makarna": 100, "salca": 15, "pirinc": 150, "mercimek": 150, "tavuk": 100, "zeytinyagi": 20},
+  "yuksek": {"beyaz_peynir": 60, "zeytin": 30, "simit": 120, "yumurta": 100, "sut": 250, "yogurt": 200, "pirinc": 200, "mercimek": 200, "tavuk": 200, "ekmek": 150, "elma": 150, "zeytinyagi": 30}
+ }
+}
