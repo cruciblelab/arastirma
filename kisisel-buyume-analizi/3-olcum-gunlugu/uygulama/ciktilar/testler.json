@@ -30,6 +30,11 @@
   "deger": "yasak içerik yok: True; gün 0…405; yaş 22.6…23.7"
  },
  {
+  "test": "U10",
+  "sonuc": "GEÇTİ",
+  "deger": "seans sayısı 10; boy_1 175.1 → 175.4; not 'duvar değişti'; düzeltildi işareti 1"
+ },
+ {
   "test": "U8",
   "sonuc": "GEÇTİ",
   "deger": "içi boş nokta 1; gövde eğimi +0.62 (uyarılı seans öncesi +0.62)"

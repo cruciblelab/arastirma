@@ -61,6 +61,10 @@ Sürüm 1 eski, belirsiz ölçümlerle "hâlâ uzuyor muyum?" sorusunu cevaplaya
 - Çıplak ayak, aynı duvar, kafada gönye ya da kitap.
 - Boy ve oturma boyu 3'er kez. Bacak = boy − oturma boyu.
 
+**Düzenleme ve notlar.** "Ölçümler" sekmesinde her seansın bir "Düzenle" düğmesi var. Seans formda açılır; değişiklik aynı seansın üzerine yazılır. Her seansa not eklenebilir (ör. "duvar değişti", "hastaydım").
+
+Düzeltme serbest, ama iz bırakır. Aylar sonra geriye dönük değiştirilen ölçümler, eğilimi farkında olmadan "istenen" yöne çekebilir. Bu yüzden sonradan düzeltilen seanslar ve ölçüm gününden 2 günden fazla sonra girilen seanslar işaretlenir. Analizde bu seanslar çıkarılmaz; yalnız sayıları raporlanır. Ne değiştiği kaydedilmez.
+
 **Kendiliğinden uyarılar.** Bir seans aşağıdaki durumlardan birinde "uyarılı" sayılır:
 - okumalar arasında 0.8 cm'den fazla fark var,
 - saat 05:00'ten önce ya da 11:00'den sonra,
@@ -70,7 +74,9 @@ Sürüm 1 eski, belirsiz ölçümlerle "hâlâ uzuyor muyum?" sorusunu cevaplaya
 **Araştırma dosyası** (yeterli veri biriktiğinde paylaşmak için) **kimliksizdir:**
 - tarih yerine ilk seanstan bu yana geçen gün,
 - doğum tarihi yerine bir ondalıklı yaş,
-- ad ve not yok. Notlar yalnız seçilirse eklenir.
+- ad yok,
+- notlar varsayılan olarak eklenir (kaldırılabilir); bu yüzden notlara kimlik bilgisi yazılmamalı,
+- sonradan düzeltilen ve geç girilen seanslar için 0/1 işareti.
 
 ### 2. Ön kayıtlı analiz planı (veri gelmeden önce sabit)
 
@@ -78,7 +84,7 @@ Sürüm 1 eski, belirsiz ölçümlerle "hâlâ uzuyor muyum?" sorusunu cevaplaya
 
 | Adım | Ne yapılır |
 |---|---|
-| 1 Kalite | **Ana analiz** yalnız uyarısız seanslarla yapılır. Bütün seanslarla yapılan analiz duyarlılık analizidir |
+| 1 Kalite | **Ana analiz** yalnız uyarısız seanslarla yapılır. Bütün seanslarla yapılan analiz duyarlılık analizidir. Sonradan düzeltilen ya da geç girilen seanslar çıkarılmaz, sayıları raporlanır |
 | 2 Eğilim | Boy, oturma boyu (gövde) ve bacak için seans ortalamalarına doğrusal regresyon. Eğim cm/yıl, %95 aralık t dağılımıyla |
 | 3 Karar (K1: boy, K2: gövde ve bacak ayrı ayrı) | Aralığın alt sınırı > 0 → **"hâlâ uzuyor"**. Üst sınırı < 0.3 cm/yıl → **"durmuş ya da çok yavaş"**. İkisi de değilse → **"belirsiz"** |
 | 4 Sonsal (isteğe bağlı) | Yaş varsa ve `--girdi` verilirse yeni sabah ölçümleri sürüm 1'in Bayesçi modeline eklenir. Kalan büyüme önce ve sonra raporlanır. Etkin örneklem < 100 ise sonsal "güvenilir değil" diye işaretlenir |
@@ -96,12 +102,12 @@ python calistir.py boy-olcum-arastirma.json            # gerçek dosya → ../.k
 
 ### 3. Testler
 
-- **Uygulama:** [`uygulama/test_uygulama.py`](uygulama/test_uygulama.py) uygulamayı gerçek bir Chromium'da açar ve uydurma 10 seansla dokuz testi (U1-U9) çalıştırır.
+- **Uygulama:** [`uygulama/test_uygulama.py`](uygulama/test_uygulama.py) uygulamayı gerçek bir Chromium'da açar ve uydurma 10 seansla on testi (U1-U10) çalıştırır.
 - **Analiz:** uydurma bir dosyayla (12 seans, 2'si akşam) uçtan uca çalıştırıldı.
 
 ## Bulgular
 
-### Uygulama testleri: 9/9 geçti
+### Uygulama testleri: 10/10 geçti
 
 Kaynak: [`uygulama/ciktilar/testler.json`](uygulama/ciktilar/testler.json).
 
@@ -112,9 +118,10 @@ Kaynak: [`uygulama/ciktilar/testler.json`](uygulama/ciktilar/testler.json).
 | U3 | Eğilim: uydurma veride gövde +0.6, bacak 0 cm/yıl | Gövde +0.62, bacak 0.00 |
 | U4 | Sayfa kapanıp açılınca veri duruyor mu | 10 seans duruyor |
 | U5 | Yedek indirme ve geri yükleme | Yedekte 10 seans; geri yüklemede tekrar yok |
-| U6 | Araştırma dosyası kimliksiz mi | Tarih, doğum ayı ve not **yok**; gün 0…405, yaş 1 ondalık |
+| U6 | Araştırma dosyası kimliksiz mi ("notları ekle" kaldırılmış) | Tarih, doğum ayı ve not **yok**; gün 0…405, yaş 1 ondalık |
 | U7 | Açık tema, koyu tema ve telefon genişliği | Ekran görüntüleri alındı |
 | U8 | Akşam ölçülmüş (−1 cm) bir seans eğilimi bozuyor mu | Eğilime katılmadı, gövde eğimi değişmedi (+0.62); grafikte içi boş |
+| U10 | Geçmiş bir seansı düzenleme | Seans sayısı 10'da kaldı (yeni seans açılmadı); boy 175.1 → 175.4; not dosyada var; yalnız o seans "sonradan düzeltildi" |
 | U9 | Uygulamanın süre hesabı analiz koduyla aynı mı | Aynı (SD 0.3 cm: haftada bir 12 ay, ayda bir 19 ay) |
 
 ![Uygulama, grafikler sekmesi (uydurma veri)](uygulama/ciktilar/ekran_grafikler_acik.png)
@@ -163,7 +170,7 @@ Bu test yalnız kodun çalıştığını gösteriyor; sayıların bir anlamı yo
 
 ## Sonuçlar
 
-1. **Ölçümler bilgisayardan çıkmadan toplanabiliyor.** Tarayıcı, uygulamanın dış adrese her türlü isteğini engelliyor; araştırma dosyasında tarih, doğum tarihi ve not yok. (V)
+1. **Ölçümler bilgisayardan çıkmadan toplanabiliyor.** Tarayıcı, uygulamanın dış adrese her türlü isteğini engelliyor. Araştırma dosyasında tarih ve doğum tarihi yok; notlar varsayılan olarak giriyor ve istenirse çıkarılabiliyor. Geçmiş seanslar düzenlenebiliyor; düzenleme iz bırakıyor. (V)
 2. **Analiz kuralı veriden önce sabitlendi.** Ana analiz uyarısız seanslarla yapılıyor. Karar eşikleri: alt sınır > 0 ise "uzuyor", üst sınır < 0.3 cm/yıl ise "durmuş". (D)
 3. **Gerçekçi süre: haftada bir ölçümle yaklaşık 1 yıl, ayda bir ölçümle yaklaşık 1.5 yıl.** Bu süre, seanslar arası oynaklığın 0.3 cm civarında tutulabildiği varsayımına dayanıyor. Oynaklık 0.5 cm'ye çıkarsa süre 1.4-2.3 yıla uzar. (D)
 4. **Ölçüm disiplini, ölçüm sıklığından daha önemli.** Örnekte iki akşam ölçümü aralığı 1.6 kat genişletti. Gün içindeki kısalma (~1.4 cm), geç dönemdeki yıllık uzamadan büyük. Yılda ~0.3 cm'lik bacak uzaması evde ölçümle güvenilir biçimde ayırt edilemiyor. "Büyüme plağım açık mı?" sorusunun cevabı kemik yaşı röntgenindedir. (C + D)
@@ -193,6 +200,7 @@ Bu test yalnız kodun çalıştığını gösteriyor; sayıların bir anlamı yo
 - **Haftada bir, sabah kalkınca ölç.** Boy ve oturma boyu 3'er kez, yaklaşık 5 dakika.
 - **Sabır gerekiyor:** Net bir cevap için haftada bir ölçümle yaklaşık 1 yıl, ayda bir ölçümle yaklaşık 1.5 yıl gerekiyor. Uygulama, senin ölçümlerinin ne kadar tutarlı olduğuna bakıp kalan süreyi kendisi söylüyor.
 - **Akşam ölçümü sonucu bozar.** Örnekte iki akşam ölçümü belirsizliği 1.6 kat artırdı. Uygulama bu seansları ayırıyor.
-- **Bitince "Araştırma dosyası"nı oluştur ve paylaş.** Dosyada ad ve tarih yok. Analiz kuralı şimdiden sabitlendi, sonradan değiştirilmeyecek.
+- **Yanlış girdiğin bir ölçümü "Ölçümler" sekmesinden düzeltebilir, not ekleyebilirsin.** Düzeltilen seans "düzeltildi" diye işaretlenir; böylece sonuç kendimizi kandırmaya açık olmaz.
+- **Bitince "Araştırma dosyası"nı oluştur ve paylaş.** Dosyada ad ve tarih yok; notların var (o yüzden notlara kimlik bilgisi yazma). Analiz kuralı şimdiden sabitlendi, sonradan değiştirilmeyecek.
 - **Ayda bir yedek al.** Tarayıcı verisi silinirse ölçümler gider.
 - **Benzetme:** Bir bitkinin büyüyüp büyümediğini anlamak için her gün aynı saatte, aynı cetvelle ölçersin. Bir gün sabah, bir gün akşam ölçersen, yaprakların sarkması büyüme gibi görünür. Bu uygulama o cetvel ve defter.

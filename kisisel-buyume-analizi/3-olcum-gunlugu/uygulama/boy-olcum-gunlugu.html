@@ -120,7 +120,7 @@ footer { max-width: 980px; margin: 0 auto; padding: 0 16px 24px; font-size: 12.5
 <!-- ============ YENİ ÖLÇÜM ============ -->
 <section class="panel acik" id="p-olcum" role="tabpanel">
   <div class="kart">
-    <h2>Yeni ölçüm seansı</h2>
+    <h2 id="formBaslik">Yeni ölçüm seansı</h2>
     <p class="kucuk">Her seansta aynı koşul: sabah kalktıktan sonraki ilk saat, çıplak ayak, aynı duvar. Boy ve oturma boyunu 3'er kez ölç.</p>
     <div class="izgara">
       <div><label for="tarih">Tarih</label><input type="date" id="tarih"></div>
@@ -146,11 +146,12 @@ footer { max-width: 980px; margin: 0 auto; padding: 0 16px 24px; font-size: 12.5
       <div><label for="uyku">Önceki gece uyku (saat)</label><input type="number" step="0.5" id="uyku"></div>
       <div style="align-self:end"><label class="onay"><input type="checkbox" id="egzersiz"> Ölçümden önce yoğun egzersiz / asılma</label></div>
     </div>
-    <div style="margin-top:10px"><label for="not">Not (yalnız sende kalır; araştırma dosyasına varsayılan olarak girmez)</label><textarea id="not"></textarea></div>
+    <div style="margin-top:10px"><label for="not">Not (araştırma dosyasına eklenir; ad, yer, telefon gibi kimlik bilgisi yazma)</label><textarea id="not"></textarea></div>
     <div id="olcumMesaj"></div>
     <div class="dugmeler">
       <button class="ana" id="kaydet">Seansı kaydet</button>
       <button class="ikinci" id="temizle">Formu temizle</button>
+      <button class="ikinci" id="vazgec" hidden>Düzenlemeden vazgeç</button>
     </div>
   </div>
   <div class="kart" id="sonSeans"></div>
@@ -259,11 +260,12 @@ footer { max-width: 980px; margin: 0 auto; padding: 0 16px 24px; font-size: 12.5
     <ul>
       <li>Tarih yok: her seans, ilk seanstan bu yana geçen <b>gün</b> olarak yazılır.</li>
       <li>Doğum tarihi yok: yalnız seanstaki <b>yaş</b>, 1 ondalıkla (doğum ayını girdiysen).</li>
-      <li>Ad, notlar ve dosya adları yok. Notları eklemek istersen aşağıdan seçebilirsin.</li>
+      <li>Ad ve dosya adları yok. Notlar varsayılan olarak eklenir; istemezsen aşağıdan kaldırabilirsin. Notlara kimlik bilgisi yazmadığından emin ol.</li>
+      <li>Sonradan düzeltilen ve ölçüm gününden 2 günden fazla sonra girilen seanslar işaretlenir (yalnız 0/1; ne değiştiği yazılmaz).</li>
     </ul>
     <label class="onay"><input type="checkbox" id="xKilo" checked> Kiloyu ekle</label>
     <label class="onay"><input type="checkbox" id="xUyku" checked> Uyku saatini ekle</label>
-    <label class="onay"><input type="checkbox" id="xNot"> Notları ekle</label>
+    <label class="onay"><input type="checkbox" id="xNot" checked> Notları ekle</label>
     <div class="dugmeler"><button class="ana" id="arastirmaDosyasi">Araştırma dosyası oluştur (.json + .csv)</button></div>
     <div id="arastirmaMesaj"></div>
   </div>
@@ -327,6 +329,7 @@ async function tutamacOku() {
 // Yardımcılar
 // ---------------------------------------------------------------------------
 const $ = id => document.getElementById(id);
+const kacir = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const sayiOku = id => { const v = $(id).value.trim().replace(",", "."); return v === "" ? null : Number(v); };
 const ort = a => a.reduce((s, x) => s + x, 0) / a.length;
 const sifirla = (x, d) => Math.abs(x) < 0.5 * 10 ** -d ? 0 : x;            // "−0,0" görünmesin
@@ -394,9 +397,29 @@ function formHazirla() {
                 : "Önce \"Veri ve yedek\" bölümünde tabure yüksekliğini gir.")
     : "Doğrudan oturma boyunu gir (tabure çıkarılmış).";
 }
+let duzenlenen = null;   // düzenlenen seansın kimliği; null ise yeni seans
+function duzenlemeModu(id) {
+  duzenlenen = id;
+  const x = id ? durum.seanslar.find(z => z.id === id) : null;
+  $("formBaslik").textContent = x ? `Seansı düzenle: ${x.tarih}` : "Yeni ölçüm seansı";
+  $("kaydet").textContent = x ? "Değişikliği kaydet" : "Seansı kaydet";
+  $("vazgec").hidden = !x; $("temizle").hidden = !!x;
+}
 function formTemizle() {
   for (const id of ["b1", "b2", "b3", "o1", "o2", "o3", "kilo", "uyku", "uyanma", "not"]) $(id).value = "";
-  $("egzersiz").checked = false; mesaj("olcumMesaj"); formHazirla();
+  $("egzersiz").checked = false; mesaj("olcumMesaj"); duzenlemeModu(null); formHazirla();
+}
+function seansDuzenle(id) {
+  const x = durum.seanslar.find(z => z.id === id); if (!x) return;
+  formTemizle(); duzenlemeModu(id);
+  const yazS = (k, v) => { $(k).value = v === null || v === undefined ? "" : v; };
+  yazS("tarih", x.tarih); yazS("saat", x.saat); yazS("uyanma", x.uyanma);
+  x.boy.forEach((v, j) => yazS("b" + (j + 1), v)); x.oturma.forEach((v, j) => yazS("o" + (j + 1), v));
+  yazS("kilo", x.kilo); yazS("uyku", x.uyku); yazS("not", x.not); $("egzersiz").checked = !!x.egzersiz;
+  if (x.oturmaGiris === "duvar") $("oturmaAciklama").textContent =
+    `Bu seans tabure ${fmt(x.tabure)} cm ile girildi; duvardaki işaretin yüksekliğini düzelt, tabure aynı kalır.`;
+  document.querySelector("nav button[data-panel=olcum]").click();
+  mesaj("olcumMesaj", "uyari", "Düzenleme modundasın. Kaydedince seans \"sonradan düzeltildi\" diye işaretlenir.");
 }
 function seansKaydet() {
   const a = durum.ayarlar;
@@ -405,18 +428,21 @@ function seansKaydet() {
   if (!$("tarih").value) hatalar.push("tarih");
   if (boy.some(x => x === null || !(x > 100 && x < 230))) hatalar.push("3 boy ölçümü (100-230 cm)");
   if (oturma.some(x => x === null)) hatalar.push("3 oturma ölçümü");
-  if (a.oturmaGiris === "duvar" && !(a.tabure > 0)) hatalar.push("tabure yüksekliği (Veri ve yedek bölümünde)");
+  const eski = duzenlenen ? durum.seanslar.find(z => z.id === duzenlenen) : null;
+  const giris = eski ? eski.oturmaGiris : a.oturmaGiris, tabure = eski ? eski.tabure : (a.oturmaGiris === "duvar" ? a.tabure : null);
+  if (giris === "duvar" && !(tabure > 0)) hatalar.push("tabure yüksekliği (Veri ve yedek bölümünde)");
   if (hatalar.length) return mesaj("olcumMesaj", "hata", "Eksik ya da hatalı: " + hatalar.join(", ") + ".");
-  const s = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), tarih: $("tarih").value,
-    saat: $("saat").value || null, uyanma: sayiOku("uyanma"), boy, oturma, oturmaGiris: a.oturmaGiris,
-    tabure: a.oturmaGiris === "duvar" ? a.tabure : null, kilo: sayiOku("kilo"), uyku: sayiOku("uyku"),
-    egzersiz: $("egzersiz").checked, not: $("not").value.trim() };
+  const s = { id: eski ? eski.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6), tarih: $("tarih").value,
+    saat: $("saat").value || null, uyanma: sayiOku("uyanma"), boy, oturma, oturmaGiris: giris, tabure,
+    kilo: sayiOku("kilo"), uyku: sayiOku("uyku"), egzersiz: $("egzersiz").checked, not: $("not").value.trim(),
+    kayit: eski ? (eski.kayit || null) : bugun(), duzenlendi: eski ? bugun() : null };
   const t = turet(s);
   if (!(t.oturma > 60 && t.oturma < 120)) return mesaj("olcumMesaj", "hata",
     `Oturma boyu ${fmt(t.oturma)} cm çıktı; bu olası değil. Tabure yüksekliğini ve giriş biçimini kontrol et.`);
-  durum.seanslar.push(s); yaz(); formTemizle();
+  if (eski) durum.seanslar = durum.seanslar.map(z => z.id === eski.id ? s : z); else durum.seanslar.push(s);
+  yaz(); formTemizle();
   const b = bayraklar(s);
-  mesaj("olcumMesaj", b.length ? "uyari" : "tamam", "Kaydedildi." + (b.length ? " Dikkat: " + b.join("; ") +
+  mesaj("olcumMesaj", b.length ? "uyari" : "tamam", (eski ? "Değişiklik kaydedildi." : "Kaydedildi.") + (b.length ? " Dikkat: " + b.join("; ") +
     ". Mümkünse bir sonraki seansta koşulu sabitle." : ""));
   ciz();
 }
@@ -532,14 +558,17 @@ function ciz() {
       return `<b>${s[i].tarih}</b><br>gövde ${isaretli(nO[i].y)} cm (${fmt(T[i].oturma)})<br>bacak ${isaretli(nL[i].y)} cm (${fmt(T[i].bacak)})`; } });
 
   // Tablo
-  let h = `<thead><tr><th>Tarih</th><th>Saat</th><th>Boy</th><th>Oturma</th><th>Bacak</th><th>Kilo</th><th>Uyku</th><th>Uyarı</th><th></th></tr></thead><tbody>`;
+  let h = `<thead><tr><th>Tarih</th><th>Saat</th><th>Boy</th><th>Oturma</th><th>Bacak</th><th>Kilo</th><th>Uyku</th><th>Uyarı</th><th>Not</th><th></th></tr></thead><tbody>`;
   for (const x of [...s].reverse()) {
     const t = turet(x);
-    h += `<tr><td>${x.tarih}</td><td>${x.saat || "–"}</td><td>${fmt(t.boy)}</td><td>${fmt(t.oturma)}</td><td>${fmt(t.bacak)}</td>
+    h += `<tr><td style="white-space:nowrap">${x.tarih}</td><td>${x.saat || "–"}</td><td>${fmt(t.boy)}</td><td>${fmt(t.oturma)}</td><td>${fmt(t.bacak)}</td>
       <td>${fmt(x.kilo)}</td><td>${fmt(x.uyku)}</td><td class="bayrak">${bayraklar(x).join("; ")}</td>
-      <td><button class="ikinci" data-sil="${x.id}" style="padding:4px 9px;font-size:13px">Sil</button></td></tr>`;
+      <td class="kucuk" style="max-width:220px">${kacir(x.not)}${x.duzenlendi ? `<br><i style="white-space:nowrap">düzeltildi: ${x.duzenlendi}</i>` : ""}</td>
+      <td style="white-space:nowrap"><button class="ikinci" data-duzenle="${x.id}" style="padding:4px 9px;font-size:13px">Düzenle</button>
+      <button class="ikinci" data-sil="${x.id}" style="padding:4px 9px;font-size:13px">Sil</button></td></tr>`;
   }
   $("tablo").innerHTML = h + "</tbody>";
+  $("tablo").querySelectorAll("[data-duzenle]").forEach(b => b.addEventListener("click", () => seansDuzenle(b.dataset.duzenle)));
   $("tablo").querySelectorAll("[data-sil]").forEach(b => b.addEventListener("click", () => {
     if (confirm("Bu seans silinsin mi?")) { durum.seanslar = durum.seanslar.filter(z => z.id !== b.dataset.sil); yaz(); ciz(); }
   }));
@@ -610,7 +639,8 @@ function arastirmaDosyasi() {
       oturma_1: Math.round((x.oturmaGiris === "duvar" ? x.oturma[0] - x.tabure : x.oturma[0]) * 100) / 100,
       oturma_2: Math.round((x.oturmaGiris === "duvar" ? x.oturma[1] - x.tabure : x.oturma[1]) * 100) / 100,
       oturma_3: Math.round((x.oturmaGiris === "duvar" ? x.oturma[2] - x.tabure : x.oturma[2]) * 100) / 100,
-      egzersiz: x.egzersiz ? 1 : 0, uyari: bayraklar(x).join("; ") };
+      egzersiz: x.egzersiz ? 1 : 0, uyari: bayraklar(x).join("; "),
+      sonradan_duzeltildi: x.duzenlendi ? 1 : 0, sonradan_girildi: x.kayit && gunFarki(x.tarih, x.kayit) > 2 ? 1 : 0 };
     if (xk) r.kilo = x.kilo; if (xu) r.uyku_saat = x.uyku; if (xn) r.not = x.not;
     return r; });
   const ust = { bicim: "boy-olcum-gunlugu/arastirma/v1", olusturuldu_gun: Math.round(gunFarki(ilk, bugun())),
@@ -645,6 +675,7 @@ document.querySelectorAll("nav button").forEach(b => b.addEventListener("click",
 }));
 $("kaydet").addEventListener("click", seansKaydet);
 $("temizle").addEventListener("click", formTemizle);
+$("vazgec").addEventListener("click", formTemizle);
 $("ayarKaydet").addEventListener("click", ayarKaydet);
 $("yedekAl").addEventListener("click", yedekAl);
 $("yedekYukle").addEventListener("change", yedekYukle);

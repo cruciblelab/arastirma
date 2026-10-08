@@ -9,7 +9,8 @@
 Gerçek dosya verildiğinde çıktılar .kisisel/ altına yazılır (repoya girmez).
 
 Adımlar (önceden sabit)
-  1  Kalite: ana analiz yalnız koşulu uygun (uyarısız) seanslarla; bütün seanslar duyarlılık analizi olarak
+  1  Kalite: ana analiz yalnız koşulu uygun (uyarısız) seanslarla; bütün seanslar duyarlılık analizi olarak.
+     Sonradan düzeltilen ya da geç girilen seanslar çıkarılmaz, yalnız sayıları raporlanır
   2  Eğilim: boy, oturma (gövde) ve bacak için seans ortalamalarına doğrusal regresyon; eğim cm/yıl, %95 aralık (t)
   3  Karar: K1 boy eğiminin alt sınırı > 0 → "hâlâ uzuyor"; üst sınırı < 0.3 cm/yıl → "uzama durmuş ya da çok yavaş";
      ikisi de değilse "belirsiz". K2 gövde ve bacak için aynı kural ayrı ayrı.
@@ -107,6 +108,8 @@ def main(argv):
     d["temiz"] = d.uyari.fillna("").eq("")
 
     sonuc = {"seans": len(d), "sure_ay": float(d.gun.max() / 30.44), "uyarili_seans": int((~d.temiz).sum())}
+    for k in ("sonradan_duzeltildi", "sonradan_girildi"):          # örnek dosyada bu sütunlar yok
+        sonuc[k] = int(d[k].sum()) if k in d else None
     for etiket, alt in (("ana", d[d.temiz]), ("duyarlilik_butun_seanslar", d)):
         sonuc[etiket] = {}
         if len(alt) < 4:

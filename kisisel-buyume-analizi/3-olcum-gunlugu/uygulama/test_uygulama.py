@@ -9,9 +9,11 @@ Sınar:
   U3  Eğilim: uydurma veride gövde +0.6 cm/yıl, bacak 0 → uygulamanın eğimi ±0.15 içinde
   U4  Kalıcılık: sayfa yeniden açılınca seanslar duruyor
   U5  Yedek dosyası: bütün seanslar ve ayarlar var; geri yükleme tekrar eklemiyor
-  U6  Araştırma dosyası kimliksiz: tarih, doğum ayı, not yok; gün ve 1 ondalık yaş var
+  U6  Araştırma dosyası kimliksiz: tarih ve doğum ayı yok; "notları ekle" kaldırılınca not da yok; gün ve 1 ondalık yaş var
   U7  Ekran görüntüleri: açık ve koyu tema (ciktilar/)
   U8  Uyarılı seans (akşam, −1 cm) eğilime katılmıyor ve grafikte içi boş çiziliyor
+  U10 Düzenleme: seans formda açılıyor, değişiklik aynı seansa yazılıyor (sayı artmıyor); araştırma dosyasında
+      notlar varsayılan olarak var ve düzeltilen seans "sonradan_duzeltildi = 1"
   U9  Gereken süre hesabı analiz/calistir.py'nin süre tablosuyla aynı (SD 0.3: haftada bir 12, ayda bir 19 ay)
 """
 
@@ -121,7 +123,8 @@ with sync_playwright() as p:
          f"yedekte {len(yedek['seanslar'])} seans; geri yüklemeden sonra {n3} (tekrar yok)")
     yol.unlink()
 
-    # U6: araştırma dosyası
+    # U6: araştırma dosyası (notlar kaldırılarak)
+    s.uncheck("#xNot")
     with s.expect_download() as d1:
         s.click("#arastirmaDosyasi")
     ar = json.loads(Path(d1.value.path()).read_text(encoding="utf-8"))
@@ -133,6 +136,26 @@ with sync_playwright() as p:
     test("U6", temiz and satir[0]["gun"] == 0 and satir[-1]["gun"] == 405 and
          all(abs(y * 10 - round(y * 10)) < 1e-9 for y in yaslar),
          f"yasak içerik yok: {temiz}; gün {satir[0]['gun']}…{satir[-1]['gun']}; yaş {yaslar[0]}…{yaslar[-1]}")
+
+    # U10: geçmiş seansı düzenleme ve notlu araştırma dosyası
+    s.check("#xNot")
+    s.click("nav button[data-panel=liste]")
+    hedef = s.evaluate("sirali()[2].id")
+    s.click(f"[data-duzenle='{hedef}']")
+    b1_once = s.input_value("#b1")
+    s.fill("#b1", str(round(float(b1_once) + 0.3, 1)))
+    s.fill("#not", "duvar değişti")
+    s.click("#kaydet")
+    sonra = s.evaluate(f"durum.seanslar.find(z => z.id === '{hedef}')")
+    n4 = s.evaluate("durum.seanslar.length")
+    s.click("nav button[data-panel=veri]")
+    with s.expect_download() as d2:
+        s.click("#arastirmaDosyasi")
+    ar2 = json.loads(Path(d2.value.path()).read_text(encoding="utf-8"))["satirlar"]
+    test("U10", n4 == 10 and abs(sonra["boy"][0] - float(b1_once) - 0.3) < 1e-9 and ar2[2]["not"] == "duvar değişti"
+         and ar2[2]["sonradan_duzeltildi"] == 1 and sum(r["sonradan_duzeltildi"] for r in ar2) == 1
+         and ar2[0]["not"].startswith("GİZLİ-NOT"),
+         f"seans sayısı {n4}; boy_1 {b1_once} → {sonra['boy'][0]}; not '{ar2[2]['not']}'; düzeltildi işareti {ar2[2]['sonradan_duzeltildi']}")
 
     # U8: uyarılı seans
     s.click("nav button[data-panel=olcum]")
@@ -160,6 +183,9 @@ with sync_playwright() as p:
     s.emulate_media(color_scheme="dark")
     s.click("nav button[data-panel=grafik]")
     s.screenshot(path=str(CIKTI / "ekran_grafikler_koyu.png"), full_page=True)
+    s.emulate_media(color_scheme="light")
+    s.click("nav button[data-panel=liste]")
+    s.screenshot(path=str(CIKTI / "ekran_olcumler.png"), full_page=True)
     s.set_viewport_size({"width": 390, "height": 900})
     s.emulate_media(color_scheme="light")
     s.click("nav button[data-panel=olcum]")
