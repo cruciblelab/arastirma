@@ -151,7 +151,7 @@ Başlangıç profili:
 - Düşük artış senaryosu (D5, göğüs +1 ile +3 cm) ise ~2.4 kg ima ediyor.
 - **Bu yüzden gerçekçi beklenti iki senaryonun arasında:** V sırası 30'dan **47 ile 69 arasına**, algılanan boy **+0.7 ile +1.7 cm** (medyanlar). Ana senaryo iyimser olduğu için aralığın alt kısmı daha olası.
 
-Bu karşılaştırma ilk çalıştırmadan sonra eklendi ve [PLAN.md](simulasyon/PLAN.md) "Plandan sapmalar" bölümünde'de sapma olarak kayıtlı. Senaryo aralıkları değiştirilmedi.
+Bu karşılaştırma ilk çalıştırmadan sonra eklendi ve [PLAN.md](simulasyon/PLAN.md) dosyasının "Plandan sapmalar" bölümünde sapma olarak kayıtlı. Senaryo aralıkları değiştirilmedi.
 
 ### 4. Testler ve duyarlılık
 
