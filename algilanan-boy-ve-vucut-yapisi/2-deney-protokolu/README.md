@@ -1,3 +1,5 @@
+> **Güncel sürüm:** [3-vucut-oranlari-ve-spor](../3-vucut-oranlari-ve-spor/). Bu sürüm dondurulmuştur.
+
 # Algılanan Boy ve Vücut Yapısı · Sürüm 2: Deney Protokolü
 
 > **Sürüm:** 2 · **Tarih:** 2026-10-08 · **Durum:** güncel

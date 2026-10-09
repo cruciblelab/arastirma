@@ -1,4 +1,4 @@
-> **Güncel sürüm:** [2-deney-protokolu](../2-deney-protokolu/). Bu sürüm dondurulmuştur.
+> **Güncel sürüm:** [3-vucut-oranlari-ve-spor](../3-vucut-oranlari-ve-spor/). Bu sürüm dondurulmuştur.
 
 # Algılanan Boy ve Vücut Yapısı · Sürüm 1: Literatür ve Algı Simülasyonu
 
