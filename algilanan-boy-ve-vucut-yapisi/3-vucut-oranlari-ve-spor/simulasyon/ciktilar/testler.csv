@@ -1,0 +1,7 @@
+test,aciklama,deger,olcut,sonuc
+B1,Veri bütünlüğü: ANSUR II SHA-256 ve 17-24 yaş erkek sayısı,SHA eşleşti; n = 1358,eşleşir; n = 1358,GEÇTİ
+B2,"İndeks yapısı: ortalama 0, SD 1, kas ve yağ indeksleri ilişkisiz","ortalamalar -1.0e-17, 0.0e+00; SD 1.000000000000, 1.000000000000; r = -0.0000",|ort| < 1e-9; SD = 1 ± 1e-9; |r| < 0.05,GEÇTİ
+B3,Eşleme: kas ekseni boyunca uygulanan göğüs artışı geri hesaplanınca aynı çıkar,en büyük fark 8.9e-16 cm,< 1e-9 cm,GEÇTİ
+B4,Sıfır senaryosu: ΔA = 0 ve yüzdelikler değişmez,max |ΔA| = 0.0e+00; max |ΔV| = 0.0e+00; max |Δkas%| = 0.0e+00,hepsi 0,GEÇTİ
+B5,"Yön: yağ arttıkça bel/göğüs oranı yükselir, algılanan boy azalır (1-5 kg)","WCR 0.8990, 0.9033, 0.9075, 0.9117, 0.9158 · ΔA -0.041, -0.081, -0.122, -0.162, -0.203",kesin monoton,GEÇTİ
+B6,Monte Carlo hatası: S2'de ΔA medyanının bootstrap SE'si,SE = 0.0141 cm,< 0.02 cm,GEÇTİ

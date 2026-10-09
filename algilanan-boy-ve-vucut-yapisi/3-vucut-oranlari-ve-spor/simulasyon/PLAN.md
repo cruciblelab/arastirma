@@ -116,4 +116,5 @@ Her tekrarda göğüs artışı, yağ değişimi, `b_güç` ve `b_en` çekilir. 
 
 | Tarih | Sapma | Gerekçe |
 |---|---|---|
-| – | – | – |
+| 2026-10-09 | Monte Carlo tekrarı R = 4000 → **16 000** | İlk çalıştırmada B6 **kaldı** (S2'de ΔA medyanının SE'si 0.031 cm; ölçüt < 0.02). Ölçüt değiştirilmedi; yalnız tekrar sayısı artırıldı. İlk çalıştırmanın sonuçları raporda ayrıca verildi |
+| 2026-10-09 | Ek çıktı: senaryonun kas ekseni boyunca ima ettiği kilo artışı (`kas_kilo_*` sütunları) | İlk çalıştırmada ana antrenman senaryosunun (göğüs +3 … +8 cm) yılda ~5-7 kg kilo artışı ima ettiği görüldü; bu, kas kütlesi meta-analizindeki ortalama +1.5 kg (Benito 2020) ile karşılaştırılabilsin diye. Senaryo aralıkları değiştirilmedi; D5 (göğüs +1 … +3 cm) raporda ana senaryonun yanında verildi |

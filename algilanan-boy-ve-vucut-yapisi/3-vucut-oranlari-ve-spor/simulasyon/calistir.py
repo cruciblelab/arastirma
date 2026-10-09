@@ -33,7 +33,8 @@ REPO = KOK.parents[2]
 CIKTI = KOK / "ciktilar"
 CIKTI.mkdir(exist_ok=True)
 TOHUM = 20261009
-R = 4000
+R = 16000                      # PLAN: 4000; B6 kaldığı için 16000 (Plandan sapmalar, 2026-10-09)
+KAS_MAKALE_KG = (1.30, 1.53, 1.76)   # Benito 2020: kas kütlesi artışı, ortalama ve %95 GA (kg)
 DIK_DURUS_CM = 1.3             # Prushansky 2013 (sürüm 1): gevşek → dik, erkek, gerçek boy
 ANSUR = dict(url="https://tools.openlab.psu.edu/publicData/ANSUR_II_MALE_Public.csv",
              sha256="0547aea0170e5293de519389981135e75803f02e6d40c77ace740decc0caac64",
@@ -233,6 +234,12 @@ for ad, a in SENARYO.items():
     sat.append(satir)
     log(ad, "ΔA medyan", round(satir["dA_medyan"], 2), "cm · V sırası", round(satir["v0"]), "→", round(satir["v1_medyan"]))
 senaryo_tablo = pd.DataFrame(sat)
+# Ek çıktı (sapma 2): senaryonun kas ekseni boyunca ima ettiği kilo artışı; literatürle karşılaştırma için
+for ad, df in SONUC.items():
+    kas_kg = KAT["kilo"]["kas"] * df.dkas
+    senaryo_tablo.loc[senaryo_tablo.senaryo == ad, "kas_kilo_medyan"] = float(np.median(kas_kg))
+    senaryo_tablo.loc[senaryo_tablo.senaryo == ad, "kas_kilo_p5"] = float(np.percentile(kas_kg, 5))
+    senaryo_tablo.loc[senaryo_tablo.senaryo == ad, "kas_kilo_p95"] = float(np.percentile(kas_kg, 95))
 senaryo_tablo.to_csv(CIKTI / "senaryolar.csv", index=False, float_format="%.4f")
 p0 = profil(-1.0, 0.0)
 OZET["baslangic_profili"] = {k: float(v) for k, v in p0.items()} | dict(boy=float(boy_med), biak=float(biak_med))
@@ -300,7 +307,7 @@ dsat = []
 for ad, a in VARYANT.items():
     df = calistir(a)
     dsat.append(dict(varyant=ad, **{f"dA_{k}": v for k, v in q(df.dA).items()}, **{f"dv_{k}": v for k, v in q(df.dv).items()},
-                     v0=float(df.v0.iloc[0])))
+                     v0=float(df.v0.iloc[0]), kas_kilo_medyan=float(np.median(KAT["kilo"]["kas"] * df.dkas))))
 duy = pd.DataFrame(dsat)
 duy.to_csv(CIKTI / "duyarlilik.csv", index=False, float_format="%.4f")
 log("duyarlılık:\n" + duy.round(2).to_string(index=False))
@@ -326,36 +333,41 @@ def siluet(ax, x0, olc, boy, renk, dolu, etiket):
         ax.text(x0, -12, etiket, ha="center", va="top", fontsize=9.5, color=MUR)
 
 
-fig, axs = plt.subplots(1, 2, figsize=(12.5, 5.6), facecolor=YUZEY, gridspec_kw=dict(width_ratios=[1.05, 1]))
+fig, axs = plt.subplots(1, 2, figsize=(13, 6.2), facecolor=YUZEY, gridspec_kw=dict(width_ratios=[1.05, 1]))
 ax = axs[0]
 ax.set_facecolor(YUZEY)
 kutu = [("Başlangıç\n(zayıf yapılı)", 0.0, 0.0, SOLUK), ("S2: 12 ay antrenman\n+ hafif yağ kaybı", None, None, YESIL),
         ("S3: antrenmansız\nkilo alma", None, None, TURUNCU)]
 for i, (et, dk_, dy_, renk) in enumerate(kutu):
-    x0 = 30 + i * 60
-    siluet(ax, x0, p0, boy_med, SOLUK, i == 0, None)
+    x0 = 32 + i * 72
+    siluet(ax, x0, p0, boy_med, SOLUK, True, None)
     if i > 0:
         df = SONUC["S2 antrenman + yağ kaybı" if i == 1 else "S3 antrenmansız kilo alma"]
         med = {k: p0[k] + float(np.median(df[f"d_{k}"])) if f"d_{k}" in df else p0[k] for k in p0}
         siluet(ax, x0, med, boy_med, renk, False, None)
         dd = {k: float(np.median(df[f"d_{k}"])) for k in ("bidelt", "bel", "gogus")}
-        ax.text(x0, -12, f"{et}\nomuz {dd['bidelt']:+.1f} · göğüs {dd['gogus']:+.1f}\nbel {dd['bel']:+.1f} cm",
-                ha="center", va="top", fontsize=9, color=MUR)
+        ax.text(x0, -12, f"{et}\nomuz genişliği {dd['bidelt']:+.1f}\ngöğüs çevresi {dd['gogus']:+.1f}\nbel çevresi {dd['bel']:+.1f} cm",
+                ha="center", va="top", fontsize=8.6, color=MUR)
     else:
-        ax.text(x0, -12, f"{et}\nomuz {p0['bidelt']:.0f} · bel {p0['bel_en']:.0f} cm\n(önden genişlik)",
-                ha="center", va="top", fontsize=9, color=MUR)
-ax.set_xlim(0, 180)
-ax.set_ylim(-48, boy_med + 8)
+        ax.text(x0, -12, f"{et}\nomuz genişliği {p0['bidelt']:.0f} cm\ngöğüs çevresi {p0['gogus']:.0f} cm\nbel çevresi {p0['bel']:.0f} cm",
+                ha="center", va="top", fontsize=8.6, color=MUR)
+ax.set_xlim(0, 208)
+ax.set_ylim(-58, boy_med + 8)
 ax.set_aspect("equal")
 ax.axis("off")
 ax.set_title("Aynı iskelet, 12 ay sonra (medyan; gri dolu = başlangıç, çizgi = sonrası)", fontsize=10.5, loc="left", color=MUR)
 
 ax = axs[1]
 ax.set_facecolor(YUZEY)
-sira = ["S1 antrenman", "S2 antrenman + yağ kaybı", "S4 yalnız yağ kaybı", "S3 antrenmansız kilo alma"]
-renkler = [MAVI, YESIL, MUR2, TURUNCU]
+sira = ["S1 antrenman", "S2 antrenman + yağ kaybı", "D5 antrenman + yağ kaybı, düşük göğüs artışı", "S4 yalnız yağ kaybı",
+        "S3 antrenmansız kilo alma"]
+renkler = [MAVI, YESIL, YESIL, MUR2, TURUNCU]
+_d5 = duy.set_index("varyant").loc["D5 göğüs artışı düşük"]
+_tab = senaryo_tablo.set_index("senaryo")
+_tab.loc[sira[2], ["dA_medyan", "dA_p5", "dA_p95", "v0", "v1_medyan"]] = [_d5.dA_medyan, _d5.dA_p5, _d5.dA_p95, _d5.v0,
+                                                                          _d5.v0 + _d5.dv_medyan]
 for i, (ad, rk) in enumerate(zip(sira, renkler)):
-    r_ = senaryo_tablo.set_index("senaryo").loc[ad]
+    r_ = _tab.loc[ad]
     y = len(sira) - 1 - i
     ax.plot([r_["dA_p5"], r_["dA_p95"]], [y, y], color=rk, lw=2.5, solid_capstyle="round")
     ax.plot(r_["dA_medyan"], y, "o", color=rk, ms=9, mec=YUZEY, mew=2)
@@ -364,7 +376,7 @@ ax.plot([DIK_DURUS_CM, DIK_DURUS_CM], [-0.6, len(sira) - 0.4], color=MUR2, lw=1,
 ax.text(DIK_DURUS_CM, len(sira) - 0.35, "dik duruş\n(+1.3 cm, gerçek)", ha="center", va="bottom", fontsize=8.5, color=MUR2)
 ax.axvline(0, color=SOLUK, lw=1)
 ax.set_yticks(range(len(sira)))
-ax.set_yticklabels([s.split(" ", 1)[1] for s in sira[::-1]], fontsize=9.5)
+ax.set_yticklabels([s.split(" ", 1)[1].replace(", düşük", "\n(düşük") + (")" if "düşük" in s else "") for s in sira[::-1]], fontsize=9)
 ax.set_xlabel("Algılanan boy değişimi (cm; nokta medyan, çizgi %5-%95)", fontsize=9.5)
 ax.spines[["top", "right", "left"]].set_visible(False)
 ax.tick_params(axis="y", length=0)
@@ -374,17 +386,17 @@ fig.tight_layout()
 fig.savefig(CIKTI / "siluet_ve_boy.png", dpi=150)
 plt.close(fig)
 
-fig, ax = plt.subplots(figsize=(8.5, 3.8), facecolor=YUZEY)
+fig, ax = plt.subplots(figsize=(8.5, 4.4), facecolor=YUZEY)
 ax.set_facecolor(YUZEY)
 for i, (ad, rk) in enumerate(zip(sira, renkler)):
-    r_ = senaryo_tablo.set_index("senaryo").loc[ad]
+    r_ = _tab.loc[ad]
     y = len(sira) - 1 - i
     ax.plot([r_["v0"], r_["v1_medyan"]], [y, y], color=rk, lw=2)
     ax.plot(r_["v0"], y, "o", color=SOLUK, ms=8, mec=YUZEY, mew=1.5)
     ax.plot(r_["v1_medyan"], y, "o", color=rk, ms=9, mec=YUZEY, mew=1.5)
     ax.text(max(r_["v0"], r_["v1_medyan"]) + 2, y, f"{r_['v0']:.0f} → {r_['v1_medyan']:.0f}", va="center", fontsize=9.5, color=MUR)
 ax.set_yticks(range(len(sira)))
-ax.set_yticklabels([s.split(" ", 1)[1] for s in sira[::-1]], fontsize=9.5)
+ax.set_yticklabels([s.split(" ", 1)[1].replace(", düşük", "\n(düşük") + (")" if "düşük" in s else "") for s in sira[::-1]], fontsize=9)
 ax.set_xlim(0, 100)
 ax.set_xlabel("V sırası: akranların yüzde kaçından daha V (bel/göğüs oranı daha düşük)", fontsize=9.5)
 ax.spines[["top", "right", "left"]].set_visible(False)
