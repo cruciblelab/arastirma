@@ -24,6 +24,9 @@ class MainActivity : ComponentActivity() {
         sendViaService(this, uris)
     }
     private val askNotifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    private val askBluetooth = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        Talk.refreshBluetooth()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +43,9 @@ class MainActivity : ComponentActivity() {
                     onSendClipboard = ::sendClipboard,
                     onOpenNotifAccess = {
                         startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    },
+                    onBluetoothPermission = {
+                        if (Build.VERSION.SDK_INT >= 31) askBluetooth.launch(Manifest.permission.BLUETOOTH_CONNECT)
                     },
                 )
             }

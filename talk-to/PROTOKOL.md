@@ -1,6 +1,6 @@
-# Köprü protokolü (sürüm 1)
+# Talk To Linux ↔ Talk To Android protokolü (sürüm 1)
 
-Linux tarafı: [`linux/kopru/`](linux/kopru/) · Android tarafı: [`android/app/src/main/java/lab/crucible/kopru/net/`](android/app/src/main/java/lab/crucible/kopru/net/)
+Linux tarafı (Talk To Android): [`linux/talkto/`](linux/talkto/) · Android tarafı (Talk To Linux): [`android/app/src/main/java/lab/crucible/talktolinux/net/`](android/app/src/main/java/lab/crucible/talktolinux/net/)
 
 ## Taşıma
 
@@ -10,13 +10,14 @@ Linux tarafı: [`linux/kopru/`](linux/kopru/) · Android tarafı: [`android/app/
 | İstemci | Telefon |
 | Wi-Fi | Sunucu `0.0.0.0:47600` dinler (yalnızca "Kablosuz" açıkken) |
 | USB | Bilgisayar `adb reverse tcp:47600 tcp:47600` kurar; telefon `127.0.0.1:47600`'e bağlanır, bağlantı bilgisayarda `127.0.0.1`'den gelir ve **USB** sayılır |
+| Bluetooth | Bilgisayar BlueZ'e `a3c5e9d4-7b1f-4c6e-9d2a-5f8b3e1c7a90` UUID'li RFCOMM sunucu profili kaydeder (`RequireAuthentication`: cihazlar sistemde eşleşmiş olmalı). Telefon bu UUID ile bağlanır; TLS akış üzerinde SSLEngine ile kurulur. Bundan sonrası TCP ile aynı |
 | Sertifika | Bilgisayarda bir kez üretilen kendinden imzalı EC P-256 sertifika. Telefon zinciri doğrulamaz; **SHA-256 parmak izini** ilk eşleşmede kaydeder, sonra değişirse bağlanmaz |
 
 ## Keşif (UDP 47601)
 
-- Telefon `{"kopru":1,"type":"probe"}` paketini `255.255.255.255:47601`'e yollar.
+- Telefon `{"talkto":1,"type":"probe"}` paketini `255.255.255.255:47601`'e yollar.
 - Bilgisayar (kablosuz açıkken) 3 saniyede bir ve her probe'a cevap olarak duyurur:
-  `{"kopru":1,"type":"announce","id","name","port","fp","password":bool}`
+  `{"talkto":1,"type":"announce","app":"talk-to-android","id","name","port","fp","password":bool}`
 - Duyurudaki `fp` yalnızca kolaylık içindir; güven TLS bağlantısında görülen parmak izine dayanır.
 
 ## Çerçeve
@@ -32,13 +33,13 @@ Linux tarafı: [`linux/kopru/`](linux/kopru/) · Android tarafı: [`android/app/
 ## El sıkışma ve kimlik doğrulama
 
 ```
-telefon → hello {proto:1, device_id, name, model, platform, token|null}
-bilgisayar → hello {proto:1, device_id, name, platform:"linux"}
+telefon → hello {proto:1, app:"talk-to-linux", device_id, name, model, platform, token|null}
+bilgisayar → hello {proto:1, app:"talk-to-android", version, device_id, name, platform:"linux"}
 ```
 
 1. `token` bilgisayarın kayıtlı belirteciyle (SHA-256'sı saklanır) eşleşirse → `welcome {}`.
 2. Değilse yöntem seçilir:
-   - **USB** ya da **Wi-Fi + şifre yok** → `auth_required {method:"approval", nonce}`.
+   - **USB**, **Bluetooth** ya da **Wi-Fi + şifre yok** → `auth_required {method:"approval", nonce}`.
      İki taraf da `kod = SHA-256("nonce:parmakizi:device_id")` ilk 4 baytı mod 10⁶ (6 hane) hesaplar.
      Bilgisayar kodu onay penceresinde, telefon ekranında gösterir. Kullanıcı aynı olduğunu görüp onaylar.
      Telefon kodu **kendi gördüğü** sertifikadan hesapladığı için araya giren biri varsa kodlar farklı çıkar.
@@ -46,6 +47,7 @@ bilgisayar → hello {proto:1, device_id, name, platform:"linux"}
      `auth_password {proof: HMAC-SHA256(şifre, "nonce:parmakizi")}` yollar. Parmak izi iletiye girdiği için
      kanıt başka bir sunucuya aktarılamaz.
 3. Başarılıysa `welcome {token}` (32 bayt rastgele, hex). Telefon belirteci bilgisayarın parmak iziyle birlikte saklar.
+   Onay penceresinde telefona bir **profil** seçilir; şifreyle eşleşen telefon varsayılan profili alır.
 4. Başarısızsa `auth_failed {reason}`: `wrong_password`, `rejected` (reddedildi ya da 60 sn doldu), `too_many_attempts`
    (aynı IP'den 10 dakikada 5 hata), bağlantı kapanır.
 
@@ -66,6 +68,14 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | `clipboard` | iki yön | `text` |
 | `open_url` | telefon → bilgisayar | `url` (yalnızca http/https) |
 | `ring` / `ring_stop` | bilgisayar → telefon | telefonu bul |
+| `profile` | bilgisayar → telefon | `id`, `name`, `permissions` {notifications, media, files, clipboard, open_url, commands, power, screenshot}; bağlanınca ve profil değişince |
+| `commands` | bilgisayar → telefon | `items`: [{`id`, `name`, `icon`, `power`}] — profilin izin verdiği komutlar |
+| `run_command` | telefon → bilgisayar | `id` (yalnızca listedeki bir kimlik; komut metni gönderilmez) |
+| `command_result` | bilgisayar → telefon | `id`, `name`, `ok`, `code`, `output` (son 8000 karakter) |
+| `sysinfo_request` / `sysinfo` | telefon ↔ bilgisayar | `host`, `os`, `cpu`, `cores`, `load`, `mem_used`, `mem_total`, `disk_used`, `disk_total`, `battery`, `uptime`, `volume`, `muted` |
+| `pc_volume` | telefon → bilgisayar | `value` (0-100 ya da null), `toggle_mute`; cevap `sysinfo` |
+| `screenshot_request` | telefon → bilgisayar | bilgisayar görüntüyü alıp `file_offer` ile yollar |
+| `notify` | bilgisayar → telefon | `title`, `text` (ör. terminalde `talk-to-android bildirim`) |
 | `file_offer` | gönderen → alan | `transfer_id`, `name`, `size`, `mime` |
 | `file_accept` / `file_reject` | alan → gönderen | `transfer_id`, (`reason`) |
 | *ikili parçalar* | gönderen → alan | `transfer_id` + veri |
@@ -74,6 +84,8 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | `file_cancel` | iki yön | `transfer_id` |
 
 Bilinmeyen türler yok sayılır (ileri uyumluluk). Aktarım numaraları gönderene göre ayrı tutulur.
+Bilgisayar her iletiyi telefonun **güncel** profil izniyle denetler; izin yoksa ileti yok sayılır ya da reddedilir
+(dosya: `file_reject`, komut ve ekran görüntüsü: `command_result {ok:false}`).
 
 Alan taraf dosyayı geçici bir yere yazar, boyut ve SHA-256 tutarsa asıl adına taşır; tutmazsa siler.
 Linux'ta gelen ad tek bir dosya adına indirgenir (`../../.bashrc` → `_.._.bashrc`) ve var olan dosyanın

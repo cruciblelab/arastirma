@@ -63,7 +63,9 @@ class ClientSession(
 
     class FingerprintMismatch(val actual: String) : IOException("güvenlik kodu değişti")
 
-    private lateinit var socket: SSLSocket
+    /** TCP'de SSLSocket; Bluetooth'ta null (zaman aşımı uygulanamaz, kopunca okuma hata verir). */
+    private var socket: SSLSocket? = null
+    private var closer: () -> Unit = {}
     private lateinit var input: DataInputStream
     private lateinit var output: BufferedOutputStream
     private val writeLock = Any()
@@ -88,15 +90,39 @@ class ClientSession(
         val raw = Socket()
         raw.connect(InetSocketAddress(host, port), timeoutMs)
         raw.tcpNoDelay = true
-        socket = ctx.socketFactory.createSocket(raw, host, port, true) as SSLSocket
-        socket.soTimeout = timeoutMs * 3
-        socket.startHandshake()
-        val cert = socket.session.peerCertificates[0]
-        fingerprint = Auth.sha256Hex(cert.encoded)
-        input = DataInputStream(socket.inputStream.buffered(64 * 1024))
-        output = BufferedOutputStream(socket.outputStream, 64 * 1024)
+        val ssl = ctx.socketFactory.createSocket(raw, host, port, true) as SSLSocket
+        socket = ssl
+        closer = { ssl.close() }
+        ssl.soTimeout = timeoutMs * 3
+        ssl.startHandshake()
+        fingerprint = Auth.sha256Hex(ssl.session.peerCertificates[0].encoded)
+        input = DataInputStream(ssl.inputStream.buffered(64 * 1024))
+        output = BufferedOutputStream(ssl.outputStream, 64 * 1024)
         return fingerprint
     }
+
+    /**
+     * Önceden açılmış bir akış (Bluetooth RFCOMM) üzerinde TLS kurar ve
+     * sertifikanın parmak izini döndürür. [close] alttaki bağlantıyı kapatır.
+     */
+    fun openStreams(rawIn: java.io.InputStream, rawOut: java.io.OutputStream, close: () -> Unit): String {
+        val ctx = SSLContext.getInstance("TLS")
+        ctx.init(null, arrayOf(AcceptAll), SecureRandom())
+        val tls = EngineTls(ctx.createSSLEngine(), rawIn, rawOut)
+        closer = { tls.close(); close() }
+        try {
+            tls.handshake()
+        } catch (e: Exception) {
+            close()
+            throw e as? java.io.IOException ?: java.io.IOException(e.message, e)
+        }
+        fingerprint = Auth.sha256Hex(tlsPeerCert(tls).encoded)
+        input = DataInputStream(tls.inputStream.buffered(64 * 1024))
+        output = BufferedOutputStream(tls.outputStream, 64 * 1024)
+        return fingerprint
+    }
+
+    private fun tlsPeerCert(tls: EngineTls) = tls.peerCertificate()
 
     /**
      * Engelleyen el sıkışma. [password] yalnızca bilgisayar şifre isterse
@@ -104,7 +130,8 @@ class ClientSession(
      */
     fun handshake(deviceId: String, name: String, model: String, token: String?, password: String?): AuthResult {
         send(JSONObject().put("type", "hello").put("proto", 1).put("device_id", deviceId)
-            .put("name", name).put("model", model).put("platform", "android").put("token", token ?: JSONObject.NULL))
+            .put("name", name).put("model", model).put("platform", "android").put("app", "talk-to-linux")
+            .put("token", token ?: JSONObject.NULL))
         val hello = readJson()
         if (hello.optString("type") != "hello") return AuthResult.Failed("protocol")
         val serverId = hello.optString("device_id")
@@ -119,7 +146,7 @@ class ClientSession(
                 msg = readJson()
             } else {
                 listener.onPairingCode(Auth.pairingCode(nonce, fingerprint, deviceId))
-                socket.soTimeout = 75_000  // kullanıcı bilgisayarda onaylayana kadar
+                socket?.soTimeout = 75_000  // kullanıcı bilgisayarda onaylayana kadar
                 msg = readJson()
             }
         }
@@ -139,7 +166,7 @@ class ClientSession(
 
     /** Kimlik doğrulandıktan sonra okuyucu ve ping iş parçacıklarını başlatır. */
     fun start() {
-        socket.soTimeout = 50_000
+        socket?.soTimeout = 50_000
         Thread({ readLoop() }, "talkto-okuyucu").start()
         Thread({
             try {
@@ -328,7 +355,7 @@ class ClientSession(
         incoming.values.forEach { it.sink.abort() }
         incoming.clear()
         outgoing.values.forEach { it.cancelled = true; it.reply.offer(JSONObject().put("type", "file_cancel")) }
-        runCatching { socket.close() }
+        runCatching { closer() }
     }
 
     /**

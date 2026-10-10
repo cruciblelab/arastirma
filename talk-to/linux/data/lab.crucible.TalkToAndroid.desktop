@@ -2,11 +2,11 @@
 Type=Application
 Name=Talk To Android
 GenericName=Telefon bağlantısı
-Comment=Android telefonu USB ya da Wi-Fi ile bağla: bildirimler, medya, dosyalar
+Comment=Android telefonu USB, Wi-Fi ya da Bluetooth ile bağla: bildirimler, medya, dosyalar, komutlar
 Exec=talk-to-android
 Icon=lab.crucible.TalkToAndroid
 Terminal=false
 Categories=Network;Utility;GTK;
-Keywords=telefon;android;phone;usb;wifi;bildirim;dosya;kdeconnect;
+Keywords=telefon;android;phone;usb;wifi;bluetooth;bildirim;dosya;komut;kdeconnect;
 StartupNotify=true
 DBusActivatable=false

@@ -1,158 +1,198 @@
-# Köprü
+# Talk To Linux · Talk To Android
 
-Linux bilgisayar ile Android telefonu **USB kablosuyla** ya da **Wi-Fi üzerinden** bağlayan uygulama.
-İki parçası var: Linux masaüstü uygulaması (Python + GTK4/libadwaita) ve Android uygulaması (Kotlin + Jetpack Compose, Material 3).
+Linux bilgisayar ile Android telefonu **USB kablosu**, **Wi-Fi** ya da **Bluetooth** üzerinden birbirine bağlayan iki uygulama:
 
-**Durum:** ilk sürüm (0.1.0). Gerçek bir telefonda henüz denenmedi; neyin nasıl test edildiği aşağıda, [Ne test edildi](#ne-test-edildi) bölümünde.
+| Uygulama | Nerede | Ne ile yazıldı |
+|---|---|---|
+| **Talk To Linux** | Android telefon (APK) | Kotlin + Jetpack Compose, Material 3 |
+| **Talk To Android** | Linux bilgisayar | Python + GTK4/libadwaita; terminal komutu `talk-to-android` |
 
-| Linux | Android |
+İki uygulama birbirini tanır: ilk bağlantıda bir kez onaylanır (ya da şifre girilir), sonra telefon bağlandığı anda bilgisayar onu tanır ve **profilini** uygular.
+
+**Durum:** 0.2.0. Gerçek bir telefonda ve gerçek Bluetooth donanımında henüz denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
+
+| Telefon | Bilgisayar |
 |---|---|
-| ![Bağlantı](ekran/linux-baglanti.png) | ![Bilgisayar bul](ekran/android-bilgisayar-bul.png) |
-| ![Medya](ekran/linux-medya.png) | ![Bağlı](ekran/android-bagli.png) |
-| ![Onay](ekran/linux-onay.png) | ![Onay](ekran/android-onay.png) |
+| ![Bilgisayar bul](ekran/android-bilgisayar-bul.png) | ![Bağlantı](ekran/linux-baglanti.png) |
+| ![Bağlı](ekran/android-bagli.png) | ![Cihazlar ve profiller](ekran/linux-cihazlar-profiller.png) |
+| ![Bilgisayar kartı](ekran/android-bilgisayar.png) | ![Komutlar](ekran/linux-komutlar.png) |
+| ![Onay](ekran/android-onay.png) | ![Onay](ekran/linux-onay.png) |
 
 ## Ne yapar
 
 | Özellik | Yön | Not |
 |---|---|---|
-| Bildirimler | telefon → bilgisayar | Telefon bildirimi masaüstünde uygulama simgesiyle çıkar; telefonda silinince masaüstünden de kalkar. Müzik/indirme gibi süren bildirimler gönderilmez. |
-| Telefonda çalan medya | telefon → bilgisayar | Spotify, YouTube, YouTube Music… Kapak, şarkı, ilerleme; bilgisayardan oynat/duraklat/atla/sar/ses. |
-| Bilgisayarda çalan medya | bilgisayar → telefon | Spotify masaüstü, tarayıcıda YouTube, VLC (MPRIS destekleyen her oynatıcı); telefondan kontrol. |
-| Dosya gönderme | iki yön | Telefondan: "Paylaş → Köprü" ya da uygulamadaki "Dosya gönder". Bilgisayardan: pencereye sürükle-bırak ya da "Dosya seç". SHA-256 ile doğrulanır. |
-| Gelen dosyalar klasörü | | Bilgisayarda varsayılan `~/İndirilenler/Kopru` (ayarlardan değişir, "Klasörü aç" düğmesi var). Telefonda `İndirilenler/Kopru`. |
-| Pano | iki yön | Düğmeyle gönderilir (Android arka planda panoyu okumaya izin vermez). |
-| Bağlantı açma | telefon → bilgisayar | Telefonda bir YouTube bağlantısını "Paylaş → Köprü" yapınca bilgisayarın tarayıcısında açılır. |
-| Telefonu bul | bilgisayar → telefon | Telefon sessizdeyken de 30 sn çalar. |
-| Pil | telefon → bilgisayar | Bilgisayardaki pencerede görünür. |
+| Bildirimler | telefon → bilgisayar | Masaüstünde uygulama simgesiyle çıkar; telefonda silinince masaüstünden de kalkar. |
+| Telefonda çalan medya | telefon → bilgisayar | Spotify, YouTube, YouTube Music… Kapak, ilerleme; bilgisayardan oynat/duraklat/atla/sar/ses. |
+| Bilgisayarda çalan medya | bilgisayar → telefon | Spotify masaüstü, tarayıcıda YouTube, VLC (MPRIS destekleyen her oynatıcı). |
+| Dosya gönderme | iki yön | Telefonda "Paylaş → Talk To Linux"; bilgisayarda sürükle-bırak, "Dosya seç" ya da terminalde `talk-to-android gonder`. SHA-256 ile doğrulanır. |
+| Gelen dosyalar klasörü | | Bilgisayarda `~/İndirilenler/TalkToAndroid` (genel ya da profil başına değiştirilebilir). Telefonda `İndirilenler/TalkToLinux`. |
+| Pano, bağlantı açma | iki yön / telefon → bilgisayar | Paylaşılan YouTube bağlantısı bilgisayarın tarayıcısında açılır. |
+| **Bilgisayar komutları** | telefon → bilgisayar | Ekranı kilitle, uyku, yeniden başlat, kapat ve **senin eklediğin Linux komutları** (çıktısı telefona döner). |
+| **Ekran görüntüsü** | telefon → bilgisayar → telefon | Bilgisayarın ekranı alınır, telefona dosya olarak gelir. |
+| **Sistem durumu ve ses** | bilgisayar → telefon | İşlemci, bellek, disk, pil, açık kalma süresi; bilgisayarın ses düzeyi ve sessize alma. |
+| **Terminalden telefona** | bilgisayar → telefon | `talk-to-android bildirim "Derleme bitti"`, `gonder`, `pano`, `cal`, `medya` (aşağıda). |
+| Telefonu bul, pil | | Telefon sessizdeyken de 30 sn çalar; telefonun pili bilgisayarda görünür. |
 
-## Nasıl bağlanır
+## Bağlantı yolları
 
-**USB (onaylı):** Telefonda *Geliştirici seçenekleri → USB hata ayıklama* açık olmalı. Kablo takılınca bilgisayardaki Köprü `adb` ile tünel kurar.
-Telefonda "USB kablosu"na basınca bilgisayarda **onay penceresi** açılır; iki ekranda da aynı 6 haneli kod görünür, aynıysa "Bağlan". İnternet ya da Wi-Fi gerekmez.
+| Yol | Ne gerekir | İlk bağlantı | Hız |
+|---|---|---|---|
+| **USB** | Telefonda *Geliştirici seçenekleri → USB hata ayıklama*, bilgisayarda `adb` (uygulama içinden "Kur" düğmesiyle kurulur) | Bilgisayarda onay penceresi, iki ekranda aynı 6 haneli kod | En hızlı |
+| **Wi-Fi** | Aynı ağ; bilgisayarda "Kablosuz bağlantıyı aç" | Şifre koyduysan şifre, koymadıysan onay penceresi | Hızlı |
+| **Bluetooth** | Telefonla bilgisayarı **önce sistemin Bluetooth ayarlarından eşleştir** | Onay penceresi | Yavaş (bildirim, medya, komut için yeterli; büyük dosyada Wi-Fi/USB tercih et) |
 
-**Wi-Fi:** Bilgisayarda "Kablosuz bağlantıyı aç". Aynı ağdaki telefonda bilgisayar listede görünür (görünmezse "IP adresiyle bağlan").
-- **Şifre koyduysan** telefon şifreyi sorar.
-- **Şifre koymadıysan** USB'deki gibi bilgisayarda onay penceresi açılır.
+Bağlantı koparsa telefon 2 dakika boyunca kendiliğinden yeniden dener (bilgisayara özel ayarlardan kapatılabilir).
 
-Bir kez eşleşen telefon sonra şifre/onay sormadan bağlanır (bilgisayarda *Cihazlar → Güvenilen cihazlar*'dan unutulabilir) ve bağlantı koparsa 2 dakika boyunca kendiliğinden yeniden dener.
+## Profiller: birbirini tanıma
+
+Bilgisayarda *Cihazlar → Profiller*: her profil bir telefonun bu bilgisayarda neleri yapabileceğini söyler.
+
+| İzin | "Benim telefonum" | "Misafir" |
+|---|---|---|
+| Bildirimlerini göster, medya kontrolü, dosya gönderebilir | ✓ | ✓ |
+| Pano, tarayıcıda bağlantı açma | ✓ | — |
+| Bilgisayar komutları, ekran görüntüsü | ✓ | — |
+| Uyku / kapat / yeniden başlat | ✓ | — |
+
+- Onay penceresinde telefonun profilini seçersin; şifreyle eşleşen telefon "yeni telefonlar bununla başlar" profilini alır.
+- Profil oluşturma, yeniden adlandırma, silme, profil başına ayrı kayıt klasörü: *Cihazlar → Profiller* (+).
+- Bir telefonun profilini *Güvenilen cihazlar*'dan değiştirebilirsin; bağlıysa **hemen** uygulanır.
+- Telefon bağlanınca "Bilgisayar seni “Benim telefonum” profiliyle tanıyor" yazar ve yalnızca izin verilen düğmeleri gösterir.
+- Telefonda da her bilgisayarın kendi ayarları var: bildirim gönder, medya paylaş, kendiliğinden bağlan.
+
+## Bilgisayar komutları
+
+Telefon **yalnızca bilgisayarda tanımlı komutları adıyla** tetikleyebilir; telefondan komut metni gelmez, gelse de çalıştırılmaz.
+
+- **Hazır:** `loginctl lock-session` (kilitle), `systemctl suspend|reboot|poweroff` (uyku, yeniden başlat, kapat; telefonda "emin misin?" sorulur).
+- **Özel:** *Komutlar → Özel komutlar → +* ile ad ve komut gir (ör. "Yedeği başlat" → `rsync -a ~/Belgeler /mnt/yedek`). Senin kullanıcınla, ev klasöründe `sh -c` ile çalışır, en çok 2 dakika; çıktısı telefonda gösterilir. "Burada dene" düğmesiyle önce bilgisayarda deneyebilirsin.
+- Telefondan çalıştırılan her komut bilgisayarda **masaüstü bildirimi** ve *Komutlar → Telefondan çalıştırılanlar* listesinde görünür.
+
+## Terminalden kullanım
+
+Uygulama açıkken (pencere kapalı, arka planda da olur):
+
+```bash
+talk-to-android durum                                  # bağlı telefonlar, pil, profil
+talk-to-android gonder foto.jpg rapor.pdf              # telefona dosya (bitince ✓/✗ yazar)
+talk-to-android bildirim "Derleme bitti" "0 hata"      # telefonda bildirim
+echo "merhaba" | talk-to-android pano                  # telefonun panosuna
+talk-to-android cal              # telefonu çaldır;  --durdur ile sustur
+talk-to-android medya sonraki    # oynat | duraklat | oynat-duraklat | sonraki | onceki
+talk-to-android gonder x.zip -c Pixel                  # birden fazla telefon bağlıysa adla seç
+```
+
+Örnek: uzun bir işin bitince telefona haber vermesi: `make && talk-to-android bildirim "Derleme bitti" || talk-to-android bildirim "Derleme HATALI"`.
+
+Komut satırı, çalışan uygulamayla `$XDG_RUNTIME_DIR/talk-to-android.sock` üzerinden konuşur; soketin izni 600 ve bağlanan sürecin kullanıcısı denetlenir, yani yalnızca sen kullanabilirsin.
 
 ## Kurulum
 
-### Linux
+### Linux (Talk To Android)
 
-**Ubuntu / Debian / Linux Mint / Pop!_OS: terminal gerekmez.**
-`kopru_0.1.0_all.deb` dosyasına çift tıkla, açılan Uygulama Merkezi'nde (ya da "Yazılım Kur" penceresinde) **Kur**'a bas.
-GTK, libadwaita ve adb gibi gereken her şeyi paket yöneticisi kendisi kurar. Sonra Köprü uygulama menüsünde durur.
-Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.
-Kaldırmak için: Uygulama Merkezi → Yüklü → Köprü → Kaldır.
+**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.2.0_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**. GTK, libadwaita ve adb'yi paket yöneticisi kendisi getirir; sonra uygulama menüsünde "Talk To Android". (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
 
-Uygulamanın içinden, terminal açmadan:
-- **adb eksikse** *Bağlantı → USB* bölümünde **Kur** düğmesi çıkar. Bilgisayarın kendi şifre penceresi açılır ve adb, dağıtımın paket yöneticisiyle (apt, dnf, pacman, zypper) kurulur.
-- **Oturum açılınca başlat** (*Bağlantı → Genel*): bilgisayar açılınca Köprü pencere açmadan arka planda başlar, telefon kendiliğinden bağlanır.
+`.deb` dosyasını üretmek (bir kez): `sh talk-to/linux/paket/deb-olustur.sh`
 
-`.deb` dosyasını üretmek (geliştirici için, bir kez): `sh kopru/linux/paket/deb-olustur.sh`
+Uygulamanın içinden, terminalsiz:
+- **adb eksikse** *Bağlantı → USB*'de **Kur** düğmesi: bilgisayarın kendi şifre penceresi açılır, dağıtımın paket yöneticisiyle (apt, dnf, pacman, zypper) kurulur.
+- **Oturum açılınca başlat** (*Bağlantı → Genel*).
 
-**Fedora, Arch ve diğerleri:** henüz paket yok; bir kez terminalde bağımlılıkları kurup betiği çalıştırmak gerekiyor.
-Sonrası yine menüden açılan uygulama:
+**Fedora, Arch ve diğerleri:** henüz paket yok; bir kez terminalde:
 
 ```bash
 # Fedora:  sudo dnf install python3-gobject gtk4 libadwaita python3-cryptography android-tools
 # Arch:    sudo pacman -S python-gobject gtk4 libadwaita python-cryptography android-tools
-cd kopru/linux
-sh kur.sh            # yalnızca bu kullanıcıya kurar, sudo gerekmez
-sh kur.sh --kaldir   # kaldır
+cd talk-to/linux && sh kur.sh          # yalnızca bu kullanıcıya, sudo gerekmez (kaldırmak: sh kur.sh --kaldir)
 ```
 
-Gerekenler: Python 3.10+, GTK 4, libadwaita 1.4+ (Ubuntu 24.04, Debian 13, Fedora 39+, güncel Arch).
-Kurmadan denemek için: `cd kopru/linux && python3 -m talkto`.
-Güvenlik duvarı (ufw) açıksa Wi-Fi için şu izin bir kez verilmeli: `sudo ufw allow 47600/tcp && sudo ufw allow 47601/udp`.
+Gerekenler: Python 3.10+, GTK 4, libadwaita 1.4+ (Ubuntu 24.04, Debian 13, Fedora 39+, güncel Arch). Bluetooth için BlueZ (masaüstü dağıtımlarında hazır gelir).
+Kurmadan denemek: `cd talk-to/linux && python3 -m talkto`.
+Güvenlik duvarı (ufw) açıksa Wi-Fi için bir kez: `sudo ufw allow 47600/tcp && sudo ufw allow 47601/udp`.
 
-### Android (APK)
+### Android (Talk To Linux)
 
-Android 10 ve üstü. APK'yı kendin derlemek için JDK 17+ ve Android SDK gerekir:
+Android 10 ve üstü. Hazır APK'yı yükle ya da kendin derle (JDK 17+, Android SDK):
 
 ```bash
-cd kopru/android
-echo "sdk.dir=$HOME/Android/Sdk" > local.properties   # SDK nerede kuruluysa
+cd talk-to/android
+echo "sdk.dir=$HOME/Android/Sdk" > local.properties
 ./gradlew assembleRelease
 adb install app/build/outputs/apk/release/app-release.apk
 ```
 
-Derlenen APK hata ayıklama anahtarıyla imzalanır (doğrudan yüklemek için yeterli, Play Store için değil).
-Başka bir bilgisayarda derlenmiş APK'nın üzerine yüklerken imza farkı yüzünden önce eskisini kaldırman gerekebilir.
+APK hata ayıklama anahtarıyla imzalanır (doğrudan yüklemek için yeterli, Play Store için değil). Uygulama kimliği değiştiği için eski "Köprü" sürümü ayrı bir uygulama olarak kalır; onu kaldırabilirsin.
 
-İlk açılışta telefonda:
-1. **Bildirim izni** (Android 13+): bağlantı ve gelen dosya bildirimleri için.
-2. **Bildirim erişimi** ("İzin ver" kartı): bildirimlerin bilgisayara gitmesi ve telefonda çalan müziğin kontrolü için. Vermezsen dosya, pano ve bilgisayardaki medya kontrolü yine çalışır.
-3. **Pil kısıtlamasını kaldır** (ayarlarda): ekran kapalıyken bağlantı kopmasın diye. Bazı üreticiler (Xiaomi, Samsung, Huawei) arka plandaki uygulamaları yine de kapatabilir.
+Telefonda verilecek izinler: **bildirim izni** (Android 13+), **bildirim erişimi** (bildirimler ve telefondaki müzik için, uygulamadaki "İzin ver" kartı), **Bluetooth izni** (yalnızca Bluetooth kullanacaksan), **pil kısıtlamasını kaldır** (ekran kapalıyken kopmasın diye; bazı üreticiler yine de kapatabilir).
 
-## Güvenlik: nasıl çalışıyor, nerede sınırı var
+## Güvenlik
 
-- Bütün trafik **TLS** ile şifreli. Bilgisayarın sertifikası kendinden imzalı; telefon ilk eşleşmede sertifikanın parmak izini kaydeder ve sonra değişirse bağlanmayı reddeder ("güvenlik kodu değişmiş").
-- **İlk eşleşme** en zayıf an: onay yönteminde iki ekrandaki kodu karşılaştırman, şifre yönteminde ise şifre penceresindeki güvenlik kodunun bilgisayardakiyle aynı olduğuna bakman araya girme saldırısına karşı korur. Kodlara bakmadan onaylarsan bu koruma yok.
-- **Şifre seçimi:** aynı ağda araya giren biri, şifreyle eşleşme sırasında yakaladığı kanıt üzerinden zayıf bir şifreyi çevrimdışı deneyerek bulabilir. Kısa/tahmin edilir şifre koyma; ya da şifresiz bırakıp onay penceresini kullan.
-- Bilgisayar aynı IP'den 10 dakikada 5 hatalı denemede o IP'yi geçici olarak engeller.
-- Eşleşmiş bir telefon: bildirim gösterebilir, gelen dosyalar klasörüne dosya yazabilir (başka klasöre yazamaz, var olan dosyanın üzerine yazamaz), panonu değiştirebilir, tarayıcında http/https bağlantısı açabilir ve medyayı kontrol edebilir. **Komut çalıştıramaz, dosya okuyamaz.**
-- USB'de onay penceresi şart: bilgisayardaki herhangi bir yerel program da `127.0.0.1:47600`'e bağlanabileceği için USB bağlantısı otomatik güvenilir sayılmaz.
-- Ayarlar ve belirteç özetleri `~/.config/kopru/` altında, yalnızca senin okuyabileceğin izinlerle (600) durur. Şifre orada düz metin olarak saklanır (doğrulama için gerekli).
+- Bütün trafik **TLS** ile şifreli (Bluetooth dahil). Telefon ilk eşleşmede bilgisayarın sertifika parmak izini kaydeder; değişirse bağlanmaz ("güvenlik kodu değişmiş").
+- İlk eşleşmede iki ekrandaki 6 haneli kodu karşılaştır: araya giren biri varsa kodlar farklı çıkar. Kodlara bakmadan onaylarsan bu koruma yok.
+- Wi-Fi şifresi kısa olmasın: aynı ağda araya giren biri, eşleşme sırasında yakaladığı kanıttan zayıf şifreyi çevrimdışı deneyerek bulabilir. Emin değilsen şifresiz bırak, onay penceresini kullan.
+- Aynı adresten 10 dakikada 5 hatalı denemede o adres geçici olarak engellenir.
+- **Komutlar en güçlü izin:** "komut çalıştırabilir" açık bir profildeki telefon, bilgisayarda tanımladığın her komutu çalıştırabilir. Kaybolan telefonu *Güvenilen cihazlar*'dan hemen **unut**. Güç komutları ayrı izindir.
+- Bir telefon dosyayı yalnızca kayıt klasörüne yazabilir; başka klasöre çıkamaz, var olan dosyanın üzerine yazamaz. Bilgisayardaki dosyaları okuyamaz.
+- USB ve Bluetooth bağlantısı otomatik güvenilir sayılmaz, her yeni telefon için onay ister.
+- Ayarlar `~/.config/talk-to-android/` altında, yalnızca senin okuyabileceğin izinlerle (600). Wi-Fi şifresi orada düz metin durur (doğrulama için gerekli).
 
 ## Bilinen sınırlamalar
 
-- **Linux ↔ Linux** bağlantısı yok. Protokol buna uygun ama Linux tarafında istemci yazılmadı; şimdilik yalnızca Linux ↔ Android.
-- iPhone yok.
-- Bildirime bilgisayardan **cevap yazma** yok.
-- GTK4'te sistem tepsisi simgesi olmadığı için pencere kapanınca uygulama arka planda sürer; tekrar açmak için uygulama menüsünden Köprü'ye tıkla. Tamamen kapatmak: menü → "Tamamen kapat" (Ctrl+Q).
-- Birden fazla telefon aynı anda bağlanabilir, ama sürükle-bırak dosyalar **en son bağlanan** telefona gider (diğerine *Cihazlar* sayfasındaki düğmeyle gönderilir).
-- Keşif UDP yayınıyla çalışır: misafir ağları ve "istemci yalıtımı" açık modemler yayını engeller; o durumda IP adresiyle bağlan.
-- Yalnızca Ubuntu/Debian ailesi için paket (.deb) var; Fedora (rpm), Flatpak ve Snap paketi yok.
+- **Linux ↔ Linux** bağlantısı yok (protokol uygun, Linux tarafında istemci yazılmadı). iPhone yok.
+- Bluetooth **yalnızca sistemde önceden eşleştirilmiş** cihazlarla çalışır; uygulama kendi başına Bluetooth taraması/eşleştirmesi yapmaz. Büyük dosyalarda yavaştır (gerçek hız denenmedi; Bluetooth Classic'te tipik olarak saniyede birkaç yüz KB).
+- Ekran görüntüsü GNOME/KDE'de ilk seferde bilgisayarda izin sorar; görüntü bilgisayarın Resimler klasöründe de kalabilir. Portal yoksa `gnome-screenshot`, `spectacle`, `grim`, `scrot` denenir.
+- "Ekranı kilitle" `loginctl lock-session` ile çalışır; bazı hafif masaüstlerinde (kilit ekranı olmayan) etkisiz olabilir. Uyku/kapat, oturumu açık kullanıcıya polkit izin veriyorsa şifresiz çalışır (çoğu masaüstünde öyle).
+- Bilgisayar sesi `wpctl` (PipeWire) ya da `pactl` (PulseAudio) ister.
+- Bildirime bilgisayardan cevap yazma yok. GTK4'te sistem tepsisi simgesi yok (pencere kapanınca arka planda sürer; tamamen kapatmak: menü → "Tamamen kapat").
+- Birden fazla telefon bağlanabilir; sürükle-bırak dosyalar en son bağlanana gider (diğerine *Cihazlar*'daki düğme ya da `-c AD`).
+- Keşif UDP yayınıyla çalışır: misafir ağları ve "istemci yalıtımı" açık modemler engeller; o zaman "IP adresiyle bağlan".
+- Paket yalnızca Ubuntu/Debian ailesi için (.deb); rpm, Flatpak, Snap yok.
 
 ## Ne test edildi
 
 | Ne | Nasıl | Sonuç |
 |---|---|---|
-| Linux çekirdeği | 14 birim/uçtan uca test: gerçek TLS sunucusu + Python ile yazılmış sahte telefon (USB onayı, reddetme, belirteçle yeniden bağlanma, Wi-Fi şifresi, deneme sınırı, iki yönlü dosya, bozuk dosyanın atılması, `../` içeren dosya adları, bildirim/pano/bağlantı, medya komutu) | geçti |
-| Android ↔ Linux protokol uyumu | Android'in ağ kodu (Android'e bağımlı olmadığı için) JVM'de **gerçek Linux sunucusuna** bağlandı: şifre istenmesi → şifreyle eşleşme → 900 KB telefondan, 700 KB bilgisayardan dosya (SHA-256) → belirteçle şifresiz bağlanma | geçti |
+| Linux çekirdeği | 22 test: gerçek TLS sunucusu + Python sahte telefon. USB onayı, reddetme, belirteçle yeniden bağlanma, Wi-Fi şifresi, deneme sınırı, iki yönlü dosya, bozuk dosya, `../` adları, bildirim/pano/bağlantı, medya; **profil tanıma, onayda profil seçimi, misafir kısıtları, profil değişikliğinin anında uygulanması, özel komut ve çıktısı, güç komutu izni, sistem bilgisi, terminal aracı (durum/bildirim/pano/gonder), Bluetooth yolu** (BlueZ'in verdiği soket yerine kabul edilmiş soket: aynı TLS + onay) | geçti |
+| Android ↔ Linux | Android ağ kodu JVM'de **gerçek Linux sunucusuna** bağlandı: (1) TCP/TLS: şifre → eşleşme → iki yönlü dosya → belirteçle yeniden bağlanma; (2) **Bluetooth'ta kullanılan TLS katmanı** (SSLEngine) TCP akışı üzerinden: eşleşme, profil, özel komut ve çıktısı, sistem bilgisi, 1,5 MB dosya | geçti |
 | Şifre kanıtı, onay kodu, çerçeve | Python ve Kotlin aynı test vektörlerini üretiyor | geçti |
-| `.deb` paketi | Ubuntu 24.04'te `apt install ./kopru_0.1.0_all.deb`: bağımlılıklar ve adb otomatik geldi, menü kısayolu ve `kopru` komutu çalıştı. Çift tıklayıp Uygulama Merkezi'nden kurma burada denenemedi (masaüstü yok). | geçti |
-| adb "Kur" düğmesi, otomatik başlatma | Komutun başarılı ve iptal edilmiş hâli sahte komutla denendi; otomatik başlatma dosyası yazılıp silindi. Gerçek `pkexec` şifre penceresi denenmedi. | geçti |
-| Linux arayüzü | Sanal ekranda örnek veriyle çalıştırılıp ekran görüntüsü alındı (geniş ve 400 px dar pencere) | yukarıdaki görüntüler |
-| Android arayüzü | Paparazzi (layoutlib) ile ekran görüntüsü | yukarıdaki görüntüler |
-| Android derlemesi | `assembleRelease` + Android lint | 0 hata |
-| **Gerçek telefon** | — | **denenmedi.** Bildirim dinleyici, medya oturumları, MediaStore'a dosya yazma, ön plan servisi, USB tüneli ve Wi-Fi keşfi ancak gerçek cihazda doğrulanabilir. İlk denemede sorun çıkarsa beklenen yer burası. |
+| Arayüzler | Linux: sanal ekranda ekran görüntüsü (geniş ve dar). Android: Paparazzi ekran görüntüsü | yukarıdaki görüntüler |
+| Android derlemesi | `assembleRelease` + lint | 0 hata |
+| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.2.0_all.deb`; `talk-to-android` komutu ve menü kısayolu | geçti |
+| **Denenmeyenler** | Gerçek telefon (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
 
 Testleri çalıştırmak:
 
 ```bash
-cd kopru/linux && python3 -m unittest discover -s tests -v       # Linux çekirdeği
-sh kopru/linux/tests/android_canli_test.sh                        # Android ağ kodu ↔ gerçek Linux sunucusu
-cd kopru/android && ./gradlew testReleaseUnitTest lintRelease      # Android birim testleri + lint
+cd talk-to/linux && python3 -m unittest discover -s tests -v     # Linux: 22 test
+sh talk-to/linux/tests/android_canli_test.sh                     # Android ağ kodu ↔ gerçek Linux sunucusu
+cd talk-to/android && ./gradlew testReleaseUnitTest lintRelease   # Android birim testleri + lint
 ```
-
-Gerçek telefon olmadan bilgisayar tarafını denemek için sahte telefon:
-`python3 kopru/linux/tests/sahte_telefon.py 127.0.0.1 --dosya resim.jpg` (bilgisayarda onay penceresi açılır).
 
 ## Klasörler
 
 ```
-kopru/
+talk-to/
   PROTOKOL.md                    tel protokolü
   protokol-test-vektorleri.json  iki dilin ortak test vektörleri
   ekran/                         ekran görüntüleri
-  linux/
-    kopru/                       Python paketi
-      hub.py                     sunucu, kimlik doğrulama, oturumlar, dosya aktarımı
+  linux/                         Talk To Android
+    talkto/
+      hub.py                     sunucu, kimlik doğrulama, oturumlar, profil izinleri, dosya aktarımı
+      config.py                  ayarlar, güvenilen cihazlar, profiller, özel komutlar
+      pc.py                      bilgisayar komutları, sistem bilgisi, ses, ekran görüntüsü araçları
+      ipc.py cli.py              terminal komutu (talk-to-android ...)
+      bluetooth.py               BlueZ RFCOMM profili
       protocol.py auth.py        çerçeve ve eşleştirme hesapları
       discovery.py usb.py        Wi-Fi keşfi, adb tüneli
       media.py                   MPRIS (bilgisayardaki oynatıcılar)
-      ui/                        GTK4 + libadwaita arayüzü
-    tests/                       testler, sahte telefon, ekran görüntüsü betiği
-    kur.sh                       kullanıcıya kurulum (paketi olmayan dağıtımlar)
-    paket/deb-olustur.sh         Ubuntu/Debian için .deb paketi
-    data/                        masaüstü kısayolu, simge, uygulama mağazası bilgisi
-  android/                       Gradle projesi (Kotlin + Compose)
-    app/src/main/java/lab/crucible/kopru/
-      net/                       protokol istemcisi (Android'den bağımsız)
-      core/                      uygulama durumu, medya, dosyalar, bildirimler
+      ui/                        GTK4 + libadwaita arayüzü (+ ekran görüntüsü portalı)
+    tests/                       testler, sahte telefon, canlı sunucu, ekran görüntüsü betiği
+    kur.sh  paket/deb-olustur.sh  data/
+  android/                       Talk To Linux (Gradle projesi)
+    app/src/main/java/lab/crucible/talktolinux/
+      net/                       protokol istemcisi, SSLEngine TLS katmanı (Android'den bağımsız)
+      core/                      uygulama durumu, Bluetooth, medya, dosyalar, bildirimler
       service/                   ön plan servisi, bildirim dinleyici
       ui/                        Compose ekranları
 ```

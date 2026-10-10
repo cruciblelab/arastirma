@@ -27,6 +27,7 @@ object Notifs {
     const val CH_CONNECTION = "baglanti"
     const val CH_FILES = "dosyalar"
     const val CH_RING = "zil"
+    const val CH_COMPUTER = "bilgisayar"
     const val ID_SERVICE = 1
     const val ID_RING = 2
 
@@ -35,6 +36,8 @@ object Notifs {
         nm.createNotificationChannel(NotificationChannel(CH_CONNECTION, "Bağlantı durumu", NotificationManager.IMPORTANCE_LOW))
         nm.createNotificationChannel(NotificationChannel(CH_FILES, "Gelen dosyalar", NotificationManager.IMPORTANCE_DEFAULT))
         nm.createNotificationChannel(NotificationChannel(CH_RING, "Telefonu bul", NotificationManager.IMPORTANCE_HIGH))
+        nm.createNotificationChannel(NotificationChannel(CH_COMPUTER, "Bilgisayardan gelen bildirimler",
+            NotificationManager.IMPORTANCE_DEFAULT))
     }
 
     private fun openApp(ctx: Context) = PendingIntent.getActivity(
@@ -68,6 +71,21 @@ object Notifs {
             .setContentIntent(PendingIntent.getActivity(ctx, uri.hashCode(), view, PendingIntent.FLAG_IMMUTABLE))
             .build()
         NotificationManagerCompat.from(ctx).notify(uri.hashCode(), n)
+    }
+
+    /** Bilgisayardan (ör. terminalde: talk-to-android bildirim "Derleme bitti") gelen bildirim. */
+    @SuppressLint("MissingPermission")  // canPost() denetliyor
+    fun fromComputer(ctx: Context, title: String, text: String) {
+        if (!canPost(ctx) || title.isBlank()) return
+        val n = NotificationCompat.Builder(ctx, CH_COMPUTER)
+            .setSmallIcon(R.drawable.ic_stat_talk)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setContentIntent(openApp(ctx))
+            .build()
+        NotificationManagerCompat.from(ctx).notify((title + text).hashCode(), n)
     }
 
     // ---- Telefonu bul ----------------------------------------------------------

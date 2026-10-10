@@ -34,7 +34,7 @@ Recommends: adb, xdg-user-dirs
 Installed-Size: $SIZE
 Maintainer: Crucible ekibi <noreply@crucible.invalid>
 Homepage: https://github.com/cruciblelab/arastirma
-Description: Android telefonu USB ya da Wi-Fi ile Linux'a bağlar
+Description: Android telefonu USB, Wi-Fi ya da Bluetooth ile Linux'a bağlar
  Telefon bildirimlerini masaüstünde gösterir, iki yönde medya kontrolü,
  dosya ve pano aktarımı sağlar. Her yeni telefon için onay ya da şifre ister.
 CTL

@@ -93,4 +93,44 @@ class LiveServerTest {
         assertEquals(System.getenv("TALKTO_TEST_SEND_SHA"), lab.crucible.talktolinux.net.Auth.sha256Hex(store.files[got!!.name]!!))
         s3.close()
     }
+
+    /**
+     * Bluetooth'ta kullanılan TLS yolu (EngineTls) Bluetooth olmadan, düz TCP
+     * akışları üzerinde denenir; ardından profil, komut ve sistem bilgisi.
+     */
+    @Test
+    fun engineTlsProfileCommandsSysinfo() {
+        assumeTrue("TALKTO_TEST_PORT tanımlı değil", port != null)
+        val ev = Events()
+        val raw = java.net.Socket("127.0.0.1", port!!)
+        val s = ClientSession(ev, MemoryStore())
+        val fp = s.openStreams(raw.getInputStream(), raw.getOutputStream()) { raw.close() }
+        assertEquals(64, fp.length)
+        val res = s.handshake("kotlin-bt-cihazi", "Kotlin BT", "JVM", null, password)
+        assertTrue("$res", res is ClientSession.AuthResult.Welcome)
+        s.start()
+
+        fun next(type: String): JSONObject {
+            while (true) {
+                val m = ev.messages.poll(15, TimeUnit.SECONDS) ?: throw AssertionError("$type gelmedi")
+                if (m.optString("type") == type) return m
+            }
+        }
+        assertEquals("Benim telefonum", next("profile").getString("name"))
+        val items = next("commands").getJSONArray("items")
+        val selam = (0 until items.length()).map { items.getJSONObject(it) }.first { it.getString("name") == "Selam" }
+        s.send(JSONObject().put("type", "run_command").put("id", selam.getString("id")))
+        val out = next("command_result")
+        assertTrue(out.toString(), out.getBoolean("ok"))
+        assertEquals("canli-merhaba", out.getString("output").trim())
+        s.send(JSONObject().put("type", "sysinfo_request"))
+        assertTrue(next("sysinfo").getLong("mem_total") > 0)
+
+        // Büyük veri de bu TLS katmanından geçsin (birçok TLS kaydı).
+        val data = Random(11).nextBytes(1_500_000)
+        s.sendFile(ClientSession.Source("bt-dosyasi.bin", data.size.toLong(), "application/octet-stream") { data.inputStream() })
+        assertEquals("done", ev.transfers.poll(30, TimeUnit.SECONDS)!!.state)
+        assertArrayEquals(data, File(receiveDir!!, "bt-dosyasi.bin").readBytes())
+        s.close()
+    }
 }

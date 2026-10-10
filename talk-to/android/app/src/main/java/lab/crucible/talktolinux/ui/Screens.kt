@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,7 +27,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Screenshot
+import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Computer
@@ -97,6 +108,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import lab.crucible.talktolinux.core.BluetoothLink
 import lab.crucible.talktolinux.core.Talk
 import lab.crucible.talktolinux.net.Auth
 import lab.crucible.talktolinux.net.ClientSession
@@ -109,6 +121,7 @@ fun TalkScreen(
     onPickFiles: () -> Unit,
     onSendClipboard: () -> Unit,
     onOpenNotifAccess: () -> Unit,
+    onBluetoothPermission: () -> Unit = {},
 ) {
     val state by Talk.state.collectAsState()
     val passwordFor by Talk.passwordFor.collectAsState()
@@ -131,17 +144,18 @@ fun TalkScreen(
                 is Talk.State.Connected -> connected(s, notifAccess, onPickFiles, onSendClipboard, onOpenNotifAccess)
                 is Talk.State.Approval -> item { ApprovalCard(s) }
                 is Talk.State.Connecting -> item { ConnectingCard(s) }
-                Talk.State.Idle -> disconnected(onManual = { manual = true })
+                Talk.State.Idle -> disconnected(onManual = { manual = true }, onBluetoothPermission)
             }
         }
     }
     passwordFor?.let { PasswordDialog(it) }
     if (manual) ManualDialog { manual = false }
+    CommandResultDialog()
 }
 
 // ---- bağlı değilken ------------------------------------------------------------
 
-private fun LazyListScope.disconnected(onManual: () -> Unit) {
+private fun LazyListScope.disconnected(onManual: () -> Unit, onBluetoothPermission: () -> Unit) {
     item {
         Hero(Icons.Rounded.Computer, "Bilgisayara bağlan",
             "Bilgisayarda Talk To Android uygulamasını aç. Aynı Wi-Fi'deysen aşağıda görünür; kabloyla bağlanmak için USB'yi seç.")
@@ -161,7 +175,53 @@ private fun LazyListScope.disconnected(onManual: () -> Unit) {
             OutlinedButton(onClick = onManual, modifier = Modifier.fillMaxWidth()) { Text("IP adresiyle bağlan") }
         }
     }
+    item { BluetoothSection(onBluetoothPermission) }
     item { PairedList() }
+}
+
+@Composable
+private fun BluetoothSection(onPermission: () -> Unit) {
+    val ctx = LocalContext.current
+    val devices by Talk.bluetoothDevices.collectAsState()
+    LaunchedEffect(Unit) { while (true) { Talk.refreshBluetooth(); delay(5000) } }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionTitle("Bluetooth")
+        when {
+            !BluetoothLink.hasPermission(ctx) -> InfoCard(Icons.Rounded.Bluetooth, "Bluetooth ile bağlanmak için izin ver",
+                "Yalnızca telefonla önceden eşleştirilmiş bilgisayarları listelemek ve onlara bağlanmak için.",
+                "İzin ver", onPermission)
+            !BluetoothLink.enabled(ctx) -> InfoCard(Icons.Rounded.Bluetooth, "Bluetooth kapalı",
+                "Bluetooth'u açınca eşleşmiş bilgisayarların burada görünür.", "Bluetooth ayarları") {
+                ctx.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+            }
+            devices.isEmpty() -> InfoCard(Icons.Rounded.Bluetooth, "Eşleşmiş bilgisayar yok",
+                "Önce telefonun Bluetooth ayarlarından bilgisayarla eşleştir; bilgisayarda Talk To Android → " +
+                    "Bluetooth açık olmalı.", "Bluetooth ayarları") {
+                ctx.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+            }
+            else -> devices.forEach { d ->
+                val known = Talk.prefs.servers().any { it.kind == "bluetooth" && it.host == d.address && it.token != null }
+                ServerCard(Icons.Rounded.Bluetooth, d.name,
+                    if (known) "Bluetooth · tanınıyor, onay gerekmez" else "Bluetooth · ilk bağlantıda bilgisayarda onay istenir",
+                    false) { Talk.connect(Talk.bluetoothTarget(d)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoCard(icon: ImageVector, title: String, text: String, action: String, onClick: () -> Unit) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(10.dp))
+                Text(title, style = MaterialTheme.typography.titleSmall)
+            }
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            FilledTonalButton(onClick = onClick) { Text(action) }
+        }
+    }
 }
 
 @Composable
@@ -309,13 +369,17 @@ private fun LazyListScope.connected(
     if (!notifAccess) item { PermissionCard(onOpenNotifAccess) }
     item { PcMediaCard() }
     item {
+        val profile by Talk.profile.collectAsState()
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ActionTile(Icons.Rounded.UploadFile, "Dosya gönder", Modifier.weight(1f), onPickFiles)
-            ActionTile(Icons.Rounded.ContentPaste, "Panoyu gönder", Modifier.weight(1f), onSendClipboard)
+            if (profile?.can("files") != false)
+                ActionTile(Icons.Rounded.UploadFile, "Dosya gönder", Modifier.weight(1f), onPickFiles)
+            if (profile?.can("clipboard") != false)
+                ActionTile(Icons.Rounded.ContentPaste, "Panoyu gönder", Modifier.weight(1f), onSendClipboard)
         }
     }
+    item { ComputerCard() }
     item { Transfers() }
-    item { SettingsCard() }
+    item { SettingsCard(s) }
 }
 
 @Composable
@@ -336,8 +400,21 @@ private fun ConnectedHeader(s: Talk.State.Connected) {
                 Column {
                     Text(s.serverName, style = MaterialTheme.typography.headlineSmall, color = cs.onPrimary,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(if (s.target.kind == "usb") "USB ile bağlı" else "Wi-Fi ile bağlı · ${s.target.host}",
-                        color = cs.onPrimary.copy(alpha = 0.85f))
+                    Text(when (s.target.kind) {
+                        "usb" -> "USB ile bağlı"
+                        "bluetooth" -> "Bluetooth ile bağlı"
+                        else -> "Wi-Fi ile bağlı · ${s.target.host}"
+                    }, color = cs.onPrimary.copy(alpha = 0.85f))
+                }
+            }
+            val profile by Talk.profile.collectAsState()
+            profile?.let {
+                Row(Modifier.clip(RoundedCornerShape(50)).background(cs.onPrimary.copy(alpha = 0.18f))
+                    .padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.AccountCircle, null, tint = cs.onPrimary, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Bilgisayar seni “${it.name}” profiliyle tanıyor", color = cs.onPrimary,
+                        style = MaterialTheme.typography.labelLarge)
                 }
             }
             FilledTonalButton(onClick = { Talk.disconnect() }) { Text("Bağlantıyı kes") }
@@ -492,23 +569,31 @@ private fun TransferRow(t: ClientSession.Transfer) {
 }
 
 @Composable
-private fun SettingsCard() {
-    var notif by remember { mutableStateOf(Talk.prefs.sendNotifications) }
-    var media by remember { mutableStateOf(Talk.prefs.shareMedia) }
+private fun SettingsCard(s: Talk.State.Connected) {
+    var server by remember(s.serverId) { mutableStateOf(Talk.prefs.server(s.serverId)) }
+    val profile by Talk.profile.collectAsState()
+    fun change(f: (lab.crucible.talktolinux.core.Prefs.Server) -> lab.crucible.talktolinux.core.Prefs.Server) {
+        Talk.updateCurrentServer(f)
+        server = Talk.prefs.server(s.serverId)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle("Ayarlar")
+        SectionTitle("${s.serverName} için ayarlar")
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-            SwitchRow("Bildirimleri bilgisayara gönder", "Müzik, indirme gibi süren bildirimler hariç", notif) {
-                notif = it; Talk.prefs.sendNotifications = it
-            }
+            SwitchRow("Bildirimleri bu bilgisayara gönder",
+                if (profile?.can("notifications") == false) "Bilgisayardaki profil bildirimlere izin vermiyor"
+                else "Müzik, indirme gibi süren bildirimler hariç", server?.notif != false) { v -> change { it.copy(notif = v) } }
             HorizontalDivider()
-            SwitchRow("Telefonda çalanı bilgisayarda göster", "Bilgisayardan oynat/duraklat/atla", media) {
-                media = it; Talk.prefs.shareMedia = it
-            }
+            SwitchRow("Telefonda çalanı bu bilgisayarda göster", "Bilgisayardan oynat/duraklat/atla",
+                server?.media != false) { v -> change { it.copy(media = v) } }
+            HorizontalDivider()
+            SwitchRow("Kendiliğinden bağlan", "Bağlantı koparsa ya da uygulama açılınca bu bilgisayara yeniden bağlan",
+                server?.auto != false) { v -> change { it.copy(auto = v) } }
             HorizontalDivider()
             val ctx = LocalContext.current
-            val pm = ctx.getSystemService(PowerManager::class.java)
-            if (!pm.isIgnoringBatteryOptimizations(ctx.packageName)) {
+            val restricted = runCatching {
+                !ctx.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(ctx.packageName)
+            }.getOrDefault(false)
+            if (restricted) {
                 Row(Modifier.fillMaxWidth().clickable {
                     ctx.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
                 }.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -525,6 +610,156 @@ private fun SettingsCard() {
         }
     }
 }
+
+// ---- bilgisayar: durum, ses, komutlar ------------------------------------------------
+
+@Composable
+private fun ComputerCard() {
+    val profile by Talk.profile.collectAsState()
+    val commands by Talk.commands.collectAsState()
+    val info by Talk.sysinfo.collectAsState()
+    var confirm by remember { mutableStateOf<Talk.Command?>(null) }
+    LaunchedEffect(Unit) { while (true) { Talk.requestSysinfo(); delay(5000) } }
+    val canShot = profile?.can("screenshot") == true
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionTitle("Bilgisayar")
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                val i = info
+                if (i == null) {
+                    Text("Bilgisayarın durumu alınıyor…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text("${i.host} · ${i.os}", style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Meter("İşlemci", ((i.cpu ?: 0.0) / 100).toFloat(), i.cpu?.let { "%${it.toInt()}" } ?: "…", Modifier.weight(1f))
+                        Meter("Bellek", ratio(i.memUsed, i.memTotal), "${gb(i.memUsed)} / ${gb(i.memTotal)} GB", Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Meter("Disk", ratio(i.diskUsed, i.diskTotal), "${gb(i.diskUsed)} / ${gb(i.diskTotal)} GB", Modifier.weight(1f))
+                        val b = i.battery
+                        if (b != null) Meter("Pil", b.first / 100f, "%${b.first}" + if (b.second) " ⚡" else "", Modifier.weight(1f))
+                        else Column(Modifier.weight(1f)) {
+                            Text("Açık kalma süresi", style = MaterialTheme.typography.labelSmall)
+                            Text(uptime(i.uptime), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    if (i.volume != null && profile?.can("media") != false) {
+                        var vol by remember(i.volume) { mutableFloatStateOf(i.volume.toFloat()) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { Talk.pcVolume(toggleMute = true) }) {
+                                Icon(if (i.muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
+                                    if (i.muted) "Sesi aç" else "Sustur")
+                            }
+                            Slider(value = vol, valueRange = 0f..100f, modifier = Modifier.weight(1f),
+                                onValueChange = { vol = it }, onValueChangeFinished = { Talk.pcVolume(vol.toInt()) })
+                            Text("%${vol.toInt()}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(44.dp),
+                                textAlign = TextAlign.End)
+                        }
+                    }
+                }
+                val tiles = buildList {
+                    if (canShot) add(Talk.Command("__ekran", "Ekran görüntüsü", "screenshot", false))
+                    addAll(commands)
+                }
+                if (tiles.isNotEmpty()) {
+                    HorizontalDivider()
+                    tiles.chunked(2).forEach { pair ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            pair.forEach { c ->
+                                CommandTile(c, Modifier.weight(1f)) {
+                                    when {
+                                        c.id == "__ekran" -> Talk.requestScreenshot()
+                                        c.power -> confirm = c
+                                        else -> Talk.runCommand(c.id)
+                                    }
+                                }
+                            }
+                            if (pair.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                } else if (profile?.can("commands") == false) {
+                    Text("Bu telefonun profili bilgisayar komutlarına izin vermiyor " +
+                        "(bilgisayarda Cihazlar → Profiller).", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+    confirm?.let { c ->
+        AlertDialog(
+            onDismissRequest = { confirm = null },
+            icon = { Icon(commandIcon(c.icon), null) },
+            title = { Text("${c.name}?") },
+            text = { Text("Bilgisayarda açık olan kaydedilmemiş işler kaybolabilir.") },
+            confirmButton = { TextButton(onClick = { Talk.runCommand(c.id); confirm = null }) { Text(c.name) } },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text("Vazgeç") } },
+        )
+    }
+}
+
+@Composable
+private fun Meter(label: String, fraction: Float, value: String, modifier: Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LinearProgressIndicator(progress = { fraction.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+        Text(value, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun CommandTile(c: Talk.Command, modifier: Modifier, onClick: () -> Unit) {
+    Card(onClick = onClick, modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = if (c.power) MaterialTheme.colorScheme.errorContainer
+        else MaterialTheme.colorScheme.secondaryContainer)) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(commandIcon(c.icon), null, Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(c.name, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+private fun commandIcon(name: String): ImageVector = when (name) {
+    "lock" -> Icons.Rounded.Lock
+    "sleep" -> Icons.Rounded.Bedtime
+    "restart" -> Icons.Rounded.RestartAlt
+    "power" -> Icons.Rounded.PowerSettingsNew
+    "screenshot" -> Icons.Rounded.Screenshot
+    else -> Icons.Rounded.Terminal
+}
+
+@Composable
+private fun CommandResultDialog() {
+    val r by Talk.commandResult.collectAsState()
+    val res = r ?: return
+    if (res.second && res.third.isBlank()) {
+        LaunchedEffect(res) {
+            Talk.messages.tryEmit("${res.first}: tamamlandı")
+            Talk.commandResult.value = null
+        }
+        return
+    }
+    AlertDialog(
+        onDismissRequest = { Talk.commandResult.value = null },
+        title = { Text(res.first) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (res.second) "Tamamlandı" else "Başarısız",
+                    color = if (res.second) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
+                if (res.third.isNotBlank()) Text(res.third, fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()))
+            }
+        },
+        confirmButton = { TextButton(onClick = { Talk.commandResult.value = null }) { Text("Tamam") } },
+    )
+}
+
+private fun ratio(a: Long, b: Long) = if (b > 0) a.toFloat() / b else 0f
+private fun gb(n: Long) = "%.1f".format(n / 1073741824.0)
+private fun uptime(s: Long) = if (s >= 86400) "${s / 86400} gün ${s / 3600 % 24} sa" else "${s / 3600} sa ${s / 60 % 60} dk"
 
 // ---- küçük parçalar ---------------------------------------------------------------
 

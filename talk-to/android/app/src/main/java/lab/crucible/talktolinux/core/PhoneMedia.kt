@@ -76,7 +76,7 @@ object PhoneMedia {
 
     /** Durumu bilgisayara gönderir (bağlı değilse bir şey yapmaz). */
     fun push() {
-        if (!Talk.isConnected() || !Talk.prefs.shareMedia) return
+        if (!Talk.mediaOn()) return
         val c = controller
         val md = c?.metadata
         val st = c?.playbackState

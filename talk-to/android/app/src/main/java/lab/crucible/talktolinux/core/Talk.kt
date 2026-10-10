@@ -44,6 +44,17 @@ object Talk {
         data class Connected(val target: Target, val serverId: String, val serverName: String) : State()
     }
 
+    /** Bilgisayarın bu telefonu tanıdığı profil ve verdiği izinler. */
+    data class Profile(val id: String, val name: String, val permissions: Map<String, Boolean>) {
+        fun can(p: String) = permissions[p] == true
+    }
+
+    data class Command(val id: String, val name: String, val icon: String, val power: Boolean)
+
+    data class SysInfo(val host: String, val os: String, val cpu: Double?, val memUsed: Long, val memTotal: Long,
+                       val diskUsed: Long, val diskTotal: Long, val battery: Pair<Int, Boolean>?, val uptime: Long,
+                       val volume: Int?, val muted: Boolean)
+
     data class PcMedia(val title: String, val artist: String, val player: String, val playing: Boolean,
                        val positionMs: Long, val durationMs: Long, val volume: Int?, val canSeek: Boolean,
                        val artId: String?, val receivedAt: Long)
@@ -57,6 +68,12 @@ object Talk {
     /** Şifre isteyen bilgisayar (arayüz şifre penceresini açar). */
     val passwordFor = MutableStateFlow<Target?>(null)
     val messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val profile = MutableStateFlow<Profile?>(null)
+    val commands = MutableStateFlow<List<Command>>(emptyList())
+    val sysinfo = MutableStateFlow<SysInfo?>(null)
+    /** Son komutun sonucu (başlık, başarılı mı, çıktı); arayüz bir pencerede gösterir. */
+    val commandResult = MutableStateFlow<Triple<String, Boolean, String>?>(null)
+    val bluetoothDevices = MutableStateFlow<List<BluetoothLink.Device>>(emptyList())
 
     @Volatile private var session: ClientSession? = null
     private val connector = Executors.newSingleThreadExecutor()
@@ -75,6 +92,14 @@ object Talk {
     }
 
     fun isConnected() = session != null && state.value is State.Connected
+
+    /** Bağlı bilgisayarın kaydı (bu bilgisayara özel ayarlar). */
+    fun currentServer(): Prefs.Server? = (state.value as? State.Connected)?.let { prefs.server(it.serverId) }
+
+    /** Bildirim gönderilsin mi: bu bilgisayar için açık ve bilgisayardaki profil izin veriyor. */
+    fun notificationsOn() = isConnected() && currentServer()?.notif != false && profile.value?.can("notifications") != false
+
+    fun mediaOn() = isConnected() && currentServer()?.media != false && profile.value?.can("media") != false
 
     private fun say(text: String) {
         messages.tryEmit(text)
@@ -100,7 +125,10 @@ object Talk {
         val s = ClientSession(listener, DownloadsStore(app))
         pending = s
         try {
-            val fp = s.open(target.host, target.port)
+            val fp = if (target.kind == "bluetooth") {
+                val bt = BluetoothLink.connect(app, target.host)
+                s.openStreams(bt.inputStream, bt.outputStream) { runCatching { bt.close() } }
+            } else s.open(target.host, target.port)
             val stored = prefs.server(target.serverId)
             if (stored != null && stored.fp != fp) {
                 s.close()
@@ -117,7 +145,10 @@ object Talk {
                 is ClientSession.AuthResult.Welcome -> {
                     prefs.saveServer(Prefs.Server(res.serverId, res.serverName, fp, res.token ?: known?.token,
                         target.host, target.port, target.kind))
-                    prefs.autoServer = res.serverId
+                    prefs.autoServer = res.serverId.takeIf { prefs.server(it)?.auto != false }
+                    profile.value = null
+                    commands.value = emptyList()
+                    sysinfo.value = null
                     session = s
                     iconsSent.clear()
                     PhoneMedia.resetArt()
@@ -173,6 +204,7 @@ object Talk {
         session = null
         state.value = State.Idle
         pcMedia.value = null
+        profile.value = null
         connector.execute { s?.close() }
         app.stopService(Intent(app, TalkService::class.java))
     }
@@ -221,10 +253,30 @@ object Talk {
                     val bytes = Base64.decode(msg.getString("data"), Base64.DEFAULT)
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { pcArt.value = msg.getString("art_id") to it }
                 }
-                "media_control" -> {
+                "media_control" -> if (mediaOn()) {
                     val v = if (msg.isNull("value")) null else msg.optDouble("value").takeUnless { it.isNaN() }
                     main.post { PhoneMedia.control(msg.optString("action"), v) }
                 }
+                "profile" -> {
+                    val p = msg.optJSONObject("permissions") ?: JSONObject()
+                    profile.value = Profile(msg.optString("id"), msg.optString("name"),
+                        p.keys().asSequence().associateWith { p.optBoolean(it) })
+                }
+                "commands" -> {
+                    val arr = msg.optJSONArray("items") ?: org.json.JSONArray()
+                    commands.value = (0 until arr.length()).map { arr.getJSONObject(it) }.map {
+                        Command(it.optString("id"), it.optString("name"), it.optString("icon"), it.optBoolean("power"))
+                    }
+                }
+                "command_result" -> commandResult.value = Triple(
+                    msg.optString("name").ifEmpty { "Komut" }, msg.optBoolean("ok"), msg.optString("output"))
+                "sysinfo" -> sysinfo.value = SysInfo(
+                    msg.optString("host"), msg.optString("os"),
+                    if (msg.isNull("cpu")) null else msg.optDouble("cpu"),
+                    msg.optLong("mem_used"), msg.optLong("mem_total"), msg.optLong("disk_used"), msg.optLong("disk_total"),
+                    msg.optJSONObject("battery")?.let { it.optInt("level") to it.optBoolean("charging") },
+                    msg.optLong("uptime"), if (msg.isNull("volume")) null else msg.optInt("volume"), msg.optBoolean("muted"))
+                "notify" -> Notifs.fromComputer(app, msg.optString("title"), msg.optString("text"))
                 "ring" -> Notifs.ring(app)
                 "ring_stop" -> Notifs.stopRing(app)
                 "clipboard" -> main.post {
@@ -283,6 +335,28 @@ object Talk {
         say("Pano bilgisayara gönderildi")
     }
 
+    fun runCommand(id: String) = send(JSONObject().put("type", "run_command").put("id", id))
+
+    fun requestSysinfo() = send(JSONObject().put("type", "sysinfo_request"))
+
+    fun requestScreenshot() {
+        send(JSONObject().put("type", "screenshot_request"))
+        say("Ekran görüntüsü isteniyor; dosya olarak gelecek")
+    }
+
+    fun pcVolume(value: Int? = null, toggleMute: Boolean = false) {
+        send(JSONObject().put("type", "pc_volume").put("value", value ?: JSONObject.NULL).put("toggle_mute", toggleMute))
+    }
+
+    /** Bu bilgisayara özel ayar değişikliği. */
+    fun updateCurrentServer(change: (Prefs.Server) -> Prefs.Server) {
+        val id = (state.value as? State.Connected)?.serverId ?: return
+        prefs.updateServer(id, change)
+        if (prefs.server(id)?.auto == false) prefs.autoServer = null else prefs.autoServer = id
+        if (prefs.server(id)?.media == false) send(JSONObject().put("type", "media_state").put("active", false))
+        else PhoneMedia.push()
+    }
+
     fun mediaControl(action: String, value: Long? = null) {
         send(JSONObject().put("type", "media_control").put("action", action).put("value", value ?: JSONObject.NULL))
     }
@@ -320,14 +394,29 @@ object Talk {
 
     fun targetOf(f: Discovery.Found) = Target(f.host, f.port, "wifi", f.id, f.name, f.fp)
 
+    fun bluetoothTarget(d: BluetoothLink.Device): Target {
+        val known = prefs.servers().firstOrNull { it.kind == "bluetooth" && it.host == d.address }
+        return Target(d.address, 0, "bluetooth", known?.id, d.name, known?.fp)
+    }
+
+    /** Eşleşmiş Bluetooth bilgisayarlarını yeniden okur (izin verildikten / Bluetooth açıldıktan sonra). */
+    fun refreshBluetooth() {
+        bluetoothDevices.value = BluetoothLink.bondedComputers(app)
+    }
+
     private fun maybeAutoConnect() {
         if (state.value !is State.Idle || passwordFor.value != null) return
         val auto = prefs.server(prefs.autoServer) ?: return
         if (auto.token == null) return
         val now = SystemClock.elapsedRealtime()
         if (now - lastAutoAttempt < 8_000) return
-        val target = if (auto.kind == "usb" && usbAvailable.value) usbTarget()
-        else found.value.firstOrNull { it.id == auto.id }?.let { targetOf(it) }
+        val target = when {
+            auto.kind == "usb" && usbAvailable.value -> usbTarget()
+            // Bluetooth'ta yayın yok: kayıtlı adrese, daha seyrek dene (bağlanma denemesi birkaç saniye sürer).
+            auto.kind == "bluetooth" && BluetoothLink.enabled(app) && BluetoothLink.hasPermission(app) &&
+                now - lastAutoAttempt > 20_000 -> Target(auto.host, 0, "bluetooth", auto.id, auto.name, auto.fp)
+            else -> found.value.firstOrNull { it.id == auto.id }?.let { targetOf(it) }
+        }
         if (target != null) {
             lastAutoAttempt = now
             connect(target)

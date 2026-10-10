@@ -24,6 +24,7 @@ async def main():
     cfg.set("usb", True)
     cfg.set("password", "test-sifre")
     cfg.set("receive_dir", str(tmp / "gelen"))
+    cfg.save_command(None, "Selam", "echo canli-merhaba")
     import socket
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))

@@ -24,7 +24,7 @@ class NotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (!Talk.isConnected() || !Talk.prefs.sendNotifications) return
+        if (!Talk.notificationsOn()) return
         if (sbn.packageName == packageName) return
         val n = sbn.notification
         // Süren işler (müzik, indirme, navigasyon) ve grup özetleri gönderilmez.
