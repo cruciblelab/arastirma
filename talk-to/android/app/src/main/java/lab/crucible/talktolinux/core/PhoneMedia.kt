@@ -39,6 +39,7 @@ object PhoneMedia {
         override fun onMetadataChanged(metadata: MediaMetadata?) = push()
         override fun onSessionDestroyed() {
             controller = null
+            Talk.phonePlayer.value = null
             push()
         }
     }
@@ -80,6 +81,7 @@ object PhoneMedia {
             controller?.unregisterCallback(callback)
             controller = chosen
             chosen?.registerCallback(callback, main)
+            Talk.phonePlayer.value = playerName()
             Talk.sendPhoneStatus()
         }
         push()

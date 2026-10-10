@@ -88,6 +88,10 @@ def fill():
                   "playing": True, "position_ms": 83_000, "duration_ms": 241_000, "volume": 60,
                   "can_seek": True, "received_at": time.monotonic()}}]
     st["sessions"][0].update(profile="benim", profile_name="Benim telefonum")
+    if os.environ.get("SORUN"):  # telefon bildirim dinleyicisinin bağlı olmadığını bildirmiş
+        from talkto.hub import phone_problems
+        st["sessions"][0]["problems"] = phone_problems({"flavor": "tam", "notif_access": True, "listener": False},
+                                                      {"notifications": True, "media": True})
     st["bt"] = {"available": True, "message": "Hazır. Telefonu önce sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir."}
     app.on_event("status", st)
     FAKE["st"] = st

@@ -15,6 +15,9 @@ log = logging.getLogger("talkto.usb")
 INTERVAL = 2.5
 PHONE_PACKAGE = "lab.crucible.talktolinux"
 PHONE_ACTIVITY = PHONE_PACKAGE + "/.ui.MainActivity"
+# Telefondaki uygulama başka anahtarla imzalı: üzerine kurulamaz, önce kaldırılmalı.
+CONFLICT = ("Telefondaki Talk To Linux başka bir anahtarla imzalanmış; güncellemek için kaldırıp yeniden kurmak "
+            "gerekiyor. Eşleşme ve bildirim erişimi sıfırlanır.")
 
 
 # Android telefon üreticilerinin USB kimlikleri (adb'nin udev kurallarından; en yaygınları).
@@ -183,11 +186,12 @@ class AdbWatcher:
         rc, out = await _adb("-s", serial, "shell", "pm", "path", PHONE_PACKAGE)
         return rc == 0 and "package:" in out
 
-    async def install_app(self, serial: str) -> tuple[bool, str]:
+    async def install_app(self, serial: str, replace: bool = False) -> tuple[bool, str]:
         """Telefona Talk To Linux'u USB üzerinden kurar (ya da günceller) ve açar.
 
         Play Protect'in internetten yüklenen uygulamalara uyguladığı engel adb ile
-        kurulumda geçerli değildir.
+        kurulumda geçerli değildir. replace: imza farklıysa önce kaldır (CONFLICT dönünce
+        kullanıcıya sorulup tekrar çağrılır).
         """
         apk = find_apk()
         d = self.devices.get(serial)
@@ -198,11 +202,12 @@ class AdbWatcher:
         d["installing"] = True
         self.on_change(self.snapshot())
         try:
+            if replace:
+                await _adb("-s", serial, "uninstall", PHONE_PACKAGE, timeout=60)
             rc, out = await _adb("-s", serial, "install", "-r", str(apk), timeout=180)
             if rc != 0 or "Success" not in out:
                 if "INSTALL_FAILED_UPDATE_INCOMPATIBLE" in out:
-                    return False, ("Telefondaki Talk To Linux başka bir anahtarla imzalanmış. "
-                                   "Telefonda onu kaldırıp tekrar dene.")
+                    return False, CONFLICT
                 if "INSTALL_FAILED_USER_RESTRICTED" in out:
                     return False, ("Telefon USB'den kurulumu engelledi. Geliştirici seçeneklerinde "
                                    "“USB üzerinden yükle” (Xiaomi) gibi bir ayarı aç ve telefondaki soruyu onayla.")

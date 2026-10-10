@@ -421,6 +421,10 @@ exit 0""")
         self.assertFalse(ok)
         self.assertIn("kaldırıp", msg)
         self.assertFalse(w.devices["ABC123"]["installing"])
+        self.assertFalse(any("uninstall" in c for c in self.calls()))
+        # Kullanıcı "Kaldır ve kur" derse önce kaldırılır (sahte adb ikinci kurulumda da reddeder).
+        await w.install_app("ABC123", replace=True)
+        self.assertIn("adb -s ABC123 uninstall lab.crucible.talktolinux", self.calls())
 
     def test_first_run_installs_missing_gui_packages(self):
         from talkto import bootstrap

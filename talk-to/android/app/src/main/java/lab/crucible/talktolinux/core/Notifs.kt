@@ -73,6 +73,24 @@ object Notifs {
         NotificationManagerCompat.from(ctx).notify(uri.hashCode(), n)
     }
 
+    /** Bildirim dinleyicisinin bilgisayara iletmesi için kendi bildirimlerimizden yalnızca bu etiketli olan. */
+    const val TEST_TAG = "talkto-deneme"
+
+    /** Telefon → bilgisayar bildirim yolunu baştan sona dener. Bildirim izni yoksa false. */
+    @SuppressLint("MissingPermission")  // canPost() denetliyor
+    fun test(ctx: Context): Boolean {
+        if (!canPost(ctx)) return false
+        val n = NotificationCompat.Builder(ctx, CH_COMPUTER)
+            .setSmallIcon(R.drawable.ic_stat_talk)
+            .setContentTitle("Talk To Linux deneme bildirimi")
+            .setContentText("Bunu bilgisayarda da görüyorsan bildirimler çalışıyor.")
+            .setAutoCancel(true)
+            .setTimeoutAfter(15_000)
+            .build()
+        NotificationManagerCompat.from(ctx).notify(TEST_TAG, 3, n)
+        return true
+    }
+
     /** Bilgisayardan (ör. terminalde: talk-to-android bildirim "Derleme bitti") gelen bildirim. */
     @SuppressLint("MissingPermission")  // canPost() denetliyor
     fun fromComputer(ctx: Context, title: String, text: String) {

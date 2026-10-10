@@ -30,7 +30,7 @@ class NotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (!Talk.notificationsOn()) return
-        if (sbn.packageName == packageName) return
+        if (sbn.packageName == packageName && sbn.tag != lab.crucible.talktolinux.core.Notifs.TEST_TAG) return
         val n = sbn.notification
         // Süren işler (müzik, indirme, navigasyon) ve grup özetleri gönderilmez.
         if (sbn.isOngoing || n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return

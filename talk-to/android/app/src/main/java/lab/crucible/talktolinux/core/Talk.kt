@@ -83,6 +83,8 @@ object Talk {
     val listenerConnected = MutableStateFlow(false)
     /** Bu bağlantıda bilgisayara gönderilen bildirim sayısı (tanılama için). */
     val notificationsSent = MutableStateFlow(0)
+    /** Telefonda izlenen oynatıcı (Spotify, YouTube...); yoksa null. */
+    val phonePlayer = MutableStateFlow<String?>(null)
 
     @Volatile private var session: ClientSession? = null
     private val connector = Executors.newSingleThreadExecutor()

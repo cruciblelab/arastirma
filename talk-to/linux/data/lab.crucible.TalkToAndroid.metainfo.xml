@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.0" date="2026-10-10">
+      <description><p>Telefon bildirim/müzik durumunu bildiriyor ve sorun varsa sebebi gösteriliyor; telefonda çalan müzik masaüstü medya denetiminde görünüyor; telefon uygulaması alt sekmeli yeni tasarım.</p></description>
+    </release>
     <release version="0.2.5" date="2026-10-10">
       <description><p>Kabloyla takılan telefonda USB hata ayıklama kapalıysa ne yapılacağı gösteriliyor.</p></description>
     </release>

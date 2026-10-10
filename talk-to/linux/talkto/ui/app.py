@@ -15,6 +15,7 @@ from .. import APP_ID, __version__  # noqa: E402
 from ..config import Config  # noqa: E402
 from ..hub import Hub, HubThread  # noqa: E402
 from ..ipc import socket_path  # noqa: E402
+from ..usb import CONFLICT  # noqa: E402
 from . import compat, system  # noqa: E402
 from .screenshot import take_screenshot  # noqa: E402
 from .notifier import Notifier  # noqa: E402
@@ -185,13 +186,27 @@ class App(Adw.Application):
             self.window.toast("adb kuruldu; telefonu USB ile takabilirsin" if ok else f"adb kurulamadı: {msg}")
             self.window.update_usb(self.hub.usb.snapshot())
 
-    def install_phone_app(self, serial):
-        fut = self.hub.submit(self.hub.install_phone_app(serial))
+    def install_phone_app(self, serial, replace=False):
+        fut = self.hub.submit(self.hub.install_phone_app(serial, replace))
 
-        def done(f):
-            ok, msg = f.result()
-            GLib.idle_add(lambda: (self.window.toast(msg) if self.window else None, False)[-1])
-        fut.add_done_callback(done)
+        def show(ok, msg):
+            if msg == CONFLICT and self.window:
+                self._ask_replace(serial)
+            elif self.window:
+                self.window.toast(msg)
+            return False
+
+        fut.add_done_callback(lambda f: GLib.idle_add(show, *f.result()))
+
+    def _ask_replace(self, serial):
+        d = compat.Dialog(self.window, "Telefondaki uygulama kaldırılıp yeniden kurulsun mu?",
+                          CONFLICT + " Kurulumdan sonra telefonda bildirim erişimini yeniden vermen gerekir.")
+        d.add_response("cancel", "Vazgeç")
+        d.add_response("replace", "Kaldır ve kur")
+        d.set_appearance("replace", compat.DESTRUCTIVE)
+        d.set_close_response("cancel")
+        d.on_response(lambda r: r == "replace" and self.install_phone_app(serial, replace=True))
+        d.present()
 
     def open_path(self, path):
         compat.open_path(self.window, path)
