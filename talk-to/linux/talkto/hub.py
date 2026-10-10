@@ -50,6 +50,27 @@ def _s(value, limit=4000) -> str:
     return value[:limit] if isinstance(value, str) else ""
 
 
+def phone_problems(phone: dict, perms: dict, show_notifications: bool = True) -> list[str]:
+    """Telefonun bildirdiği durumdan, bildirim ve müziğin neden gelmeyeceğini anlatan uyarılar."""
+    out = []
+    if phone.get("flavor") == "hafif":
+        out.append("Telefondaki Talk To Linux hafif sürüm: bildirimler ve telefonda çalan müzik gelmez. "
+                   "Bağlantı → USB'den “Talk To Linux'u güncelle” ile tam sürümü kur.")
+    elif phone.get("notif_access") is False:
+        out.append("Telefonda bildirim erişimi kapalı: bildirimler ve telefonda çalan müzik gelmez. "
+                   "Telefonda Talk To Linux'u aç ve “İzin ver”e dokun.")
+    elif phone.get("listener") is False:
+        out.append("Bildirim erişimi açık ama Android bildirim dinleyicisini başlatmamış. Telefonda Talk To Linux'u "
+                   "bir kez aç; düzelmezse Ayarlar → Bildirim erişimi'nde kapatıp aç ya da telefonu yeniden başlat.")
+    if not perms.get("notifications"):
+        out.append("Bu telefonun profili bildirimlere izin vermiyor (Cihazlar → Profiller).")
+    elif not show_notifications:
+        out.append("Bildirimleri gösterme kapalı (Bildirimler sayfası).")
+    if not perms.get("media"):
+        out.append("Bu telefonun profili medya kontrolüne izin vermiyor (Cihazlar → Profiller).")
+    return out
+
+
 def _int(value, default=0) -> int:
     return int(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else default
 
@@ -429,6 +450,7 @@ class Session:
         self.registered = False
         self.closed = False
         self.battery = None
+        self.phone: dict = {}  # telefonun bildirdiği durum (bildirim erişimi, dinleyici, sürüm...)
         self.media = {"active": False}
         self.media_key = None
         self.media_sent = 0.0
@@ -444,7 +466,8 @@ class Session:
         pid, prof = self.config.profile_of(self.device_id)
         return {"device_id": self.device_id, "name": self.name, "model": self.model,
                 "kind": self.kind, "ip": self.ip, "battery": self.battery,
-                "media": self.media, "profile": pid, "profile_name": prof["name"]}
+                "media": self.media, "profile": pid, "profile_name": prof["name"], "phone": self.phone,
+                "problems": phone_problems(self.phone, prof, self.config["show_notifications"])}
 
     # ---- profil -----------------------------------------------------------
 
@@ -623,6 +646,13 @@ class Session:
         elif t == "battery":
             self.battery = {"level": max(0, min(100, _int(msg.get("level"), -1))),
                             "charging": bool(msg.get("charging"))}
+            hub.emit_status()
+        elif t == "phone_status":
+            player = msg.get("player")
+            self.phone = {"flavor": _s(msg.get("flavor"), 20), "sdk": _int(msg.get("sdk")),
+                          "notif_access": bool(msg.get("notif_access")), "listener": bool(msg.get("listener")),
+                          "player": _s(player, 100) if isinstance(player, str) else None,
+                          "notifications_sent": _int(msg.get("notifications_sent"))}
             hub.emit_status()
         elif t == "app_icon":
             self._save_icon(msg)

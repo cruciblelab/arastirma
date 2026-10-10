@@ -30,10 +30,10 @@ jobs:
       - name: Bağımlılıklar
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas xvfb imagemagick
+          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas xvfb imagemagick dbus
 
-      - name: Testler (arayüz uyumluluğu dahil, sanal ekranda)
-        run: xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v
+      - name: Testler (arayüz uyumluluğu ve masaüstü medya oynatıcısı dahil, sanal ekran + D-Bus)
+        run: xvfb-run -a dbus-run-session -- /usr/bin/python3 -m unittest discover -s tests -v
 
       - name: Arayüz açılıyor mu (sanal ekranda ekran görüntüsü)
         # 22.04'ün PyGObject'i (3.42) GTK'nın çizim düğümlerini çeviremediği için orada pencere

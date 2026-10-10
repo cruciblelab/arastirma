@@ -3,6 +3,7 @@ package lab.crucible.talktolinux.core
 import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -14,13 +15,17 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
+import android.service.notification.NotificationListenerService
 import android.util.Base64
 import android.widget.Toast
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import lab.crucible.talktolinux.BuildConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import lab.crucible.talktolinux.net.ClientSession
 import lab.crucible.talktolinux.net.Discovery
+import lab.crucible.talktolinux.service.NotificationListener
 import lab.crucible.talktolinux.service.TalkService
 import org.json.JSONObject
 import java.io.IOException
@@ -74,6 +79,10 @@ object Talk {
     /** Son komutun sonucu (başlık, başarılı mı, çıktı); arayüz bir pencerede gösterir. */
     val commandResult = MutableStateFlow<Triple<String, Boolean, String>?>(null)
     val bluetoothDevices = MutableStateFlow<List<BluetoothLink.Device>>(emptyList())
+    /** Android bildirim dinleyicisini bağladı mı (erişim verilmiş olsa da bağlamayabiliyor). */
+    val listenerConnected = MutableStateFlow(false)
+    /** Bu bağlantıda bilgisayara gönderilen bildirim sayısı (tanılama için). */
+    val notificationsSent = MutableStateFlow(0)
 
     @Volatile private var session: ClientSession? = null
     private val connector = Executors.newSingleThreadExecutor()
@@ -100,6 +109,35 @@ object Talk {
     fun notificationsOn() = isConnected() && currentServer()?.notif != false && profile.value?.can("notifications") != false
 
     fun mediaOn() = isConnected() && currentServer()?.media != false && profile.value?.can("media") != false
+
+    fun notifAccessGranted() = BuildConfig.NOTIFICATIONS &&
+        NotificationManagerCompat.getEnabledListenerPackages(app).contains(app.packageName)
+
+    /**
+     * Erişim verilmiş ama dinleyici bağlı değilse (ör. uygulama USB'den güncellendikten sonra bazı
+     * telefonlarda) Android'den yeniden bağlamasını iste. Medya oturumları dinleyicinin bağlı olmasını
+     * beklemez; erişim yeterli, o yüzden burada da başlatılır.
+     */
+    fun ensureListener() {
+        if (!notifAccessGranted()) return
+        PhoneMedia.start(app)
+        if (!listenerConnected.value) {
+            runCatching {
+                NotificationListenerService.requestRebind(ComponentName(app, NotificationListener::class.java))
+            }
+        }
+    }
+
+    /** Bildirim ve medyanın neden gelip gelmediğini bilgisayar da görsün. */
+    fun sendPhoneStatus() {
+        if (!isConnected()) return
+        send(JSONObject().put("type", "phone_status").put("flavor", BuildConfig.FLAVOR)
+            .put("sdk", Build.VERSION.SDK_INT)
+            .put("notif_access", notifAccessGranted())
+            .put("listener", listenerConnected.value)
+            .put("player", PhoneMedia.playerName() ?: JSONObject.NULL)
+            .put("notifications_sent", notificationsSent.value))
+    }
 
     private fun say(text: String) {
         messages.tryEmit(text)
@@ -147,6 +185,7 @@ object Talk {
                         target.host, target.port, target.kind))
                     prefs.autoServer = res.serverId.takeIf { prefs.server(it)?.auto != false }
                     profile.value = null
+                    notificationsSent.value = 0
                     commands.value = emptyList()
                     sysinfo.value = null
                     session = s
@@ -161,7 +200,9 @@ object Talk {
                             // Android 12+: uygulama arka plandayken servis başlatılamayabilir;
                             // bağlantı yine çalışır, yalnızca sistem süreci erken kapatabilir.
                         }
+                        ensureListener()
                         PhoneMedia.push()
+                        sendPhoneStatus()
                     }
                 }
                 is ClientSession.AuthResult.Failed -> {

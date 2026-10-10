@@ -499,6 +499,13 @@ class Window(Adw.ApplicationWindow):
         self._sig[key] = sig
         return True
 
+    @staticmethod
+    def _problem_row(text, title="Uyarı"):
+        r = row(title, text)
+        r.set_subtitle_lines(4)
+        r.add_prefix(Gtk.Image(icon_name="dialog-warning-symbolic", css_classes=["warning"]))
+        return r
+
     def _update_devices(self):
         rows = []
         for s in self.status.get("sessions", []):
@@ -520,9 +527,14 @@ class Window(Adw.ApplicationWindow):
             r.add_suffix(icon_button("window-close-symbolic", "Bağlantıyı kes",
                                      lambda d=did: self.app.call("disconnect", d)))
             rows.append(r)
+            for text in s.get("problems", []):
+                rows.append(self._problem_row(text))
         if not rows:
             rows.append(row("Henüz bağlı telefon yok", "Telefonda Talk To Linux uygulamasını açıp bu bilgisayarı seç"))
         self.connected_group.set_rows(rows)
+        problems = [(s["name"], text) for s in self.status.get("sessions", []) for text in s.get("problems", [])]
+        if self._changed("notif_problems", problems):
+            self.notif_problems.set_rows([self._problem_row(t, n) for n, t in problems])
 
         profiles = self.status.get("profiles", {})
         trusted = self.status.get("trusted", [])
@@ -806,6 +818,8 @@ class Window(Adw.ApplicationWindow):
         self.sw_notif.connect("notify::active", lambda r, _: self._set("show_notifications", r.get_active()))
         g.add(self.sw_notif)
         page.add(g)
+        self.notif_problems = DynamicGroup()
+        page.add(self.notif_problems)
         self.notif_group = DynamicGroup(title="Son bildirimler")
         page.add(self.notif_group)
         self.notifs = []

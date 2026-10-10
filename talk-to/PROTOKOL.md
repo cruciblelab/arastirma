@@ -59,6 +59,7 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 |---|---|---|
 | `ping` / `pong` | iki yön | 15 sn'de bir; 50 sn hiçbir şey gelmezse bağlantı kopmuş sayılır |
 | `battery` | telefon → bilgisayar | `level` (0-100), `charging` |
+| `phone_status` | telefon → bilgisayar | `flavor` ("tam"/"hafif"), `sdk`, `notif_access`, `listener` (Android bildirim dinleyicisini bağladı mı), `player` (izlenen medya uygulaması ya da null), `notifications_sent`; bağlanınca ve değişince. Bilgisayar bundan "bildirimler neden gelmiyor" uyarısı üretir |
 | `notification` | telefon → bilgisayar | `key`, `package`, `app`, `title`, `text`, `time_ms` |
 | `notification_removed` | telefon → bilgisayar | `key` |
 | `app_icon` | telefon → bilgisayar | `package`, `data` (base64 PNG); paket başına oturumda bir kez |

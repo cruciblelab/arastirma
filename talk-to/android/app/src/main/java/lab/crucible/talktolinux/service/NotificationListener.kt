@@ -16,11 +16,16 @@ class NotificationListener : NotificationListenerService() {
     private val lastSent = HashMap<String, String>()
 
     override fun onListenerConnected() {
+        Talk.listenerConnected.value = true
         PhoneMedia.start(this)
+        Talk.sendPhoneStatus()
     }
 
     override fun onListenerDisconnected() {
-        PhoneMedia.stop()
+        Talk.listenerConnected.value = false
+        Talk.sendPhoneStatus()
+        // Android bazen dinleyiciyi bırakıyor (bellek, güncelleme); geri bağlanmasını iste.
+        runCatching { requestRebind(android.content.ComponentName(this, NotificationListener::class.java)) }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -44,6 +49,7 @@ class NotificationListener : NotificationListenerService() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(sbn.packageName, 0)).toString()
         }.getOrDefault(sbn.packageName)
         Talk.sendAppIconOnce(sbn.packageName) { iconPng(sbn.packageName) }
+        Talk.notificationsSent.value += 1
         Talk.send(JSONObject().put("type", "notification").put("key", sbn.key).put("package", sbn.packageName)
             .put("app", appName).put("title", title).put("text", text.take(4000)).put("time_ms", sbn.postTime))
     }

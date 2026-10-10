@@ -43,17 +43,27 @@ object PhoneMedia {
         }
     }
 
+    /** Erişim varsa bir kez başlar; dinleyici bağlanınca ya da bağlantı kurulunca yeniden çağrılabilir. */
     fun start(ctx: Context) {
+        if (manager != null) return
         context = ctx.applicationContext
         val m = ctx.getSystemService(MediaSessionManager::class.java) ?: return
-        manager = m
         val comp = ComponentName(ctx, NotificationListener::class.java)
         try {
             m.addOnActiveSessionsChangedListener(sessionsListener, comp, main)
+            manager = m
             pick(m.getActiveSessions(comp))
         } catch (_: SecurityException) {
             // Bildirim erişimi yok.
         }
+    }
+
+    /** Şu an izlenen oynatıcının adı (Spotify, YouTube...). */
+    fun playerName(): String? {
+        val c = controller ?: return null
+        val pm = context?.packageManager ?: return c.packageName
+        return runCatching { pm.getApplicationLabel(pm.getApplicationInfo(c.packageName, 0)).toString() }
+            .getOrDefault(c.packageName)
     }
 
     fun stop() {
@@ -70,6 +80,7 @@ object PhoneMedia {
             controller?.unregisterCallback(callback)
             controller = chosen
             chosen?.registerCallback(callback, main)
+            Talk.sendPhoneStatus()
         }
         push()
     }

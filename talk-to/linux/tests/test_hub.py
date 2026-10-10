@@ -190,6 +190,29 @@ class HubTest(_Base):
         self.assertEqual((await p.recv_type("media_control"))["action"], "next")
         await p.close()
 
+    async def test_phone_status_explains_missing_notifications(self):
+        p = await self.paired_phone()
+        await p.send({"type": "phone_status", "flavor": "tam", "sdk": 34, "notif_access": True,
+                      "listener": False, "player": None, "notifications_sent": 0})
+        await asyncio.sleep(0.1)
+        info = self.hub.status()["sessions"][0]
+        self.assertFalse(info["phone"]["listener"])
+        self.assertEqual(len(info["problems"]), 1)
+        self.assertIn("dinleyici", info["problems"][0])
+        await p.send({"type": "phone_status", "flavor": "tam", "notif_access": True, "listener": True})
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.hub.status()["sessions"][0]["problems"], [])
+        await p.close()
+
+    def test_phone_problems(self):
+        from talkto.hub import phone_problems
+        allow = {"notifications": True, "media": True}
+        self.assertEqual(phone_problems({}, allow), [])  # eski telefon sürümü durum göndermez: uyarı yok
+        self.assertIn("hafif", phone_problems({"flavor": "hafif"}, allow)[0])
+        self.assertIn("erişimi kapalı", phone_problems({"flavor": "tam", "notif_access": False}, allow)[0])
+        self.assertEqual(len(phone_problems({}, {"notifications": False, "media": False})), 2)
+        self.assertIn("gösterme kapalı", phone_problems({}, allow, show_notifications=False)[0])
+
     async def test_disconnect_and_forget(self):
         p = await self.paired_phone()
         self.assertIn(p.device_id, self.hub.sessions)

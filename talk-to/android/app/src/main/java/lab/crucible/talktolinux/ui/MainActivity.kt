@@ -60,6 +60,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         notifAccess.value = NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName)
+        Talk.ensureListener()
+        Talk.sendPhoneStatus()
         Notifs.stopRing(this)  // "telefonu bul" çalıyorsa: telefon bulundu
     }
 

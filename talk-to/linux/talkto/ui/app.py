@@ -18,6 +18,7 @@ from ..ipc import socket_path  # noqa: E402
 from . import compat, system  # noqa: E402
 from .screenshot import take_screenshot  # noqa: E402
 from .notifier import Notifier  # noqa: E402
+from .phone_mpris import PhonePlayers  # noqa: E402
 from .window import KIND, Window, human_size  # noqa: E402
 
 log = logging.getLogger("talkto.arayuz")
@@ -56,6 +57,9 @@ class App(Adw.Application):
 
         self.config = Config()
         self.notifier = Notifier()
+        self.phone_players = PhonePlayers(
+            lambda did, action, value: self.call("media_control", did, action, value))
+        self.device_names: dict[str, str] = {}
         emit = lambda ev, data: GLib.idle_add(self.on_event, ev, data)  # noqa: E731
         self.hub = (self.hub_factory(self.config, emit) if self.hub_factory
                     else Hub(self.config, emit, ipc_path=socket_path()))
@@ -200,6 +204,8 @@ class App(Adw.Application):
     def on_event(self, event, d):
         w = self.window
         if event == "status":
+            self.device_names = {x["device_id"]: x["name"] for x in d.get("sessions", [])}
+            self.phone_players.keep_only(self.device_names)
             if w:
                 w.update_status(d)
         elif event == "usb":
@@ -219,9 +225,11 @@ class App(Adw.Application):
         elif event == "notification_removed":
             self.notifier.close(f"{d['device_id']}|{d['key']}")
         elif event == "media":
+            self.phone_players.update(d["device_id"], self.device_names.get(d["device_id"], "Telefon"), d["state"])
             if w:
                 w.update_media(d["device_id"], d["state"])
         elif event == "media_art":
+            self.phone_players.art(d["device_id"], d["art_id"])
             if w:
                 w.update_media_art(d["device_id"], d["art_id"], d["path"])
         elif event == "transfer":

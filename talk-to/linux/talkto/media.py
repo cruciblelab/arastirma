@@ -15,6 +15,8 @@ PATH = "/org/mpris/MediaPlayer2"
 IFACE_ROOT = "org.mpris.MediaPlayer2"
 IFACE_PLAYER = "org.mpris.MediaPlayer2.Player"
 MAX_ART = 600 * 1024
+# Talk To Android'in telefonlar için açtığı oynatıcılar (ui/phone_mpris.py); bilgisayar medyası sayılmaz.
+OWN_PREFIX = PREFIX + "talktoandroid."
 
 
 class Mpris:
@@ -38,7 +40,7 @@ class Mpris:
     def players(self) -> list[str]:
         res = self.bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
                                  "ListNames", None, None, self.Gio.DBusCallFlags.NONE, 1500, None)
-        return sorted(n for n in res.unpack()[0] if n.startswith(PREFIX))
+        return sorted(n for n in res.unpack()[0] if n.startswith(PREFIX) and not n.startswith(OWN_PREFIX))
 
     def state(self) -> dict:
         """Etkin oynatıcının durumu: önce çalan, yoksa son seçilen, yoksa ilk."""
