@@ -1,0 +1,148 @@
+name: Talk To derleme
+
+# Her push'ta: Linux testleri + .deb, Android testleri + APK (indirilebilir "artifact").
+# "v" ile başlayan etiket (ör. v0.2.0) push edilince ayrıca GitHub Release açılır ve
+# APK ile .deb oraya eklenir.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (Talk To Android, ${{ matrix.os }})
+    needs: android   # .deb, telefona USB'den kurulacak APK'yı içerir
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.04: GTK 4.6 + libadwaita 1.1 (uyumluluk katmanı), 24.04: GTK 4.14 + libadwaita 1.5
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: talk-to/linux
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bağımlılıklar
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas xvfb imagemagick
+
+      - name: Testler (arayüz uyumluluğu dahil, sanal ekranda)
+        run: xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v
+
+      - name: Arayüz açılıyor mu (sanal ekranda ekran görüntüsü)
+        # 22.04'ün PyGObject'i (3.42) GTK'nın çizim düğümlerini çeviremediği için orada pencere
+        # X sunucusundan ImageMagick ile çekilir; ekran pencere sığacak kadar büyük olmalı.
+        run: xvfb-run -a -s "-screen 0 1280x1400x24" env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 1300
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: talk-to-linux-apk
+          path: talk-to/linux/apk
+
+      - name: .deb paketi (APK içinde)
+        run: sh paket/deb-olustur.sh "$(ls apk/talk-to-linux-*.apk | grep -v hafif)"
+
+      - name: Paket kurulup çalışıyor mu
+        run: |
+          sudo apt-get install -y -q ./paket/talk-to-android_*_all.deb
+          talk-to-android yardim
+          test -f /usr/share/talk-to-android/talk-to-linux.apk
+
+      - name: Kurulan uygulama penceresiyle açılıyor mu (10 sn çökmeden çalışmalı)
+        run: xvfb-run -a sh -c 'timeout 10 talk-to-android; test $? -eq 124'
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-24.04'
+        with:
+          name: talk-to-android-deb
+          path: talk-to/linux/paket/*.deb
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-ekran-goruntuleri-${{ matrix.os }}
+          path: talk-to/linux/ekran/*.png
+
+  android:
+    name: Android (Talk To Linux)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: talk-to/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Android SDK bileşenleri
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: İmza anahtarı (depo sırrı tanımlıysa)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.TALKTO_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.TALKTO_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/talktolinux.jks"
+            echo "TALKTO_KEYSTORE=$RUNNER_TEMP/talktolinux.jks" >> "$GITHUB_ENV"
+            echo "TALKTO_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "Kalıcı anahtarla imzalanacak."
+          else
+            echo "::warning::TALKTO_KEYSTORE_BASE64 sırrı yok: APK her derlemede farklı geçici anahtarla imzalanır, eski sürümün üzerine kurulamaz."
+          fi
+
+      - name: Derle, birim testleri, lint
+        run: ./gradlew --no-daemon assembleTamRelease assembleHafifRelease testTamReleaseUnitTest lintTamRelease lintHafifRelease
+
+      - name: Android ağ kodu ↔ gerçek Linux sunucusu (canlı test)
+        run: sh ../linux/tests/android_canli_test.sh
+
+      - name: APK'yı adlandır
+        run: |
+          v=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          cp app/build/outputs/apk/tam/release/app-tam-release.apk "talk-to-linux-$v.apk"
+          cp app/build/outputs/apk/hafif/release/app-hafif-release.apk "talk-to-linux-$v-hafif.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: talk-to-linux-apk
+          path: talk-to/android/talk-to-linux-*.apk
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-raporlar
+          path: |
+            talk-to/android/app/build/reports/
+            /tmp/talkto-canli.log
+
+  release:
+    name: Sürüm yayınla
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, android]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: talk-to-*
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.apk
+            *.deb

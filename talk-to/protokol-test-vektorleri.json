@@ -1,0 +1,56 @@
+{
+  "_aciklama": "Linux (tests/test_hub.py) ve Android (AuthTest.kt) aynı sonuçları üretmek zorunda.",
+  "password_proof": [
+    {
+      "password": "gizli",
+      "nonce": "00112233445566778899aabbccddeeff",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "proof": "da67dfe119ab554f2c06696b2bb1aa545712adcfe5fbbf6c29c6247ecca6bac8"
+    },
+    {
+      "password": "Şifre 123 ğüş",
+      "nonce": "ffeeddccbbaa99887766554433221100",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "proof": "f834181f0562fc8fd9d4edcf6bdca878eb9c923bee0274d6d42abc927ec66e27"
+    },
+    {
+      "password": "",
+      "nonce": "0123456789abcdef0123456789abcdef",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "proof": "eec1b1be8b33d138b41a130165587194f06525b8d0e8f0f90307f5bf97ad72c8"
+    }
+  ],
+  "pairing_code": [
+    {
+      "nonce": "00112233445566778899aabbccddeeff",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "device_id": "a1b2c3d4e5f60718",
+      "code": "872830"
+    },
+    {
+      "nonce": "0123456789abcdef0123456789abcdef",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "device_id": "telefon-test-0001",
+      "code": "530559"
+    },
+    {
+      "nonce": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "device_id": "5f0e1d2c3b4a",
+      "code": "044164"
+    }
+  ],
+  "frames": [
+    {
+      "json": {
+        "type": "ping"
+      },
+      "hex": "4a0000000f7b2274797065223a2270696e67227d"
+    },
+    {
+      "tid": 7,
+      "data": "cafebabe",
+      "hex": "420000000800000007cafebabe"
+    }
+  ]
+}
