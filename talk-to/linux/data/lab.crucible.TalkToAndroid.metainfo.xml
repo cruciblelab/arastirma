@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>lab.crucible.TalkToAndroid</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>CC-BY-NC-4.0</project_license>
+  <name>Talk To Android</name>
+  <summary>Android telefonu USB ya da Wi-Fi ile bağla</summary>
+  <description>
+    <p>Telefon bildirimlerini masaüstünde gösterir, telefonda ve bilgisayarda çalan müziği
+    karşı taraftan kontrol etmeyi, iki yönde dosya ve pano göndermeyi sağlar.
+    USB bağlantısında ve şifresiz Wi-Fi bağlantısında her yeni telefon için onay istenir.</p>
+  </description>
+  <launchable type="desktop-id">lab.crucible.TalkToAndroid.desktop</launchable>
+  <developer id="lab.crucible">
+    <name>Crucible ekibi</name>
+  </developer>
+  <url type="homepage">https://github.com/cruciblelab/arastirma</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-10"/>
+  </releases>
+</component>

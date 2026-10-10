@@ -1,0 +1,364 @@
+"""Çekirdeğin uçtan uca testleri: gerçek TLS sunucusu + sahte telefon.
+
+    cd talk-to/linux && python3 -m unittest discover -s tests -v
+"""
+
+import asyncio
+import hashlib
+import json
+import os
+import socket
+import tempfile
+import unittest
+from pathlib import Path
+
+from sahte_telefon import FakePhone
+
+from talkto import auth
+from talkto.config import Config
+from talkto.hub import Hub
+from talkto.transfers import safe_name
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def free_port():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+class _Base(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        os.environ["TALKTO_CACHE_DIR"] = str(Path(self.tmp.name) / "cache")
+        self.cfg = Config(Path(self.tmp.name) / "cfg")
+        self.cfg.set("port", free_port())
+        self.cfg.set("receive_dir", str(Path(self.tmp.name) / "gelen"))
+        self.cfg.set("usb", True)       # 127.0.0.1 dinlenir, bağlantı "usb" sayılır
+        self.cfg.set("wireless", False)
+        self.events = []
+        self.hub = Hub(self.cfg, emit=self._on_event, enable_media=False, enable_discovery=False)
+        self.hub.usb.available = staticmethod(lambda: False)
+        await self.hub.start()
+
+    async def asyncTearDown(self):
+        await self.hub.stop()
+        self.tmp.cleanup()
+
+    def _on_event(self, event, data):
+        self.events.append((event, data))
+        if event == "ask" and getattr(self, "answer", None) is not None:
+            asyncio.get_running_loop().create_task(self.hub.answer(data["id"], self.answer))
+
+    def of(self, event):
+        return [d for e, d in self.events if e == event]
+
+    async def paired_phone(self):
+        self.answer = True
+        p = FakePhone()
+        self.assertEqual(await p.connect(port=self.cfg["port"]), "welcome")
+        await asyncio.sleep(0.05)
+        return p
+
+
+class HubTest(_Base):
+    async def test_usb_approval_shows_same_code_on_both_sides(self):
+        self.answer = True
+        p = FakePhone()
+        self.assertEqual(await p.connect(port=self.cfg["port"]), "welcome")
+        ask = self.of("ask")[0]
+        self.assertEqual(ask["kind"], "pair")
+        self.assertEqual(ask["transport"], "usb")
+        self.assertEqual(ask["code"], p.code)
+        self.assertIn(p.device_id, self.cfg.trusted())
+        self.assertNotEqual(self.cfg.trusted()[p.device_id]["token_hash"], p.token)  # belirteç düz saklanmaz
+        await p.close()
+
+    async def test_rejected_approval(self):
+        self.answer = False
+        p = FakePhone()
+        self.assertEqual(await p.connect(port=self.cfg["port"]), "rejected")
+        self.assertNotIn(p.device_id, self.cfg.trusted())
+        await p.close()
+
+    async def test_token_reconnect_needs_no_approval(self):
+        p = await self.paired_phone()
+        token = p.token
+        await p.close()
+        self.answer = None  # artık soru sorulursa test zaman aşımına düşer
+        asks = len(self.of("ask"))
+        p2 = FakePhone()
+        self.assertEqual(await p2.connect(port=self.cfg["port"], token=token), "welcome")
+        self.assertEqual(len(self.of("ask")), asks)
+        await p2.close()
+
+    async def test_wrong_token_falls_back_to_approval(self):
+        p = await self.paired_phone()
+        await p.close()
+        self.answer = False
+        p2 = FakePhone()
+        self.assertEqual(await p2.connect(port=self.cfg["port"], token="0" * 64), "rejected")
+        await p2.close()
+
+    async def test_wifi_password(self):
+        self.cfg.set("password", "doğru-şifre")
+        sess_kind = {}
+        orig = self.hub._on_connection
+
+        async def as_wifi(reader, writer):  # testte gerçek Wi-Fi yok; bağlantıyı Wi-Fi say
+            from talkto.hub import Session
+            sess_kind["k"] = "wifi"
+            await Session(self.hub, reader, writer, "wifi", "10.0.0.5").run()
+        self.hub.server.close()
+        self.hub.server = await asyncio.start_server(as_wifi, "127.0.0.1", self.cfg["port"],
+                                                     ssl=self.hub.identity.server_context())
+        bad = FakePhone()
+        self.assertEqual(await bad.connect(port=self.cfg["port"], password="yanlış"), "wrong_password")
+        await bad.close()
+        good = FakePhone("telefon-test-0002")
+        self.assertEqual(await good.connect(port=self.cfg["port"], password="doğru-şifre"), "welcome")
+        self.assertEqual(self.of("ask"), [])  # şifre doğruysa ekranda onay sorulmaz
+        await good.close()
+        for _ in range(4):
+            b = FakePhone()
+            await b.connect(port=self.cfg["port"], password="yanlış")
+            await b.close()
+        blocked = FakePhone("telefon-test-0003")
+        self.assertEqual(await blocked.connect(port=self.cfg["port"], password="doğru-şifre"),
+                         "too_many_attempts")
+        await blocked.close()
+        del orig
+
+    async def test_receive_file_into_folder(self):
+        p = await self.paired_phone()
+        data = os.urandom(700_000)
+        res = await p.send_file(5, "../../tatil.jpg", data)
+        self.assertTrue(res["ok"], res)
+        files = list(Path(self.cfg["receive_dir"]).iterdir())
+        self.assertEqual(len(files), 1)
+        self.assertEqual(files[0].parent, Path(self.cfg["receive_dir"]))
+        self.assertEqual(files[0].read_bytes(), data)
+        self.assertEqual(self.of("transfer")[-1]["state"], "done")
+        # Aynı ad ikinci kez gelirse üzerine yazılmaz.
+        res = await p.send_file(6, "../../tatil.jpg", b"ikinci")
+        self.assertTrue(res["ok"])
+        self.assertEqual(len(list(Path(self.cfg["receive_dir"]).iterdir())), 2)
+        await p.close()
+
+    async def test_corrupt_file_is_discarded(self):
+        p = await self.paired_phone()
+        res = await p.send_file(7, "bozuk.bin", b"veri" * 1000, sha="0" * 64)
+        self.assertFalse(res["ok"])
+        self.assertEqual(list(Path(self.cfg["receive_dir"]).iterdir()), [])
+        await p.close()
+
+    async def test_send_file_to_phone(self):
+        p = await self.paired_phone()
+        src = Path(self.tmp.name) / "belge.pdf"
+        src.write_bytes(os.urandom(600_000))
+        task = asyncio.create_task(self.hub.send_file(p.device_id, str(src)))
+        name, data = await p.receive_file()
+        await task
+        self.assertEqual(name, "belge.pdf")
+        self.assertEqual(data, src.read_bytes())
+        self.assertEqual(self.of("transfer")[-1]["state"], "done")
+        await p.close()
+
+    async def test_notification_battery_clipboard_url(self):
+        p = await self.paired_phone()
+        await p.send({"type": "battery", "level": 64, "charging": False})
+        await p.send({"type": "notification", "key": "0|com.whatsapp|1", "package": "com.whatsapp",
+                      "app": "WhatsApp", "title": "Ali", "text": "Geliyor musun?"})
+        await p.send({"type": "clipboard", "text": "panodaki yazı"})
+        await p.send({"type": "open_url", "url": "https://youtube.com/watch?v=x"})
+        await p.send({"type": "open_url", "url": "file:///etc/passwd"})
+        await asyncio.sleep(0.2)
+        self.assertEqual(self.of("notification")[0]["title"], "Ali")
+        self.assertEqual(self.hub.sessions[p.device_id].battery, {"level": 64, "charging": False})
+        self.assertEqual(self.of("clipboard")[0]["text"], "panodaki yazı")
+        self.assertEqual([d["url"] for d in self.of("open_url")], ["https://youtube.com/watch?v=x"])
+        await p.close()
+
+    async def test_media_control_is_forwarded_to_phone(self):
+        p = await self.paired_phone()
+        await p.send({"type": "media_state", "active": True, "player": "Spotify", "title": "Şarkı",
+                      "artist": "Sanatçı", "playing": True, "position_ms": 1000, "duration_ms": 200000})
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.of("media")[-1]["state"]["title"], "Şarkı")
+        await self.hub.media_control(p.device_id, "next")
+        self.assertEqual((await p.recv_type("media_control"))["action"], "next")
+        await p.close()
+
+    async def test_disconnect_and_forget(self):
+        p = await self.paired_phone()
+        self.assertIn(p.device_id, self.hub.sessions)
+        await self.hub.forget(p.device_id)
+        await asyncio.sleep(0.1)
+        self.assertNotIn(p.device_id, self.hub.sessions)
+        self.assertNotIn(p.device_id, self.cfg.trusted())
+        await p.close()
+
+
+class FeatureTest(_Base):
+    """Profiller, komutlar, sistem bilgisi, komut satırı ve Bluetooth yolu."""
+
+    async def test_profile_is_sent_and_recognized_on_connect(self):
+        p = await self.paired_phone()
+        prof = await p.recv_type("profile")
+        self.assertEqual(prof["name"], "Benim telefonum")
+        self.assertTrue(prof["permissions"]["commands"])
+        cmds = await p.recv_type("commands")
+        self.assertIn("kilitle", [c["id"] for c in cmds["items"]])
+        await p.close()
+
+    async def test_choose_profile_in_approval_and_guest_limits(self):
+        self.answer = "misafir"  # onay penceresinde "Misafir" profili seçildi
+        p = FakePhone()
+        self.assertEqual(await p.connect(port=self.cfg["port"]), "welcome")
+        self.assertEqual(self.cfg.trusted()[p.device_id]["profile"], "misafir")
+        prof = await p.recv_type("profile")
+        self.assertEqual(prof["name"], "Misafir")
+        self.assertEqual((await p.recv_type("commands"))["items"], [])
+        await p.send({"type": "clipboard", "text": "olmamalı"})
+        await p.send({"type": "open_url", "url": "https://example.com"})
+        await p.send({"type": "run_command", "id": "kilitle"})
+        res = await p.recv_type("command_result")
+        self.assertFalse(res["ok"])
+        self.assertEqual(self.of("clipboard"), [])
+        self.assertEqual(self.of("open_url"), [])
+        # Misafir dosya gönderebilir.
+        self.assertTrue((await p.send_file(9, "not.txt", b"merhaba"))["ok"])
+        await p.close()
+
+    async def test_profile_change_applies_immediately(self):
+        p = await self.paired_phone()
+        await p.recv_type("commands")
+        await self.hub.save_profile("benim", {"clipboard": False, "name": "Kısıtlı"})
+        prof = await p.recv_type("profile")
+        self.assertEqual(prof["name"], "Kısıtlı")
+        self.assertFalse(prof["permissions"]["clipboard"])
+        await p.send({"type": "clipboard", "text": "olmamalı"})
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.of("clipboard"), [])
+        await self.hub.assign_profile(p.device_id, "misafir")
+        self.assertEqual((await p.recv_type("profile"))["name"], "Misafir")
+        await p.close()
+
+    async def test_custom_command_runs_and_returns_output(self):
+        await self.hub.save_command(None, "Selam", "echo merhaba-$((2+3))")
+        p = await self.paired_phone()
+        items = (await p.recv_type("commands"))["items"]
+        cid = next(c["id"] for c in items if c["name"] == "Selam")
+        await p.send({"type": "run_command", "id": cid})
+        res = await p.recv_type("command_result")
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["output"].strip(), "merhaba-5")
+        self.assertEqual(self.of("command_run")[0]["name"], "Selam")
+        await p.send({"type": "run_command", "id": "yok-boyle-bir-sey"})
+        self.assertFalse((await p.recv_type("command_result"))["ok"])
+        await p.close()
+
+    async def test_power_commands_need_permission(self):
+        await self.hub.save_profile("benim", {"power": False})
+        p = await self.paired_phone()
+        ids = [c["id"] for c in (await p.recv_type("commands"))["items"]]
+        self.assertIn("kilitle", ids)
+        self.assertNotIn("kapat", ids)
+        await p.send({"type": "run_command", "id": "kapat"})  # gerçek systemctl çalışmamalı
+        res = await p.recv_type("command_result")
+        self.assertFalse(res["ok"])
+        self.assertIn("güç", res["output"])
+        await p.close()
+
+    async def test_sysinfo(self):
+        p = await self.paired_phone()
+        await p.send({"type": "sysinfo_request"})
+        info = await p.recv_type("sysinfo")
+        for k in ("host", "os", "mem_total", "disk_total", "uptime", "cores"):
+            self.assertIn(k, info)
+        self.assertGreater(info["mem_total"], 0)
+        await p.close()
+
+    async def test_command_line_tool(self):
+        from talkto import cli, ipc
+        sock = Path(self.tmp.name) / "komut.sock"
+        server = ipc.IpcServer(self.hub, sock)
+        await server.start()
+        self.assertEqual(oct(sock.stat().st_mode & 0o777), "0o600")
+        orig = ipc.socket_path
+        cli.socket_path = lambda: sock
+        try:
+            run = lambda *a: asyncio.to_thread(cli.main, list(a))  # noqa: E731
+            p = await self.paired_phone()
+            self.assertEqual(await run("durum"), 0)
+            self.assertEqual(await run("bildirim", "Derleme bitti", "0 hata"), 0)
+            n = await p.recv_type("notify")
+            self.assertEqual((n["title"], n["text"]), ("Derleme bitti", "0 hata"))
+            self.assertEqual(await run("pano", "terminalden"), 0)
+            self.assertEqual((await p.recv_type("clipboard"))["text"], "terminalden")
+            f = Path(self.tmp.name) / "rapor.txt"
+            f.write_bytes(b"rapor" * 5000)
+            send = asyncio.create_task(run("gonder", str(f)))
+            name, data = await p.receive_file()
+            self.assertEqual(await send, 0)
+            self.assertEqual((name, data), ("rapor.txt", f.read_bytes()))
+            self.assertEqual(await run("bildirim", "x", "-c", "olmayan-telefon"), 1)
+            await p.close()
+        finally:
+            cli.socket_path = orig
+            await server.stop()
+
+    async def test_bluetooth_style_socket_needs_approval(self):
+        """BlueZ'in verdiği bağlı soket yerine kabul edilmiş bir TCP soketi: aynı TLS + onay akışı."""
+        lst = socket.socket()
+        lst.bind(("127.0.0.1", 0))
+        lst.listen(1)
+        lst.setblocking(False)
+        port = lst.getsockname()[1]
+        loop = asyncio.get_running_loop()
+
+        async def accept():
+            conn, _ = await loop.sock_accept(lst)
+            await self.hub.accept_socket(conn, "bluetooth", "AA:BB:CC:DD:EE:FF")
+        task = asyncio.create_task(accept())
+        self.answer = True
+        p = FakePhone("telefon-bt-0001")
+        self.assertEqual(await p.connect(port=port), "welcome")
+        self.assertEqual(self.of("ask")[0]["transport"], "bluetooth")
+        await asyncio.sleep(0.05)
+        self.assertEqual(self.hub.sessions[p.device_id].kind, "bluetooth")
+        await p.close()
+        await asyncio.wait_for(task, 5)
+        lst.close()
+
+
+class UnitTest(unittest.TestCase):
+    def test_safe_name(self):
+        for bad in ["../../.bashrc", "/etc/passwd", "a/../b", "..", "", "\x00x", "..\\..\\win"]:
+            n = safe_name(bad)
+            self.assertNotIn("/", n)
+            self.assertFalse(n.startswith("."))
+            self.assertTrue(n)
+        self.assertEqual(safe_name("tatil fotoğrafı.jpg"), "tatil fotoğrafı.jpg")
+
+    def test_shared_vectors(self):
+        """Android (net/Auth.kt) aynı vektörleri kendi testinde kontrol eder."""
+        vec = json.loads((ROOT / "protokol-test-vektorleri.json").read_text(encoding="utf-8"))
+        for v in vec["password_proof"]:
+            self.assertEqual(auth.password_proof(v["password"], v["nonce"], v["fp"]), v["proof"])
+        for v in vec["pairing_code"]:
+            self.assertEqual(auth.pairing_code(v["nonce"], v["fp"], v["device_id"]), v["code"])
+        for v in vec["frames"]:
+            from talkto.protocol import encode_binary, encode_json
+            if "json" in v:
+                self.assertEqual(encode_json(v["json"]).hex(), v["hex"])
+            else:
+                self.assertEqual(encode_binary(v["tid"], bytes.fromhex(v["data"])).hex(), v["hex"])
+
+    def test_token_hash(self):
+        self.assertEqual(auth.token_hash("abc"), hashlib.sha256(b"abc").hexdigest())
+
+
+if __name__ == "__main__":
+    unittest.main()
