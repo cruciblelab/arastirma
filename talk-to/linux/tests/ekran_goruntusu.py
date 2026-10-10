@@ -95,6 +95,9 @@ def fill():
         from talkto.ui import system
         system.adb_install_command = lambda: ["pkexec", "apt-get", "install", "-y", "adb"]
         app.on_event("usb", {"adb": False, "running": True, "devices": []})
+    elif os.environ.get("USB_KAPALI"):  # telefon takılı ama USB hata ayıklama kapalı
+        app.on_event("usb", {"adb": True, "running": True, "apk": "/x.apk", "devices": [],
+                             "unseen": [{"serial": "abc", "name": "Xiaomi Redmi Note 12", "adb": False}]})
     else:
         app.on_event("usb", {"adb": True, "running": True, "apk": "/usr/share/talk-to-android/talk-to-linux.apk",
                              "devices": [{"serial": "38XYZ", "state": "device", "tunnel": True, "model": "Pixel 8", "app": False}]})

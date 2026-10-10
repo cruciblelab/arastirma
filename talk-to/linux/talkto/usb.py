@@ -17,6 +17,51 @@ PHONE_PACKAGE = "lab.crucible.talktolinux"
 PHONE_ACTIVITY = PHONE_PACKAGE + "/.ui.MainActivity"
 
 
+# Android telefon üreticilerinin USB kimlikleri (adb'nin udev kurallarından; en yaygınları).
+ANDROID_VENDORS = {
+    "18d1", "04e8", "2717", "12d1", "339b", "2a70", "22b8", "22d9", "2d95", "1004", "0fce",
+    "0bb4", "19d2", "17ef", "0b05", "2e04", "1ebf", "29a9", "2ae5", "1bbb", "0e8d", "2916",
+}
+USB_ROOT = "/sys/bus/usb/devices"
+
+
+def _read(path: Path) -> str:
+    try:
+        return path.read_text().strip()
+    except OSError:
+        return ""
+
+
+def usb_phones(root: str = USB_ROOT) -> list[dict]:
+    """Kabloyla takılı Android telefonlar (adb'den bağımsız, sysfs'ten).
+
+    adb yalnızca USB hata ayıklama açık telefonları görür; bu liste, takılı olup
+    adb'nin göremediği telefonu fark edip kullanıcıya ne yapacağını söylemek için.
+    """
+    phones = []
+    base = Path(root)
+    try:
+        entries = sorted(base.iterdir())
+    except OSError:
+        return phones
+    for dev in entries:
+        if ":" in dev.name or not (dev / "idVendor").exists():
+            continue
+        vendor = _read(dev / "idVendor").lower()
+        ifaces = []
+        for itf in base.glob(dev.name + ":*"):
+            ifaces.append((_read(itf / "bInterfaceClass").lower(), _read(itf / "bInterfaceSubClass").lower(),
+                           _read(itf / "bInterfaceProtocol").lower(), _read(itf / "interface")))
+        adb = any(c == "ff" and sc == "42" and pr == "01" for c, sc, pr, _ in ifaces)
+        mtp = any("MTP" in name or c == "06" for c, _, _, name in ifaces)
+        known = vendor in ANDROID_VENDORS and not all(c in ("03", "09") for c, _, _, _ in ifaces)
+        if not (adb or mtp or known):
+            continue
+        name = " ".join(x for x in (_read(dev / "manufacturer"), _read(dev / "product")) if x)
+        phones.append({"serial": _read(dev / "serial"), "name": name or "Android telefon", "adb": adb})
+    return phones
+
+
 def find_apk() -> Path | None:
     """Telefona kurulacak Talk To Linux APK'sı: paketle gelen, kur.sh'nin kopyaladığı ya da kaynakta derlenen."""
     here = Path(__file__).resolve().parent
@@ -58,6 +103,7 @@ class AdbWatcher:
         self.port = port
         self.on_change = on_change
         self.devices: dict[str, dict] = {}
+        self.unseen: list[dict] = []  # takılı ama adb'nin göremediği telefonlar
         self._task = None
 
     @staticmethod
@@ -67,7 +113,7 @@ class AdbWatcher:
     def snapshot(self) -> dict:
         apk = find_apk()
         return {"adb": self.available(), "running": self._task is not None, "apk": str(apk) if apk else None,
-                "devices": [dict(serial=s, **d) for s, d in self.devices.items()]}
+                "devices": [dict(serial=s, **d) for s, d in self.devices.items()], "unseen": list(self.unseen)}
 
     async def start(self):
         if self._task is None:
@@ -82,6 +128,7 @@ class AdbWatcher:
             if d.get("tunnel"):
                 await _adb("-s", serial, "reverse", "--remove", f"tcp:{self.port}", timeout=4)
         self.devices.clear()
+        self.unseen = []
         self.on_change(self.snapshot())
 
     async def _loop(self):
@@ -95,6 +142,11 @@ class AdbWatcher:
                     await self._poll()
                 except Exception:
                     log.exception("adb yoklaması başarısız")
+            unseen = [p for p in usb_phones()
+                      if not (p["serial"] in self.devices or (not p["serial"] and self.devices))]
+            if unseen != self.unseen:
+                self.unseen = unseen
+                self.on_change(self.snapshot())
             await asyncio.sleep(INTERVAL)
 
     async def _poll(self):

@@ -106,7 +106,9 @@ class CompatTest(unittest.TestCase):
         w = Window(app)
         w.update_usb({"adb": True, "running": True, "apk": "/x.apk",
                       "devices": [{"serial": "S", "state": "device", "tunnel": True, "model": "Pixel",
-                                   "app": False}]})
+                                   "app": False}, {"serial": "U", "state": "no", "tunnel": False,
+                                                   "model": "U", "app": None}],
+                      "unseen": [{"serial": "X", "name": "Xiaomi Redmi", "adb": False}]})
         self.assertIsNotNone(w.stack.get_child_by_name("komutlar"))
 
 

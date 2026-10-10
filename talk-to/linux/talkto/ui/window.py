@@ -416,7 +416,21 @@ class Window(Adw.ApplicationWindow):
                     b.connect("clicked", lambda *_: self.app.install_adb())
                     r.add_suffix(b)
             rows.append(r)
-        elif not snap.get("devices"):
+        for ph in snap.get("unseen", []) if snap.get("running") else []:
+            if ph.get("adb") and snap.get("adb"):
+                sub = ("USB hata ayıklama açık ama bu bilgisayarın telefona erişim izni yok. Kabloyu çıkarıp tak; "
+                       "düzelmezse “android-sdk-platform-tools-common” paketini kur.")
+            else:
+                sub = ("Takılı ama USB hata ayıklama kapalı. Telefonda: Ayarlar → Telefon hakkında → "
+                       "“Yapım numarası”na 7 kez dokun; sonra Ayarlar → Sistem → Geliştirici seçenekleri → "
+                       "“USB hata ayıklama”yı aç ve çıkan soruyu onayla. İstemezsen Wi-Fi ya da Bluetooth kullan.")
+            r = row(ph["name"], sub)
+            r.set_subtitle_lines(5)
+            r.add_prefix(Gtk.Image(icon_name="dialog-information-symbolic"))
+            rows.append(r)
+        if not snap.get("running") or not snap.get("adb"):
+            pass
+        elif not snap.get("devices") and not snap.get("unseen"):
             r = row("Telefon bekleniyor", "Telefonu USB ile tak ve USB hata ayıklamayı aç. Telefonda Talk To Linux "
                                           "yoksa buradan tek tıkla kurulur." if snap.get("apk") else
                     "Telefonu USB ile tak ve USB hata ayıklamayı aç")
@@ -432,6 +446,11 @@ class Window(Adw.ApplicationWindow):
                 icon = "emblem-ok-symbolic" if d["tunnel"] else "dialog-warning-symbolic"
             elif state == "unauthorized":
                 sub, icon = "Telefonda “USB hata ayıklamaya izin ver” onayını ver", "dialog-question-symbolic"
+            elif state == "no":  # adb: "no permissions (udev ...)"
+                sub, icon = ("Bu bilgisayarın telefona erişim izni yok. Kabloyu çıkarıp tak; düzelmezse "
+                             "“android-sdk-platform-tools-common” paketini kur."), "dialog-warning-symbolic"
+            elif state == "offline":
+                sub, icon = "Telefon yanıt vermiyor: kabloyu çıkarıp tekrar tak", "dialog-warning-symbolic"
             else:
                 sub, icon = f"Durum: {state}", "dialog-warning-symbolic"
             r = row(d.get("model") or d["serial"], sub)
