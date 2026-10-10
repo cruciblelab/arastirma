@@ -12,8 +12,25 @@ android {
         applicationId = "lab.crucible.talktolinux"
         minSdk = 29
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.2.1"
+        versionCode = 4
+        versionName = "0.2.2"
+    }
+
+    // İki sürüm, aynı uygulama kimliği (biri diğerinin üzerine kurulabilir):
+    //  tam   : bildirim erişimi var (bildirimler + telefondaki medya). Play Protect, internetten
+    //          yüklenen ve bu izni isteyen uygulamaları bazı ülkelerde engelliyor; USB (adb) ile kurulur.
+    //  hafif : bildirim erişimi yok; dosya yöneticisinden doğrudan kurulabilir.
+    flavorDimensions += "surum"
+    productFlavors {
+        create("tam") {
+            dimension = "surum"
+            buildConfigField("boolean", "NOTIFICATIONS", "true")
+        }
+        create("hafif") {
+            dimension = "surum"
+            versionNameSuffix = "-hafif"
+            buildConfigField("boolean", "NOTIFICATIONS", "false")
+        }
     }
 
     // İmza anahtarı: TALKTO_KEYSTORE (dosya yolu) ve TALKTO_KEYSTORE_PASSWORD tanımlıysa onunla
@@ -48,6 +65,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     testOptions {
         unitTests.isReturnDefaultValues = true

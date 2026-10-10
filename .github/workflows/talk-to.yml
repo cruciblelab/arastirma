@@ -39,7 +39,7 @@ jobs:
           path: talk-to/linux/apk
 
       - name: .deb paketi (APK içinde)
-        run: sh paket/deb-olustur.sh apk/talk-to-linux-*.apk
+        run: sh paket/deb-olustur.sh "$(ls apk/talk-to-linux-*.apk | grep -v hafif)"
 
       - name: Paket kurulup çalışıyor mu
         run: |
@@ -94,7 +94,7 @@ jobs:
           fi
 
       - name: Derle, birim testleri, lint
-        run: ./gradlew --no-daemon assembleRelease testReleaseUnitTest lintRelease
+        run: ./gradlew --no-daemon assembleTamRelease assembleHafifRelease testTamReleaseUnitTest lintTamRelease lintHafifRelease
 
       - name: Android ağ kodu ↔ gerçek Linux sunucusu (canlı test)
         run: sh ../linux/tests/android_canli_test.sh
@@ -102,7 +102,8 @@ jobs:
       - name: APK'yı adlandır
         run: |
           v=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
-          cp app/build/outputs/apk/release/app-release.apk "talk-to-linux-$v.apk"
+          cp app/build/outputs/apk/tam/release/app-tam-release.apk "talk-to-linux-$v.apk"
+          cp app/build/outputs/apk/hafif/release/app-hafif-release.apk "talk-to-linux-$v-hafif.apk"
 
       - uses: actions/upload-artifact@v4
         with:

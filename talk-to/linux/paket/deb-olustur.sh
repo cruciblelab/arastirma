@@ -29,7 +29,7 @@ SH
 cp "$HERE/data/lab.crucible.TalkToAndroid.desktop" "$ROOT/usr/share/applications/"
 cp "$HERE/data/icons/hicolor/scalable/apps/lab.crucible.TalkToAndroid.svg" "$ROOT/usr/share/icons/hicolor/scalable/apps/"
 cp "$HERE/data/icons/hicolor/256x256/apps/lab.crucible.TalkToAndroid.png" "$ROOT/usr/share/icons/hicolor/256x256/apps/"
-APK=${1:-$HERE/../android/app/build/outputs/apk/release/app-release.apk}
+APK=${1:-$HERE/../android/app/build/outputs/apk/tam/release/app-tam-release.apk}
 if [ -f "$APK" ]; then
     cp "$APK" "$ROOT/usr/share/talk-to-android/talk-to-linux.apk"
     echo "APK pakete eklendi: $APK" >&2

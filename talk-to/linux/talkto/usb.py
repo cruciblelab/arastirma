@@ -23,7 +23,7 @@ def find_apk() -> Path | None:
     candidates = [os.environ.get("TALKTO_APK"),
                   "/usr/share/talk-to-android/talk-to-linux.apk",
                   str(here.parent / "talk-to-linux.apk"),
-                  str(here.parents[1] / "android/app/build/outputs/apk/release/app-release.apk")]
+                  str(here.parents[1] / "android/app/build/outputs/apk/tam/release/app-tam-release.apk")]
     for c in candidates:
         if c and Path(c).is_file():
             return Path(c)

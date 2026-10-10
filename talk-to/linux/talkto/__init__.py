@@ -1,6 +1,6 @@
 """Talk To Android: Linux bilgisayar ile Android telefonu USB ya da Wi-Fi üzerinden bağlar."""
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 APP_ID = "lab.crucible.TalkToAndroid"
 PROTOCOL_VERSION = 1

@@ -108,6 +108,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import lab.crucible.talktolinux.BuildConfig
 import lab.crucible.talktolinux.core.BluetoothLink
 import lab.crucible.talktolinux.core.Talk
 import lab.crucible.talktolinux.net.Auth
@@ -366,7 +367,7 @@ private fun LazyListScope.connected(
     onSendClipboard: () -> Unit, onOpenNotifAccess: () -> Unit,
 ) {
     item { ConnectedHeader(s) }
-    if (!notifAccess) item { PermissionCard(onOpenNotifAccess) }
+    if (BuildConfig.NOTIFICATIONS && !notifAccess) item { PermissionCard(onOpenNotifAccess) }
     item { PcMediaCard() }
     item {
         val profile by Talk.profile.collectAsState()
@@ -579,12 +580,22 @@ private fun SettingsCard(s: Talk.State.Connected) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionTitle("${s.serverName} için ayarlar")
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-            SwitchRow("Bildirimleri bu bilgisayara gönder",
-                if (profile?.can("notifications") == false) "Bilgisayardaki profil bildirimlere izin vermiyor"
-                else "Müzik, indirme gibi süren bildirimler hariç", server?.notif != false) { v -> change { it.copy(notif = v) } }
-            HorizontalDivider()
-            SwitchRow("Telefonda çalanı bu bilgisayarda göster", "Bilgisayardan oynat/duraklat/atla",
-                server?.media != false) { v -> change { it.copy(media = v) } }
+            if (BuildConfig.NOTIFICATIONS) {
+                SwitchRow("Bildirimleri bu bilgisayara gönder",
+                    if (profile?.can("notifications") == false) "Bilgisayardaki profil bildirimlere izin vermiyor"
+                    else "Müzik, indirme gibi süren bildirimler hariç", server?.notif != false) { v -> change { it.copy(notif = v) } }
+                HorizontalDivider()
+                SwitchRow("Telefonda çalanı bu bilgisayarda göster", "Bilgisayardan oynat/duraklat/atla",
+                    server?.media != false) { v -> change { it.copy(media = v) } }
+            } else {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Hafif sürüm")
+                    Text("Telefon bildirimleri ve telefonda çalan müzik bilgisayara gitmez (bunlar için gereken " +
+                        "bildirim erişimi yüzünden Play Protect tam sürümü engelleyebiliyor). Tam sürüm için: " +
+                        "bilgisayarda Talk To Android → Bağlantı → USB → “Talk To Linux'u güncelle”.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             HorizontalDivider()
             SwitchRow("Kendiliğinden bağlan", "Bağlantı koparsa ya da uygulama açılınca bu bilgisayara yeniden bağlan",
                 server?.auto != false) { v -> change { it.copy(auto = v) } }

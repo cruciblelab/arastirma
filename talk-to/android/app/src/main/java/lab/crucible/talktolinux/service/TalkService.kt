@@ -1,5 +1,6 @@
 package lab.crucible.talktolinux.service
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -54,6 +55,9 @@ class TalkService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    // Tür (connectedDevice) ana manifestte tanımlı; lint "tam" sürümün ek manifestine bakınca
+    // görmüyor (yanlış alarm, birleştirilmiş manifest aapt ile denetlendi).
+    @SuppressLint("ForegroundServiceType")
     override fun onCreate() {
         super.onCreate()
         ServiceCompat.startForeground(this, Notifs.ID_SERVICE, Notifs.service(this, "Bağlanıyor…"),
