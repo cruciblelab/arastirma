@@ -29,8 +29,10 @@ object Checks {
         ctx.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(ctx.packageName)
     }.getOrDefault(true)
 
+    /** USB hata ayıklama açıksa geliştirici seçenekleri de açık sayılır (bazı telefonlar bayrağı yazmıyor). */
     fun developerOptions(ctx: Context) =
-        Settings.Global.getInt(ctx.contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
+        Settings.Global.getInt(ctx.contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1 ||
+            usbDebugging(ctx)
 
     fun usbDebugging(ctx: Context) = Settings.Global.getInt(ctx.contentResolver, Settings.Global.ADB_ENABLED, 0) == 1
 
