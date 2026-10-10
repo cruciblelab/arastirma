@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.AlertDialog
@@ -89,7 +90,21 @@ fun TalkScreen(
     onOpenNotifAccess: () -> Unit,
     onBluetoothPermission: () -> Unit = {},
     initialTab: Tab = Tab.HOME,
+    perms: PermActions = PermActions(bluetooth = onBluetoothPermission),
+    showSetup: Boolean = !Talk.prefs.setupDone,
 ) {
+    // Ana ekran, ilk açılıştaki kurulum sihirbazı ya da "İzinler ve yetkiler".
+    var screen by rememberSaveable { mutableStateOf(if (showSetup) "kurulum" else "ana") }
+    when (screen) {
+        "kurulum" -> {
+            SetupWizard(perms) { Talk.prefs.setupDone = true; screen = "ana" }
+            return
+        }
+        "izinler" -> {
+            PermissionsScreen(perms, onBack = { screen = "ana" }, onOpenWizard = { screen = "kurulum" })
+            return
+        }
+    }
     val state by Talk.state.collectAsState()
     val passwordFor by Talk.passwordFor.collectAsState()
     var manual by remember { mutableStateOf(false) }
@@ -119,11 +134,14 @@ fun TalkScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = { screen = "izinler" }) { Icon(Icons.Rounded.Tune, "İzinler ve yetkiler") }
                         IconButton(onClick = { askDisconnect = true }) { Icon(Icons.Rounded.LinkOff, "Bağlantıyı kes") }
                     },
                 )
             } else {
-                TopAppBar(title = { Text("Talk To Linux", fontWeight = FontWeight.SemiBold) })
+                TopAppBar(title = { Text("Talk To Linux", fontWeight = FontWeight.SemiBold) }, actions = {
+                    IconButton(onClick = { screen = "izinler" }) { Icon(Icons.Rounded.Tune, "İzinler ve yetkiler") }
+                })
             }
         },
         bottomBar = {

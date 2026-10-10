@@ -87,9 +87,18 @@ adb shell dumpsys deviceidle whitelist +$PKG > /dev/null || true
 adb reverse tcp:47600 tcp:47600
 adb logcat -c || true
 
-log "1) ilk bağlantı (USB yolu, bilgisayarda onay)"
+log "0) ilk açılış: kurulum sihirbazı"
 adb shell am start -W -n $PKG/.ui.MainActivity > /dev/null
-sleep 4
+sleep 3
+shot 00-kurulum-1
+tap_text "Başla"
+for n in 2 3 4; do sleep 2; shot "00-kurulum-$n"; tap_text "İleri"; done
+sleep 2
+shot 00-kurulum-5
+tap_text "Bitir"
+
+log "1) ilk bağlantı (USB yolu, bilgisayarda onay)"
+sleep 3
 shot 01-baglan
 tap_text "USB kablosu" 30
 wait_for "bilgisayar eşleşme istedi" 'of("ask")' 30
@@ -122,6 +131,10 @@ for t in Medya Dosyalar Bilgisayar; do
     shot "03-$t"
 done
 tap_text "Ana sayfa"
+tap_text "İzinler ve yetkiler"
+sleep 2
+shot 03-izinler
+adb shell input keyevent KEYCODE_BACK
 
 log "5) güncelleme (USB'den yeniden kurulum) sonrası"
 adb install -r "$APK"

@@ -40,6 +40,9 @@ jobs:
         # X sunucusundan ImageMagick ile çekilir; ekran pencere sığacak kadar büyük olmalı.
         run: xvfb-run -a -s "-screen 0 1280x1400x24" env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 1300
 
+      - name: Kurulum yardımcısı (sanal ekranda ekran görüntüsü)
+        run: xvfb-run -a -s "-screen 0 1280x1400x24" env KURULUM=1 GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 900
+
       - uses: actions/download-artifact@v4
         with:
           name: talk-to-linux-apk

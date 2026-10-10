@@ -52,6 +52,7 @@ class Config:
         "run_in_background": True,
         "bluetooth": True,
         "default_profile": "benim",
+        "setup_done": False,  # ilk açılıştaki kurulum yardımcısı bitirildi ya da atlandı
     }
 
     # Profil izinleri: bir telefon bilgisayarda neleri yapabilir.

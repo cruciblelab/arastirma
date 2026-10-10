@@ -194,6 +194,7 @@ class Window(Adw.ApplicationWindow):
             header.set_title_widget(title)
             title.bind_property("title-visible", bottom, "reveal", GObject.BindingFlags.SYNC_CREATE)
         menu = Gio.Menu()
+        menu.append("Kurulum yardımcısı", "app.setup")
         menu.append("Hakkında", "app.about")
         menu.append("Tamamen kapat", "app.quit")
         header.pack_end(Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, tooltip_text="Menü"))

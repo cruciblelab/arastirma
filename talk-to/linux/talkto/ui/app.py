@@ -34,6 +34,7 @@ class App(Adw.Application):
         self.start_hidden = start_hidden
         self.hub_factory = hub_factory
         self.window = None
+        self.setup_window = None
         self.dialogs = {}
         self.hub = None
         self._hidden_hint_shown = False
@@ -51,7 +52,8 @@ class App(Adw.Application):
         css.load_from_path(str(Path(__file__).with_name("style.css")))
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        for name, cb in (("quit", self._quit), ("about", self._about), ("show", lambda *_: self.present())):
+        for name, cb in (("quit", self._quit), ("about", self._about), ("show", lambda *_: self.present()),
+                         ("setup", lambda *_: self.open_setup())):
             a = Gio.SimpleAction.new(name, None)
             a.connect("activate", cb)
             self.add_action(a)
@@ -83,7 +85,20 @@ class App(Adw.Application):
             if self.start_hidden:
                 self.start_hidden = False
                 return
+            self.window.present()
+            if not self.config["setup_done"]:
+                self.open_setup()
+            return
         self.window.present()
+
+    def open_setup(self):
+        """Kurulum yardımcısı (ilk açılışta kendiliğinden, sonra menüden)."""
+        from .setup import SetupAssistant
+        self.present()
+        if self.setup_window is None:
+            self.setup_window = SetupAssistant(self, self.window)
+            self.setup_window.connect("close-request", lambda *_: setattr(self, "setup_window", None) or False)
+        self.setup_window.present()
 
     def present(self):
         self.activate()
@@ -287,9 +302,13 @@ class App(Adw.Application):
             self.phone_players.keep_only(self.device_names)
             if w:
                 w.update_status(d)
+            if self.setup_window:
+                self.setup_window.refresh()
         elif event == "usb":
             if w:
                 w.update_usb(d)
+            if self.setup_window:
+                self.setup_window.refresh()
         elif event == "ask":
             self._ask(d)
         elif event == "ask_closed":

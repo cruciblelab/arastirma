@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.0" date="2026-10-10">
+      <description><p>İlk açılışta adım adım kurulum yardımcısı (her adımda “Kontrol et”); telefonda kurulum sihirbazı ve “İzinler ve yetkiler” ekranı.</p></description>
+    </release>
     <release version="0.3.1" date="2026-10-10">
       <description><p>Telefonun ekranı bilgisayarda açılıp fare ve klavyeyle kullanılabiliyor (scrcpy; USB ve Wi-Fi).</p></description>
     </release>

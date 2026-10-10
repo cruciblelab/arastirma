@@ -112,8 +112,9 @@ object Talk {
 
     fun mediaOn() = isConnected() && currentServer()?.media != false && profile.value?.can("media") != false
 
-    fun notifAccessGranted() = BuildConfig.NOTIFICATIONS &&
+    fun notifAccessGranted() = BuildConfig.NOTIFICATIONS && runCatching {
         NotificationManagerCompat.getEnabledListenerPackages(app).contains(app.packageName)
+    }.getOrDefault(false)
 
     /**
      * Erişim verilmiş ama dinleyici bağlı değilse (ör. uygulama USB'den güncellendikten sonra bazı

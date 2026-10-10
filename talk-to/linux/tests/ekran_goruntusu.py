@@ -32,6 +32,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 def factory(config, emit):
     config.set("port", 47690)
+    config.set("setup_done", not os.environ.get("KURULUM"))  # KURULUM=1: kurulum yardımcısının adımları
     config.set("name", "masaustu")
     config.set("wireless", True)
     config.set("receive_dir", str(Path.home() / "Downloads" / "TalkToAndroid"))
@@ -150,9 +151,24 @@ def shoot():
     return False
 
 
+def shoot_setup():
+    """Kurulum yardımcısının her adımı (ilk açılışta kendiliğinden açılır)."""
+    sw = app.setup_window
+    i = step["i"]
+    if i > 0:
+        snap(sw, f"kurulum-{i}")
+    if i < len(sw.steps):
+        if i > 0:
+            sw.go(+1)
+        step["i"] += 1
+        return True
+    app._quit()
+    return False
+
+
 def start():
     fill()
-    GLib.timeout_add(900, shoot)
+    GLib.timeout_add(900, shoot_setup if os.environ.get("KURULUM") else shoot)
     return False
 
 

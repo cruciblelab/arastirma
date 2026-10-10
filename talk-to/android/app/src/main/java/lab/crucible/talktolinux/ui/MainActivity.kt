@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import lab.crucible.talktolinux.core.Checks
 import lab.crucible.talktolinux.core.Talk
 import lab.crucible.talktolinux.core.Notifs
 
@@ -23,15 +24,24 @@ class MainActivity : ComponentActivity() {
     private val pickFiles = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         sendViaService(this, uris)
     }
-    private val askNotifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    private val askNotifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        // Daha önce "bir daha sorma" denmişse Android pencere göstermez: ayar sayfasına götür.
+        if (!granted && Build.VERSION.SDK_INT >= 33 &&
+            !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+            Checks.open(this, Checks.appNotificationSettings(this))
+        }
+        UiTick.bump()
+    }
     private val askBluetooth = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         Talk.refreshBluetooth()
+        UiTick.bump()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        if (Build.VERSION.SDK_INT >= 33 &&
+        // İlk açılışta izni kurulum sihirbazı ister; sihirbazı geçmiş eski kurulumlarda burada.
+        if (Talk.prefs.setupDone && Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             askNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
@@ -41,15 +51,22 @@ class MainActivity : ComponentActivity() {
                     notifAccess = notifAccess.value,
                     onPickFiles = { pickFiles.launch(arrayOf("*/*")) },
                     onSendClipboard = ::sendClipboard,
-                    onOpenNotifAccess = {
-                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                    },
-                    onBluetoothPermission = {
-                        if (Build.VERSION.SDK_INT >= 31) askBluetooth.launch(Manifest.permission.BLUETOOTH_CONNECT)
-                    },
+                    onOpenNotifAccess = { Checks.open(this, Checks.notifAccessIntent(this)) },
+                    onBluetoothPermission = ::askBluetoothPermission,
+                    perms = PermActions(
+                        notifications = {
+                            if (Build.VERSION.SDK_INT >= 33) askNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            else Checks.open(this, Checks.appNotificationSettings(this))
+                        },
+                        bluetooth = ::askBluetoothPermission,
+                    ),
                 )
             }
         }
+    }
+
+    private fun askBluetoothPermission() {
+        if (Build.VERSION.SDK_INT >= 31) askBluetooth.launch(Manifest.permission.BLUETOOTH_CONNECT)
     }
 
     override fun onStart() {
@@ -62,6 +79,7 @@ class MainActivity : ComponentActivity() {
         notifAccess.value = NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName)
         Talk.ensureListener()
         Talk.sendPhoneStatus()
+        UiTick.bump()  // ayar sayfasından dönüldü: denetimler yeniden okunsun
         Notifs.stopRing(this)  // "telefonu bul" çalıyorsa: telefon bulundu
     }
 

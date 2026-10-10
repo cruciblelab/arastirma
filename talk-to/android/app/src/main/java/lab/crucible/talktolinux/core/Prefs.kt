@@ -29,6 +29,11 @@ class Prefs(context: Context) {
         get() = sp.getString("device_name", null) ?: Build.MODEL
         set(v) = sp.edit().putString("device_name", v).apply()
 
+    /** İlk açılıştaki kurulum sihirbazı bitirildi ya da atlandı. */
+    var setupDone: Boolean
+        get() = sp.getBoolean("setup_done", false)
+        set(v) = sp.edit().putBoolean("setup_done", v).apply()
+
     /** Kullanıcı "bağlantıyı kes" demediyse otomatik yeniden bağlanılacak bilgisayar. */
     var autoServer: String?
         get() = sp.getString("auto_server", null)
