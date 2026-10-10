@@ -67,7 +67,11 @@ class AdbWatcher:
         self.on_change(self.snapshot())
 
     async def _loop(self):
+        had_adb = self.available()
         while True:
+            if self.available() != had_adb:  # adb sonradan kuruldu ya da kaldırıldı
+                had_adb = not had_adb
+                self.on_change(self.snapshot())
             if self.available():
                 try:
                     await self._poll()

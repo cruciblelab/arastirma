@@ -5,6 +5,8 @@ from pathlib import Path
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
+from . import system
+
 KIND = {"usb": "USB", "wifi": "Wi-Fi"}
 
 
@@ -294,6 +296,11 @@ class Window(Adw.ApplicationWindow):
         self.sw_bg.set_active(self.app.config["run_in_background"])
         self.sw_bg.connect("notify::active", lambda r, _: self._set("run_in_background", r.get_active()))
         g.add(self.sw_bg)
+        self.sw_autostart = Adw.SwitchRow(title="Oturum açılınca başlat",
+                                          subtitle="Pencere açılmadan arka planda başlar; telefon kendiliğinden bağlanır")
+        self.sw_autostart.set_active(system.autostart_enabled())
+        self.sw_autostart.connect("notify::active", lambda r, _: system.set_autostart(r.get_active()))
+        g.add(self.sw_autostart)
         page.add(g)
         return page
 
@@ -368,8 +375,17 @@ class Window(Adw.ApplicationWindow):
         if not snap.get("running"):
             pass
         elif not snap.get("adb"):
-            r = row("adb kurulu değil", "Kur: sudo apt install adb  (Fedora: android-tools, Arch: android-tools)")
+            can = system.adb_install_command() is not None
+            r = row("adb kurulu değil", "USB bağlantısı için gerekli. “Kur”a basınca bilgisayarın şifresi sorulur."
+                    if can else "Dağıtımının paket yöneticisinden “adb” ya da “android-tools” paketini kur.")
             r.add_prefix(Gtk.Image(icon_name="dialog-warning-symbolic"))
+            if can:
+                if self.app.installing_adb:
+                    r.add_suffix(Gtk.Spinner(spinning=True, valign=Gtk.Align.CENTER))
+                else:
+                    b = Gtk.Button(label="Kur", valign=Gtk.Align.CENTER, css_classes=["suggested-action"])
+                    b.connect("clicked", lambda *_: self.app.install_adb())
+                    r.add_suffix(b)
             rows.append(r)
         elif not snap.get("devices"):
             r = row("Telefon bekleniyor", "Telefonu USB ile tak ve USB hata ayıklamayı aç")

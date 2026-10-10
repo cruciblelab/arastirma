@@ -14,6 +14,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 from .. import APP_ID, __version__  # noqa: E402
 from ..config import Config  # noqa: E402
 from ..hub import Hub, HubThread  # noqa: E402
+from . import system  # noqa: E402
 from .notifier import Notifier  # noqa: E402
 from .window import KIND, Window, human_size  # noqa: E402
 
@@ -30,6 +31,7 @@ class App(Adw.Application):
         self.dialogs = {}
         self.hub = None
         self._hidden_hint_shown = False
+        self.installing_adb = False
 
     # ---- yaşam döngüsü --------------------------------------------------------
 
@@ -118,6 +120,37 @@ class App(Adw.Application):
             else:
                 self.window.toast("Panoda metin yok")
         cb.read_text_async(None, done)
+
+    def install_adb(self):
+        """adb'yi dağıtımın paket yöneticisiyle kurar; şifre pkexec penceresinde sorulur."""
+        cmd = system.adb_install_command()
+        if not cmd or self.installing_adb:
+            return
+        self.installing_adb = True
+        self.window.update_usb(self.hub.usb.snapshot())
+        try:
+            proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
+        except GLib.Error as e:
+            self._adb_done(False, e.message)
+            return
+
+        def done(p, res):
+            try:
+                _ok, out, _err = p.communicate_utf8_finish(res)
+            except GLib.Error as e:
+                self._adb_done(False, e.message)
+                return
+            status = p.get_exit_status()
+            # pkexec: 126 = şifre penceresi kapatıldı, 127 = yetki verilmedi
+            msg = {126: "Kurulum iptal edildi", 127: "Yetki verilmedi"}.get(status, (out or "").strip()[-200:])
+            self._adb_done(status == 0, msg)
+        proc.communicate_utf8_async(None, None, done)
+
+    def _adb_done(self, ok, msg):
+        self.installing_adb = False
+        if self.window:
+            self.window.toast("adb kuruldu; telefonu USB ile takabilirsin" if ok else f"adb kurulamadı: {msg}")
+            self.window.update_usb(self.hub.usb.snapshot())
 
     def open_path(self, path):
         Gtk.FileLauncher.new(Gio.File.new_for_path(path)).launch(self.window, None, None)

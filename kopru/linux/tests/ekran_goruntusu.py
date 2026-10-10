@@ -52,7 +52,7 @@ def snap(widget, name):
 
 def fill():
     win = app.window
-    win.set_default_size(WIDTH, 760)
+    win.set_default_size(WIDTH, int(sys.argv[3]) if len(sys.argv) > 3 else 760)
     st = app.hub.status()
     st["addresses"] = ["192.168.1.34"]
     st["sessions"] = [{
@@ -63,8 +63,13 @@ def fill():
                   "can_seek": True, "received_at": time.monotonic()}}]
     st["trusted"] = [{"device_id": "pixel", "name": "Pixel 8", "model": "Pixel 8", "paired_at": 1760000000}]
     app.on_event("status", st)
-    app.on_event("usb", {"adb": True, "running": True,
-                         "devices": [{"serial": "38XYZ", "state": "device", "tunnel": True, "model": "Pixel 8"}]})
+    if os.environ.get("ADB_YOK"):  # adb kurulu değilken görünen "Kur" düğmesi
+        from kopru.ui import system
+        system.adb_install_command = lambda: ["pkexec", "apt-get", "install", "-y", "adb"]
+        app.on_event("usb", {"adb": False, "running": True, "devices": []})
+    else:
+        app.on_event("usb", {"adb": True, "running": True,
+                             "devices": [{"serial": "38XYZ", "state": "device", "tunnel": True, "model": "Pixel 8"}]})
     for i, (t, x, a) in enumerate([("Ayşe", "Akşam yemeğe geliyor musun?", "WhatsApp"),
                                    ("Kargo yolda", "Siparişin bugün teslim edilecek.", "Trendyol"),
                                    ("Yeni video", "Kanal yeni bir video yükledi", "YouTube")]):

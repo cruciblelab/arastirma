@@ -40,22 +40,32 @@ Bir kez eşleşen telefon sonra şifre/onay sormadan bağlanır (bilgisayarda *C
 
 ### Linux
 
-Gerekenler: Python 3.10+, GTK 4, libadwaita 1.4+ (Ubuntu 24.04, Fedora 39+, Debian 13, Arch güncel), USB için `adb`.
+**Ubuntu / Debian / Linux Mint / Pop!_OS: terminal gerekmez.**
+`kopru_0.1.0_all.deb` dosyasına çift tıkla, açılan Uygulama Merkezi'nde (ya da "Yazılım Kur" penceresinde) **Kur**'a bas.
+GTK, libadwaita ve adb gibi gereken her şeyi paket yöneticisi kendisi kurar. Sonra Köprü uygulama menüsünde durur.
+Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.
+Kaldırmak için: Uygulama Merkezi → Yüklü → Köprü → Kaldır.
+
+Uygulamanın içinden, terminal açmadan:
+- **adb eksikse** *Bağlantı → USB* bölümünde **Kur** düğmesi çıkar. Bilgisayarın kendi şifre penceresi açılır ve adb, dağıtımın paket yöneticisiyle (apt, dnf, pacman, zypper) kurulur.
+- **Oturum açılınca başlat** (*Bağlantı → Genel*): bilgisayar açılınca Köprü pencere açmadan arka planda başlar, telefon kendiliğinden bağlanır.
+
+`.deb` dosyasını üretmek (geliştirici için, bir kez): `sh kopru/linux/paket/deb-olustur.sh`
+
+**Fedora, Arch ve diğerleri:** henüz paket yok; bir kez terminalde bağımlılıkları kurup betiği çalıştırmak gerekiyor.
+Sonrası yine menüden açılan uygulama:
 
 ```bash
-# Ubuntu / Debian
-sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography adb
 # Fedora:  sudo dnf install python3-gobject gtk4 libadwaita python3-cryptography android-tools
 # Arch:    sudo pacman -S python-gobject gtk4 libadwaita python-cryptography android-tools
-
 cd kopru/linux
-sh kur.sh                      # yalnızca bu kullanıcıya kurar, sudo gerekmez
-sh kur.sh --otomatik-baslat    # ayrıca oturum açılınca arka planda başlasın
-sh kur.sh --kaldir             # kaldır
+sh kur.sh            # yalnızca bu kullanıcıya kurar, sudo gerekmez
+sh kur.sh --kaldir   # kaldır
 ```
 
+Gerekenler: Python 3.10+, GTK 4, libadwaita 1.4+ (Ubuntu 24.04, Debian 13, Fedora 39+, güncel Arch).
 Kurmadan denemek için: `cd kopru/linux && python3 -m kopru`.
-Güvenlik duvarı (ufw) açıksa Wi-Fi için: `sudo ufw allow 47600/tcp && sudo ufw allow 47601/udp`.
+Güvenlik duvarı (ufw) açıksa Wi-Fi için şu izin bir kez verilmeli: `sudo ufw allow 47600/tcp && sudo ufw allow 47601/udp`.
 
 ### Android (APK)
 
@@ -94,7 +104,7 @@ Başka bir bilgisayarda derlenmiş APK'nın üzerine yüklerken imza farkı yüz
 - GTK4'te sistem tepsisi simgesi olmadığı için pencere kapanınca uygulama arka planda sürer; tekrar açmak için uygulama menüsünden Köprü'ye tıkla. Tamamen kapatmak: menü → "Tamamen kapat" (Ctrl+Q).
 - Birden fazla telefon aynı anda bağlanabilir, ama sürükle-bırak dosyalar **en son bağlanan** telefona gider (diğerine *Cihazlar* sayfasındaki düğmeyle gönderilir).
 - Keşif UDP yayınıyla çalışır: misafir ağları ve "istemci yalıtımı" açık modemler yayını engeller; o durumda IP adresiyle bağlan.
-- Flatpak/Snap paketi yok.
+- Yalnızca Ubuntu/Debian ailesi için paket (.deb) var; Fedora (rpm), Flatpak ve Snap paketi yok.
 
 ## Ne test edildi
 
@@ -103,6 +113,8 @@ Başka bir bilgisayarda derlenmiş APK'nın üzerine yüklerken imza farkı yüz
 | Linux çekirdeği | 14 birim/uçtan uca test: gerçek TLS sunucusu + Python ile yazılmış sahte telefon (USB onayı, reddetme, belirteçle yeniden bağlanma, Wi-Fi şifresi, deneme sınırı, iki yönlü dosya, bozuk dosyanın atılması, `../` içeren dosya adları, bildirim/pano/bağlantı, medya komutu) | geçti |
 | Android ↔ Linux protokol uyumu | Android'in ağ kodu (Android'e bağımlı olmadığı için) JVM'de **gerçek Linux sunucusuna** bağlandı: şifre istenmesi → şifreyle eşleşme → 900 KB telefondan, 700 KB bilgisayardan dosya (SHA-256) → belirteçle şifresiz bağlanma | geçti |
 | Şifre kanıtı, onay kodu, çerçeve | Python ve Kotlin aynı test vektörlerini üretiyor | geçti |
+| `.deb` paketi | Ubuntu 24.04'te `apt install ./kopru_0.1.0_all.deb`: bağımlılıklar ve adb otomatik geldi, menü kısayolu ve `kopru` komutu çalıştı. Çift tıklayıp Uygulama Merkezi'nden kurma burada denenemedi (masaüstü yok). | geçti |
+| adb "Kur" düğmesi, otomatik başlatma | Komutun başarılı ve iptal edilmiş hâli sahte komutla denendi; otomatik başlatma dosyası yazılıp silindi. Gerçek `pkexec` şifre penceresi denenmedi. | geçti |
 | Linux arayüzü | Sanal ekranda örnek veriyle çalıştırılıp ekran görüntüsü alındı (geniş ve 400 px dar pencere) | yukarıdaki görüntüler |
 | Android arayüzü | Paparazzi (layoutlib) ile ekran görüntüsü | yukarıdaki görüntüler |
 | Android derlemesi | `assembleRelease` + Android lint | 0 hata |
@@ -134,7 +146,9 @@ kopru/
       media.py                   MPRIS (bilgisayardaki oynatıcılar)
       ui/                        GTK4 + libadwaita arayüzü
     tests/                       testler, sahte telefon, ekran görüntüsü betiği
-    kur.sh                       kullanıcıya kurulum
+    kur.sh                       kullanıcıya kurulum (paketi olmayan dağıtımlar)
+    paket/deb-olustur.sh         Ubuntu/Debian için .deb paketi
+    data/                        masaüstü kısayolu, simge, uygulama mağazası bilgisi
   android/                       Gradle projesi (Kotlin + Compose)
     app/src/main/java/lab/crucible/kopru/
       net/                       protokol istemcisi (Android'den bağımsız)
