@@ -15,13 +15,12 @@ from .. import APP_ID, __version__  # noqa: E402
 from ..config import Config  # noqa: E402
 from ..hub import Hub, HubThread  # noqa: E402
 from ..ipc import socket_path  # noqa: E402
-from . import system  # noqa: E402
+from . import compat, system  # noqa: E402
 from .screenshot import take_screenshot  # noqa: E402
 from .notifier import Notifier  # noqa: E402
 from .window import KIND, Window, human_size  # noqa: E402
 
 log = logging.getLogger("talkto.arayuz")
-HAS_ALERT = hasattr(Adw, "AlertDialog")
 
 
 class App(Adw.Application):
@@ -124,13 +123,10 @@ class App(Adw.Application):
         self.quit()
 
     def _about(self, *_):
-        kw = dict(application_name="Talk To Android", application_icon=APP_ID, version=__version__,
-                  developer_name="Crucible ekibi", website="https://github.com/cruciblelab/arastirma",
-                  comments="Linux bilgisayar ile Android telefonu USB ya da Wi-Fi üzerinden bağlar.")
-        if hasattr(Adw, "AboutDialog"):
-            Adw.AboutDialog(**kw).present(self.window)
-        else:
-            Adw.AboutWindow(transient_for=self.window, **kw).present()
+        compat.about(self.window, application_name="Talk To Android", application_icon=APP_ID,
+                     version=__version__, developer_name="Crucible ekibi",
+                     website="https://github.com/cruciblelab/arastirma",
+                     comments="Linux bilgisayar ile Android telefonu USB, Wi-Fi ya da Bluetooth üzerinden bağlar.")
 
     # ---- hub'a komut ----------------------------------------------------------
 
@@ -192,10 +188,10 @@ class App(Adw.Application):
         fut.add_done_callback(done)
 
     def open_path(self, path):
-        Gtk.FileLauncher.new(Gio.File.new_for_path(path)).launch(self.window, None, None)
+        compat.open_path(self.window, path)
 
     def show_in_folder(self, path):
-        Gtk.FileLauncher.new(Gio.File.new_for_path(path)).open_containing_folder(self.window, None, None)
+        compat.show_in_folder(self.window, path)
 
     # ---- hub'dan gelen olaylar (ana iş parçacığı) ---------------------------------
 
@@ -212,7 +208,7 @@ class App(Adw.Application):
         elif event == "ask_closed":
             dlg = self.dialogs.pop(d["id"], None)
             if dlg:
-                dlg.force_close() if HAS_ALERT else dlg.close()
+                dlg.close()
         elif event == "notification":
             self.notifier.show(d["title"] or d["app"], d["text"], key=f"{d['device_id']}|{d['key']}",
                                app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"))
@@ -267,26 +263,19 @@ class App(Adw.Application):
     # ---- diyaloglar -----------------------------------------------------------
 
     def _dialog(self, heading, body, extra=None):
-        if HAS_ALERT:
-            dlg = Adw.AlertDialog(heading=heading, body=body)
-        else:
-            dlg = Adw.MessageDialog(transient_for=self.window, heading=heading, body=body)
-        if extra:
-            dlg.set_extra_child(extra)
-        return dlg
+        return compat.Dialog(self.window, heading, body, extra)
 
     def _show(self, dlg):
-        dlg.present(self.window) if HAS_ALERT else dlg.present()
+        dlg.present()
 
     def confirm(self, heading, body, label, on_ok, destructive=False, extra=None):
         self.activate()
         dlg = self._dialog(heading, body, extra)
         dlg.add_response("cancel", "Vazgeç")
         dlg.add_response("ok", label)
-        dlg.set_response_appearance("ok", Adw.ResponseAppearance.DESTRUCTIVE if destructive
-                                    else Adw.ResponseAppearance.SUGGESTED)
+        dlg.set_appearance("ok", compat.DESTRUCTIVE if destructive else compat.SUGGESTED)
         dlg.set_close_response("cancel")
-        dlg.connect("response", lambda _d, r: on_ok() if r == "ok" else None)
+        dlg.on_response(lambda r: on_ok() if r == "ok" else None)
         self._show(dlg)
 
     def show_output(self, title, res):
@@ -337,7 +326,7 @@ class App(Adw.Application):
                 box)
             dlg.add_response("reject", "Reddet")
             dlg.add_response("accept", "Bağlan")
-            dlg.set_response_appearance("accept", Adw.ResponseAppearance.SUGGESTED)
+            dlg.set_appearance("accept", compat.SUGGESTED)
             self.notifier.show("Telefon bağlanmak istiyor", f"{d['name']} · kod {code}", key=f"ask{rid}",
                                urgent=True, actions={"default": ("Göster", self.present)})
         else:
@@ -345,18 +334,18 @@ class App(Adw.Application):
                                f"{d['device']} şu dosyayı göndermek istiyor:\n{d['name']} ({human_size(d['size'])})")
             dlg.add_response("reject", "Reddet")
             dlg.add_response("accept", "Kabul et")
-            dlg.set_response_appearance("accept", Adw.ResponseAppearance.SUGGESTED)
+            dlg.set_appearance("accept", compat.SUGGESTED)
         # Enter'a yanlışlıkla basmak onay olmasın.
         dlg.set_close_response("reject")
 
-        def respond(_d, response):
+        def respond(response):
             self.dialogs.pop(rid, None)
             self.notifier.close(f"ask{rid}")
             ok = response == "accept"
             if ok and d["kind"] == "pair" and pids:
                 ok = pids[chooser.get_selected()]  # onay + seçilen profil
             self.call("answer", rid, ok)
-        dlg.connect("response", respond)
+        dlg.on_response(respond)
         self.dialogs[rid] = dlg
         self._show(dlg)
 

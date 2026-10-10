@@ -13,9 +13,14 @@ permissions:
 
 jobs:
   linux:
-    name: Linux (Talk To Android)
+    name: Linux (Talk To Android, ${{ matrix.os }})
     needs: android   # .deb, telefona USB'den kurulacak APK'yı içerir
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.04: GTK 4.6 + libadwaita 1.1 (uyumluluk katmanı), 24.04: GTK 4.14 + libadwaita 1.5
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: talk-to/linux
@@ -25,10 +30,10 @@ jobs:
       - name: Bağımlılıklar
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography xvfb
+          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas xvfb
 
-      - name: Testler
-        run: /usr/bin/python3 -m unittest discover -s tests -v
+      - name: Testler (arayüz uyumluluğu dahil, sanal ekranda)
+        run: xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v
 
       - name: Arayüz açılıyor mu (sanal ekranda ekran görüntüsü)
         run: xvfb-run -a env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 1300
@@ -48,13 +53,14 @@ jobs:
           test -f /usr/share/talk-to-android/talk-to-linux.apk
 
       - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-24.04'
         with:
           name: talk-to-android-deb
           path: talk-to/linux/paket/*.deb
 
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-ekran-goruntuleri
+          name: linux-ekran-goruntuleri-${{ matrix.os }}
           path: talk-to/linux/ekran/*.png
 
   android:

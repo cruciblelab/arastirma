@@ -46,7 +46,7 @@ Section: net
 Priority: optional
 Architecture: all
 Depends: python3 (>= 3.10)
-Recommends: python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1 (>= 1.4), python3-cryptography | openssl, adb, xdg-user-dirs, zenity
+Recommends: python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, python3-cryptography | openssl, adb, xdg-user-dirs, zenity
 Installed-Size: $SIZE
 Maintainer: Crucible ekibi <noreply@crucible.invalid>
 Homepage: https://github.com/cruciblelab/arastirma

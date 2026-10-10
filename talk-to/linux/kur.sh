@@ -19,11 +19,11 @@ fi
 
 eksik=""
 python3 -c 'import sys; assert sys.version_info >= (3, 10)' 2>/dev/null || eksik="$eksik python3(>=3.10)"
-python3 - <<'PY' 2>/dev/null || eksik="$eksik gtk4/libadwaita(>=1.4)"
+python3 - <<'PY' 2>/dev/null || eksik="$eksik gtk4/libadwaita(>=1.1)"
 import gi
 gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1")
 from gi.repository import Adw
-assert (Adw.get_major_version(), Adw.get_minor_version()) >= (1, 4)
+assert (Adw.get_major_version(), Adw.get_minor_version()) >= (1, 1)
 PY
 if [ -n "$eksik" ]; then
     echo "Eksik:$eksik"

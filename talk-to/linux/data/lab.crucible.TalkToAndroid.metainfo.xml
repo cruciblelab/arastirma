@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.3" date="2026-10-10">
+      <description><p>Ubuntu 22.04 (GTK 4.6, libadwaita 1.1) desteği.</p></description>
+    </release>
     <release version="0.2.2" date="2026-10-10">
       <description><p>Telefon uygulamasının bildirim erişimi istemeyen "hafif" sürümü (Play Protect engeline takılmaz).</p></description>
     </release>

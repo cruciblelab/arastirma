@@ -27,7 +27,7 @@ INSTALL = {
 
 CHECK = ("import gi; gi.require_version('Gtk', '4.0'); gi.require_version('Adw', '1'); "
          "from gi.repository import Adw; "
-         "assert (Adw.get_major_version(), Adw.get_minor_version()) >= (1, 4), 'libadwaita 1.4+ gerekli'")
+         "assert (Adw.get_major_version(), Adw.get_minor_version()) >= (1, 1), 'libadwaita 1.1+ gerekli'")
 
 
 def gui_available() -> tuple[bool, str]:
@@ -59,9 +59,9 @@ def ensure_gui() -> bool:
     if ok:
         return True
     title = "Talk To Android"
-    if "libadwaita 1.4+" in why:
-        _tell(title, "Bu Linux sürümündeki libadwaita çok eski (1.4 ya da üstü gerekiyor). "
-                     "Ubuntu 24.04, Debian 13, Fedora 39 ya da daha yenisi gerekli.", error=True)
+    if "libadwaita 1.1+" in why:
+        _tell(title, "Bu Linux sürümündeki libadwaita çok eski (1.1 ya da üstü gerekiyor). "
+                     "Ubuntu 22.04, Debian 12, Fedora 36 ya da daha yenisi gerekli.", error=True)
         return False
     tool = next((t for t in PACKAGES if shutil.which(t)), None)
     if not tool or not shutil.which("pkexec") or not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):

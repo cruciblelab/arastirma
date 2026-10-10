@@ -9,7 +9,7 @@ Linux bilgisayar ile Android telefonu **USB kablosu**, **Wi-Fi** ya da **Bluetoo
 
 İki uygulama birbirini tanır: ilk bağlantıda bir kez onaylanır (ya da şifre girilir), sonra telefon bağlandığı anda bilgisayar onu tanır ve **profilini** uygular.
 
-**Durum:** 0.2.2. Gerçek bir telefonda ve gerçek Bluetooth donanımında henüz denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
+**Durum:** 0.2.3. Gerçek bir telefonda ve gerçek Bluetooth donanımında henüz denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
 
 | Telefon | Bilgisayar |
 |---|---|
@@ -91,10 +91,10 @@ Komut satırı, çalışan uygulamayla `$XDG_RUNTIME_DIR/talk-to-android.sock` �
 
 ### Linux (Talk To Android)
 
-**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.2.2_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
+**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.2.3_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
 
 - Uygulama Merkezi yerel `.deb` kurarken eksik bağımlılıkları kendisi indirmiyor (0.2.0'da "unmet dependencies" hatası bundandı). Bu yüzden paketin zorunlu bağımlılığı yalnızca `python3`. GTK4/libadwaita eksikse uygulama **ilk açılışta** "kurulsun mu?" diye sorar ve bilgisayarın şifre penceresiyle kurar.
-- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.2.2_all.deb`.
+- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.2.3_all.deb`.
 
 `.deb` dosyasını üretmek (bir kez): `sh talk-to/linux/paket/deb-olustur.sh`
 
@@ -110,7 +110,7 @@ Uygulamanın içinden, terminalsiz:
 cd talk-to/linux && sh kur.sh          # yalnızca bu kullanıcıya, sudo gerekmez (kaldırmak: sh kur.sh --kaldir)
 ```
 
-Gerekenler: Python 3.10+, GTK 4, libadwaita 1.4+ (Ubuntu 24.04, Debian 13, Fedora 39+, güncel Arch). Bluetooth için BlueZ (masaüstü dağıtımlarında hazır gelir).
+Gerekenler: Python 3.10+, GTK 4.6+, libadwaita 1.1+ (Ubuntu 22.04 ve üstü, Debian 12+, Fedora 36+, güncel Arch). Eski kütüphanelerde (Ubuntu 22.04) yeni libadwaita parçalarının yerine `ui/compat.py`'deki yedekler kullanılır; görünüm biraz sadeleşir, özellikler aynıdır. Bluetooth için BlueZ (masaüstü dağıtımlarında hazır gelir).
 Kurmadan denemek: `cd talk-to/linux && python3 -m talkto`.
 Güvenlik duvarı (ufw) açıksa Wi-Fi için bir kez: `sudo ufw allow 47600/tcp && sudo ufw allow 47601/udp`.
 
@@ -189,9 +189,10 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 | Linux çekirdeği | 26 test: gerçek TLS sunucusu + Python sahte telefon. USB onayı, reddetme, belirteçle yeniden bağlanma, Wi-Fi şifresi, deneme sınırı, iki yönlü dosya, bozuk dosya, `../` adları, bildirim/pano/bağlantı, medya; **profil tanıma, onayda profil seçimi, misafir kısıtları, profil değişikliğinin anında uygulanması, özel komut ve çıktısı, güç komutu izni, sistem bilgisi, terminal aracı (durum/bildirim/pano/gonder), Bluetooth yolu** (BlueZ'in verdiği soket yerine kabul edilmiş soket: aynı TLS + onay) | geçti |
 | Android ↔ Linux | Android ağ kodu JVM'de **gerçek Linux sunucusuna** bağlandı: (1) TCP/TLS: şifre → eşleşme → iki yönlü dosya → belirteçle yeniden bağlanma; (2) **Bluetooth'ta kullanılan TLS katmanı** (SSLEngine) TCP akışı üzerinden: eşleşme, profil, özel komut ve çıktısı, sistem bilgisi, 1,5 MB dosya | geçti |
 | Şifre kanıtı, onay kodu, çerçeve | Python ve Kotlin aynı test vektörlerini üretiyor | geçti |
+| Ubuntu 22.04 uyumu | Ubuntu 22.04'ün gerçek GTK 4.6.9 / libadwaita 1.1.7 kütüphaneleriyle arayüz açıldı ve uyumluluk testleri geçti; çekirdek testleri 22.04'ün Python 3.10'uyla geçti. GitHub'daki derleme her push'ta ubuntu-22.04 ve ubuntu-24.04 makinelerinde çalışır | geçti |
 | Arayüzler | Linux: sanal ekranda ekran görüntüsü (geniş ve dar). Android: Paparazzi ekran görüntüsü | yukarıdaki görüntüler |
 | Android derlemesi | tam ve hafif sürüm + lint; hafif sürümün manifestinde bildirim erişimi olmadığı aapt ile denetlendi | 0 hata |
-| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.2.2_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
+| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.2.3_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
 | **Denenmeyenler** | Gerçek telefon (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, Uygulama Merkezi'nden çift tıkla kurulum, gerçek telefona `adb install`, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
 
 Testleri çalıştırmak:

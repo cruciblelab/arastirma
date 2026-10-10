@@ -114,7 +114,9 @@ def shoot():
         app.window.add_command_log({"device": "Pixel 8", "id": "kilitle", "name": "Ekranı kilitle"})
         step["i"] += 1
         return True
-    snap(win, f"{i:02d}-onay")
+    # Eski libadwaita'da onay penceresi ayrı bir pencere; varsa onu çek.
+    others = [w for w in Gtk.Window.list_toplevels() if w is not win and w.get_visible() and w.get_width() > 50]
+    snap(others[0] if others else win, f"{i:02d}-onay")
     app._quit()
     return False
 

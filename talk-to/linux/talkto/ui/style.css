@@ -53,3 +53,8 @@
   background-color: alpha(@accent_bg_color, 0.12);
 }
 .notif-time { font-size: 0.85em; }
+
+/* Eski libadwaita'da (Adw.Banner yok) uyarı şeridi */
+.compat-banner {
+  background-color: alpha(@error_color, 0.18);
+}

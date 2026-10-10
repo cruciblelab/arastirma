@@ -4,11 +4,11 @@ import json
 import time
 from pathlib import Path
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Pango
 
 from .. import pc
 from ..config import Config
-from . import system
+from . import compat, system
 
 KIND = {"usb": "USB", "wifi": "Wi-Fi", "bluetooth": "Bluetooth"}
 
@@ -26,12 +26,7 @@ def mmss(ms: int) -> str:
     return f"{s // 3600}:{s // 60 % 60:02d}:{s % 60:02d}" if s >= 3600 else f"{s // 60}:{s % 60:02d}"
 
 
-def row(title="", subtitle="", cls=Adw.ActionRow, **kw):
-    """Dışarıdan gelen metin (bildirim, cihaz adı) işaretleme sayılmasın."""
-    r = cls(title=title, use_markup=False, **kw)
-    if subtitle:
-        r.set_subtitle(subtitle)
-    return r
+row = compat.row
 
 
 def icon_button(icon, tooltip, cb, *classes):
@@ -66,7 +61,7 @@ class MediaCard(Gtk.Box):
         self.art_stack = Gtk.Stack(valign=Gtk.Align.START)
         ph = Gtk.Image(icon_name="audio-x-generic-symbolic", pixel_size=48,
                        css_classes=["art-placeholder"], width_request=128, height_request=128)
-        self.pic = Gtk.Picture(content_fit=Gtk.ContentFit.COVER, width_request=128, height_request=128,
+        self.pic = compat.picture(width_request=128, height_request=128,
                                css_classes=["art"], overflow=Gtk.Overflow.HIDDEN)
         self.art_stack.add_named(ph, "yok")
         self.art_stack.add_named(self.pic, "var")
@@ -183,37 +178,41 @@ class Window(Adw.ApplicationWindow):
         self.ringing: set[str] = set()
 
         self.toasts = Adw.ToastOverlay()
-        view = Adw.ToolbarView()
+        view = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header = Adw.HeaderBar()
-        self.stack = Adw.ViewStack()
-        switcher = Adw.ViewSwitcher(stack=self.stack, policy=Adw.ViewSwitcherPolicy.WIDE)
-        header.set_title_widget(switcher)
+        self.stack = Adw.ViewStack(vexpand=True)
+        bottom = Adw.ViewSwitcherBar(stack=self.stack)
+        if hasattr(Adw, "Breakpoint"):  # libadwaita 1.4+
+            switcher = Adw.ViewSwitcher(stack=self.stack, policy=Adw.ViewSwitcherPolicy.WIDE)
+            header.set_title_widget(switcher)
+            bp = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 640sp"))
+            bp.add_setter(bottom, "reveal", True)
+            bp.add_setter(switcher, "visible", False)
+            self.add_breakpoint(bp)
+        else:  # eski libadwaita: dar pencerede başlık sığmazsa sekmeler alta iner
+            title = Adw.ViewSwitcherTitle(stack=self.stack, title="Talk To Android")
+            header.set_title_widget(title)
+            title.bind_property("title-visible", bottom, "reveal", GObject.BindingFlags.SYNC_CREATE)
         menu = Gio.Menu()
         menu.append("Hakkında", "app.about")
         menu.append("Tamamen kapat", "app.quit")
         header.pack_end(Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, tooltip_text="Menü"))
-        view.add_top_bar(header)
-        self.banner = Adw.Banner()
-        view.add_top_bar(self.banner)
-        bottom = Adw.ViewSwitcherBar(stack=self.stack)
-        view.add_bottom_bar(bottom)
-        view.set_content(self.stack)
+        view.append(header)
+        self.banner = compat.Banner()
+        view.append(self.banner)
+        view.append(self.stack)
+        view.append(bottom)
         self.toasts.set_child(view)
         self.set_content(self.toasts)
 
-        bp = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 640sp"))
-        bp.add_setter(bottom, "reveal", True)
-        bp.add_setter(switcher, "visible", False)
-        self.add_breakpoint(bp)
-
-        self.stack.add_titled_with_icon(self._build_connection(), "baglanti", "Bağlantı",
+        compat.add_page(self.stack, self._build_connection(), "baglanti", "Bağlantı",
                                         "network-wireless-symbolic")
-        self.stack.add_titled_with_icon(self._build_devices(), "cihazlar", "Cihazlar", "phone-symbolic")
-        self.stack.add_titled_with_icon(self._build_media(), "medya", "Medya", "media-playback-start-symbolic")
-        self.stack.add_titled_with_icon(self._build_files(), "dosyalar", "Dosyalar", "folder-symbolic")
-        self.stack.add_titled_with_icon(self._build_notifications(), "bildirimler", "Bildirimler",
+        compat.add_page(self.stack, self._build_devices(), "cihazlar", "Cihazlar", "phone-symbolic")
+        compat.add_page(self.stack, self._build_media(), "medya", "Medya", "media-playback-start-symbolic")
+        compat.add_page(self.stack, self._build_files(), "dosyalar", "Dosyalar", "folder-symbolic")
+        compat.add_page(self.stack, self._build_notifications(), "bildirimler", "Bildirimler",
                                         "preferences-system-notifications-symbolic")
-        self.stack.add_titled_with_icon(self._build_commands(), "komutlar", "Komutlar", "utilities-terminal-symbolic")
+        compat.add_page(self.stack, self._build_commands(), "komutlar", "Komutlar", "utilities-terminal-symbolic")
 
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
         drop.connect("drop", self._on_drop)
@@ -261,14 +260,14 @@ class Window(Adw.ApplicationWindow):
         page.add(hero_group)
 
         g = self.wifi_group = Adw.PreferencesGroup(title="Kablosuz (Wi-Fi)")
-        self.sw_wireless = Adw.SwitchRow(title="Kablosuz bağlantıyı aç",
+        self.sw_wireless = compat.SwitchRow(title="Kablosuz bağlantıyı aç",
                                          subtitle="Açıkken bu bilgisayar yerel ağda görünür")
         self.sw_wireless.connect("notify::active", lambda r, _: self._set("wireless", r.get_active()))
         g.add(self.sw_wireless)
         self.addr_row = Adw.ActionRow(title="Adres", css_classes=["property"])
         self.addr_row.add_suffix(icon_button("edit-copy-symbolic", "Kopyala", self._copy_address))
         g.add(self.addr_row)
-        self.pw_row = Adw.PasswordEntryRow(title="Şifre (isteğe bağlı)", show_apply_button=True)
+        self.pw_row = compat.PasswordEntryRow(title="Şifre (isteğe bağlı)", show_apply_button=True)
         self.pw_row.set_text(self.app.config["password"])
         self.pw_row.connect("apply", self._on_password)
         g.add(self.pw_row)
@@ -283,7 +282,7 @@ class Window(Adw.ApplicationWindow):
             title="USB (kablo)",
             description="Telefonda Geliştirici seçenekleri → USB hata ayıklama açık olmalı. "
                         "Her yeni telefon için burada onay istenir.")
-        self.sw_usb = Adw.SwitchRow(title="USB bağlantısı", subtitle="adb ile tünel kurulur, internet gerekmez")
+        self.sw_usb = compat.SwitchRow(title="USB bağlantısı", subtitle="adb ile tünel kurulur, internet gerekmez")
         self.sw_usb.connect("notify::active", lambda r, _: self._set("usb", r.get_active()))
         g.add(self.sw_usb)
         page.add(g)
@@ -295,7 +294,7 @@ class Window(Adw.ApplicationWindow):
             description="Önce telefonu sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir; sonra telefondaki "
                         "uygulamada bilgisayarı “Bluetooth” altında seç. Her yeni telefon için burada onay istenir. "
                         "Bildirim, medya ve komutlar için yeterli; büyük dosyalarda Wi-Fi ya da USB çok daha hızlı.")
-        self.sw_bt = Adw.SwitchRow(title="Bluetooth bağlantısı")
+        self.sw_bt = compat.SwitchRow(title="Bluetooth bağlantısı")
         self.sw_bt.connect("notify::active", lambda r, _: self._set_bluetooth(r.get_active()))
         g.add(self.sw_bt)
         self.bt_row = Adw.ActionRow(title="Durum", css_classes=["property"])
@@ -306,16 +305,16 @@ class Window(Adw.ApplicationWindow):
         page.add(g)
 
         g = Adw.PreferencesGroup(title="Genel")
-        self.name_row = Adw.EntryRow(title="Bu bilgisayarın adı", show_apply_button=True)
+        self.name_row = compat.EntryRow(title="Bu bilgisayarın adı", show_apply_button=True)
         self.name_row.set_text(self.app.config["name"])
         self.name_row.connect("apply", lambda r: self._set("name", r.get_text().strip()[:64] or "Linux"))
         g.add(self.name_row)
-        self.sw_bg = Adw.SwitchRow(title="Pencere kapanınca arka planda çalışsın",
+        self.sw_bg = compat.SwitchRow(title="Pencere kapanınca arka planda çalışsın",
                                    subtitle="Telefon bağlı kalır, bildirimler gelmeye devam eder")
         self.sw_bg.set_active(self.app.config["run_in_background"])
         self.sw_bg.connect("notify::active", lambda r, _: self._set("run_in_background", r.get_active()))
         g.add(self.sw_bg)
-        self.sw_autostart = Adw.SwitchRow(title="Oturum açılınca başlat",
+        self.sw_autostart = compat.SwitchRow(title="Oturum açılınca başlat",
                                           subtitle="Pencere açılmadan arka planda başlar; telefon kendiliğinden bağlanır")
         self.sw_autostart.set_active(system.autostart_enabled())
         self.sw_autostart.connect("notify::active", lambda r, _: system.set_autostart(r.get_active()))
@@ -539,18 +538,18 @@ class Window(Adw.ApplicationWindow):
         for pid, prof in profiles.items():
             count = sum(1 for t in trusted if t["profile"] == pid)
             sub = [f"{count} telefon"] + (["yeni telefonlar bununla başlar"] if pid == default else [])
-            exp = Adw.ExpanderRow(title=prof["name"], subtitle=" · ".join(sub), use_markup=False)
+            exp = row(prof["name"], " · ".join(sub), cls=Adw.ExpanderRow)
             exp.add_prefix(Gtk.Image(icon_name="avatar-default-symbolic"))
-            name = Adw.EntryRow(title="Profil adı", show_apply_button=True, text=prof["name"])
+            name = compat.EntryRow(title="Profil adı", show_apply_button=True, text=prof["name"])
             name.connect("apply", lambda r, p=pid: self.app.call("save_profile", p, {"name": r.get_text()}))
             exp.add_row(name)
             for key, label in Config.PERMISSIONS.items():
-                sw = Adw.SwitchRow(title=label, active=bool(prof.get(key)))
+                sw = compat.SwitchRow(title=label, active=bool(prof.get(key)))
                 sw.connect("notify::active", lambda r, _, p=pid, k=key:
                            self.app.call("save_profile", p, {k: r.get_active()}))
                 exp.add_row(sw)
             folder = Adw.ActionRow(title="Kayıt klasörü", css_classes=["property"],
-                                   subtitle=prof.get("receive_dir") or "Genel ayar (Dosyalar sayfası)")
+                                   subtitle=compat.esc(prof.get("receive_dir") or "Genel ayar (Dosyalar sayfası)"))
             folder.add_suffix(icon_button("document-edit-symbolic", "Bu profil için klasör seç",
                                           lambda p=pid: self._choose_profile_dir(p)))
             if prof.get("receive_dir"):
@@ -574,16 +573,8 @@ class Window(Adw.ApplicationWindow):
         self.profile_group.set_rows(rows)
 
     def _choose_profile_dir(self, pid):
-        dlg = Gtk.FileDialog(title="Bu profildeki telefonlardan gelen dosyalar nereye kaydedilsin?")
-
-        def done(d, res):
-            try:
-                f = d.select_folder_finish(res)
-            except GLib.Error:
-                return
-            if f and f.get_path():
-                self.app.call("save_profile", pid, {"receive_dir": f.get_path()})
-        dlg.select_folder(self, None, done)
+        compat.choose_folder(self, "Bu profildeki telefonlardan gelen dosyalar nereye kaydedilsin?", None,
+                             lambda path: self.app.call("save_profile", pid, {"receive_dir": path}))
 
     def _ring(self, did):
         on = did not in self.ringing
@@ -614,7 +605,7 @@ class Window(Adw.ApplicationWindow):
         page.add(self.media_group)
 
         g = Adw.PreferencesGroup(title="Bu bilgisayar")
-        self.sw_share_media = Adw.SwitchRow(
+        self.sw_share_media = compat.SwitchRow(
             title="Bu bilgisayarda çalanı telefondan kontrol et",
             subtitle="Spotify, tarayıcıda YouTube, VLC… (MPRIS destekleyen her oynatıcı)")
         self.sw_share_media.set_active(self.app.config["share_media"])
@@ -682,12 +673,12 @@ class Window(Adw.ApplicationWindow):
 
         g = Adw.PreferencesGroup(title="Telefondan gelenler")
         self.dir_row = Adw.ActionRow(title="Kayıt klasörü", css_classes=["property"])
-        self.dir_row.set_subtitle(self.app.config["receive_dir"])
+        self.dir_row.set_subtitle(compat.esc(self.app.config["receive_dir"]))
         self.dir_row.add_prefix(Gtk.Image(icon_name="folder-download-symbolic"))
         self.dir_row.add_suffix(icon_button("folder-open-symbolic", "Klasörü aç", self.open_receive_dir))
         self.dir_row.add_suffix(icon_button("document-edit-symbolic", "Klasörü değiştir", self._choose_dir))
         g.add(self.dir_row)
-        self.sw_accept = Adw.SwitchRow(title="Gelen dosyaları sormadan kabul et",
+        self.sw_accept = compat.SwitchRow(title="Gelen dosyaları sormadan kabul et",
                                        subtitle="Kapalıysa her dosya için onay penceresi açılır")
         self.sw_accept.set_active(self.app.config["auto_accept"])
         self.sw_accept.connect("notify::active", lambda r, _: self._set("auto_accept", r.get_active()))
@@ -710,38 +701,21 @@ class Window(Adw.ApplicationWindow):
     def open_receive_dir(self):
         d = Path(self.app.config["receive_dir"]).expanduser()
         d.mkdir(parents=True, exist_ok=True)
-        Gtk.FileLauncher.new(Gio.File.new_for_path(str(d))).launch(self, None, None)
+        compat.open_path(self, str(d))
 
     def _choose_dir(self):
-        dlg = Gtk.FileDialog(title="Gelen dosyalar nereye kaydedilsin?")
-        dlg.set_initial_folder(Gio.File.new_for_path(str(Path(self.app.config["receive_dir"]).expanduser().parent)))
-
-        def done(d, res):
-            try:
-                f = d.select_folder_finish(res)
-            except GLib.Error:
-                return
-            if f and f.get_path():
-                self._set("receive_dir", f.get_path())
-                self.dir_row.set_subtitle(f.get_path())
-        dlg.select_folder(self, None, done)
+        def done(path):
+            self._set("receive_dir", path)
+            self.dir_row.set_subtitle(compat.esc(path))
+        compat.choose_folder(self, "Gelen dosyalar nereye kaydedilsin?",
+                             str(Path(self.app.config["receive_dir"]).expanduser().parent), done)
 
     def pick_files(self, device_id):
         did = device_id or (self.target() or {}).get("device_id")
         if not did:
             return
-        dlg = Gtk.FileDialog(title="Telefona gönderilecek dosyalar")
-
-        def done(d, res):
-            try:
-                files = d.open_multiple_finish(res)
-            except GLib.Error:
-                return
-            for i in range(files.get_n_items()):
-                p = files.get_item(i).get_path()
-                if p:
-                    self.app.call("send_file", did, p)
-        dlg.open_multiple(self, None, done)
+        compat.choose_files(self, "Telefona gönderilecek dosyalar",
+                            lambda paths: [self.app.call("send_file", did, p) for p in paths])
 
     def _on_drop(self, _target, value, _x, _y):
         self.dropzone.remove_css_class("drop-active")
@@ -807,7 +781,7 @@ class Window(Adw.ApplicationWindow):
     def _build_notifications(self):
         page = Adw.PreferencesPage()
         g = Adw.PreferencesGroup()
-        self.sw_notif = Adw.SwitchRow(title="Telefon bildirimlerini masaüstünde göster",
+        self.sw_notif = compat.SwitchRow(title="Telefon bildirimlerini masaüstünde göster",
                                       subtitle="Telefonda Talk To Linux uygulamasına “bildirim erişimi” verilmiş olmalı")
         self.sw_notif.set_active(self.app.config["show_notifications"])
         self.sw_notif.connect("notify::active", lambda r, _: self._set("show_notifications", r.get_active()))
@@ -923,8 +897,8 @@ class Window(Adw.ApplicationWindow):
 
     def _edit_command(self, c):
         box = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE)
-        name = Adw.EntryRow(title="Ad (telefonda görünür)", text=c["name"] if c else "")
-        cmd = Adw.EntryRow(title="Linux komutu", text=c["command"] if c else "")
+        name = compat.EntryRow(title="Ad (telefonda görünür)", text=c["name"] if c else "")
+        cmd = compat.EntryRow(title="Linux komutu", text=c["command"] if c else "")
         box.append(name)
         box.append(cmd)
 
