@@ -183,6 +183,14 @@ class App(Adw.Application):
             self.window.toast("adb kuruldu; telefonu USB ile takabilirsin" if ok else f"adb kurulamadı: {msg}")
             self.window.update_usb(self.hub.usb.snapshot())
 
+    def install_phone_app(self, serial):
+        fut = self.hub.submit(self.hub.install_phone_app(serial))
+
+        def done(f):
+            ok, msg = f.result()
+            GLib.idle_add(lambda: (self.window.toast(msg) if self.window else None, False)[-1])
+        fut.add_done_callback(done)
+
     def open_path(self, path):
         Gtk.FileLauncher.new(Gio.File.new_for_path(path)).launch(self.window, None, None)
 

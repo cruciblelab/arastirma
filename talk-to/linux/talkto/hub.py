@@ -386,6 +386,9 @@ class Hub:
         self.config.delete_command(cid)
         await self._push_profiles()
 
+    async def install_phone_app(self, serial: str) -> tuple[bool, str]:
+        return await self.usb.install_app(serial)
+
     # ---- Bluetooth -------------------------------------------------------------
 
     async def set_bt_state(self, state: dict):

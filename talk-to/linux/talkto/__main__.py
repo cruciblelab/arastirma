@@ -49,6 +49,9 @@ def main():
     if "--basliksiz" in argv:
         headless("--onayla-hepsi" in argv)
         return 0
+    from .bootstrap import ensure_gui
+    if not ensure_gui():
+        return 1
     from .ui.app import run
     return run(argv)
 

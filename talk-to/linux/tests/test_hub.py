@@ -333,6 +333,108 @@ class FeatureTest(_Base):
         lst.close()
 
 
+class InstallTest(unittest.IsolatedAsyncioTestCase):
+    """Terminalsiz kurulum: telefona USB'den APK, bilgisayara eksik GTK paketleri."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.bin = Path(self.tmp.name) / "bin"
+        self.bin.mkdir()
+        self.log = Path(self.tmp.name) / "cagrilar.txt"
+        self.old_path = os.environ["PATH"]
+        os.environ["PATH"] = f"{self.bin}:{self.old_path}"
+
+    def tearDown(self):
+        os.environ["PATH"] = self.old_path
+        os.environ.pop("TALKTO_APK", None)
+        self.tmp.cleanup()
+
+    def fake(self, name, body):
+        f = self.bin / name
+        f.write_text(f"#!/bin/sh\necho \"{name} $*\" >> {self.log}\n{body}\n")
+        f.chmod(0o755)
+
+    def calls(self):
+        return self.log.read_text().splitlines() if self.log.exists() else []
+
+    async def test_install_phone_app_over_usb(self):
+        apk = Path(self.tmp.name) / "talk-to-linux.apk"
+        apk.write_bytes(b"PK sahte apk")
+        os.environ["TALKTO_APK"] = str(apk)
+        installed = Path(self.tmp.name) / "kurulu"
+        self.fake("adb", f"""case "$*" in
+  devices) printf 'List of devices attached\\nABC123\\tdevice\\n' ;;
+  *"getprop"*) echo "Pixel 8" ;;
+  *"pm path"*) [ -f {installed} ] && echo "package:/data/app/base.apk" ;;
+  *"install -r"*) touch {installed}; echo Success ;;
+esac
+exit 0""")
+        from talkto.usb import AdbWatcher
+        snaps = []
+        w = AdbWatcher(47600, snaps.append)
+        await w._poll()
+        dev = w.snapshot()["devices"][0]
+        self.assertEqual((dev["model"], dev["tunnel"], dev["app"]), ("Pixel 8", True, False))
+        self.assertEqual(w.snapshot()["apk"], str(apk))
+        ok, msg = await w.install_app("ABC123")
+        self.assertTrue(ok, msg)
+        self.assertTrue(w.devices["ABC123"]["app"])
+        self.assertIn(f"adb -s ABC123 install -r {apk}", self.calls())
+        self.assertIn("adb -s ABC123 shell am start -n lab.crucible.talktolinux/.ui.MainActivity", self.calls())
+
+    async def test_install_reports_signature_conflict(self):
+        apk = Path(self.tmp.name) / "a.apk"
+        apk.write_bytes(b"x")
+        os.environ["TALKTO_APK"] = str(apk)
+        self.fake("adb", """case "$*" in
+  devices) printf 'List of devices attached\\nABC123\\tdevice\\n' ;;
+  *"install -r"*) echo "Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: imza farklı]"; exit 1 ;;
+esac
+exit 0""")
+        from talkto.usb import AdbWatcher
+        w = AdbWatcher(47600, lambda s: None)
+        await w._poll()
+        ok, msg = await w.install_app("ABC123")
+        self.assertFalse(ok)
+        self.assertIn("kaldırıp", msg)
+        self.assertFalse(w.devices["ABC123"]["installing"])
+
+    def test_first_run_installs_missing_gui_packages(self):
+        from talkto import bootstrap
+        self.fake("zenity", "exit 0")       # "Kurulsun mu?" → Kur
+        self.fake("pkexec", "exit 0")       # şifre penceresi → onaylandı
+        self.fake("apt-get", "exit 0")
+        for t in ("dnf", "pacman", "zypper"):
+            (self.bin / t).unlink(missing_ok=True)
+        state = {"n": 0}
+
+        def fake_check():
+            state["n"] += 1
+            return (state["n"] > 1, "No module named 'gi'")
+        orig, bootstrap.gui_available = bootstrap.gui_available, fake_check
+        os.environ.setdefault("DISPLAY", ":0")
+        try:
+            self.assertTrue(bootstrap.ensure_gui())
+        finally:
+            bootstrap.gui_available = orig
+        pk = [c for c in self.calls() if c.startswith("pkexec")]
+        self.assertEqual(len(pk), 1)
+        self.assertIn("install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1", pk[0])
+
+    def test_first_run_cancelled(self):
+        from talkto import bootstrap
+        self.fake("zenity", 'case "$*" in *--question*) exit 1 ;; esac; exit 0')
+        self.fake("pkexec", "exit 0")
+        self.fake("apt-get", "exit 0")
+        orig, bootstrap.gui_available = bootstrap.gui_available, lambda: (False, "No module named 'gi'")
+        os.environ.setdefault("DISPLAY", ":0")
+        try:
+            self.assertFalse(bootstrap.ensure_gui())
+        finally:
+            bootstrap.gui_available = orig
+        self.assertFalse([c for c in self.calls() if c.startswith("pkexec")])
+
+
 class UnitTest(unittest.TestCase):
     def test_safe_name(self):
         for bad in ["../../.bashrc", "/etc/passwd", "a/../b", "..", "", "\x00x", "..\\..\\win"]:

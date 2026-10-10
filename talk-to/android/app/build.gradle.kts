@@ -12,18 +12,31 @@ android {
         applicationId = "lab.crucible.talktolinux"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.2.1"
+    }
+
+    // İmza anahtarı: TALKTO_KEYSTORE (dosya yolu) ve TALKTO_KEYSTORE_PASSWORD tanımlıysa onunla
+    // imzalanır (GitHub Actions bunları depo sırlarından alır). Aynı anahtarla imzalanan yeni sürüm,
+    // eskisinin üzerine kaldırmadan kurulur. Tanımlı değilse bu bilgisayarın hata ayıklama anahtarı kullanılır.
+    val keystore = System.getenv("TALKTO_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
+    signingConfigs {
+        if (keystore != null) {
+            create("talkto") {
+                storeFile = keystore
+                storePassword = System.getenv("TALKTO_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("TALKTO_KEY_ALIAS") ?: "talktolinux"
+                keyPassword = System.getenv("TALKTO_KEYSTORE_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            // Kendi bilgisayarında derleyip doğrudan yüklemek için hata ayıklama anahtarıyla imzalanır.
-            // Play Store'a koymak istersen kendi imza anahtarını tanımla.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (keystore != null) "talkto" else "debug")
         }
     }
     compileOptions {

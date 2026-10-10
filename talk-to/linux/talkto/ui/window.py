@@ -418,13 +418,18 @@ class Window(Adw.ApplicationWindow):
                     r.add_suffix(b)
             rows.append(r)
         elif not snap.get("devices"):
-            r = row("Telefon bekleniyor", "Telefonu USB ile tak ve USB hata ayıklamayı aç")
+            r = row("Telefon bekleniyor", "Telefonu USB ile tak ve USB hata ayıklamayı aç. Telefonda Talk To Linux "
+                                          "yoksa buradan tek tıkla kurulur." if snap.get("apk") else
+                    "Telefonu USB ile tak ve USB hata ayıklamayı aç")
+            r.set_subtitle_lines(3)
             r.add_prefix(Gtk.Image(icon_name="media-removable-symbolic"))
             rows.append(r)
         for d in snap.get("devices", []):
             state = d["state"]
             if state == "device":
                 sub = "Tünel hazır: telefondaki uygulamada “USB” seç" if d["tunnel"] else "Tünel kurulamadı"
+                if d.get("app") is False and snap.get("apk"):
+                    sub = "Telefonda Talk To Linux yok: sağdaki düğmeyle kur, sonra uygulamada “USB” seç"
                 icon = "emblem-ok-symbolic" if d["tunnel"] else "dialog-warning-symbolic"
             elif state == "unauthorized":
                 sub, icon = "Telefonda “USB hata ayıklamaya izin ver” onayını ver", "dialog-question-symbolic"
@@ -432,6 +437,16 @@ class Window(Adw.ApplicationWindow):
                 sub, icon = f"Durum: {state}", "dialog-warning-symbolic"
             r = row(d.get("model") or d["serial"], sub)
             r.add_prefix(Gtk.Image(icon_name=icon))
+            if state == "device" and snap.get("apk"):
+                if d.get("installing"):
+                    r.add_suffix(Gtk.Spinner(spinning=True, valign=Gtk.Align.CENTER))
+                else:
+                    label = "Talk To Linux'u güncelle" if d.get("app") else "Talk To Linux'u kur"
+                    b = Gtk.Button(label=label, valign=Gtk.Align.CENTER,
+                                   css_classes=[] if d.get("app") else ["suggested-action"],
+                                   tooltip_text="USB üzerinden telefona kurar ve açar")
+                    b.connect("clicked", lambda *_, sr=d["serial"]: self.app.install_phone_app(sr))
+                    r.add_suffix(b)
             rows.append(r)
         self.usb_group.set_rows(rows)
 

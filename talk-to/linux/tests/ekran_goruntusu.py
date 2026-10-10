@@ -74,8 +74,8 @@ def fill():
         system.adb_install_command = lambda: ["pkexec", "apt-get", "install", "-y", "adb"]
         app.on_event("usb", {"adb": False, "running": True, "devices": []})
     else:
-        app.on_event("usb", {"adb": True, "running": True,
-                             "devices": [{"serial": "38XYZ", "state": "device", "tunnel": True, "model": "Pixel 8"}]})
+        app.on_event("usb", {"adb": True, "running": True, "apk": "/usr/share/talk-to-android/talk-to-linux.apk",
+                             "devices": [{"serial": "38XYZ", "state": "device", "tunnel": True, "model": "Pixel 8", "app": False}]})
     for i, (t, x, a) in enumerate([("Ayşe", "Akşam yemeğe geliyor musun?", "WhatsApp"),
                                    ("Kargo yolda", "Siparişin bugün teslim edilecek.", "Trendyol"),
                                    ("Yeni video", "Kanal yeni bir video yükledi", "YouTube")]):

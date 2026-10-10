@@ -6,18 +6,52 @@
   <name>Talk To Android</name>
   <summary>Android telefonu USB, Wi-Fi ya da Bluetooth ile bağla</summary>
   <description>
-    <p>Telefon bildirimlerini masaüstünde gösterir, telefonda ve bilgisayarda çalan müziği
-    karşı taraftan kontrol etmeyi, iki yönde dosya ve pano göndermeyi sağlar.
-    USB bağlantısında ve şifresiz Wi-Fi bağlantısında her yeni telefon için onay istenir.</p>
+    <p>Telefondaki Talk To Linux uygulamasıyla eşleşir ve telefonla bilgisayarı birbirine bağlar.</p>
+    <ul>
+      <li>Telefon bildirimleri masaüstünde</li>
+      <li>Telefonda ve bilgisayarda çalan müziği karşı taraftan kontrol</li>
+      <li>İki yönde dosya ve pano aktarımı</li>
+      <li>Telefondan bilgisayara: kilitle, uyku, ekran görüntüsü, sistem durumu ve kendi Linux komutların</li>
+      <li>Profiller: her telefonun neler yapabileceğini sen belirlersin</li>
+      <li>Terminalden: talk-to-android gonder / bildirim / pano</li>
+    </ul>
+    <p>Her yeni telefon için onay ya da şifre ister; bütün trafik TLS ile şifrelidir.</p>
   </description>
   <launchable type="desktop-id">lab.crucible.TalkToAndroid.desktop</launchable>
+  <icon type="stock">lab.crucible.TalkToAndroid</icon>
+  <icon type="local" width="256" height="256">/usr/share/icons/hicolor/256x256/apps/lab.crucible.TalkToAndroid.png</icon>
+  <categories>
+    <category>Network</category>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>android</keyword>
+    <keyword>telefon</keyword>
+    <keyword>bluetooth</keyword>
+    <keyword>bildirim</keyword>
+  </keywords>
   <developer id="lab.crucible">
     <name>Crucible ekibi</name>
   </developer>
   <url type="homepage">https://github.com/cruciblelab/arastirma</url>
+  <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="0.2.0" date="2026-10-10"/>
-    <release version="0.1.0" date="2026-10-10"/>
+    <release version="0.2.1" date="2026-10-10">
+      <description>
+        <p>Uygulama Merkezi'nden kurulum düzeltildi (eksik bağımlılık hatası); telefon uygulaması USB'den tek
+        tıkla kurulur (Play Protect engeline takılmaz); eksik sistem paketleri ilk açılışta kurulur.</p>
+      </description>
+    </release>
+    <release version="0.2.0" date="2026-10-10">
+      <description>
+        <p>Talk To Linux / Talk To Android adı; profiller; telefondan bilgisayar komutları, ekran görüntüsü ve
+        sistem durumu; terminal komutu; Bluetooth bağlantısı; telefon uygulamasını USB'den tek tıkla kurma;
+        eksik sistem paketlerini ilk açılışta kurma.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-10-10">
+      <description><p>İlk sürüm: USB ve Wi-Fi, bildirimler, medya, dosya ve pano.</p></description>
+    </release>
   </releases>
 </component>

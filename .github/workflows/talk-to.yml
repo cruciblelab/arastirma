@@ -1,0 +1,136 @@
+name: Talk To derleme
+
+# Her push'ta: Linux testleri + .deb, Android testleri + APK (indirilebilir "artifact").
+# "v" ile başlayan etiket (ör. v0.2.0) push edilince ayrıca GitHub Release açılır ve
+# APK ile .deb oraya eklenir.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (Talk To Android)
+    needs: android   # .deb, telefona USB'den kurulacak APK'yı içerir
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: talk-to/linux
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bağımlılıklar
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography xvfb
+
+      - name: Testler
+        run: /usr/bin/python3 -m unittest discover -s tests -v
+
+      - name: Arayüz açılıyor mu (sanal ekranda ekran görüntüsü)
+        run: xvfb-run -a env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 1300
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: talk-to-linux-apk
+          path: talk-to/linux/apk
+
+      - name: .deb paketi (APK içinde)
+        run: sh paket/deb-olustur.sh apk/talk-to-linux-*.apk
+
+      - name: Paket kurulup çalışıyor mu
+        run: |
+          sudo apt-get install -y -q ./paket/talk-to-android_*_all.deb
+          talk-to-android yardim
+          test -f /usr/share/talk-to-android/talk-to-linux.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: talk-to-android-deb
+          path: talk-to/linux/paket/*.deb
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-ekran-goruntuleri
+          path: talk-to/linux/ekran/*.png
+
+  android:
+    name: Android (Talk To Linux)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: talk-to/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Android SDK bileşenleri
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: İmza anahtarı (depo sırrı tanımlıysa)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.TALKTO_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.TALKTO_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/talktolinux.jks"
+            echo "TALKTO_KEYSTORE=$RUNNER_TEMP/talktolinux.jks" >> "$GITHUB_ENV"
+            echo "TALKTO_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "Kalıcı anahtarla imzalanacak."
+          else
+            echo "::warning::TALKTO_KEYSTORE_BASE64 sırrı yok: APK her derlemede farklı geçici anahtarla imzalanır, eski sürümün üzerine kurulamaz."
+          fi
+
+      - name: Derle, birim testleri, lint
+        run: ./gradlew --no-daemon assembleRelease testReleaseUnitTest lintRelease
+
+      - name: Android ağ kodu ↔ gerçek Linux sunucusu (canlı test)
+        run: sh ../linux/tests/android_canli_test.sh
+
+      - name: APK'yı adlandır
+        run: |
+          v=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          cp app/build/outputs/apk/release/app-release.apk "talk-to-linux-$v.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: talk-to-linux-apk
+          path: talk-to/android/talk-to-linux-*.apk
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-raporlar
+          path: |
+            talk-to/android/app/build/reports/
+            /tmp/talkto-canli.log
+
+  release:
+    name: Sürüm yayınla
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, android]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: talk-to-*
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.apk
+            *.deb
