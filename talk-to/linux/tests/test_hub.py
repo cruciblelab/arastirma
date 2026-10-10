@@ -491,3 +491,85 @@ class UnitTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MirrorTest(_Base):
+    """Telefonun ekranını bilgisayarda açma (scrcpy): sahte adb ve scrcpy ile."""
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.bin = Path(self.tmp.name) / "bin"
+        self.bin.mkdir()
+        self.log = Path(self.tmp.name) / "cagrilar.txt"
+        self.old_path = os.environ["PATH"]
+        os.environ["PATH"] = f"{self.bin}:{self.old_path}"
+        self.hub.usb.available = staticmethod(lambda: True)
+        self.fake("scrcpy", "exit 0")
+
+    async def asyncTearDown(self):
+        os.environ["PATH"] = self.old_path
+        await super().asyncTearDown()
+
+    def fake(self, name, body):
+        f = self.bin / name
+        f.write_text(f"#!/bin/sh\necho \"{name} $*\" >> {self.log}\n{body}\n")
+        f.chmod(0o755)
+
+    def calls(self):
+        return self.log.read_text().splitlines() if self.log.exists() else []
+
+    async def wait_call(self, prefix):
+        for _ in range(50):
+            if any(c.startswith(prefix) for c in self.calls()):
+                return
+            await asyncio.sleep(0.05)
+        self.fail(f"{prefix} çağrılmadı: {self.calls()}")
+
+    async def test_usb_phone_screen_opens(self):
+        self.fake("adb", """case "$*" in
+  devices) printf 'List of devices attached\\nABC123\\tdevice\\n' ;;
+  *"getprop"*) echo "Pixel 8" ;;
+esac
+exit 0""")
+        await self.hub.usb._poll()
+        p = await self.paired_phone()
+        ok, msg = await self.hub.mirror_session(p.device_id)
+        self.assertTrue(ok, msg)
+        await self.wait_call("scrcpy")
+        self.assertIn("scrcpy -s ABC123 --window-title Test Telefonu · Talk To Android --stay-awake", self.calls())
+        ok, msg = await self.hub.mirror_session(p.device_id)  # açıkken ikinci pencere açılmaz
+        self.assertTrue(ok)
+        from talkto import ipc  # terminalden: talk-to-android ekran
+        r = await ipc.IpcServer(self.hub, Path(self.tmp.name) / "k.sock").handle({"cmd": "mirror"})
+        self.assertEqual((r["ok"], r["device"]), (True, "Test Telefonu"))
+        await p.close()
+
+    async def test_without_scrcpy_or_adb_device(self):
+        self.fake("adb", "printf 'List of devices attached\\n'; exit 0")
+        await self.hub.usb._poll()
+        p = await self.paired_phone()
+        ok, msg = await self.hub.mirror_session(p.device_id)
+        self.assertFalse(ok)
+        self.assertIn("adb'de görünmüyor", msg)
+        (self.bin / "scrcpy").unlink()
+        os.environ["PATH"] = str(self.bin)  # gerçek scrcpy kuruluysa da bulunmasın
+        ok, msg = await self.hub.mirror_session(p.device_id)
+        os.environ["PATH"] = f"{self.bin}:{self.old_path}"
+        self.assertEqual((ok, msg), (False, "scrcpy kurulu değil"))
+        await p.close()
+
+    async def test_wireless(self):
+        from talkto import mirror
+        self.fake("adb", """case "$*" in
+  "connect 192.168.1.50:5555") echo "connected to 192.168.1.50:5555" ;;
+  *"get-state"*) echo device ;;
+  "connect 192.168.1.60:5555") echo "failed to connect to 192.168.1.60:5555"; exit 1 ;;
+esac
+exit 0""")
+        ok, _ = await mirror.enable_wireless("ABC123")
+        self.assertTrue(ok)
+        self.assertIn("adb -s ABC123 tcpip 5555", self.calls())
+        self.assertEqual((await mirror.connect_wireless("192.168.1.50"))[0], "192.168.1.50:5555")
+        serial, msg = await mirror.connect_wireless("192.168.1.60")
+        self.assertIsNone(serial)
+        self.assertIn("USB ile takıp", msg)

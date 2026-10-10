@@ -123,6 +123,9 @@ class IpcServer:
             await hub.ring(s.device_id, bool(req.get("on", True)))
         elif cmd == "media":
             await hub.media_control(s.device_id, str(req.get("action")))
+        elif cmd == "mirror":
+            ok, msg = await hub.mirror_session(s.device_id)
+            return {"ok": ok, "device": s.name, "error": msg, "message": msg}
         else:
             return {"ok": False, "error": f"bilinmeyen komut: {cmd}"}
         return {"ok": True, "device": s.name}

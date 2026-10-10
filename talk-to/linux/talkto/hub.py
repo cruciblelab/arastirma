@@ -32,6 +32,7 @@ from .identity import Identity
 from .netinfo import interfaces
 from .protocol import CHUNK, ProtocolError, encode_binary, encode_json, read_frame
 from .transfers import Incoming
+from . import mirror
 from .usb import AdbWatcher
 
 log = logging.getLogger("talkto")
@@ -100,6 +101,7 @@ class Hub:
         self.announcer = Announcer(self._announce_info)
         self.announcing = False
         self.usb = AdbWatcher(config["port"], lambda snap: self.emit("usb", snap))
+        self.mirror = mirror.Mirror()
         self.media = None
         self.media_state = {"active": False}
         self._tid = itertools.count(1)
@@ -146,6 +148,7 @@ class Hub:
             self.server = None
         await self.announcer.stop()
         await self.usb.stop()
+        self.mirror.stop_all()
         if self.ipc:
             await self.ipc.stop()
 
@@ -406,6 +409,45 @@ class Hub:
     async def delete_command(self, cid: str):
         self.config.delete_command(cid)
         await self._push_profiles()
+
+    # ---- telefonun ekranı (scrcpy) -------------------------------------------------
+
+    def _adb_serial_for(self, s) -> str | None:
+        """USB'deki oturumun adb seri numarası: modeli eşleşen ya da tek bağlı telefon."""
+        ready = {k: d for k, d in self.usb.devices.items() if d.get("state") == "device"}
+        for serial, d in ready.items():
+            if d.get("model") and s.model.casefold().endswith(str(d["model"]).casefold()):
+                return serial
+        return next(iter(ready)) if len(ready) == 1 else None
+
+    async def mirror_device(self, serial: str, title: str | None = None) -> tuple[bool, str]:
+        """adb'nin gördüğü telefonun (USB ya da ip:port) ekranını açar."""
+        d = self.usb.devices.get(serial, {})
+        return self.mirror.start(serial, f"{title or d.get('model') or serial} · Talk To Android")
+
+    async def mirror_session(self, device_id: str) -> tuple[bool, str]:
+        """Bağlı telefonun ekranını açar: USB'de doğrudan, Wi-Fi'de adb'nin ağ bağlantısıyla."""
+        s = self.sessions.get(device_id)
+        if not s:
+            return False, "Telefon bağlı değil"
+        if not mirror.available():
+            return False, "scrcpy kurulu değil"
+        if not self.usb.available():
+            return False, "adb kurulu değil (Bağlantı → USB'den kurulur)"
+        if s.kind == "usb":
+            serial = self._adb_serial_for(s)
+            if not serial:
+                return False, "Telefon adb'de görünmüyor; USB hata ayıklamanın açık ve onaylı olduğuna bak"
+        elif s.kind == "wifi":
+            serial, msg = await mirror.connect_wireless(s.ip)
+            if not serial:
+                return False, msg
+        else:
+            return False, "Bluetooth üzerinden ekran açılamaz; USB ya da Wi-Fi gerekir"
+        return self.mirror.start(serial, f"{s.name} · Talk To Android")
+
+    async def mirror_prepare_wireless(self, serial: str) -> tuple[bool, str]:
+        return await mirror.enable_wireless(serial)
 
     async def install_phone_app(self, serial: str, replace: bool = False) -> tuple[bool, str]:
         return await self.usb.install_app(serial, replace)

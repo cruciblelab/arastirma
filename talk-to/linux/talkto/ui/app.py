@@ -15,6 +15,7 @@ from .. import APP_ID, __version__  # noqa: E402
 from ..config import Config  # noqa: E402
 from ..hub import Hub, HubThread  # noqa: E402
 from ..ipc import socket_path  # noqa: E402
+from .. import mirror  # noqa: E402
 from ..usb import CONFLICT  # noqa: E402
 from . import compat, system  # noqa: E402
 from .screenshot import take_screenshot  # noqa: E402
@@ -185,6 +186,69 @@ class App(Adw.Application):
         if self.window:
             self.window.toast("adb kuruldu; telefonu USB ile takabilirsin" if ok else f"adb kurulamadı: {msg}")
             self.window.update_usb(self.hub.usb.snapshot())
+
+    # ---- telefonun ekranı (scrcpy) ---------------------------------------------
+
+    def _after(self, coro, on_done=None):
+        """Hub'da çalıştır, sonucu (ok, mesaj) ana iş parçacığında bildir."""
+        fut = self.hub.submit(coro)
+
+        def show(ok, msg):
+            if on_done:
+                on_done(ok, msg)
+            elif self.window:
+                self.window.toast(msg)
+            return False
+        fut.add_done_callback(lambda f: GLib.idle_add(show, *f.result()))
+
+    def _with_scrcpy(self, then):
+        """scrcpy yoksa kurmayı önerir (pkexec), kurulunca devam eder."""
+        if mirror.available():
+            then()
+            return
+        cmd = mirror.install_command()
+        if not cmd:
+            self.window.toast("scrcpy kurulu değil; dağıtımının paket yöneticisinden “scrcpy” paketini kur")
+            return
+        d = compat.Dialog(self.window, "scrcpy kurulsun mu?",
+                          "Telefonun ekranını bilgisayarda açmak için scrcpy programı gerekiyor. "
+                          "Dağıtımının paket deposundan kurulur; bilgisayarın şifresi sorulur.")
+        d.add_response("cancel", "Vazgeç")
+        d.add_response("install", "Kur")
+        d.set_appearance("install", compat.SUGGESTED)
+        d.set_close_response("cancel")
+
+        def install():
+            try:
+                proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
+            except GLib.Error as e:
+                self.window.toast(f"scrcpy kurulamadı: {e.message}")
+                return
+            self.window.toast("scrcpy kuruluyor…")
+
+            def done(p, res):
+                try:
+                    _ok, out, _err = p.communicate_utf8_finish(res)
+                except GLib.Error as e:
+                    out = e.message
+                status = p.get_exit_status()
+                if status == 0 and mirror.available():
+                    then()
+                else:
+                    msg = {126: "Kurulum iptal edildi", 127: "Yetki verilmedi"}.get(status, (out or "").strip()[-200:])
+                    self.window.toast(f"scrcpy kurulamadı: {msg}")
+            proc.communicate_utf8_async(None, None, done)
+        d.on_response(lambda r: r == "install" and install())
+        d.present()
+
+    def mirror_usb(self, serial, model=None):
+        self._with_scrcpy(lambda: self._after(self.hub.mirror_device(serial, model)))
+
+    def mirror_session(self, device_id):
+        self._with_scrcpy(lambda: self._after(self.hub.mirror_session(device_id)))
+
+    def prepare_wireless(self, serial):
+        self._after(self.hub.mirror_prepare_wireless(serial))
 
     def install_phone_app(self, serial, replace=False):
         fut = self.hub.submit(self.hub.install_phone_app(serial, replace))

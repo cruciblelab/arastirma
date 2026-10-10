@@ -6,6 +6,7 @@
     talk-to-android bildirim "Derleme bitti" "0 hata"
     talk-to-android cal [--durdur]        telefonu çaldır (bul)
     talk-to-android medya oynat|duraklat|sonraki|onceki
+    talk-to-android ekran                 telefonun ekranını bilgisayarda aç (scrcpy)
 """
 
 import argparse
@@ -16,7 +17,7 @@ from pathlib import Path
 
 from .ipc import socket_path
 
-COMMANDS = {"durum", "gonder", "pano", "bildirim", "cal", "medya", "yardim"}
+COMMANDS = {"durum", "gonder", "pano", "bildirim", "cal", "medya", "ekran", "yardim"}
 MEDIA = {"oynat": "play", "duraklat": "pause", "oynat-duraklat": "play_pause",
          "sonraki": "next", "onceki": "previous"}
 KIND = {"usb": "USB", "wifi": "Wi-Fi", "bluetooth": "Bluetooth"}
@@ -58,7 +59,8 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--durdur", action="store_true")
     p = sub.add_parser("medya", help="telefonda çalan medyayı kontrol et")
     p.add_argument("islem", choices=sorted(MEDIA))
-    for name in ("gonder", "pano", "bildirim", "cal", "medya"):
+    sub.add_parser("ekran", help="telefonun ekranını bilgisayarda aç, fare ve klavyeyle kullan (scrcpy)")
+    for name in ("gonder", "pano", "bildirim", "cal", "medya", "ekran"):
         sub.choices[name].add_argument("-c", "--cihaz", help="telefon adı (birden fazla bağlıysa)")
     return ap
 
@@ -97,6 +99,8 @@ def main(argv: list[str]) -> int:
         req.update(cmd="ring", on=not a.durdur)
     elif a.komut == "medya":
         req.update(cmd="media", action=MEDIA[a.islem])
+    elif a.komut == "ekran":
+        req.update(cmd="mirror")
     r = request(req)
     if not r.get("ok") and "results" not in r:
         print(r.get("error", "başarısız"), file=sys.stderr)

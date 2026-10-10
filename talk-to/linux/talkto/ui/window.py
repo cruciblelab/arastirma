@@ -455,6 +455,13 @@ class Window(Adw.ApplicationWindow):
                 sub, icon = f"Durum: {state}", "dialog-warning-symbolic"
             r = row(d.get("model") or d["serial"], sub)
             r.add_prefix(Gtk.Image(icon_name=icon))
+            if state == "device":
+                r.add_suffix(icon_button("video-display-symbolic", "Telefonun ekranını aç (fare ve klavyeyle kullan)",
+                                         lambda sr=d["serial"], m=d.get("model"): self.app.mirror_usb(sr, m)))
+                if ":" not in d["serial"]:  # zaten ağ üzerinden bağlı değilse
+                    r.add_suffix(icon_button("network-wireless-symbolic",
+                                             "Kablosuz ekranı hazırla: kabloyu çıkarınca da Wi-Fi'den ekran açılır",
+                                             lambda sr=d["serial"]: self.app.prepare_wireless(sr)))
             if state == "device" and snap.get("apk"):
                 if d.get("installing"):
                     r.add_suffix(Gtk.Spinner(spinning=True, valign=Gtk.Align.CENTER))
@@ -517,6 +524,9 @@ class Window(Adw.ApplicationWindow):
             r = row(s["name"], " · ".join(x for x in sub if x))
             r.add_prefix(Gtk.Image(icon_name="phone-symbolic", pixel_size=24))
             did = s["device_id"]
+            if s["kind"] != "bluetooth":
+                r.add_suffix(icon_button("video-display-symbolic", "Telefonun ekranını aç (fare ve klavyeyle kullan)",
+                                         lambda d=did: self.app.mirror_session(d)))
             r.add_suffix(icon_button("document-send-symbolic", "Dosya gönder", lambda d=did: self.pick_files(d)))
             r.add_suffix(icon_button("edit-paste-symbolic", "Panoyu telefona gönder",
                                      lambda d=did: self.app.send_clipboard(d)))
