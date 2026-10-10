@@ -101,8 +101,14 @@ sleep 2
 shot 02-ana-sayfa
 
 log "2) telefondaki bir bildirim bilgisayara geliyor mu"
-adb shell cmd notification post -S bigtext -t "Emulator testi" e2e1 "Merhaba bilgisayar"
+# adb shell argümanları telefondaki kabukta yeniden bölünür: tırnaklar tek dizgenin içinde olmalı.
+adb shell "cmd notification post -S bigtext -t 'Emulator testi' e2e1 'Merhaba bilgisayar'"
 wait_for "bildirim bilgisayara ulaştı" 'any(n["title"] == "Emulator testi" for n in of("notification"))' 30
+
+wait_for "uygulama adı paket adı değil" \
+    'any(n["title"] == "Emulator testi" and n["app"] != n["package"] for n in of("notification"))' 5
+wait_for "başlıksız medya oturumu müzik sayılmıyor" \
+    'not any(m["state"].get("active") and not m["state"].get("title") for m in of("media"))' 3
 
 log "3) uygulamadaki Deneme bildirimi düğmesi"
 tap_text "Deneme bildirimi gönder"
@@ -124,7 +130,7 @@ adb shell am start -W -n $PKG/.ui.MainActivity > /dev/null
 wait_for "kendiliğinden yeniden bağlandı (onaysız)" 'len(of("connected")) >= 2 and len(of("ask")) == 1' 45
 wait_for "güncellemeden sonra da dinleyici bağlı" \
     'phone().get("listener") is True and len([e for e in ev if e["event"] == "status"]) > 0' 40
-adb shell cmd notification post -S bigtext -t "Guncelleme sonrasi" e2e2 "Hala geliyor mu"
+adb shell "cmd notification post -S bigtext -t 'Guncelleme sonrasi' e2e2 'Hala geliyor mu'"
 wait_for "güncellemeden sonra bildirim ulaştı" 'any(n["title"] == "Guncelleme sonrasi" for n in of("notification"))' 30
 shot 04-guncelleme-sonrasi
 

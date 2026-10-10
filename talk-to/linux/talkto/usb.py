@@ -79,8 +79,11 @@ def find_apk() -> Path | None:
 
 
 async def _adb(*args, timeout=8.0) -> tuple[int, str]:
-    proc = await asyncio.create_subprocess_exec(
-        "adb", *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "adb", *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+    except OSError as e:  # adb uygulama açıkken kaldırıldı
+        return 127, f"adb çalıştırılamadı: {e.strerror or e}"
     try:
         out, _ = await asyncio.wait_for(proc.communicate(), timeout)
     except asyncio.TimeoutError:

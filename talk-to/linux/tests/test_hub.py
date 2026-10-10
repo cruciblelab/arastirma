@@ -507,8 +507,8 @@ class MirrorTest(_Base):
         self.fake("scrcpy", "exit 0")
 
     async def asyncTearDown(self):
+        await super().asyncTearDown()  # hub kapanırken sahte adb'yi hâlâ çağırır
         os.environ["PATH"] = self.old_path
-        await super().asyncTearDown()
 
     def fake(self, name, body):
         f = self.bin / name
@@ -557,6 +557,19 @@ exit 0""")
         os.environ["PATH"] = f"{self.bin}:{self.old_path}"
         self.assertEqual((ok, msg), (False, "scrcpy kurulu değil"))
         await p.close()
+
+    async def test_adb_removed_while_running(self):
+        """adb uygulama açıkken kaldırılırsa kapanış ve yoklama çökmemeli."""
+        from talkto.usb import _adb
+        empty = Path(self.tmp.name) / "bos"
+        empty.mkdir()
+        os.environ["PATH"] = str(empty)
+        try:
+            rc, msg = await _adb("devices")
+        finally:
+            os.environ["PATH"] = f"{self.bin}:{self.old_path}"
+        self.assertEqual(rc, 127)
+        self.assertIn("adb çalıştırılamadı", msg)
 
     async def test_wireless(self):
         from talkto import mirror

@@ -75,25 +75,32 @@ object PhoneMedia {
     }
 
     private fun pick(list: List<MediaController>) {
-        val playing = list.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-        val chosen = playing ?: list.firstOrNull { it.packageName == controller?.packageName } ?: list.firstOrNull()
+        // Başlığı olmayan oturumlar (ör. Google uygulamasının boş oturumu) müzik sayılmaz.
+        val titled = list.filter { !it.metadata?.getString(MediaMetadata.METADATA_KEY_TITLE).isNullOrBlank() }
+        val playing = titled.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+        val chosen = playing ?: titled.firstOrNull { it.packageName == controller?.packageName } ?: titled.firstOrNull()
+            ?: list.firstOrNull { it.packageName == controller?.packageName } ?: list.firstOrNull()
         if (chosen?.sessionToken != controller?.sessionToken) {
             controller?.unregisterCallback(callback)
             controller = chosen
             chosen?.registerCallback(callback, main)
-            Talk.phonePlayer.value = playerName()
-            Talk.sendPhoneStatus()
         }
         push()
     }
 
     /** Durumu bilgisayara gönderir (bağlı değilse bir şey yapmaz). */
     fun push() {
-        if (!Talk.mediaOn()) return
         val c = controller
         val md = c?.metadata
         val st = c?.playbackState
-        if (c == null || md == null) {
+        val title = md?.getString(MediaMetadata.METADATA_KEY_TITLE)
+        val player = if (c != null && !title.isNullOrBlank()) playerName() else null
+        if (player != Talk.phonePlayer.value) {
+            Talk.phonePlayer.value = player
+            Talk.sendPhoneStatus()
+        }
+        if (!Talk.mediaOn()) return
+        if (c == null || md == null || title.isNullOrBlank()) {
             Talk.send(JSONObject().put("type", "media_state").put("active", false))
             return
         }
@@ -118,7 +125,7 @@ object PhoneMedia {
         }
         Talk.send(JSONObject().put("type", "media_state").put("active", true)
             .put("player", appName)
-            .put("title", md.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "")
+            .put("title", title)
             .put("artist", md.getString(MediaMetadata.METADATA_KEY_ARTIST)
                 ?: md.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST) ?: "")
             .put("album", md.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: "")
