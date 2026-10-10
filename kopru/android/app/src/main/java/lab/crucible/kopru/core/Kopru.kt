@@ -1,5 +1,6 @@
 package lab.crucible.kopru.core
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -26,6 +27,7 @@ import java.io.IOException
 import java.util.concurrent.Executors
 
 /** Uygulamanın tek durumu: bağlantı, keşif, bilgisayardaki medya, aktarımlar. */
+@SuppressLint("StaticFieldLeak")  // yalnızca uygulama bağlamı (applicationContext) tutulur
 object Kopru {
     lateinit var app: Context
         private set
@@ -122,7 +124,12 @@ object Kopru {
                     state.value = State.Connected(target.copy(fp = fp), res.serverId, res.serverName)
                     s.start()
                     main.post {
-                        ContextCompat.startForegroundService(app, Intent(app, KopruService::class.java))
+                        try {
+                            ContextCompat.startForegroundService(app, Intent(app, KopruService::class.java))
+                        } catch (e: IllegalStateException) {
+                            // Android 12+: uygulama arka plandayken servis başlatılamayabilir;
+                            // bağlantı yine çalışır, yalnızca sistem süreci erken kapatabilir.
+                        }
                         PhoneMedia.push()
                     }
                 }
@@ -292,7 +299,7 @@ object Kopru {
         discovery = Discovery(
             onFound = { list -> found.value = list; main.post { maybeAutoConnect() } },
             onUsb = { ok -> usbAvailable.value = ok; main.post { maybeAutoConnect() } },
-            usbAllowed = { adbEnabled() },
+            usbAllowed = { adbEnabled() && state.value !is State.Connected },
         ).also { it.start() }
     }
 

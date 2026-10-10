@@ -1,5 +1,6 @@
 package lab.crucible.kopru.core
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.graphics.Bitmap
@@ -21,6 +22,7 @@ import java.io.ByteArrayOutputStream
  * oturumlarını yalnızca bildirim erişimi verilmiş uygulamalara gösterir; bu
  * yüzden NotificationListener bağlanınca başlatılır.
  */
+@SuppressLint("StaticFieldLeak")  // yalnızca uygulama bağlamı tutulur
 object PhoneMedia {
     private var manager: MediaSessionManager? = null
     private var controller: MediaController? = null
@@ -28,6 +30,7 @@ object PhoneMedia {
     private val main = Handler(Looper.getMainLooper())
     private var lastArtId: String? = null
     private var lastArt: Pair<String, String>? = null  // art_id → base64 JPEG
+    private var lastBitmap: Bitmap? = null
 
     private val sessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { list -> pick(list ?: emptyList()) }
 
@@ -120,6 +123,8 @@ object PhoneMedia {
     }
 
     private fun encodeArt(bmp: Bitmap): String {
+        if (bmp === lastBitmap) lastArt?.let { return it.first }
+        lastBitmap = bmp
         val scaled = if (bmp.width > 320 || bmp.height > 320) {
             val f = 320f / maxOf(bmp.width, bmp.height)
             Bitmap.createScaledBitmap(bmp, (bmp.width * f).toInt().coerceAtLeast(1),

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Köprü
+GenericName=Telefon bağlantısı
+Comment=Android telefonu USB ya da Wi-Fi ile bağla: bildirimler, medya, dosyalar
+Exec=kopru
+Icon=lab.crucible.Kopru
+Terminal=false
+Categories=Network;Utility;GTK;
+Keywords=telefon;android;phone;usb;wifi;bildirim;dosya;kdeconnect;
+StartupNotify=true
+DBusActivatable=false

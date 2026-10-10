@@ -8,7 +8,6 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.BatteryManager
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import androidx.core.content.IntentCompat
@@ -57,8 +56,8 @@ class KopruService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
-        ServiceCompat.startForeground(this, Notifs.ID_SERVICE, Notifs.service(this, "Bağlanıyor…"), type)
+        ServiceCompat.startForeground(this, Notifs.ID_SERVICE, Notifs.service(this, "Bağlanıyor…"),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         registerReceiver(battery, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         scope.launch {
             Kopru.state.collectLatest { st ->

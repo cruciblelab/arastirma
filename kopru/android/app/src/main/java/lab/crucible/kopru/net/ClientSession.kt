@@ -331,9 +331,17 @@ class ClientSession(
         runCatching { socket.close() }
     }
 
+    /**
+     * Bilinçli olarak zincir doğrulaması yapmaz: bilgisayarın sertifikası kendinden
+     * imzalıdır. Güven, open() sonrası SHA-256 parmak izinin kayıtlı olanla
+     * karşılaştırılmasından (Kopru.doConnect) ve şifre/onay kodundan gelir.
+     */
+    @Suppress("CustomX509TrustManager", "TrustAllX509TrustManager")
     private object AcceptAll : X509TrustManager {
         override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
+            if (chain.isNullOrEmpty()) throw java.security.cert.CertificateException("sertifika yok")
+        }
         override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
     }
 }

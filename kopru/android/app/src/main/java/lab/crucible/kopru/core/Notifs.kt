@@ -1,6 +1,7 @@
 package lab.crucible.kopru.core
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -21,6 +22,7 @@ import lab.crucible.kopru.R
 import lab.crucible.kopru.service.KopruService
 import lab.crucible.kopru.ui.MainActivity
 
+@SuppressLint("StaticFieldLeak")  // yalnızca uygulama bağlamı tutulur
 object Notifs {
     const val CH_CONNECTION = "baglanti"
     const val CH_FILES = "dosyalar"
@@ -53,6 +55,7 @@ object Notifs {
     private fun canPost(ctx: Context) = Build.VERSION.SDK_INT < 33 ||
         ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
+    @SuppressLint("MissingPermission")  // canPost() denetliyor
     fun fileReceived(ctx: Context, name: String, uri: String, mime: String?) {
         if (!canPost(ctx)) return
         val view = Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(uri), mime)
@@ -72,6 +75,7 @@ object Notifs {
     private var ringtone: Ringtone? = null
     private val main = Handler(Looper.getMainLooper())
 
+    @SuppressLint("MissingPermission")  // canPost() denetliyor
     fun ring(ctx: Context) {
         main.post {
             stopRing(ctx)
@@ -81,7 +85,7 @@ object Notifs {
                 // Alarm akışı: telefon sessizdeyken de duyulur.
                 audioAttributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()
-                if (Build.VERSION.SDK_INT >= 28) isLooping = true
+                isLooping = true
                 play()
             }
             if (canPost(ctx)) {
@@ -93,7 +97,8 @@ object Notifs {
                     .setContentTitle("Bilgisayar telefonu arıyor")
                     .setContentText("Durdurmak için dokun")
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setContentIntent(stop).setDeleteIntent(stop).setAutoCancel(true)
+                    // Bildirime dokunmak uygulamayı açar; MainActivity açılınca zil durur.
+                    .setContentIntent(openApp(ctx)).setDeleteIntent(stop).setAutoCancel(true)
                     .addAction(0, "Durdur", stop)
                     .build())
             }

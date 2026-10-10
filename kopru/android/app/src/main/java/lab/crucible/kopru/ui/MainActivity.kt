@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import lab.crucible.kopru.core.Kopru
+import lab.crucible.kopru.core.Notifs
 
 class MainActivity : ComponentActivity() {
     private val notifAccess = mutableStateOf(false)
@@ -53,6 +54,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         notifAccess.value = NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName)
+        Notifs.stopRing(this)  // "telefonu bul" çalıyorsa: telefon bulundu
     }
 
     override fun onStop() {

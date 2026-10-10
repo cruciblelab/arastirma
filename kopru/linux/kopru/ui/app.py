@@ -35,6 +35,10 @@ class App(Adw.Application):
 
     def do_startup(self):
         Adw.Application.do_startup(self)
+        icons = Path(__file__).resolve().parents[2] / "data" / "icons"
+        if icons.is_dir():  # kurulmadan, kaynak klasöründen çalıştırılırken
+            Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_search_path(str(icons))
+        Gtk.Window.set_default_icon_name(APP_ID)
         css = Gtk.CssProvider()
         css.load_from_path(str(Path(__file__).with_name("style.css")))
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,

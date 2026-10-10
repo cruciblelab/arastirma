@@ -1,6 +1,9 @@
 package lab.crucible.kopru.ui
 
+import android.content.Intent
+import android.os.PowerManager
 import android.os.SystemClock
+import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -84,6 +87,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -502,6 +506,20 @@ private fun SettingsCard() {
                 media = it; Kopru.prefs.shareMedia = it
             }
             HorizontalDivider()
+            val ctx = LocalContext.current
+            val pm = ctx.getSystemService(PowerManager::class.java)
+            if (!pm.isIgnoringBatteryOptimizations(ctx.packageName)) {
+                Row(Modifier.fillMaxWidth().clickable {
+                    ctx.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                }.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Column {
+                        Text("Pil kısıtlamasını kaldır")
+                        Text("Ekran kapalıyken bağlantı kopmasın diye listeden Köprü'yü “Kısıtlama yok” yap",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                HorizontalDivider()
+            }
             Text("Bilgisayardan gelen dosyalar: İndirilenler/Kopru", Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

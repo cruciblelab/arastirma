@@ -71,11 +71,12 @@ class Discovery(
                         s.send(DatagramPacket(probe, probe.size, InetAddress.getByName("255.255.255.255"), udpPort))
                     }
                     prune(now)
+                    publish()  // liste değişmese de: otomatik yeniden bağlanma bu turu dinler
                 }
                 if (now - lastUsb > 3000) {
                     lastUsb = now
-                    val ok = usbAllowed() && probeUsb()
-                    if (ok != usb) { usb = ok; onUsb(ok) }
+                    usb = usbAllowed() && probeUsb()
+                    onUsb(usb)
                 }
                 try {
                     val p = DatagramPacket(buf, buf.size)
@@ -105,8 +106,7 @@ class Discovery(
     }
 
     private fun prune(now: Long) {
-        val removed = synchronized(found) { found.values.removeAll { now - it.seenAt > 10_000 } }
-        if (removed) publish()
+        synchronized(found) { found.values.removeAll { now - it.seenAt > 10_000 } }
     }
 
     private fun publish() = onFound(synchronized(found) { found.values.toList() })
