@@ -30,13 +30,15 @@ jobs:
       - name: Bağımlılıklar
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas xvfb
+          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas xvfb imagemagick
 
       - name: Testler (arayüz uyumluluğu dahil, sanal ekranda)
         run: xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v
 
       - name: Arayüz açılıyor mu (sanal ekranda ekran görüntüsü)
-        run: xvfb-run -a env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 1300
+        # 22.04'ün PyGObject'i (3.42) GTK'nın çizim düğümlerini çeviremediği için orada pencere
+        # X sunucusundan ImageMagick ile çekilir; ekran pencere sığacak kadar büyük olmalı.
+        run: xvfb-run -a -s "-screen 0 1280x1400x24" env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 1300
 
       - uses: actions/download-artifact@v4
         with:
@@ -51,6 +53,9 @@ jobs:
           sudo apt-get install -y -q ./paket/talk-to-android_*_all.deb
           talk-to-android yardim
           test -f /usr/share/talk-to-android/talk-to-linux.apk
+
+      - name: Kurulan uygulama penceresiyle açılıyor mu (10 sn çökmeden çalışmalı)
+        run: xvfb-run -a sh -c 'timeout 10 talk-to-android; test $? -eq 124'
 
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-24.04'

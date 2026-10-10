@@ -4,6 +4,8 @@
 """
 
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -43,15 +45,35 @@ def factory(config, emit):
 app = App(hub_factory=factory)
 
 
+# PyGObject 3.46 öncesi (Ubuntu 22.04: 3.42) Gsk.RenderNode'u Python nesnesine çeviremiyor,
+# Gtk.Snapshot.to_node() çöküyor. Orada pencere X sunucusundan ImageMagick ile çekilir.
+OLD_GI = gi.version_info < (3, 46) or os.environ.get("TALKTO_SNAP") == "x11"
+
+
+def snap_x11(widget, path):
+    gi.require_version("GdkX11", "4.0")
+    from gi.repository import GdkX11
+    surface = widget.get_native().get_surface()
+    target = str(surface.get_xid()) if isinstance(surface, GdkX11.X11Surface) else "root"
+    if not shutil.which("import"):
+        print("ImageMagick yok, görüntü atlandı:", path)
+        return
+    subprocess.run(["import", "-window", target, str(path)], check=True)
+
+
 def snap(widget, name):
-    w, h = widget.get_width(), widget.get_height()
-    paintable = Gtk.WidgetPaintable.new(widget)
-    s = Gtk.Snapshot()
-    paintable.snapshot(s, w, h)
-    node = s.to_node()
-    tex = widget.get_native().get_renderer().render_texture(node, Graphene.Rect().init(0, 0, w, h))
-    tex.save_to_png(str(OUT / f"{name}.png"))
-    print("kaydedildi", OUT / f"{name}.png")
+    path = OUT / f"{name}.png"
+    if OLD_GI:
+        snap_x11(widget, path)
+    else:
+        w, h = widget.get_width(), widget.get_height()
+        paintable = Gtk.WidgetPaintable.new(widget)
+        s = Gtk.Snapshot()
+        paintable.snapshot(s, w, h)
+        node = s.to_node()
+        tex = widget.get_native().get_renderer().render_texture(node, Graphene.Rect().init(0, 0, w, h))
+        tex.save_to_png(str(path))
+    print("kaydedildi", path)
 
 
 def fill():
