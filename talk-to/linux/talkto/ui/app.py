@@ -25,7 +25,9 @@ log = logging.getLogger("talkto.arayuz")
 
 class App(Adw.Application):
     def __init__(self, start_hidden=False, hub_factory=None):
-        super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
+        # DEFAULT_FLAGS GLib 2.74'te geldi; Ubuntu 22.04'te (GLib 2.72) yalnızca FLAGS_NONE var.
+        super().__init__(application_id=APP_ID,
+                         flags=getattr(Gio.ApplicationFlags, "DEFAULT_FLAGS", Gio.ApplicationFlags.FLAGS_NONE))
         self.start_hidden = start_hidden
         self.hub_factory = hub_factory
         self.window = None
