@@ -10,3 +10,4 @@ Categories=Network;Utility;GTK;
 Keywords=telefon;android;phone;usb;wifi;bluetooth;bildirim;dosya;komut;kdeconnect;
 StartupNotify=true
 DBusActivatable=false
+X-Guncellenince-Yeniden-Baslar=true

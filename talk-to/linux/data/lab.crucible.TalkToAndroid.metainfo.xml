@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.8.1" date="2026-10-11">
+      <description><p>Güncellenince kendini yeni sürümle yeniden başlatır (önceden arka planda eski sürüm çalışmaya devam ediyordu). Pakette yayıncı kartı: ad, site, iletişim ve imzanın parmak izini yayımlayan doğrulama adresi.</p></description>
+    </release>
     <release version="0.8.0" date="2026-10-11">
       <description><p>Mini oynatıcı yeniden tasarlandı (küçük, başlık çubuğusuz; Wayland'de açılınca uygulamanın kapanmasına yol açabilen boyut değişimi giderildi). Telefonun ekranı için scrcpy 5.0.1 doğrulanarak indirilir (Ubuntu'daki 1.21 yeni Android'lerde çalışmıyordu); indirme ve kurulumlar ilerleme penceresinde. Kurulum yardımcısı Xiaomi'nin ek güvenlik anahtarlarını ve telefondaki uygulamanın eski olduğunu yakalar, tek tıkla günceller. Çökme günlüğü; telefondaki uygulama çökerse raporu bilgisayara kaydedilir. Telefon uygulaması GNOME görünümünde.</p></description>
     </release>

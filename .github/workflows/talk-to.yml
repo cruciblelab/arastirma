@@ -84,6 +84,9 @@ jobs:
           sudo apt-get install -y -q ./paket/talk-to-android_*_all.deb
           talk-to-android yardim
           test -f /usr/share/talk-to-android/talk-to-linux.apk
+          python3 -c "import json; k=json.load(open('/usr/share/keyrings/talk-to-android-paket.json')); assert k['yayinci'] and k['dogrulama'].startswith('https://')"
+          grep -q "^X-Guncellenince-Yeniden-Baslar=true" /usr/share/applications/lab.crucible.TalkToAndroid.desktop
+          grep -q "$(gpg --show-keys --with-colons paket/talk-to-android-paket.gpg | awk -F: '/^fpr/{print $10; exit}' | sed 's/..../& /g; s/ $//; s/\(.\{24\}\) /\1  /')" ../YAYINCI.txt
 
       - name: Kurulan uygulama açılıyor mu (arka plan çalışıyor, arayüzde hata yok)
         # Yalnızca "10 sn kapanmadı" yetmez: pencere istisna atsa da süreç açık kalır. Komut satırının

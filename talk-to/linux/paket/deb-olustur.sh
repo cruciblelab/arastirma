@@ -40,6 +40,8 @@ fi
 cp "$HERE/data/lab.crucible.TalkToAndroid.metainfo.xml" "$ROOT/usr/share/metainfo/"
 # Yayıncının açık anahtarı: sonraki sürümün imzası bununla doğrulanır (paket/deb-imzala.py).
 cp "$HERE/paket/talk-to-android-paket.gpg" "$ROOT/usr/share/keyrings/"
+# Yayıncı kartı (ad, site, iletişim, doğrulama adresi): imzanın kapsamında; Paket Güncelleyici gösterir.
+cp "$HERE/paket/talk-to-android-paket.json" "$ROOT/usr/share/keyrings/"
 cp "$HERE/../README.md" "$ROOT/usr/share/doc/talk-to-android/"
 SIZE=$(du -sk "$ROOT/usr" | cut -f1)
 cat > "$ROOT/DEBIAN/control" <<CTL

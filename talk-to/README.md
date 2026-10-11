@@ -9,7 +9,7 @@ Linux bilgisayar ile Android telefonu **USB kablosu**, **Wi-Fi** ya da **Bluetoo
 
 İki uygulama birbirini tanır: ilk bağlantıda bir kez onaylanır (ya da şifre girilir), sonra telefon bağlandığı anda bilgisayar onu tanır ve **profilini** uygular.
 
-**Durum:** 0.8.0. Ubuntu 22.04 + gerçek bir telefonda USB bağlantısı kuruldu; 0.2.x'te bildirim ve müziğin gelmediği bildirildi, 0.4.x bunun sebebini iki tarafta da gösteriyor ve en olası sebebi (Android'in bildirim dinleyicisini bağlamaması) düzeltmeye çalışıyor; emülatörde çalışıyor, gerçek telefonda henüz doğrulanmadı. 0.5.0 bir denetimde bulunan güvenlik ve sağlamlık hatalarını düzeltti; 0.6.0 arayüzü araştırmalara göre düzenler ve telefonu bilgisayardan tek tıkla ayarlamayı ekler; 0.7.0 **basit mod**u (varsayılan), mini oynatıcıyı ve şarkı bildirimini ekler; 0.8.0 ilk gerçek deneme geri bildirimlerini (mini oynatıcının kapanması, eski scrcpy, Xiaomi ayarları, telefon teması) giderir; **telefon ve bilgisayar birlikte güncellenmeli**: 0.5 ve sonrası telefon, 0.4 ve öncesi bilgisayara şifre ya da onayla bağlanmaz. Bluetooth gerçek donanımda denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
+**Durum:** 0.8.1. Ubuntu 22.04 + gerçek bir telefonda USB bağlantısı kuruldu; 0.2.x'te bildirim ve müziğin gelmediği bildirildi, 0.4.x bunun sebebini iki tarafta da gösteriyor ve en olası sebebi (Android'in bildirim dinleyicisini bağlamaması) düzeltmeye çalışıyor; emülatörde çalışıyor, gerçek telefonda henüz doğrulanmadı. 0.5.0 bir denetimde bulunan güvenlik ve sağlamlık hatalarını düzeltti; 0.6.0 arayüzü araştırmalara göre düzenler ve telefonu bilgisayardan tek tıkla ayarlamayı ekler; 0.7.0 **basit mod**u (varsayılan), mini oynatıcıyı ve şarkı bildirimini ekler; 0.8.0 ilk gerçek deneme geri bildirimlerini (mini oynatıcının kapanması, eski scrcpy, Xiaomi ayarları, telefon teması) giderir; 0.8.1 güncellenince kendini yeni sürümle yeniden başlatır (önceden arka planda eski sürüm çalışmaya devam ediyordu) ve pakete yayıncı kartı ekler; **telefon ve bilgisayar birlikte güncellenmeli**: 0.5 ve sonrası telefon, 0.4 ve öncesi bilgisayara şifre ya da onayla bağlanmaz. Bluetooth gerçek donanımda denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
 
 | Telefon | Bilgisayar |
 |---|---|
@@ -117,11 +117,11 @@ Komut satırı, çalışan uygulamayla `$XDG_RUNTIME_DIR/talk-to-android.sock` �
 
 ### Linux (Talk To Android)
 
-**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.8.0_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
+**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.8.1_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
 
-- **Güncellerken:** eski sürüm kuruluyken Uygulama Merkezi yeni `.deb` için çoğu zaman "Güncelle" göstermez, yalnızca çöp kutusu (kaldır) çıkar. Kaldırmaya gerek yok: terminalde dosyanın olduğu klasörde `sudo apt install ./talk-to-android_0.8.0_all.deb` eskisinin üstüne kurar; ayarlar ve eşleşmeler `~/.config` altında kalır. "dpkg/lock-frontend kilidi alınamadı … (unattended-upgr)" hatası, Ubuntu'nun kendi otomatik güncellemesi o an çalışıyor demek: birkaç dakika bekleyip yeniden dene.
+- **Güncellerken:** eski sürüm kuruluyken Uygulama Merkezi yeni `.deb` için çoğu zaman "Güncelle" göstermez, yalnızca çöp kutusu (kaldır) çıkar. Kaldırmaya gerek yok: terminalde dosyanın olduğu klasörde `sudo apt install ./talk-to-android_0.8.1_all.deb` eskisinin üstüne kurar (ya da **Paket Güncelleyici**: `.deb`'e sağ tık → Birlikte aç; sürümü ve imzayı karşılaştırıp kurar); ayarlar ve eşleşmeler `~/.config` altında kalır. "dpkg/lock-frontend kilidi alınamadı … (unattended-upgr)" hatası, Ubuntu'nun kendi otomatik güncellemesi o an çalışıyor demek: birkaç dakika bekleyip yeniden dene.
 - Uygulama Merkezi yerel `.deb` kurarken eksik bağımlılıkları kendisi indirmiyor (0.2.0'da "unmet dependencies" hatası bundandı). Bu yüzden paketin zorunlu bağımlılığı yalnızca `python3`. GTK4/libadwaita eksikse uygulama **ilk açılışta** "kurulsun mu?" diye sorar ve bilgisayarın şifre penceresiyle kurar.
-- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.8.0_all.deb`.
+- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.8.1_all.deb`.
 
 `.deb` dosyasını üretmek (bir kez): `sh talk-to/linux/paket/deb-olustur.sh`
 
@@ -197,7 +197,9 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 - **Komutlar en güçlü izin:** "komut çalıştırabilir" açık bir profildeki telefon, bilgisayarda tanımladığın her komutu çalıştırabilir. Kaybolan telefonu *Güvenilen cihazlar*'dan hemen **unut**. Güç komutları ayrı izindir.
 - Bir telefon dosyayı yalnızca kayıt klasörüne yazabilir; başka klasöre çıkamaz, var olan dosyanın üzerine yazamaz. Bilgisayardaki dosyaları okuyamaz.
 - USB ve Bluetooth bağlantısı otomatik güvenilir sayılmaz, her yeni telefon için onay ister.
-- **`.deb` paketi imzalı** (0.7.1'den itibaren): yayıncının açık anahtarı paketin içinde `/usr/share/keyrings/talk-to-android-paket.gpg`, imza paketin `_gpgorigin` parçasında (debsigs biçimi; dpkg/apt bu parçayı yok sayar). Anahtarın parmak izi `68E7 8B0A 596A 2E51 8DA0  526B CFBF 9E59 8C96 C9F4`. Elle doğrulamak: `python3 talk-to/linux/paket/deb-imzala.py dogrula talk-to-android_0.8.0_all.deb`. Gizli anahtar depoda değil, yalnızca GitHub'da sır olarak durur.
+- **`.deb` paketi imzalı** (0.7.1'den itibaren): yayıncının açık anahtarı paketin içinde `/usr/share/keyrings/talk-to-android-paket.gpg`, imza paketin `_gpgorigin` parçasında (debsigs biçimi; dpkg/apt bu parçayı yok sayar). Anahtarın parmak izi `68E7 8B0A 596A 2E51 8DA0  526B CFBF 9E59 8C96 C9F4`. Elle doğrulamak: `python3 talk-to/linux/paket/deb-imzala.py dogrula talk-to-android_0.8.1_all.deb`. Gizli anahtar depoda değil, yalnızca GitHub'da sır olarak durur.
+- **Yayıncı kartı** (0.8.1'den itibaren): paketin içinde `/usr/share/keyrings/talk-to-android-paket.json` (ad, site, iletişim, doğrulama adresi). Veri arşivinde olduğu için imzanın kapsamında. Kartın kendisi yalnızca beyandır; Paket Güncelleyici, kartta yazan doğrulama adresini ([`YAYINCI.txt`](YAYINCI.txt)) açıp imzanın parmak izinin orada yayımlandığını denetler. Kişisel e-posta yok; iletişim GitHub sorunları üzerinden.
+- **Güncellenince yeniden başlama:** Talk To kendi sürüm dosyasını izler; paket güncellenince (aktarım sürmüyorsa) aynı süreç yeni sürümle yeniden başlar, telefon birkaç saniyede yeniden bağlanır.
 - Ayarlar `~/.config/talk-to-android/` altında, yalnızca senin okuyabileceğin izinlerle (600). Wi-Fi şifresi orada düz metin durur (doğrulama için gerekli).
 
 ## Bilinen sınırlamalar
@@ -211,6 +213,16 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 - Birden fazla telefon bağlanabilir; sürükle-bırak dosyalar en son bağlanana gider (diğerine *Telefonlar*'daki düğme ya da `-c AD`).
 - Keşif UDP yayınıyla çalışır: misafir ağları ve "istemci yalıtımı" açık modemler engeller; o zaman "IP adresiyle bağlan".
 - Paket yalnızca Ubuntu/Debian ailesi için (.deb); rpm, Flatpak, Snap yok.
+
+## Sıradaki işler (onay bekliyor, yapılmadı)
+
+Konuşulan iki istek; ikisinde de amaç kullanıcıya iş çıkarmamak. Onay gelmeden kodlanmayacak.
+
+1. **Telefondan bilgisayarın ekranı (şifre gerekiyorsa şifreyle).**
+   - *Önerilen yol: GNOME'un kendi Uzak Masaüstü'sü (RDP).* Ubuntu 22.04 ve sonrasında kurulu geliyor (`gnome-remote-desktop`). Talk To *Tercihler*'de tek anahtar: açınca RDP'yi etkinleştirir, rastgele kullanıcı adı/şifre üretir ve bunları zaten şifreli olan Talk To bağlantısıyla telefona verir; telefonda tek dokunuşla bağlanılır. Ekran kilitliyse kilit ekranı görünür, şifre telefondan yazılır. Sınırlar (dürüstçe): 22.04'te yalnızca açık oturum paylaşılır (oturum açma ekranından uzaktan giriş 24.04'te); telefonda bir RDP istemcisi gerekir (gömmek büyük iş, harici uygulamaya şifreyi kendiliğinden geçirmek her uygulamada mümkün değil; en kötü durumda şifre pano eşitlemesiyle yapıştırılır).
+   - *Önerilmeyen yol: kendi görüntü akışımız* (ekran portalı → video → telefon, dokunuşları geri gönderme). Çok iş, gecikme, güvenlik yüzeyi büyük; Wayland her seferinde izin sorar.
+2. **Telefonla kilidi aç.** Telefon parmak izi/yüz ile onaylar (Android BiometricPrompt), eşleşmiş ve "kilidi açabilir" izni verilmiş profil bilgisayara iletir, bilgisayar `loginctl unlock-session` ile kendi oturumunun kilidini açar ve "telefonla açıldı" bildirimi gösterir. İsteğe bağlı (varsayılan kapalı), yalnızca yakın bağlantıda (USB/Bluetooth/aynı Wi-Fi). Denenmesi gereken: GNOME'un bu çağrıyı her sürümde kabul edip etmediği.
+   - **Unutulan şifreyi telefondan sıfırlama önerilmiyor:** telefonu ele geçiren bilgisayarın yönetici şifresini de değiştirebilir hâle gelir. Unutulan şifre için Ubuntu'nun kurtarma kipi doğru yol; "telefonla kilidi aç" günlük kullanımı karşılar.
 
 ## Ne test edildi
 
@@ -227,10 +239,11 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 | Şifre kanıtı, onay kodu, çerçeve | Python ve Kotlin aynı test vektörlerini üretiyor | geçti |
 | Basit mod, mini oynatıcı | Linux: yeni ayarların varsayılanı, eklenen özelliklerin sayfaları göstermesi, gerçek pencerede basit modu açıp kapatınca sayfaların gizlenmesi/görünmesi, sabitlenmiş mini oynatıcının müzik başlayınca açılması, şarkı bildiriminin yalnızca mini oynatıcı kapalıyken çıkması ve düğmeleri, çalanın izi (başladı / parça değişti / durdu, iki telefon); kurulum yardımcısında basit modda Wi-Fi'nin öne geçmesi. 24.04 ve 22.04 (GTK 4.6) kütüphaneleriyle. Android: birim testi, ekran görüntüleri; emülatör testi basit modda Dosyalar sekmesinin olmadığını ve “Dosya ve pano” eklenince göründüğünü dener | geçti / CI |
 | 0.8.0 düzeltmeleri | Mini oynatıcı: boş ve çalan hâlin aynı yüksekliği kapladığı, pencerenin yeniden boyutlanabildiği (Wayland'deki kapanmanın şüphelenilen nedeni); gerçek uygulama + sahte telefonla (şarkı, kapak) açıldı, 22.04 ve 24.04 kütüphaneleriyle. scrcpy: eski sistem sürümünün kullanılmadığı, indirmenin SHA-256 doğrulaması (yanlış özet reddedilir), durdurma. Kurulum: Xiaomi anahtarları ve eski telefon uygulaması (sahte adb ile), tanınmayan telefonda görülen USB aygıtları. Telefon çökme raporunun kaydedilmesi | geçti |
+| 0.8.1 | **Güncellenince yeniden başlama, uçtan uca:** uygulama arka planda başlatıldı, sürüm dosyası dpkg gibi (yeni dosya yazılıp üstüne taşınarak) değiştirildi; aynı süreç (aynı PID) yeni sürümle, yine arka planda yeniden başladı. 22.04 (GTK 4.6) ve 24.04 kütüphaneleriyle. Yayıncı kartının pakete girdiği ve imzanın kapsamında olduğu | geçti |
 | Ubuntu 22.04 uyumu | Ubuntu 22.04'ün gerçek GTK 4.6.9 / libadwaita 1.1.7 kütüphaneleriyle arayüz açıldı ve uyumluluk testleri geçti; çekirdek testleri 22.04'ün Python 3.10'uyla geçti. GitHub'daki derleme her push'ta ubuntu-22.04 ve ubuntu-24.04 makinelerinde çalışır | geçti |
 | Arayüzler | Linux: sanal ekranda ekran görüntüsü (geniş ve dar). Android: Paparazzi ekran görüntüsü | yukarıdaki görüntüler |
 | Android derlemesi | tam ve hafif sürüm + lint; hafif sürümün manifestinde bildirim erişimi olmadığı aapt ile denetlendi | 0 hata |
-| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.8.0_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
+| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.8.1_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
 | Gerçek telefonda | Ubuntu 22.04 + USB hata ayıklama açık telefon: USB tüneli ve bağlantı çalıştı (kullanıcı denemesi). 0.2.x'te bildirim ve müzik gelmedi; 0.4/0.5'in düzeltmesi gerçek telefonda henüz doğrulanmadı | kısmen |
 | **Denenmeyenler** | Mini oynatıcının Wayland'de artık kapanmadığı (şüphelenilen neden giderildi, gerçek Wayland'de denenmedi), gerçek bir Xiaomi'de anahtar okuma, gerçek GNOME'da şarkı bildiriminin görünüşü ve düğmeleri, mini oynatıcıda “Her zaman üstte” menüsü, Tailscale üzerinden bağlantı; gerçek telefonda 0.7.0 (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, Uygulama Merkezi'nden çift tıkla kurulum, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
 
