@@ -87,6 +87,8 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | `notification_removed` | telefon → bilgisayar | `key` |
 | `call` | telefon → bilgisayar | Arama (WhatsApp, Instagram, telefon…; bildirimi "süren" türden olduğu için `notification` olarak gitmez): `key`, `package`, `app`, `caller`, `text`, `state` (`ringing` / `ongoing`), `actions` [{`i`, `title`}]: uygulamanın kendi düğmeleri. Durum ya da düğmeler değişince yeniden gönderilir |
 | `call_ended` | telefon → bilgisayar | `key` |
+| `phone_info` | telefon → bilgisayar | Bağlanınca ve istenince: `manufacturer`, `model`, `android`, `sdk`, `security_patch`, `app_version`, `uptime_s`, `network`, `battery` {`level`, `charging`, `temp_c`, `health`}, `storage` / `ram` {`total`, `free`} (bayt). Kişisel bilgi (numara, Wi-Fi adı) yok |
+| `phone_info_request` | bilgisayar → telefon | — (bilgisayarda baloncuğa tıklanınca) |
 | `call_action` | bilgisayar → telefon | `key`, `action` (düğmenin `i`'si): telefonda o düğmeye basılmış gibi. Bildirim izni olan profil |
 | `call_volume` | bilgisayar → telefon | `dir`: 1 / -1, görüşme sesi (STREAM_VOICE_CALL) |
 | `app_icon` | telefon → bilgisayar | `package`, `data` (base64 PNG); paket başına oturumda bir kez |

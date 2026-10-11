@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.9.2" date="2026-10-12">
+      <description><p>Mini oynatıcı: "Üstte tut" X11'de pencereyi üstte tutar, Wayland'de nasıl yapılacağını gösterir (pencere menüsünü açmaya çalışan ve çökmeye yol açan düğme kaldırıldı); "müzik başlayınca aç" ayarı Medya sayfasında. Telefonun ekranı daha keskin ve akıcı (bit hızı ve çözünürlük ayarı). Telefonun sistem bilgileri üst karttaki baloncukta. Aramalar günlüğe yazılır.</p></description>
+    </release>
     <release version="0.9.1" date="2026-10-11">
       <description><p>Aramalar bilgisayarda: WhatsApp, Instagram ve telefon araması bildirim olarak gelir (önceden hiç gelmiyordu); çalarken Cevapla/Reddet, sürerken Kapat ve görüşme sesi. Oppo/Realme/OnePlus için geliştirici ayarı ipucu.</p></description>
     </release>

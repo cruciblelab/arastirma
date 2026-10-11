@@ -193,7 +193,6 @@ log "6) arama: telefonun kendi araması bilgisayarda; düğmeler bilgisayardan"
 press() {
     python3 "$HERE/emulator_dugme.py" "$EV" "$1" >> "$CMD" || fail "aramada “$1” düğmesi yok"
 }
-voice_volume() { adb shell dumpsys audio | grep -A3 "STREAM_VOICE_CALL" | grep -o "streamVolume:[0-9]*" | head -n1; }
 calls_now() { adb emu gsm list | grep -ci "inbound" || true; }
 last_call() {
     python3 -c 'import json,sys; ev=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]; c=[e["data"] for e in ev if e["event"]=="call"][-1]; print(c["app"], "|", c["caller"], "|", c["state"], "|", [a["title"] for a in c["actions"]])' "$EV"
@@ -217,12 +216,15 @@ press "answer|cevapla"
 wait_for "bilgisayardan cevaplandı (görüşme sürüyor)" 'of("call")[-1]["state"] == "ongoing"' 20
 last_call
 shot 05-arama-suruyor
-V0=$(voice_volume)
-python3 -c 'import json,sys; ev=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]; c=[e["data"] for e in ev if e["event"]=="call"][-1]; print(json.dumps({"method": "call_volume", "args": [c["device_id"], True]}))' "$EV" >> "$CMD"
-sleep 2
-V1=$(voice_volume)
-log "görüşme sesi: $V0 → $V1"
-[ -n "$V0" ] && [ "$V0" != "$V1" ] || fail "görüşme sesi bilgisayardan değişmedi ($V0 → $V1)"
+# Görüşme sesi: telefon sonucu (önce/sonra) bildirir. Kısarak denenir (varsayılan ses en üstte olabilir).
+python3 -c 'import json,sys; ev=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]; c=[e["data"] for e in ev if e["event"]=="call"][-1]; print(json.dumps({"method": "call_volume", "args": [c["device_id"], False]}))' "$EV" >> "$CMD"
+wait_for "görüşme sesi bilgisayardan kısıldı" \
+    'any(r["kind"] == "volume" and r["before"] is not None and r["after"] is not None and r["after"] < r["before"] for r in of("call_result"))' 15
+python3 -c 'import json,sys; ev=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]; print([e["data"] for e in ev if e["event"]=="call_result"])' "$EV"
+# Uygulamanın kendi ek düğmesi (telefon aramasında hoparlör) da bilgisayardan basılabilir.
+press "speaker|hoparlör"
+wait_for "hoparlör düğmesine basıldı (hata yok)" \
+    'any(r["kind"] == "action" and "peaker" in (r["title"] or "") and not r["error"] for r in of("call_result"))' 15
 press "hang up|kapat|end"
 wait_for "bilgisayardan kapatıldı" "len(of('call_ended')) > $E0" 20
 

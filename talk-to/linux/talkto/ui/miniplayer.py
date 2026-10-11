@@ -5,16 +5,17 @@ oynat/duraklat ve ince ilerleme. Pencerenin boyutu içerikle değişmez (boş h�
 kaplar): yeniden boyutlanamayan pencerenin içeriği büyüyünce GTK 4.6 Wayland'de protokol hatasıyla
 uygulamayı kapatabiliyordu.
 
-"Sabitle" açıkken müzik başlayınca kendiliğinden açılır. Uygulama pencereyi diğerlerinin üstünde
-tutamaz (Wayland izin vermez, GTK 4'te böyle bir çağrı da yok); ⤒ düğmesi pencere yöneticisinin
-menüsünü açar, oradan "Her zaman üstte" seçilir.
+📌 "Üstte tut": X11'de pencereyi diğerlerinin üstünde tutar; Wayland'de buna izin yok, nasıl yapılacağını
+söyler (boş yere sağ tık → "Her zaman üstte"). Müzik başlayınca kendiliğinden açılması ayrı bir ayar
+(Medya sayfası / Tercihler). Pencere menüsünü kendimiz açmaya çalışmak GTK 4.6 + Wayland'de çöküyordu;
+o düğme kaldırıldı.
 """
 
 import time
 
 from gi.repository import Adw, GLib, Gtk, Pango
 
-from . import compat
+from . import compat, ustte
 
 
 def _mmss(ms: int) -> str:
@@ -47,6 +48,7 @@ class MiniPlayer(Adw.Window):
         self._pending: dict[str, int] = {}
         self._timers: dict[str, int] = {}
         self._art = None
+        self._pin_guard = False
 
         self.toasts = Adw.ToastOverlay()
         handle = Gtk.WindowHandle()  # boş yerden tutup sürüklemek için
@@ -67,16 +69,12 @@ class MiniPlayer(Adw.Window):
         self.source = Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END,
                                 css_classes=["caption", "dim-label"])
         head.append(self.source)
-        self.pin = _small(_pin_icon(), "", toggle=True)
-        self.pin.set_active(app.config["mini_player_pinned"])
+        self.pin = _small(_pin_icon(), "Üstte tut: diğer pencerelerin üstünde kalsın", toggle=True)
         self.pin.connect("toggled", self._on_pin)
-        self._pin_tooltip()
         head.append(self.pin)
-        top_btn = _small("go-top-symbolic", "Diğer pencerelerin üstünde tut")
-        click = Gtk.GestureClick(propagation_phase=Gtk.PropagationPhase.CAPTURE)
-        click.connect("pressed", self._on_top)
-        top_btn.add_controller(click)
-        head.append(top_btn)
+        self.hint = Gtk.Popover(child=Gtk.Label(label=ustte.WAYLAND_HINT, wrap=True, max_width_chars=34,
+                                                margin_top=8, margin_bottom=8, margin_start=8, margin_end=8))
+        self.hint.set_parent(self.pin)
         home = _small("go-home-symbolic", "Talk To Android'i aç")
         home.connect("clicked", lambda *_: app.present())
         head.append(home)
@@ -130,30 +128,17 @@ class MiniPlayer(Adw.Window):
 
     # ---- düğmeler ---------------------------------------------------------------
 
-    def _pin_tooltip(self):
-        self.pin.set_tooltip_text("Sabitlendi: müzik başlayınca kendiliğinden açılır" if self.pin.get_active() else
-                                  "Sabitle: müzik başlayınca kendiliğinden açılsın")
-
     def _on_pin(self, btn):
-        self.app.set_pinned(btn.get_active())
-        self._pin_tooltip()
-        self.toast("Müzik başlayınca mini oynatıcı kendiliğinden açılacak" if btn.get_active() else
-                   "Sabitleme kaldırıldı")
-
-    def sync_pin(self):
-        if self.pin.get_active() != self.app.config["mini_player_pinned"]:
-            self.pin.set_active(self.app.config["mini_player_pinned"])
-
-    def _on_top(self, gesture, _n, _x, _y):
-        gesture.set_state(Gtk.EventSequenceState.CLAIMED)
-        surface = self.get_surface()
-        shown = False
-        try:
-            shown = bool(surface and surface.show_window_menu(gesture.get_current_event()))
-        except (AttributeError, TypeError):
-            pass
-        self.toast("Açılan menüden “Her zaman üstte”yi seç" if shown else
-                   "Alt+Boşluk ile pencere menüsünü aç ve “Her zaman üstte”yi seç")
+        """Üstte tut: X11'de gerçekten; Wayland'de yasak, nasıl yapılacağı gösterilir."""
+        if self._pin_guard:
+            return
+        if ustte.supported(self) and ustte.keep_above(self, btn.get_active()):
+            self.toast("Diğer pencerelerin üstünde" if btn.get_active() else "Artık üstte tutulmuyor")
+            return
+        self._pin_guard = True
+        btn.set_active(False)
+        self._pin_guard = False
+        self.hint.popup()
 
     def toast(self, text):
         self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(text), timeout=3))
@@ -186,6 +171,7 @@ class MiniPlayer(Adw.Window):
         return False
 
     def _on_close(self, *_):
+        self.hint.unparent()
         GLib.source_remove(self._timer)
         for t in self._timers.values():
             GLib.source_remove(t)

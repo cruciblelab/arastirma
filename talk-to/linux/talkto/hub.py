@@ -405,14 +405,22 @@ class Hub:
         if s:
             await s.send({"type": "media_control", "action": action, "value": value})
 
+    async def request_phone_info(self, device_id: str):
+        """Telefonun sistem bilgilerini yenile (baloncuğa tıklanınca)."""
+        s = self.sessions.get(device_id)
+        if s:
+            await s.send({"type": "phone_info_request"})
+
     async def call_action(self, device_id: str, key: str, index: int):
         """Aramadaki düğme (Cevapla, Reddet, Kapat): telefondaki uygulamanın kendi düğmesine basılır."""
         s = self.sessions.get(device_id)
+        log.info("arama düğmesi %s → %s", index, s.name if s else "telefon bağlı değil")
         if s:
             await s.send({"type": "call_action", "key": key, "action": int(index)})
 
     async def call_volume(self, device_id: str, up: bool):
         s = self.sessions.get(device_id)
+        log.info("görüşme sesi %s → %s", "+" if up else "−", s.name if s else "telefon bağlı değil")
         if s:
             await s.send({"type": "call_volume", "dir": 1 if up else -1})
 
@@ -591,6 +599,7 @@ class Session:
         self.registered = False
         self.closed = False
         self.battery = None
+        self.phone_info = None  # telefonun sistem bilgileri (telefon_bilgi.clean)
         self.phone: dict = {}  # telefonun bildirdiği durum (bildirim erişimi, dinleyici, sürüm...)
         self.media = {"active": False}
         self.media_key = None
@@ -615,7 +624,7 @@ class Session:
     def info(self) -> dict:
         pid, prof = self.config.profile_of(self.device_id)
         return {"device_id": self.device_id, "name": self.name, "model": self.model,
-                "kind": self.kind, "ip": self.ip, "battery": self.battery,
+                "kind": self.kind, "ip": self.ip, "battery": self.battery, "info": self.phone_info,
                 "media": self.media, "profile": pid, "profile_name": prof["name"], "phone": self.phone,
                 "problems": phone_problems(self.phone, prof, self.config["show_notifications"])}
 
@@ -912,6 +921,10 @@ class Session:
             self.battery = {"level": max(0, min(100, _int(msg.get("level"), -1))),
                             "charging": bool(msg.get("charging"))}
             hub.emit_status()
+        elif t == "phone_info":
+            from . import telefon_bilgi
+            self.phone_info = telefon_bilgi.clean(msg)
+            hub.emit_status()
         elif t == "phone_status":
             player = msg.get("player")
             self.phone = {"flavor": _s(msg.get("flavor"), 20), "sdk": _int(msg.get("sdk")),
@@ -939,11 +952,27 @@ class Session:
             pkg = _s(msg.get("package"), 200)
             actions = [{"i": _int(a.get("i")), "title": _s(a.get("title"), 40)}
                        for a in (msg.get("actions") or [])[:5] if isinstance(a, dict) and _s(a.get("title"), 40)]
+            log.info("arama (%s): %s, %s, düğmeler %s", self.name, _s(msg.get("app"), 100), msg.get("state"),
+                     [a["title"] for a in actions])
             hub.emit("call", {"device_id": self.device_id, "device": self.name, "key": _s(msg.get("key"), 300),
                               "package": pkg, "app": _s(msg.get("app"), 100) or pkg,
                               "caller": _s(msg.get("caller"), 200), "text": _s(msg.get("text"), 300),
                               "state": "ringing" if msg.get("state") == "ringing" else "ongoing",
                               "actions": actions, "icon": self.icons.get(pkg)})
+        elif t == "call_result":
+            # Telefon düğmeye bastı mı, görüşme sesi değişti mi: gerçek telefonda sorunu görebilmek için.
+            def num(v):
+                return v if isinstance(v, int) and not isinstance(v, bool) else None
+            r = {"device_id": self.device_id, "kind": "volume" if msg.get("kind") == "volume" else "action",
+                 "title": _s(msg.get("title"), 60) or None, "error": _s(msg.get("error"), 300) or None,
+                 "before": num(msg.get("before")), "after": num(msg.get("after")), "max": num(msg.get("max")),
+                 "mode": _s(msg.get("mode"), 40) or None}
+            if r["kind"] == "volume":
+                log.info("görüşme sesi (%s): %s → %s / %s, kip: %s%s", self.name, r["before"], r["after"], r["max"],
+                         r["mode"], f", hata: {r['error']}" if r["error"] else "")
+            else:
+                log.info("arama düğmesi (%s): %s → %s", self.name, r["title"], r["error"] or "basıldı")
+            hub.emit("call_result", r)
         elif t == "call_ended":
             hub.emit("call_ended", {"device_id": self.device_id, "key": _s(msg.get("key"), 300)})
         elif t == "notification_removed":

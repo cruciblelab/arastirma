@@ -26,6 +26,24 @@
   font-size: 0.85em;
   font-weight: 600;
 }
+/* Tıklanabilir baloncuk (telefonun sistem bilgileri): düğme kalıbı değil, baloncuk görünümü. */
+.chip-button > button {
+  padding: 3px 10px;
+  min-height: 0;
+  border-radius: 99px;
+  background-color: alpha(white, 0.18);
+  color: inherit;
+  font-size: 0.85em;
+  font-weight: 600;
+  box-shadow: none;
+}
+.chip-button > button:hover {
+  background-color: alpha(white, 0.28);
+}
+.chip.chip-button {
+  padding: 0;
+  background: none;
+}
 .dot {
   min-width: 9px;
   min-height: 9px;

@@ -257,6 +257,7 @@ object Talk {
                         ensureListener()
                         PhoneMedia.push()
                         sendPhoneStatus()
+                        runCatching { send(PhoneInfo.collect(app)) }
                         CrashLog.takePending(app)?.let { send(JSONObject().put("type", "crash_report").put("text", it)) }
                         flushPending()
                     }
@@ -424,10 +425,14 @@ object Talk {
                     msg.optLong("uptime"), if (msg.isNull("volume")) null else msg.optInt("volume"), msg.optBoolean("muted"))
                 "notify" -> Notifs.fromComputer(app, msg.optString("title"), msg.optString("text"))
                 "call_action" -> if (notificationsOn()) {
-                    if (!Calls.press(app, msg.optString("key"), msg.optInt("action", -1)))
-                        say("Arama bitmiş ya da düğme artık geçerli değil")
+                    val (title, error) = Calls.press(app, msg.optString("key"), msg.optInt("action", -1))
+                    send(JSONObject().put("type", "call_result").put("kind", "action")
+                        .put("title", title ?: JSONObject.NULL).put("error", error ?: JSONObject.NULL))
                 }
-                "call_volume" -> if (notificationsOn()) Calls.volume(app, msg.optInt("dir") > 0)
+                "call_volume" -> if (notificationsOn()) {
+                    send(Calls.volume(app, msg.optInt("dir") > 0).put("type", "call_result"))
+                }
+                "phone_info_request" -> runCatching { send(PhoneInfo.collect(app)) }
                 "ring" -> Notifs.ring(app)
                 "ring_stop" -> Notifs.stopRing(app)
                 "clipboard" -> main.post {

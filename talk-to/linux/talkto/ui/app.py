@@ -186,8 +186,6 @@ class App(Adw.Application):
         self.config.set("mini_player_pinned", bool(on))
         if self.window:
             self.window.sync_pin()
-        if self.mini:
-            self.mini.sync_pin()
 
     def _refresh_mini(self):
         if not self.mini:
@@ -512,6 +510,8 @@ class App(Adw.Application):
                 w.add_notification(d)
         elif event == "call":
             self._call(d)
+        elif event == "call_result":
+            self._call_result(d)
         elif event == "call_ended":
             self.notifier.close(f"call|{d['device_id']}|{d['key']}")
         elif event == "notification_removed":
@@ -695,14 +695,25 @@ class App(Adw.Application):
         actions = {}
         for a in d["actions"][:3]:
             actions[f"a{a['i']}"] = (a["title"], lambda i=a["i"]: self.call("call_action", did, key, i))
-        if not ringing:
+        if not ringing and len(actions) <= 1:  # bildirim en çok 3 düğme: ses ancak ikisi birden sığarsa
             for k, label, up in (("ses_azalt", "Ses −", False), ("ses_artir", "Ses +", True)):
-                if len(actions) < 3:
-                    actions[k] = (label, lambda up=up: self.call("call_volume", did, up))
+                actions[k] = (label, lambda up=up: self.call("call_volume", did, up))
         self.notifier.show(f"{d['app']} {'araması' if ringing else 'görüşmesi'}: {who}",
                            " · ".join(x for x in (d["text"], d["device"]) if x), key=f"call|{did}|{key}",
                            app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"), actions=actions,
                            urgent=ringing, resident=not ringing)
+
+    def _call_result(self, d):
+        """Telefon düğmeye basamadıysa ya da ses değişmediyse nedenini söyle (sessizce çalışmıyor gibi kalmasın)."""
+        if d["kind"] == "volume":
+            if d["error"]:
+                self.toast(f"Görüşme sesi değiştirilemedi: {d['error']}")
+            elif d["before"] == d["after"]:
+                edge = d["after"] in (0, d["max"])
+                self.toast("Görüşme sesi zaten en uçta" if edge else
+                           f"Telefon görüşme sesini değiştirmedi (kip: {d['mode']})")
+        elif d["error"]:
+            self.toast(f"Telefon “{d['title'] or 'düğme'}” düğmesine basamadı: {d['error']}")
 
     def _screenshot_taken(self, device_id):
         # Ubuntu 22.04'teki portal sormadan veriyor: en azından kullanıcı haberdar olsun.

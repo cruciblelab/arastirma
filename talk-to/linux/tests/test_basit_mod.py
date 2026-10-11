@@ -143,12 +143,46 @@ class WindowTest(unittest.TestCase):
                 probe.show_state("p", "Pixel", song("Çok çok uzun bir şarkı adı " * 4), None)
                 seen["mini_heights"] = (empty_h, probe.get_content().measure(Gtk.Orientation.VERTICAL, 440)[1])
                 seen["mini_resizable"] = probe.get_resizable()
+                # Üstte tut: X11'de (sanal ekran) pencere yöneticisinden istenir, düğme basılı kalır;
+                # Wayland'de (taklit) basılı kalmaz, nasıl yapılacağını söyleyen balon açılır.
+                probe.present()
+                probe.pin.set_active(True)
+                seen["pin_x11"] = probe.pin.get_active()
+                from talkto.ui import ustte
+                real = ustte.supported
+                ustte.supported = lambda w: False
+                probe.pin.set_active(False)
+                probe.pin.set_active(True)
+                seen["pin_wayland"] = (probe.pin.get_active(), probe.hint.get_visible())
+                ustte.supported = real
                 probe.close()
                 app.set_pinned(True)
                 app.on_event("status", {**app.hub.status(), "sessions": [
                     {"device_id": "p", "name": "Pixel", "kind": "wifi", "ip": "1.2.3.4", "media": {"active": False},
                      "problems": [], "profile_name": "Benim telefonum"}]})
                 app.on_event("media", {"device_id": "p", "state": song("Firuze")})
+                # Üst karttaki baloncuk: telefonun sistem bilgileri; açılınca tazesi istenir.
+                asked = []
+                real_call = app.call
+                app.call = lambda *a: asked.append(a)
+                st = app.hub.status()
+                st["sessions"] = [{"device_id": "p", "name": "Pixel", "kind": "usb", "ip": "", "problems": [],
+                                   "media": {"active": False}, "profile_name": "Benim telefonum",
+                                   "battery": {"level": 76, "charging": True},
+                                   "info": {"manufacturer": "Google", "model": "Pixel 8", "android": "14",
+                                            "sdk": 34}}]
+                app.on_event("status", st)
+                chip = w.hero_chips.get_first_child()
+                chip.popup()
+                grid = chip.get_popover().get_child()
+                labels = []
+                child = grid.get_first_child()
+                while child:
+                    labels.append(child.get_label())
+                    child = child.get_next_sibling()
+                seen["chip"] = (chip.get_label(), labels, asked)
+                chip.popdown()
+                app.call = real_call
                 seen["mini"] = bool(app.mini and app.mini.get_visible())
                 seen["mini_shows"] = app.mini.device_id if app.mini else None
                 seen["pin_switch"] = w.sw_pin.get_active()
@@ -173,6 +207,9 @@ class WindowTest(unittest.TestCase):
                                           actions=[{"i": 0, "title": "Kapat"}]))
                 seen["calls"] = [(t, kw["urgent"], kw["resident"], {k: v[0] for k, v in kw["actions"].items()})
                                  for t, kw in calls]
+                app.on_event("call", dict(base, state="ongoing", key="k2",
+                                          actions=[{"i": 0, "title": "Hang up"}, {"i": 1, "title": "Turn speaker off"}]))
+                seen["call_two"] = {k: v[0] for k, v in calls[-1][1]["actions"].items()}
                 calls[0][1]["actions"]["a1"][1]()
                 calls[1][1]["actions"]["ses_artir"][1]()
                 seen["call_sent"] = sent
@@ -190,11 +227,18 @@ class WindowTest(unittest.TestCase):
         self.assertTrue(seen["extra"]["komutlar"])
         self.assertFalse(seen["extra"]["dosyalar"])
         self.assertEqual(seen["extras"], ["commands"])
+        label, info_labels, asked = seen["chip"]
+        self.assertEqual(label, "USB · %76 ⚡")
+        self.assertIn("Google Pixel 8", info_labels)
+        self.assertIn("Android 14 (API 34)", info_labels)
+        self.assertEqual(asked, [("request_phone_info", "p")])
         self.assertTrue(seen["mini"])
         self.assertEqual(seen["mini_shows"], "p")
         self.assertTrue(seen["pin_switch"])
         self.assertEqual(seen["mini_heights"][0], seen["mini_heights"][1])
         self.assertTrue(seen["mini_resizable"])
+        self.assertTrue(seen["pin_x11"])
+        self.assertEqual(seen["pin_wayland"], (False, True))
         self.assertEqual(seen["popup_with_mini"], 0)
         (title, body, kw), = seen["popup"]
         self.assertEqual(title, "Firuze")
@@ -204,6 +248,8 @@ class WindowTest(unittest.TestCase):
         self.assertEqual(ring, ("WhatsApp araması: Ayşe", True, False, {"a0": "Reddet", "a1": "Cevapla"}))
         self.assertEqual(ongoing, ("WhatsApp görüşmesi: Ayşe", False, True,
                                    {"a0": "Kapat", "ses_azalt": "Ses −", "ses_artir": "Ses +"}))
+        # Uygulama iki düğme koyarsa (Kapat, Hoparlör) ses düğmeleri sığmaz: yarım "Ses −" çıkmaz.
+        self.assertEqual(seen["call_two"], {"a0": "Hang up", "a1": "Turn speaker off"})
         self.assertEqual(seen["call_sent"], [("call_action", "p", "k", 1), ("call_volume", "p", True)])
 
 

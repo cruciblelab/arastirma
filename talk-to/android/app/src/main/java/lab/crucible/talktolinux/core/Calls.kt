@@ -56,26 +56,40 @@ object Calls {
 
     fun forget(key: String) = actions.remove(key) != null
 
-    /** Bilgisayar düğmeye bastı: uygulamanın kendi niyeti çalıştırılır (telefonda basmak gibi). */
-    fun press(ctx: Context, key: String, index: Int): Boolean {
-        val a = actions[key]?.getOrNull(index) ?: return false
-        return runCatching {
+    /** Bilgisayar düğmeye bastı: uygulamanın kendi niyeti çalıştırılır (telefonda basmak gibi).
+     *  Sonuç: (düğmenin adı, hata ya da null) — bilgisayara bildirilir, günlüğe yazılır. */
+    fun press(ctx: Context, key: String, index: Int): Pair<String?, String?> {
+        val a = actions[key]?.getOrNull(index)
+            ?: return null to "düğme bulunamadı (arama bitmiş ya da bildirim değişmiş olabilir)"
+        val title = a.title?.toString()
+        return title to runCatching {
             if (Build.VERSION.SDK_INT >= 34) {
                 // "Cevapla" çoğu uygulamada arama ekranını açar: arka plandan açmaya izin verdiğimizi söyle.
                 val opts = ActivityOptions.makeBasic().setPendingIntentBackgroundActivityStartMode(
                     ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
                 a.actionIntent.send(ctx, 0, null, null, null, null, opts.toBundle())
             } else a.actionIntent.send()
-            true
-        }.getOrDefault(false)  // PendingIntent.CanceledException: arama bu arada bitti
+            null
+        }.getOrElse { e -> "${e.javaClass.simpleName}: ${e.message ?: "telefon düğmeyi çalıştıramadı"}" }
     }
 
-    /** Görüşme sesi (WhatsApp ve Instagram aramaları da bu ses akışını kullanır). */
-    fun volume(ctx: Context, up: Boolean) {
-        val am = ctx.getSystemService(AudioManager::class.java) ?: return
+    /** Görüşme sesi (WhatsApp ve Instagram aramaları da bu ses akışını kullanır).
+     *  Sonuç bilgisayara gider: önceki/sonraki seviye, en yüksek, telefonun ses kipi ve varsa hata. */
+    fun volume(ctx: Context, up: Boolean): org.json.JSONObject {
+        val r = org.json.JSONObject().put("kind", "volume")
+        val am = ctx.getSystemService(AudioManager::class.java) ?: return r.put("error", "ses servisi yok")
+        val stream = AudioManager.STREAM_VOICE_CALL
+        r.put("before", am.getStreamVolume(stream)).put("max", am.getStreamMaxVolume(stream))
+            .put("mode", when (am.mode) {
+                AudioManager.MODE_IN_CALL -> "telefon görüşmesi"
+                AudioManager.MODE_IN_COMMUNICATION -> "internet araması"
+                AudioManager.MODE_RINGTONE -> "çalıyor"
+                else -> "normal (görüşme yok)"
+            })
         runCatching {
-            am.adjustStreamVolume(AudioManager.STREAM_VOICE_CALL,
-                if (up) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
-        }
+            am.adjustStreamVolume(stream, if (up) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
+                AudioManager.FLAG_SHOW_UI)
+        }.onFailure { r.put("error", "${it.javaClass.simpleName}: ${it.message}") }
+        return r.put("after", am.getStreamVolume(stream))
     }
 }

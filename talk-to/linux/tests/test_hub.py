@@ -271,6 +271,18 @@ class HubTest(_Base):
         self.assertEqual((await p.recv_type("media_control"))["action"], "next")
         await p.close()
 
+    async def test_phone_info(self):
+        """Telefonun sistem bilgileri durumda görünür; bilgisayar tazesini isteyebilir."""
+        p = await self.paired_phone()
+        await p.send({"type": "phone_info", "manufacturer": "Xiaomi", "model": "2311DRK48G", "android": "14",
+                      "battery": {"level": 80, "charging": False, "temp_c": 30.0}})
+        await asyncio.sleep(0.2)
+        info = self.hub.status()["sessions"][0]["info"]
+        self.assertEqual((info["model"], info["battery"]["level"]), ("2311DRK48G", 80))
+        await self.hub.request_phone_info(p.device_id)
+        self.assertEqual((await p.recv_type("phone_info_request"))["type"], "phone_info_request")
+        await p.close()
+
     async def test_calls_with_their_buttons(self):
         """WhatsApp/Instagram araması bilgisayarda görünür; düğmeler ve görüşme sesi telefona gider."""
         p = await self.paired_phone()
@@ -291,6 +303,14 @@ class HubTest(_Base):
         await p.send(dict(call, state="sürüyor?", actions=[{"i": 0, "title": "Kapat"}]))
         await self.hub.call_volume(p.device_id, False)
         self.assertEqual((await p.recv_type("call_volume"))["dir"], -1)
+        # Telefon sonucu bildirir: ses kaçtan kaça, düğmeye basılamadıysa neden (günlüğe ve ekrana).
+        await p.send({"type": "call_result", "kind": "volume", "before": 4, "after": 3, "max": 5,
+                      "mode": "internet araması", "error": None})
+        await p.send({"type": "call_result", "kind": "action", "title": "Kapat", "error": "CanceledException: x"})
+        await asyncio.sleep(0.2)
+        vol, act = self.of("call_result")[-2:]
+        self.assertEqual((vol["kind"], vol["before"], vol["after"], vol["mode"]), ("volume", 4, 3, "internet araması"))
+        self.assertEqual((act["kind"], act["title"], act["error"]), ("action", "Kapat", "CanceledException: x"))
         await p.send({"type": "call_ended", "key": "0|com.whatsapp|7"})
         await asyncio.sleep(0.2)
         self.assertEqual(self.of("call")[-1]["state"], "ongoing")  # bilinmeyen durum: süren sayılır
@@ -892,7 +912,8 @@ exit 0""")
         ok, msg = await self.hub.mirror_session(p.device_id)
         self.assertTrue(ok, msg)
         await self.wait_call("scrcpy")
-        self.assertIn("scrcpy -s ABC123 --window-title Test Telefonu · Talk To Android --stay-awake", self.calls())
+        self.assertIn("scrcpy -s ABC123 --window-title Test Telefonu · Talk To Android --stay-awake "
+                      "--video-bit-rate=16M --max-size=1920 --max-fps=60", self.calls())
         ok, msg = await self.hub.mirror_session(p.device_id)  # açıkken ikinci pencere açılmaz
         self.assertTrue(ok)
         from talkto import ipc  # terminalden: talk-to-android ekran

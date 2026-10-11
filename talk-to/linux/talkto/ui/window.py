@@ -550,6 +550,12 @@ class Window(Adw.ApplicationWindow):
             self.hero_sub.set_text("Telefonun bağlanabilmesi için Wi-Fi, USB ya da Bluetooth'tan birini aç.")
         self.hero_button.set_visible(not sessions)
         self.hero_button.set_label("Bağlan" if not sessions and self._usb_connectable() else "Bağlantı ayarları")
+        # Baloncuklar yalnızca yazıları değişince yeniden kurulur: açık bilgi penceresi her durum
+        # güncellemesinde (pil, telefon bilgisi) kapanmasın.
+        chips = [(s["device_id"], s["kind"], s.get("battery")) for s in sessions]
+        if not self._changed("hero_chips", chips):
+            self.hero_chips.set_visible(bool(sessions))
+            return
         child = self.hero_chips.get_first_child()
         while child:
             nxt = child.get_next_sibling()
@@ -560,8 +566,30 @@ class Window(Adw.ApplicationWindow):
             if s.get("battery"):
                 b = s["battery"]
                 text += f" · %{b['level']}" + (" ⚡" if b["charging"] else "")
-            self.hero_chips.append(Gtk.Label(label=text, css_classes=["chip"]))
+            # Baloncuğa tıklayınca telefonun sistem bilgileri (model, Android, pil, depolama, bellek...).
+            chip = Gtk.MenuButton(label=text, css_classes=["chip", "chip-button"],
+                                  tooltip_text="Telefonun sistem bilgileri")
+            chip.set_create_popup_func(lambda b, did=s["device_id"]: self._phone_info_popup(b, did))
+            self.hero_chips.append(chip)
         self.hero_chips.set_visible(bool(sessions))
+
+    def _phone_info_popup(self, button, device_id):
+        """Açılırken son bilinen bilgiler gösterilir ve telefondan tazesi istenir (gelince yeniden çizilir)."""
+        from .. import telefon_bilgi
+        self.app.call("request_phone_info", device_id)
+        s = next((x for x in self.status.get("sessions", []) if x["device_id"] == device_id), {})
+        grid = Gtk.Grid(column_spacing=14, row_spacing=6, margin_top=10, margin_bottom=10, margin_start=12,
+                        margin_end=12)
+        lines = telefon_bilgi.rows(s.get("info")) or [("", "Telefon bilgileri alınıyor… (telefondaki Talk To "
+                                                           "Linux 0.9.2 ya da sonrası gerekir)")]
+        title = Gtk.Label(label=s.get("name") or "Telefon", xalign=0, css_classes=["heading"])
+        grid.attach(title, 0, 0, 2, 1)
+        for i, (k, v) in enumerate(lines, start=1):
+            grid.attach(Gtk.Label(label=k, xalign=0, css_classes=["dim-label"]), 0, i, 1, 1)
+            grid.attach(Gtk.Label(label=v, xalign=0, wrap=True, max_width_chars=44, selectable=True), 1, i, 1, 1)
+        pop = button.get_popover() or Gtk.Popover()
+        pop.set_child(grid)
+        button.set_popover(pop)
 
     def _usb_connectable(self):
         """Bağlı telefon yokken USB'de uygulaması hazır (güncel) ilk telefon; yoksa None."""
@@ -883,8 +911,8 @@ class Window(Adw.ApplicationWindow):
         b.connect("clicked", lambda *_: self.app.open_mini_player())
         mini.add_suffix(b)
         g.add(mini)
-        self.sw_pin = compat.SwitchRow(title="Mini oynatıcıyı sabitle",
-                                       subtitle="Telefonda müzik başlayınca kendiliğinden açılır")
+        self.sw_pin = compat.SwitchRow(title="Müzik başlayınca mini oynatıcıyı aç",
+                                       subtitle="Telefonda müzik başlayınca mini oynatıcı kendiliğinden açılır")
         self.sw_pin.set_active(self.app.config["mini_player_pinned"])
         self.sw_pin.connect("notify::active", lambda r, _: not self._updating and self.app.set_pinned(r.get_active()))
         g.add(self.sw_pin)

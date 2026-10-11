@@ -144,6 +144,17 @@ def install_command() -> list[str] | None:
     return None
 
 
+def quality_args(serial: str) -> list[str]:
+    """Görüntü kalitesi. scrcpy'nin varsayılanı (8 Mbit/s, ekranın tam çözünürlüğü, sınırsız kare) yeni
+    telefonların 2,7K / 120 Hz ekranında bulanık ve takılgan çıkıyordu (~10 kare/s): telefonun kodlayıcısı o
+    çözünürlükte yetişemiyor, bit hızı da yetmiyor. Kısa kenar en çok 1920 piksele indirilir, bit hızı
+    artırılır, kare hızı 60'ta tutulur. Wi-Fi'de (ip:port) bant genişliği az: daha düşük.
+    """
+    if ":" in serial:
+        return ["--video-bit-rate=6M", "--max-size=1600", "--max-fps=60"]
+    return ["--video-bit-rate=16M", "--max-size=1920", "--max-fps=60"]
+
+
 class Mirror:
     """Açık scrcpy pencereleri (aynı telefon için ikinci pencere açılmaz)."""
 
@@ -170,7 +181,7 @@ class Mirror:
                 if shutil.which("adb"):
                     env["ADB"] = shutil.which("adb")
                 self.procs[serial] = subprocess.Popen(
-                    [exe, "-s", serial, "--window-title", title, "--stay-awake"], env=env,
+                    [exe, "-s", serial, "--window-title", title, "--stay-awake", *quality_args(serial)], env=env,
                     stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
         except OSError as e:
             return False, f"scrcpy açılamadı: {e}"
