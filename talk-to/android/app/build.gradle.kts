@@ -12,8 +12,8 @@ android {
         applicationId = "lab.crucible.talktolinux"
         minSdk = 29
         targetSdk = 35
-        versionCode = 14
-        versionName = "0.9.0"
+        versionCode = 15
+        versionName = "0.9.1"
     }
 
     // İki sürüm, aynı uygulama kimliği (biri diğerinin üzerine kurulabilir):

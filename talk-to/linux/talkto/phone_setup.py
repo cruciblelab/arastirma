@@ -14,8 +14,9 @@ from .usb import PHONE_PACKAGE, _adb
 LISTENER = f"{PHONE_PACKAGE}/{PHONE_PACKAGE}.service.NotificationListener"
 
 # Bazı üreticilerde (Xiaomi/MIUI, Oppo/ColorOS) adb'nin izin vermesi ayrı bir anahtar ister.
-LOCKED = ("İzin verilemedi: bu telefon adb'nin izin vermesini engelliyor. Xiaomi'de Geliştirici seçenekleri → "
-          "“USB hata ayıklama (Güvenlik ayarları)”nı aç; diğerlerinde bu adımı telefonda elle yap.")
+LOCKED = ("İzin verilemedi: bu telefon adb'nin izin vermesini engelliyor. Geliştirici seçeneklerinde Xiaomi'de "
+          "“USB hata ayıklama (Güvenlik ayarları)”nı, Oppo/Realme/OnePlus'ta “İzin izlemeyi devre dışı bırak”ı aç; "
+          "diğerlerinde bu adımı telefonda elle yap.")
 
 
 def _item(key, title, ok, message=""):

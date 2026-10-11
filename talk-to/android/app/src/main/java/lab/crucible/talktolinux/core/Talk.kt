@@ -423,6 +423,11 @@ object Talk {
                     msg.optJSONObject("battery")?.let { it.optInt("level") to it.optBoolean("charging") },
                     msg.optLong("uptime"), if (msg.isNull("volume")) null else msg.optInt("volume"), msg.optBoolean("muted"))
                 "notify" -> Notifs.fromComputer(app, msg.optString("title"), msg.optString("text"))
+                "call_action" -> if (notificationsOn()) {
+                    if (!Calls.press(app, msg.optString("key"), msg.optInt("action", -1)))
+                        say("Arama bitmiş ya da düğme artık geçerli değil")
+                }
+                "call_volume" -> if (notificationsOn()) Calls.volume(app, msg.optInt("dir") > 0)
                 "ring" -> Notifs.ring(app)
                 "ring_stop" -> Notifs.stopRing(app)
                 "clipboard" -> main.post {

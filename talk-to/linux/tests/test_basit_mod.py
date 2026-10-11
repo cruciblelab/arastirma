@@ -160,6 +160,22 @@ class WindowTest(unittest.TestCase):
                 app.mini.close()
                 app._track_popup("p")
                 seen["popup"] = shown
+                # Arama: çalarken acil ve uygulamanın düğmeleri; sürerken kalıcı, Kapat + görüşme sesi.
+                calls = []
+                app.notifier.show = lambda title, body="", **kw: calls.append((title, kw))
+                sent = []
+                app.call = lambda *a: sent.append(a)
+                base = {"device_id": "p", "device": "Pixel", "key": "k", "app": "WhatsApp", "caller": "Ayşe",
+                        "text": "Gelen sesli arama", "icon": None}
+                app.on_event("call", dict(base, state="ringing", actions=[{"i": 0, "title": "Reddet"},
+                                                                         {"i": 1, "title": "Cevapla"}]))
+                app.on_event("call", dict(base, state="ongoing", text="Sesli arama",
+                                          actions=[{"i": 0, "title": "Kapat"}]))
+                seen["calls"] = [(t, kw["urgent"], kw["resident"], {k: v[0] for k, v in kw["actions"].items()})
+                                 for t, kw in calls]
+                calls[0][1]["actions"]["a1"][1]()
+                calls[1][1]["actions"]["ses_artir"][1]()
+                seen["call_sent"] = sent
             finally:
                 app._quit()
             return False
@@ -184,6 +200,11 @@ class WindowTest(unittest.TestCase):
         self.assertEqual(title, "Firuze")
         self.assertIn("Sezen Aksu", body)
         self.assertEqual(set(kw["actions"]), {"default", "play_pause", "next"})
+        ring, ongoing = seen["calls"]
+        self.assertEqual(ring, ("WhatsApp araması: Ayşe", True, False, {"a0": "Reddet", "a1": "Cevapla"}))
+        self.assertEqual(ongoing, ("WhatsApp görüşmesi: Ayşe", False, True,
+                                   {"a0": "Kapat", "ses_azalt": "Ses −", "ses_artir": "Ses +"}))
+        self.assertEqual(seen["call_sent"], [("call_action", "p", "k", 1), ("call_volume", "p", True)])
 
 
 if __name__ == "__main__":

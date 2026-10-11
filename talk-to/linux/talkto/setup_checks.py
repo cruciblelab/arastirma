@@ -73,6 +73,11 @@ XIAOMI_PERMISSIONS = ("Ayarlar → Ek ayarlar → Geliştirici seçenekleri → 
                       "Kapalıyken bilgisayar telefondaki izinleri veremez; istersen izinleri telefonda elle ver.")
 XIAOMI_INSTALL = ("Geliştirici seçenekleri → “USB üzerinden yükle”yi aç (Mi hesabı ister). Kapalıyken bilgisayar "
                   "Talk To Linux'u kuramaz ya da güncelleyemez.")
+# Oppo/Realme/OnePlus (ColorOS): adb'nin izin vermesi için Geliştirici seçeneklerinde ayrı anahtar. Durumu adb'den
+# güvenilir okunamıyor; yalnızca eksik izin varken ne yapılacağı söylenir.
+COLOROS = ("oppo", "realme", "oneplus")
+COLOROS_PERMISSIONS = ("Bilgisayarın verebilmesi için Geliştirici seçenekleri → “İzin izlemeyi devre dışı bırak”ı aç "
+                       "(Oppo/Realme/OnePlus) ya da telefonda Talk To Linux → İzinler ve yetkiler'den kendin ver.")
 PERM_NAMES = {"listener": "bildirim erişimi", "battery": "pil kısıtlamasının kaldırılması", "post": "bildirim izni"}
 
 
@@ -129,6 +134,8 @@ def _phone_permissions(d: dict | None, session: dict | None) -> Item | None:
     if xiaomi(d) and d.get("xiaomi_permissions") is False:
         return Item("Telefondaki izinler", text + " Bilgisayarın verebilmesi için yukarıdaki Xiaomi ayarını aç ya da "
                     "telefonda Talk To Linux → İzinler ve yetkiler'den kendin ver.", False)
+    if (d.get("maker") or "").casefold() in COLOROS:
+        text += " " + COLOROS_PERMISSIONS
     return Item("Telefondaki izinler", text + " “Tamamla” eksikleri USB'den bir kerede verir; telefonda menü "
                 "aramana gerek yok.", False, f"phone_setup:{d['serial']}", "Tamamla")
 

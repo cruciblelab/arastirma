@@ -85,6 +85,10 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | `crash_report` | telefon → bilgisayar | `text`: telefondaki uygulama son çalışmasında çöktüyse yığın izi (en çok 20.000 karakter); bağlanınca bir kez. Bilgisayar `~/.cache/talk-to-android/telefon-cokme-*.txt` olarak kaydeder ve haber verir |
 | `notification` | telefon → bilgisayar | `key`, `package`, `app`, `title`, `text`, `time_ms` |
 | `notification_removed` | telefon → bilgisayar | `key` |
+| `call` | telefon → bilgisayar | Arama (WhatsApp, Instagram, telefon…; bildirimi "süren" türden olduğu için `notification` olarak gitmez): `key`, `package`, `app`, `caller`, `text`, `state` (`ringing` / `ongoing`), `actions` [{`i`, `title`}]: uygulamanın kendi düğmeleri. Durum ya da düğmeler değişince yeniden gönderilir |
+| `call_ended` | telefon → bilgisayar | `key` |
+| `call_action` | bilgisayar → telefon | `key`, `action` (düğmenin `i`'si): telefonda o düğmeye basılmış gibi. Bildirim izni olan profil |
+| `call_volume` | bilgisayar → telefon | `dir`: 1 / -1, görüşme sesi (STREAM_VOICE_CALL) |
 | `app_icon` | telefon → bilgisayar | `package`, `data` (base64 PNG); paket başına oturumda bir kez |
 | `media_state` | iki yön | `active`, `player`, `title`, `artist`, `album`, `playing`, `position_ms`, `duration_ms`, `volume` (0-100 ya da null), `can_seek`, `art_id` |
 | `media_art` | iki yön | `art_id`, `mime`, `data` (base64); yalnızca kapak değişince |

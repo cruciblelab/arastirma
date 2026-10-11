@@ -33,13 +33,14 @@ class Notifier:
             self.bus = None
 
     def show(self, title: str, body: str = "", *, key: str | None = None, app_name: str = "Talk To Android",
-             icon: str | None = None, actions: dict | None = None, urgent=False):
-        """actions: {'kimlik': ('Etiket', geri_çağrı)}"""
+             icon: str | None = None, actions: dict | None = None, urgent=False, resident=False):
+        """actions: {'kimlik': ('Etiket', geri_çağrı)}; resident: düğmeye basınca kapanmasın (ör. ses +/−)."""
         if not self.bus:
             return
         if key and key in self.pending:
             self.pending[key].update(next=(title, body, dict(key=key, app_name=app_name, icon=icon,
-                                                             actions=actions, urgent=urgent)), close=False)
+                                                             actions=actions, urgent=urgent, resident=resident)),
+                                     close=False)
             return
         if key:
             self.pending[key] = {"next": None, "close": False}
@@ -49,6 +50,8 @@ class Notifier:
             acts += [k, label]
         hints = {"desktop-entry": GLib.Variant("s", APP_ID),
                  "urgency": GLib.Variant("y", 2 if urgent else 1)}
+        if resident:
+            hints["resident"] = GLib.Variant("b", True)
         args = GLib.Variant("(susssasa{sv}i)", (
             app_name, replaces, icon or APP_ID, title, GLib.markup_escape_text(body or ""),
             acts, hints, -1))

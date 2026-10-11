@@ -271,6 +271,38 @@ class HubTest(_Base):
         self.assertEqual((await p.recv_type("media_control"))["action"], "next")
         await p.close()
 
+    async def test_calls_with_their_buttons(self):
+        """WhatsApp/Instagram araması bilgisayarda görünür; düğmeler ve görüşme sesi telefona gider."""
+        p = await self.paired_phone()
+        call = {"type": "call", "key": "0|com.whatsapp|7", "package": "com.whatsapp", "app": "WhatsApp",
+                "caller": "Ayşe", "text": "Gelen sesli arama", "state": "ringing",
+                "actions": [{"i": 0, "title": "Reddet"}, {"i": 1, "title": "Cevapla"}, {"i": 2, "title": ""},
+                            "bozuk", {"i": 3, "title": "x" * 500}]}
+        await p.send(call)
+        await asyncio.sleep(0.2)
+        c = self.of("call")[-1]
+        self.assertEqual((c["caller"], c["state"], c["app"]), ("Ayşe", "ringing", "WhatsApp"))
+        self.assertEqual([a["title"] for a in c["actions"]][:2], ["Reddet", "Cevapla"])
+        self.assertEqual(len(c["actions"]), 3)  # boş başlık ve bozuk girdi atlanır
+        self.assertEqual(len(c["actions"][2]["title"]), 40)
+        await self.hub.call_action(p.device_id, c["key"], 1)
+        self.assertEqual(await p.recv_type("call_action"), {"type": "call_action", "key": "0|com.whatsapp|7",
+                                                             "action": 1})
+        await p.send(dict(call, state="sürüyor?", actions=[{"i": 0, "title": "Kapat"}]))
+        await self.hub.call_volume(p.device_id, False)
+        self.assertEqual((await p.recv_type("call_volume"))["dir"], -1)
+        await p.send({"type": "call_ended", "key": "0|com.whatsapp|7"})
+        await asyncio.sleep(0.2)
+        self.assertEqual(self.of("call")[-1]["state"], "ongoing")  # bilinmeyen durum: süren sayılır
+        self.assertEqual(self.of("call_ended")[-1]["key"], "0|com.whatsapp|7")
+        # Bildirimleri göstermesi kapalıysa aramalar da gelmez.
+        self.hub.config.set("show_notifications", False)
+        n = len(self.of("call"))
+        await p.send(call)
+        await asyncio.sleep(0.2)
+        self.assertEqual(len(self.of("call")), n)
+        await p.close()
+
     async def test_phone_crash_report_is_saved_once(self):
         p = await self.paired_phone()
         await p.send({"type": "crash_report", "text": "java.lang.IllegalStateException: deneme\n\tat X.y(X.kt:1)"})

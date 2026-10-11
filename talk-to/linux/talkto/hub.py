@@ -405,6 +405,17 @@ class Hub:
         if s:
             await s.send({"type": "media_control", "action": action, "value": value})
 
+    async def call_action(self, device_id: str, key: str, index: int):
+        """Aramadaki düğme (Cevapla, Reddet, Kapat): telefondaki uygulamanın kendi düğmesine basılır."""
+        s = self.sessions.get(device_id)
+        if s:
+            await s.send({"type": "call_action", "key": key, "action": int(index)})
+
+    async def call_volume(self, device_id: str, up: bool):
+        s = self.sessions.get(device_id)
+        if s:
+            await s.send({"type": "call_volume", "dir": 1 if up else -1})
+
     async def ring(self, device_id: str, on: bool = True):
         s = self.sessions.get(device_id)
         if s:
@@ -921,6 +932,20 @@ class Session:
                  "text": _s(msg.get("text"), 4000), "time": time.time(), "icon": self.icons.get(pkg)}
             hub.notifications.appendleft(n)
             hub.emit("notification", n)
+        elif t == "call":
+            # Arama (WhatsApp, Instagram, telefon): çalıyor ya da sürüyor; düğmeler telefondaki uygulamanınki.
+            if not (self.config["show_notifications"] and self.perm("notifications")):
+                return
+            pkg = _s(msg.get("package"), 200)
+            actions = [{"i": _int(a.get("i")), "title": _s(a.get("title"), 40)}
+                       for a in (msg.get("actions") or [])[:5] if isinstance(a, dict) and _s(a.get("title"), 40)]
+            hub.emit("call", {"device_id": self.device_id, "device": self.name, "key": _s(msg.get("key"), 300),
+                              "package": pkg, "app": _s(msg.get("app"), 100) or pkg,
+                              "caller": _s(msg.get("caller"), 200), "text": _s(msg.get("text"), 300),
+                              "state": "ringing" if msg.get("state") == "ringing" else "ongoing",
+                              "actions": actions, "icon": self.icons.get(pkg)})
+        elif t == "call_ended":
+            hub.emit("call_ended", {"device_id": self.device_id, "key": _s(msg.get("key"), 300)})
         elif t == "notification_removed":
             hub.emit("notification_removed", {"device_id": self.device_id, "key": _s(msg.get("key"), 300)})
         elif t == "media_state":

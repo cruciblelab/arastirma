@@ -510,6 +510,10 @@ class App(Adw.Application):
                                app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"))
             if w:
                 w.add_notification(d)
+        elif event == "call":
+            self._call(d)
+        elif event == "call_ended":
+            self.notifier.close(f"call|{d['device_id']}|{d['key']}")
         elif event == "notification_removed":
             self.notifier.close(f"{d['device_id']}|{d['key']}")
         elif event == "media":
@@ -681,6 +685,24 @@ class App(Adw.Application):
                 self.hub.submit(s.send({"type": "command_result", "id": "ekran", "name": "Ekran görüntüsü",
                                         "ok": False, "output": text}))
         take_screenshot(done)
+
+    def _call(self, d):
+        """Telefondaki arama: çalarken acil bildirim (uygulamanın Cevapla/Reddet düğmeleri), sürerken kalıcı
+        bildirim (Kapat ve görüşme sesi). Bildirim en çok 3 düğme gösterir; önce uygulamanınkiler."""
+        did, key = d["device_id"], d["key"]
+        ringing = d["state"] == "ringing"
+        who = d["caller"] or "Bilinmeyen"
+        actions = {}
+        for a in d["actions"][:3]:
+            actions[f"a{a['i']}"] = (a["title"], lambda i=a["i"]: self.call("call_action", did, key, i))
+        if not ringing:
+            for k, label, up in (("ses_azalt", "Ses −", False), ("ses_artir", "Ses +", True)):
+                if len(actions) < 3:
+                    actions[k] = (label, lambda up=up: self.call("call_volume", did, up))
+        self.notifier.show(f"{d['app']} {'araması' if ringing else 'görüşmesi'}: {who}",
+                           " · ".join(x for x in (d["text"], d["device"]) if x), key=f"call|{did}|{key}",
+                           app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"), actions=actions,
+                           urgent=ringing, resident=not ringing)
 
     def _screenshot_taken(self, device_id):
         # Ubuntu 22.04'teki portal sormadan veriyor: en azından kullanıcı haberdar olsun.

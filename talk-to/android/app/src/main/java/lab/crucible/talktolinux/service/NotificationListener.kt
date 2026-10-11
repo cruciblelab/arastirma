@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Base64
+import lab.crucible.talktolinux.core.Calls
 import lab.crucible.talktolinux.core.Talk
 import lab.crucible.talktolinux.core.PhoneMedia
 import org.json.JSONObject
@@ -35,6 +36,11 @@ class NotificationListener : NotificationListenerService() {
         if (!Talk.notificationsOn()) return
         if (sbn.packageName == packageName && sbn.tag != lab.crucible.talktolinux.core.Notifs.TEST_TAG) return
         val n = sbn.notification
+        // Aramalar "süren" bildirim olsa da gönderilir: ayrı ileti, düğmeleriyle (bkz. Calls).
+        if (Calls.isCall(n.category, n.extras.getString(Notification.EXTRA_TEMPLATE))) {
+            sendCall(sbn)
+            return
+        }
         // Süren işler (müzik, indirme, navigasyon) ve grup özetleri gönderilmez.
         if (sbn.isOngoing || n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
         if (n.category == Notification.CATEGORY_TRANSPORT || n.category == Notification.CATEGORY_PROGRESS) return
@@ -57,7 +63,33 @@ class NotificationListener : NotificationListenerService() {
             .put("app", appName).put("title", title).put("text", text.take(4000)).put("time_ms", sbn.postTime))
     }
 
+    private fun sendCall(sbn: StatusBarNotification) {
+        val n = sbn.notification
+        val caller = Calls.caller(n)
+        val text = n.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+        val state = Calls.stateOf(n)
+        val buttons = n.actions.orEmpty().map { it.title?.toString().orEmpty() }
+        val sig = "call\u0000$state\u0000$caller\u0000$text\u0000${buttons.joinToString("\u0000")}"
+        Calls.remember(sbn.key, n.actions)
+        if (lastSent[sbn.key] == sig) return
+        lastSent[sbn.key] = sig
+        val appName = runCatching {
+            packageManager.getApplicationLabel(packageManager.getApplicationInfo(sbn.packageName, 0)).toString()
+        }.getOrDefault(sbn.packageName)
+        Talk.sendAppIconOnce(sbn.packageName) { iconPng(sbn.packageName) }
+        val arr = org.json.JSONArray()
+        buttons.forEachIndexed { i, t -> if (t.isNotBlank()) arr.put(JSONObject().put("i", i).put("title", t)) }
+        Talk.send(JSONObject().put("type", "call").put("key", sbn.key).put("package", sbn.packageName)
+            .put("app", appName).put("caller", caller).put("text", text.take(300)).put("state", state)
+            .put("actions", arr))
+    }
+
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        if (Calls.forget(sbn.key)) {
+            lastSent.remove(sbn.key)
+            Talk.send(JSONObject().put("type", "call_ended").put("key", sbn.key))
+            return
+        }
         if (lastSent.remove(sbn.key) != null) {
             Talk.send(JSONObject().put("type", "notification_removed").put("key", sbn.key))
         }
