@@ -80,18 +80,26 @@ def _phone_permissions(d: dict, sessions: list[dict]) -> Item:
 
 
 def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None = None,
-          firewall_port: int | None = None) -> list[Step]:
-    """firewall_port: güvenlik duvarına bu uygulamadan izin eklenen port (yoksa None)."""
+          firewall_port: int | None = None, simple: bool = False) -> list[Step]:
+    """firewall_port: güvenlik duvarına bu uygulamadan izin eklenen port (yoksa None).
+
+    simple: basit mod. Wi-Fi öne geçer (kablo ve geliştirici ayarı gerekmez), USB isteğe bağlı olur.
+    """
     sessions = status.get("sessions", [])
     ready = [d for d in usb.get("devices", []) if d.get("state") == "device"]
-    out = [Step("hos-geldin", "Talk To Android'e hoş geldin",
-                "Bu bilgisayarı Android telefonuna bağlar: telefon bildirimleri burada görünür, müzik iki yönden "
-                "kontrol edilir, dosya ve pano gider gelir, telefon bu bilgisayara komut verir. Birkaç adımda "
-                "hazırlayalım; her adımda “Kontrol et” ile durumu yeniden okuyabilirsin. İstediğin zaman "
-                "menüdeki “Kurulum yardımcısı”ndan geri dönebilirsin.", "lab.crucible.TalkToAndroid")]
+    if simple:
+        welcome = ("Telefon bildirimleri bu bilgisayarda görünür, telefonda çalan müzik buradan kontrol edilir, "
+                   "kaybolan telefon tek tıkla çaldırılır. Dosya, komut gibi diğer özellikler gizli; istediğinde "
+                   "Menü → Tercihler → Özellikler'den eklenir. Birkaç adımda hazırlayalım.")
+    else:
+        welcome = ("Bu bilgisayarı Android telefonuna bağlar: telefon bildirimleri burada görünür, müzik iki yönden "
+                   "kontrol edilir, dosya ve pano gider gelir, telefon bu bilgisayara komut verir. Birkaç adımda "
+                   "hazırlayalım; her adımda “Kontrol et” ile durumu yeniden okuyabilirsin. İstediğin zaman "
+                   "menüdeki “Kurulum yardımcısı”ndan geri dönebilirsin.")
+    out = [Step("hos-geldin", "Talk To Android'e hoş geldin", welcome, "lab.crucible.TalkToAndroid")]
 
     phone = Step("telefon", "Telefondaki uygulama",
-                 "Telefona Talk To Linux uygulaması kurulmalı. En kolayı: telefonu USB ile takıp bir sonraki adımdan "
+                 "Telefona Talk To Linux uygulaması kurulmalı. En kolayı: telefonu USB ile takıp USB adımından "
                  "tek tıkla kurmak (Play Protect bu yolla engellemez).", "phone-symbolic")
     phone.items.append(Item("Telefon uygulaması bu pakette", "Kurulum için dosya hazır." if usb.get("apk") else
                             "Paket içinde APK yok; GitHub'daki sürümler sayfasından indir.", bool(usb.get("apk"))))
@@ -100,8 +108,13 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
                             bool(sessions)))
     out.append(phone)
 
-    u = Step("usb", "USB kablosu", "En hızlı ve en kolay yol. Telefonda USB hata ayıklama açık olmalı.",
-             "media-removable-symbolic")
+    if simple:
+        u = Step("usb", "USB kablosu (isteğe bağlı)",
+                 "Wi-Fi yetiyorsa geçebilirsin. Kablo, telefona uygulamayı kurmak ve telefondaki izinleri tek tıkla "
+                 "ayarlamak için işe yarar; telefonda USB hata ayıklama açık olmalı.", "media-removable-symbolic")
+    else:
+        u = Step("usb", "USB kablosu", "En hızlı ve en kolay yol. Telefonda USB hata ayıklama açık olmalı.",
+                 "media-removable-symbolic")
     u.items.append(Item("adb kurulu", "USB bağlantısı için gereken araç." if usb.get("adb") else
                         "USB bağlantısı için gerekli; “Kur”a basınca bilgisayarın şifresi sorulur.",
                         bool(usb.get("adb")), None if usb.get("adb") else "install_adb", "Kur"))
@@ -120,13 +133,17 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
                 u.items.append(Item("Telefonda Talk To Linux kurulu",
                                     "Telefondaki uygulamada “USB kablosu”nu seç; ilk seferde burada onay çıkar.", True))
                 u.items.append(_phone_permissions(d, sessions))
-    out.append(u)
+    if simple:
+        for i in u.items:
+            i.optional = True
 
-    w = Step("wifi", "Wi-Fi (kablosuz)", "Kablo olmadan, aynı ağdaki telefon bağlanır. İsteğe bağlı.",
-             "network-wireless-symbolic")
+    w = Step("wifi", "Wi-Fi (kablosuz)",
+             "En kolay yol: kablo ve geliştirici ayarı gerekmez. Telefon ve bilgisayar aynı Wi-Fi ağında olmalı; "
+             "ilk bağlantıda iki ekrandaki numarayı karşılaştırırsın." if simple else
+             "Kablo olmadan, aynı ağdaki telefon bağlanır. İsteğe bağlı.", "network-wireless-symbolic")
     w.items.append(Item("Kablosuz bağlantı açık", "Açıkken bu bilgisayar yerel ağda görünür.",
                         bool(status.get("wireless")), None if status.get("wireless") else "enable_wireless", "Aç",
-                        optional=True))
+                        optional=not simple))
     addrs = status.get("addresses") or []
     w.items.append(Item("Ağ adresi", "Adres: " + ", ".join(f"{a}:{status.get('port')}" for a in addrs) if addrs else
                         "Bilgisayar bir ağa bağlı görünmüyor.", bool(addrs), optional=True))
@@ -142,7 +159,7 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
                             False, "allow_firewall", "İzin ver", optional=True))
     w.items.append(Item("Şifre (isteğe bağlı)", "Şifre koymazsan her yeni telefon için onay penceresi çıkar; "
                         "koyarsan telefon şifreyle bağlanır. Menü → Tercihler'den ayarlanır.", None))
-    out.append(w)
+    out += [w, u] if simple else [u, w]
 
     bt = status.get("bt") or {}
     x = Step("ekler", "Bluetooth ve diğerleri", "Hepsi isteğe bağlı.", "applications-system-symbolic")

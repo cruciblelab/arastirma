@@ -36,6 +36,7 @@ def factory(config, emit):
     config.set("setup_done", not os.environ.get("KURULUM"))  # KURULUM=1: kurulum yardımcısının adımları
     config.set("name", "masaustu")
     config.set("wireless", True)
+    config.set("simple_mode", not os.environ.get("TAM"))  # TAM=1: bütün özellikler görünür
     config.set("receive_dir", str(Path.home() / "Downloads" / "TalkToAndroid"))
     config.save_command(None, "Yedeği başlat", "rsync -a ~/Belgeler /mnt/yedek")
     config.save_command(None, "Sunucu durumu", "systemctl --user status sunucu")
@@ -98,7 +99,9 @@ def fill():
                                                       {"notifications": True, "media": True})
     st["bt"] = {"available": True, "message": "Hazır. Telefonu önce sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir."}
     app.on_event("status", st)
+    app.on_event("media", {"device_id": "pixel", "state": st["sessions"][0]["media"]})
     FAKE["st"] = st
+    pages[:] = [p for p in pages if win.pages[p].get_visible()]
     if os.environ.get("ADB_YOK"):  # adb kurulu değilken görünen "Kur" düğmesi
         from talkto.ui import system
         system.adb_install_command = lambda: ["pkexec", "apt-get", "install", "-y", "adb"]
@@ -166,14 +169,27 @@ def shoot():
         win.stack.set_visible_child_name(pages[i])
         step["i"] += 1
         return True
-    if i == n:  # Tercihler penceresi (bağlantı yolları ve genel ayarlar)
-        win.open_preferences()
+    if i == n:  # Tercihler penceresi: özellikler (basit mod), sonra bağlantı yolları ve genel ayarlar
+        win.open_preferences(0)
         win.prefs_window.set_default_size(WIDTH, 900)
         step["i"] += 1
         return True
     if i == n + 1:
+        snap(win.prefs_window, f"{i:02d}-ozellikler")
+        win.open_preferences(1)
+        step["i"] += 1
+        return True
+    if i == n + 2:
         snap(win.prefs_window, f"{i:02d}-tercihler")
         win.prefs_window.close()
+        app.on_event("status", FAKE["st"])
+        app.on_event("media", {"device_id": "pixel", "state": FAKE["st"]["sessions"][0]["media"]})
+        app.open_mini_player()
+        step["i"] += 1
+        return True
+    if i == n + 3:
+        snap(app.mini, f"{i:02d}-mini-oynatici")
+        app.mini.close()
         win.stack.set_visible_child_name("telefonlar")
         app._ask({"id": "x", "kind": "pair", "name": "Pixel 8", "model": "Pixel 8", "code": "482913",
                   "transport": "bluetooth", "ip": "AA:BB:CC:DD:EE:FF",
@@ -183,7 +199,8 @@ def shoot():
         return True
     # Eski libadwaita'da onay penceresi ayrı bir pencere; varsa onu çek.
     others = [w for w in Gtk.Window.list_toplevels()
-              if w is not win and w is not win.prefs_window and w.get_visible() and w.get_width() > 50]
+              if w is not win and w is not win.prefs_window and w is not app.mini and w.get_visible()
+              and w.get_width() > 50]
     snap(others[0] if others else win, f"{i:02d}-onay")
     app._quit()
     return False

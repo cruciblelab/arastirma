@@ -87,6 +87,7 @@ import lab.crucible.talktolinux.core.Notifs
 import lab.crucible.talktolinux.core.Prefs
 import lab.crucible.talktolinux.core.Talk
 import lab.crucible.talktolinux.core.Checks
+import lab.crucible.talktolinux.core.Features
 import lab.crucible.talktolinux.net.ClientSession
 
 // ---- Ana sayfa ----------------------------------------------------------------------
@@ -94,12 +95,15 @@ import lab.crucible.talktolinux.net.ClientSession
 /** Ana sayfa: üstte tek durum kartı, sonra en çok dört hızlı işlem (A4; Reinecke 2013: sade ilk ekran). */
 internal fun LazyListScope.homeTab(
     notifAccess: Boolean, onOpenNotifAccess: () -> Unit, onPickFiles: () -> Unit,
-    onSendClipboard: () -> Unit, onOpenPerms: () -> Unit, goTo: (Tab) -> Unit,
+    onSendClipboard: () -> Unit, onOpenPerms: () -> Unit, onOpenFeatures: () -> Unit, enabled: Set<String>,
+    goTo: (Tab) -> Unit,
 ) {
+    // Boş öğe de aralık alır: basit modda gizlenenler listeye hiç eklenmez.
     item { HealthCard(notifAccess, onOpenNotifAccess, onOpenPerms) }
     item { NowPlayingMini { goTo(Tab.MEDIA) } }
-    item { Section("Hızlı işlemler") { QuickActions(onPickFiles, onSendClipboard) } }
-    item { RecentTransfers(limit = 3) { goTo(Tab.FILES) } }
+    if ("files" in enabled || "pc" in enabled) item { QuickActions(onPickFiles, onSendClipboard) }
+    if ("files" in enabled) item { RecentTransfers(limit = 3) { goTo(Tab.FILES) } }
+    if (Features.simple.value && Features.EXTRAS.keys.any { it !in enabled }) item { SimpleModeHint(onOpenFeatures) }
 }
 
 /** USB ile bağlıyken eksik telefon ayarlarını bilgisayar adb ile tek seferde yapabilir (T13). */
@@ -187,18 +191,25 @@ private fun NowPlayingMini(onOpen: () -> Unit) {
     }
 }
 
+/** Basit modda eklenmemiş özelliklerin düğmeleri görünmez; hiç düğme kalmazsa bölüm de yok. */
 @Composable
 private fun QuickActions(onPickFiles: () -> Unit, onSendClipboard: () -> Unit) {
     val profile by Talk.profile.collectAsState()
     val commands by Talk.commands.collectAsState()
+    val enabled by Features.enabled.collectAsState()
     data class A(val icon: ImageVector, val label: String, val run: () -> Unit)
     val actions = buildList {
-        if (profile?.can("files") != false) add(A(Icons.Rounded.UploadFile, "Dosya gönder", onPickFiles))
-        if (profile?.can("clipboard") != false) add(A(Icons.Rounded.ContentPaste, "Panoyu gönder", onSendClipboard))
-        if (profile?.can("screenshot") == true) add(A(Icons.Rounded.Screenshot, "Ekran görüntüsü") { Talk.requestScreenshot() })
-        commands.firstOrNull { it.icon == "lock" }?.let { c -> add(A(Icons.Rounded.Lock, c.name) { Talk.runCommand(c.id) }) }
+        if ("files" in enabled) {
+            if (profile?.can("files") != false) add(A(Icons.Rounded.UploadFile, "Dosya gönder", onPickFiles))
+            if (profile?.can("clipboard") != false) add(A(Icons.Rounded.ContentPaste, "Panoyu gönder", onSendClipboard))
+        }
+        if ("pc" in enabled) {
+            if (profile?.can("screenshot") == true) add(A(Icons.Rounded.Screenshot, "Ekran görüntüsü") { Talk.requestScreenshot() })
+            commands.firstOrNull { it.icon == "lock" }?.let { c -> add(A(Icons.Rounded.Lock, c.name) { Talk.runCommand(c.id) }) }
+        }
     }
-    Grid2(actions) { a, mod -> QuickTile(a.icon, a.label, mod, onClick = a.run) }
+    if (actions.isEmpty()) return
+    Section("Hızlı işlemler") { Grid2(actions) { a, mod -> QuickTile(a.icon, a.label, mod, onClick = a.run) } }
 }
 
 // ---- Medya ---------------------------------------------------------------------------
@@ -408,9 +419,12 @@ private fun TransferRow(t: ClientSession.Transfer) {
 
 // ---- Bilgisayar ----------------------------------------------------------------------
 
-internal fun LazyListScope.computerTab(s: Talk.State.Connected) {
-    item { SysInfoCard() }
-    item { Commands() }
+internal fun LazyListScope.computerTab(s: Talk.State.Connected, enabled: Set<String>) {
+    // Basit modda yalnızca bu bilgisayarın ayarları; durum ve komutlar "Görünüm ve özellikler"den eklenir.
+    if ("pc" in enabled) {
+        item { SysInfoCard() }
+        item { Commands() }
+    }
     item { Section("Bu bilgisayar için ayarlar") { ServerSettings(s) } }
     item {
         var askForget by remember { mutableStateOf(false) }

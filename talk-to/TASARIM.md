@@ -83,12 +83,13 @@ Her talep test edilebilir. Kod: **T** ortak, **A** telefon, **L** bilgisayar.
 | T13 | İzin, onu gerektiren adımda ve tek cümlelik faydayla istenir; "Şimdi değil" nötr; tekrar tekrar sorulmaz; izin yokken uygulama çalışır. USB ile bağlıyken **bilgisayar telefonu tek tıkla ayarlar**. | Android izin kılavuzu, deceptive.design |
 | T14 | Tekrarlayan uyarı yok: güvenlik kodu cihaz başına bir kez karşılaştırılır; yalnızca geri alınamaz komut onay ister, onay düğmesi fiildir ("Kapat", "Tamam" değil). | Vance, NN/g onay diyaloğu |
 | T15 | Sık geçişler 100–300 ms; durum göstergesi döngüsü yok (arama göstergesi hariç); animasyon kapalıyken her şey çalışır. | M3/NN/g hareket |
+| T16 | **Basit mod** (yeni kurulumda açık): yalnızca bildirimler, çalan müzik ve telefonu bul. Diğer özellikler kaldırılmaz, gizlenir; neyin gizli olduğu ve nereden ekleneceği ekranda tek satırla yazar ("Özellik ekle"). Hafif sürümden farklı: o telefonda bildirim özelliğini hiç içermez. Ayar yalnızca görünümdür; izinleri profil belirler. | Kademeli gösterim, Hick yasası, Cowan |
 
 ### Telefon (Talk To Linux)
 | No | Talep |
 |---|---|
 | A1 | Kenar boşluğu 16 dp, aralıklar 8 dp'nin katları (4 dp ince ayar). Kart köşesi tema şekli (12–16 dp), tek kart türü. |
-| A2 | Alt gezinme 4 sabit sekme, yazılar hep görünür; seçili sekmeye yeniden dokununca başa kayar. |
+| A2 | Alt gezinme 3–4 sekme (basit modda Dosyalar yok), yazılar hep görünür; seçili sekmeye yeniden dokununca başa kayar. Gizlenen sekmede kalınmaz. |
 | A3 | Üst çubukta yazısız belirsiz simge yok: "İzinler", "Kurulum", "Bağlantıyı kes" etiketli menüde. |
 | A4 | Ana sayfa: üstte tek durum kartı (her şey yolunda ya da tek sorun + tek düzeltme), altında en çok 4 hızlı işlem. Yarım kalan kurulum "Kurulumu bitir (n/N)" olarak görünür. |
 | A5 | Bağlı değilken: nötr durum kartı + bulunan bilgisayarlar; "IP adresiyle bağlan" "Diğer yollar" altında. |
@@ -97,6 +98,7 @@ Her talep test edilebilir. Kod: **T** ortak, **A** telefon, **L** bilgisayar.
 | A8 | Dokunma hedefi ≥ 48 dp; yazısız her denetimin `contentDescription`'ı var; süs simgeleri `null`. |
 | A9 | Kenardan kenara (targetSdk 35) ve öngörülü geri hareketi (`enableOnBackInvokedCallback`). |
 | A10 | Bağlantı hizmeti bildirimi düşük önemli ve sessiz, "Bağlantıyı kes" eylemli. |
+| A11 | "Görünüm ve özellikler" (⋮ menüsü): basit mod anahtarı ve eklenebilir özellikler (dosya ve pano; bilgisayar komutları ve durumu). |
 
 ### Bilgisayar (Talk To Android)
 | No | Talep |
@@ -109,6 +111,8 @@ Her talep test edilebilir. Kod: **T** ortak, **A** telefon, **L** bilgisayar.
 | L6 | Komutlar sayfası kısa: hazır komutlar, özel komutlar; terminal kullanımı ayrı açılan bölümde. |
 | L7 | Klavye: Ctrl+Q çık, Ctrl+W pencereyi kapat, Ctrl+, tercihler, Esc diyalog kapatır. |
 | L8 | İçerik `AdwClamp` içinde (en çok ~600–700 px), 22.04'teki libadwaita 1.1'de çalışan parçalarla. |
+| L9 | Basit modda 3 görünüm (Telefonlar, Medya, Bildirimler); Tercihler'in ilk sayfası **Özellikler**. "Telefonu bul" yazılı düğme. |
+| L10 | Telefonda çalan için **mini oynatıcı** (küçük ayrı pencere, sabitlenebilir: müzik başlayınca kendiliğinden açılır) ve şarkı değişince kısa masaüstü bildirimi (duraklat, sonraki; tıklayınca mini oynatıcı). Mini oynatıcı açıkken bildirim çıkmaz. Uygulama pencereyi diğerlerinin üstünde tutamaz (Wayland izin vermez); "Üstte tut" düğmesi pencere yöneticisinin menüsünü açar. |
 
 ## 3. Ortak sözlük
 | Kavram | Kullanılacak söz | Kullanılmayacak |

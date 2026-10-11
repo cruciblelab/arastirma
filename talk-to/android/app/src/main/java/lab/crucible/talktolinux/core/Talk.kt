@@ -113,6 +113,7 @@ object Talk {
     fun init(context: Context) {
         app = context.applicationContext
         prefs = Prefs(app)
+        Features.load(prefs)
     }
 
     fun isConnected() = session != null && state.value is State.Connected
@@ -273,6 +274,8 @@ object Talk {
             approvalTarget = null
             when {
                 cancelled -> fail("Vazgeçildi", auto = false)
+                // Kendiliğinden deneme (bilgisayar kapalı ya da başka ağdayız): her seferinde uyarı çıkmasın.
+                e is IOException && target.knownOnly -> state.value = State.Idle
                 e is IOException -> fail("${target.name}: bağlanılamadı (${e.message ?: e.javaClass.simpleName})")
                 else -> fail("Beklenmeyen hata: ${e.message}")
             }
@@ -614,6 +617,17 @@ object Talk {
         bluetoothDevices.value = BluetoothLink.bondedComputers(app)
     }
 
+    /**
+     * Duyuru ulaşmıyorsa (Tailscale gibi bir VPN'le başka ağdan, istemci yalıtımlı modem) kayıtlı adrese seyrek
+     * dene; güvenlik kodu yine kayıtlıyla karşılaştırılır. Ekran açıkken daha da seyrek: deneme sürerken
+     * listenin yerinde "bağlanılıyor" görünür.
+     */
+    private fun savedAddress(auto: Prefs.Server, now: Long): Target? {
+        val wait = if (uiVisible) 300_000 else 60_000
+        if (auto.kind != "wifi" || auto.host.isEmpty() || now - lastAutoAttempt <= wait) return null
+        return Target(auto.host, auto.port, "wifi", auto.id, auto.name, auto.fp, knownOnly = true)
+    }
+
     private fun maybeAutoConnect() {
         if (state.value !is State.Idle || passwordFor.value != null) return
         val auto = prefs.server(prefs.autoServer) ?: return
@@ -628,7 +642,7 @@ object Talk {
                 now - lastAutoAttempt > 20_000 -> Target(auto.host, 0, "bluetooth", auto.id, auto.name, auto.fp, knownOnly = true)
             // Duyurudaki güvenlik kodu da kayıtlı olanla aynı olmalı (aynı kimlikle sahte duyuru olabilir).
             now > autoPausedUntil -> found.value.firstOrNull { it.id == auto.id && it.fp == auto.fp }
-                ?.let { targetOf(it).copy(knownOnly = true) }
+                ?.let { targetOf(it).copy(knownOnly = true) } ?: savedAddress(auto, now)
             else -> null
         }
         if (target != null) {

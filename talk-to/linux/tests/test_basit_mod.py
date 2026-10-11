@@ -1,0 +1,180 @@
+"""Basit mod (talkto.features), çalanın izi (talkto.nowplaying) ve bunların penceredeki etkisi.
+
+Pencere testi ekran ister; ekran yoksa atlanır (CI'da TALKTO_TEST_STRICT=1 iken atlanmaz).
+"""
+
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from talkto import features  # noqa: E402
+from talkto.config import Config  # noqa: E402
+from talkto.nowplaying import NowPlaying  # noqa: E402
+
+
+def song(title, playing=True, artist="Sezen Aksu"):
+    return {"active": True, "playing": playing, "title": title, "artist": artist, "player": "Spotify"}
+
+
+class FeaturesTest(unittest.TestCase):
+    def setUp(self):
+        self.cfg = Config(tempfile.mkdtemp())
+
+    def test_new_install_is_simple(self):
+        self.assertTrue(self.cfg["simple_mode"])
+        self.assertEqual(features.enabled(self.cfg), set(features.CORE))
+        self.assertFalse(features.shown(self.cfg, "files"))
+
+    def test_extras_added_one_by_one(self):
+        self.cfg.set("extras", ["files", "bilinmeyen"])
+        self.assertEqual(features.enabled(self.cfg), set(features.CORE) | {"files"})
+
+    def test_full_mode_shows_all(self):
+        self.cfg.set("simple_mode", False)
+        self.assertEqual(features.enabled(self.cfg), set(features.CORE) | set(features.EXTRAS))
+
+    def test_old_config_gets_defaults(self):
+        d = tempfile.mkdtemp()
+        Path(d, "ayarlar.json").write_text('{"wireless": false}')
+        cfg = Config(d)
+        self.assertTrue(cfg["simple_mode"])
+        self.assertFalse(cfg["mini_player_pinned"])
+        self.assertTrue(cfg["track_popup"])
+
+
+class NowPlayingTest(unittest.TestCase):
+    def test_start_track_stop(self):
+        n = NowPlaying()
+        ev = n.update("a", song("Gesi Bağları"))
+        self.assertTrue(ev["started"] and ev["track"])
+        self.assertEqual(n.shown()[0], "a")
+        # Konum güncellemesi: yeni bir şey yok.
+        ev = n.update("a", song("Gesi Bağları"))
+        self.assertFalse(ev["started"] or ev["track"] or ev["stopped"])
+        ev = n.update("a", song("Firuze"))
+        self.assertTrue(ev["track"])
+        self.assertFalse(ev["started"])
+        ev = n.update("a", {"active": False})
+        self.assertTrue(ev["stopped"])
+        self.assertIsNone(n.shown()[0])
+
+    def test_pause_resume_does_not_reopen(self):
+        n = NowPlaying()
+        n.update("a", song("Firuze"))
+        ev = n.update("a", song("Firuze", playing=False))
+        self.assertFalse(ev["track"] or ev["stopped"])
+        ev = n.update("a", song("Firuze"))
+        self.assertFalse(ev["started"] or ev["track"])
+        self.assertEqual(n.shown()[0], "a")  # duraklatılmış parça da gösterilir
+
+    def test_paused_new_track_is_quiet(self):
+        n = NowPlaying()
+        ev = n.update("a", song("Firuze", playing=False))
+        self.assertFalse(ev["started"] or ev["track"])
+
+    def test_two_phones_playing_one_wins(self):
+        n = NowPlaying()
+        n.update("a", song("Firuze", playing=False))
+        n.update("b", song("Kaybolan Yıllar"))
+        self.assertEqual(n.shown()[0], "b")
+        n.update("b", {"active": False})
+        self.assertEqual(n.shown()[0], "a")
+        n.keep_only({"b"})
+        self.assertIsNone(n.shown()[0])
+
+
+try:
+    import gi
+    gi.require_version("Gtk", "4.0")
+    gi.require_version("Adw", "1")
+    from gi.repository import GLib, Gtk
+    HAVE = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")) and Gtk.init_check()
+except (ImportError, ValueError):
+    HAVE = False
+
+if not HAVE and os.environ.get("TALKTO_TEST_STRICT"):
+    raise RuntimeError("arayüz testleri çalıştırılamıyor: GTK4/libadwaita ya da ekran yok")
+
+
+@unittest.skipUnless(HAVE, "GTK4/libadwaita ya da ekran yok")
+class WindowTest(unittest.TestCase):
+    """Gerçek pencere: basit mod sayfaları ve düğmeleri gizler, kapatınca hepsi görünür."""
+
+    def test_simple_mode_toggles_pages(self):
+        tmp = tempfile.mkdtemp()
+        os.environ["TALKTO_CONFIG_DIR"] = tmp + "/cfg"
+        os.environ["TALKTO_CACHE_DIR"] = tmp + "/cache"
+        from talkto.hub import Hub
+        from talkto.ui.app import App
+
+        def factory(config, emit):
+            config.set("port", 47691)
+            config.set("setup_done", True)
+            config.set("wireless", False)
+            config.set("usb", False)
+            config.set("bluetooth", False)
+            config.set("run_in_background", False)
+            return Hub(config, emit, enable_media=False, enable_discovery=False)
+
+        app = App(hub_factory=factory)
+        seen = {}
+
+        def check():
+            try:
+                w = app.window
+                seen["simple"] = {n: p.get_visible() for n, p in w.pages.items()}
+                seen["profiles"] = w.profile_group.get_visible()
+                w.sw_simple.set_active(False)
+                seen["full"] = {n: p.get_visible() for n, p in w.pages.items()}
+                seen["saved"] = app.config["simple_mode"]
+                w.sw_simple.set_active(True)
+                w.sw_extras["commands"].set_active(True)
+                seen["extra"] = {n: p.get_visible() for n, p in w.pages.items()}
+                seen["extras"] = list(app.config["extras"])
+                # Müzik başlayınca sabitlenmiş mini oynatıcı kendiliğinden açılır.
+                app.set_pinned(True)
+                app.on_event("status", {**app.hub.status(), "sessions": [
+                    {"device_id": "p", "name": "Pixel", "kind": "wifi", "ip": "1.2.3.4", "media": {"active": False},
+                     "problems": [], "profile_name": "Benim telefonum"}]})
+                app.on_event("media", {"device_id": "p", "state": song("Firuze")})
+                seen["mini"] = bool(app.mini and app.mini.get_visible())
+                seen["mini_shows"] = app.mini.stack.get_visible_child_name() if app.mini else None
+                seen["pin_switch"] = w.sw_pin.get_active()
+                # Şarkı bildirimi: mini oynatıcı açıkken çıkmaz (aynı bilgi ekranda), kapalıyken çıkar.
+                shown = []
+                app.notifier.show = lambda title, body="", **kw: shown.append((title, body, kw))
+                app._track_popup("p")
+                seen["popup_with_mini"] = len(shown)
+                app.mini.close()
+                app._track_popup("p")
+                seen["popup"] = shown
+            finally:
+                app._quit()
+            return False
+
+        app.connect("activate", lambda *_: GLib.idle_add(check))
+        app.run([])
+        self.assertEqual(seen["simple"], {"telefonlar": True, "medya": True, "dosyalar": False,
+                                          "bildirimler": True, "komutlar": False})
+        self.assertFalse(seen["profiles"])
+        self.assertTrue(all(seen["full"].values()))
+        self.assertFalse(seen["saved"])
+        self.assertTrue(seen["extra"]["komutlar"])
+        self.assertFalse(seen["extra"]["dosyalar"])
+        self.assertEqual(seen["extras"], ["commands"])
+        self.assertTrue(seen["mini"])
+        self.assertEqual(seen["mini_shows"], "var")
+        self.assertTrue(seen["pin_switch"])
+        self.assertEqual(seen["popup_with_mini"], 0)
+        (title, body, kw), = seen["popup"]
+        self.assertEqual(title, "Firuze")
+        self.assertIn("Sezen Aksu", body)
+        self.assertEqual(set(kw["actions"]), {"default", "play_pause", "next"})
+
+
+if __name__ == "__main__":
+    unittest.main()

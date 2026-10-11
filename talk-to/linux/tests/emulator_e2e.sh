@@ -139,12 +139,23 @@ tap_text "Deneme bildirimi"
 wait_for "deneme bildirimi bilgisayara ulaştı" \
     'any(n["title"] == "Talk To Linux deneme bildirimi" for n in of("notification"))' 30
 
-log "4) sekmeler"
-for t in Medya Dosyalar Bilgisayar; do
+log "4) sekmeler (basit mod: Dosyalar sekmesi yok)"
+for t in Medya Bilgisayar; do
     tap_text "$t"
     sleep 2
     shot "03-$t"
 done
+tap_text "Ana sayfa"
+log "4b) basit moda özellik ekleme: Dosya ve pano → Dosyalar sekmesi görünür"
+tap_text "Diğer seçenekler"
+tap_text "Görünüm ve özellikler"
+tap_text "Dosya ve pano"
+sleep 1
+shot 03-ozellikler
+adb shell input keyevent KEYCODE_BACK
+tap_text "Dosyalar"
+sleep 2
+shot 03-Dosyalar
 tap_text "Ana sayfa"
 tap_text "Diğer seçenekler"
 tap_text "İzinler ve yetkiler"

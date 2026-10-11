@@ -17,6 +17,7 @@ from .. import APP_ID, __version__  # noqa: E402
 from ..config import Config  # noqa: E402
 from ..hub import Hub, HubThread  # noqa: E402
 from ..ipc import socket_path  # noqa: E402
+from ..nowplaying import NowPlaying  # noqa: E402
 from .. import mirror  # noqa: E402
 from ..usb import CONFLICT  # noqa: E402
 from . import compat, system  # noqa: E402
@@ -43,6 +44,10 @@ class App(Adw.Application):
         self.installing_adb = False
         self.installing_scrcpy = False
         self.pending_clip = None  # Wayland'da pencere odakta değilken gelen pano metni
+        self.mini = None  # mini oynatıcı penceresi
+        self.now = NowPlaying()
+        self.art_paths: dict[str, str] = {}
+        self._popup_timers: dict[str, int] = {}
 
     # ---- yaşam döngüsü --------------------------------------------------------
 
@@ -57,7 +62,8 @@ class App(Adw.Application):
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         for name, cb in (("quit", self._quit), ("about", self._about), ("show", lambda *_: self.present()),
-                         ("setup", lambda *_: self.open_setup()), ("preferences", lambda *_: self.open_preferences())):
+                         ("setup", lambda *_: self.open_setup()), ("preferences", lambda *_: self.open_preferences()),
+                         ("mini-player", lambda *_: self.open_mini_player())):
             a = Gio.SimpleAction.new(name, None)
             a.connect("activate", cb)
             self.add_action(a)
@@ -111,10 +117,67 @@ class App(Adw.Application):
     def present(self):
         self.activate()
 
-    def open_preferences(self):
+    def open_preferences(self, page=None):
         self.activate()
         if self.window:
-            self.window.open_preferences()
+            self.window.open_preferences(page)
+
+    # ---- mini oynatıcı ve şarkı bildirimi ---------------------------------------------
+
+    def open_mini_player(self):
+        from .miniplayer import MiniPlayer
+        if self.mini is None:
+            self.mini = MiniPlayer(self)
+        self._refresh_mini()
+        self.mini.present()
+
+    def set_pinned(self, on):
+        self.config.set("mini_player_pinned", bool(on))
+        if self.window:
+            self.window.sync_pin()
+        if self.mini:
+            self.mini.sync_pin()
+
+    def _refresh_mini(self):
+        if not self.mini:
+            return
+        did, st = self.now.shown()
+        self.mini.show_state(did, self.device_names.get(did, "Telefon"), st,
+                             self.art_paths.get(st.get("art_id") or ""))
+
+    def _on_media(self, did, state):
+        ev = self.now.update(did, state)
+        if ev["stopped"]:
+            self._cancel_popup(did)
+            self.notifier.close(f"calan|{did}")
+        if ev["started"] and self.config["mini_player_pinned"] and self.mini is None:
+            self.open_mini_player()
+        if ev["track"] and self.config["track_popup"]:
+            # Kapak birkaç yüz ms sonra gelir; hızlı atlamada da her parça için bildirim çıkmasın.
+            self._cancel_popup(did)
+            self._popup_timers[did] = GLib.timeout_add(900, self._track_popup, did)
+        self._refresh_mini()
+
+    def _cancel_popup(self, did):
+        t = self._popup_timers.pop(did, None)
+        if t:
+            GLib.source_remove(t)
+
+    def _track_popup(self, did):
+        self._popup_timers.pop(did, None)
+        st = self.now.states.get(did) or {}
+        # Mini oynatıcı açıksa aynı bilgi zaten ekranda.
+        if not st.get("playing") or (self.mini and self.mini.get_visible()):
+            return False
+        name = self.device_names.get(did, "Telefon")
+        body = " · ".join(x for x in (st.get("artist"), f"{st.get('player') or 'Medya'} ({name})") if x)
+        self.notifier.show(
+            st.get("title") or "Bilinmeyen parça", body, key=f"calan|{did}", app_name="Telefonda çalan",
+            icon=self.art_paths.get(st.get("art_id") or "") or "audio-x-generic",
+            actions={"default": ("Mini oynatıcı", self.open_mini_player),
+                     "play_pause": ("Duraklat", lambda: self.call("media_control", did, "play_pause", None)),
+                     "next": ("Sonraki", lambda: self.call("media_control", did, "next", None))})
+        return False
 
     def _on_close(self, win):
         if self.config["run_in_background"]:
@@ -333,6 +396,11 @@ class App(Adw.Application):
         if event == "status":
             self.device_names = {x["device_id"]: x["name"] for x in d.get("sessions", [])}
             self.phone_players.keep_only(self.device_names)
+            for did in [x for x in self.now.states if x not in self.device_names]:
+                self._cancel_popup(did)
+                self.notifier.close(f"calan|{did}")
+            self.now.keep_only(self.device_names)
+            self._refresh_mini()
             if w:
                 w.update_status(d)
             if self.setup_window:
@@ -365,7 +433,12 @@ class App(Adw.Application):
                 log.exception("telefon oynatıcısı güncellenemedi")  # penceredeki kart yine güncellensin
             if w:
                 w.update_media(d["device_id"], d["state"])
+            self._on_media(d["device_id"], d["state"])
         elif event == "media_art":
+            self.art_paths[d["art_id"]] = d["path"]
+            if len(self.art_paths) > 64:
+                self.art_paths = dict(list(self.art_paths.items())[-32:])
+            self._refresh_mini()
             self.phone_players.art(d["device_id"], d["art_id"])
             if w:
                 w.update_media_art(d["device_id"], d["art_id"], d["path"])

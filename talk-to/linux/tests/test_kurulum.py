@@ -65,6 +65,16 @@ class SetupChecksTest(unittest.TestCase):
         no_fw = setup_checks.steps(STATUS, {"adb": True, "devices": []}, ufw=False)
         self.assertFalse(any(i.title.startswith("Güvenlik") for i in step(no_fw, "wifi").items))
 
+    def test_simple_mode_puts_wifi_first(self):
+        steps = setup_checks.steps(STATUS, {"adb": False, "devices": []}, ufw=False, simple=True)
+        keys = [s.key for s in steps]
+        self.assertLess(keys.index("wifi"), keys.index("usb"))
+        self.assertFalse(item(step(steps, "wifi"), "Kablosuz").optional)
+        self.assertTrue(all(i.optional for i in step(steps, "usb").items if i.ok is False))
+        self.assertIn("Özellikler", steps[0].text)
+        full = [s.key for s in setup_checks.steps(STATUS, {"adb": False, "devices": []}, ufw=False)]
+        self.assertLess(full.index("usb"), full.index("wifi"))
+
     def test_ufw_conf(self):
         with tempfile.TemporaryDirectory() as d:
             conf = Path(d) / "ufw.conf"

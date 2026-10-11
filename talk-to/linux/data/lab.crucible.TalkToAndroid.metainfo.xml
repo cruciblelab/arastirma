@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.0" date="2026-10-11">
+      <description><p>Basit mod: yalnızca bildirimler, telefonda çalan müzik ve telefonu bul görünür; diğer özellikler Tercihler → Özellikler'den eklenir. Telefonda çalan için sabitlenebilir mini oynatıcı ve şarkı değişince masaüstü bildirimi. Yeni kurulumda Wi-Fi açık; telefon, duyuru ulaşmayan ağlarda (ör. Tailscale) kayıtlı adrese kendiliğinden yeniden bağlanır.</p></description>
+    </release>
     <release version="0.6.0" date="2026-10-11">
       <description><p>Arayüz araştırmalara göre düzenlendi: beş sayfa, ayrı Tercihler penceresi, “Numaralar aynı / farklı” ile eşleşme, sakin durum kartları. Telefonun izinleri USB üzerinden tek tıkla ayarlanabiliyor (“Telefonu ayarla”).</p></description>
     </release>

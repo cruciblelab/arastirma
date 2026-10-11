@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import lab.crucible.talktolinux.core.BluetoothLink
 import lab.crucible.talktolinux.core.Checks
+import lab.crucible.talktolinux.core.Features
 import lab.crucible.talktolinux.core.Talk
 import lab.crucible.talktolinux.net.Auth
 import lab.crucible.talktolinux.net.Discovery
@@ -123,6 +124,10 @@ fun TalkScreen(
                 onOpenWizard = { wizardFrom = "izinler"; screen = "kurulum" })
             return
         }
+        "ozellikler" -> {
+            FeaturesScreen(onBack = { screen = "ana" })
+            return
+        }
     }
     val state by Talk.state.collectAsState()
     val passwordFor by Talk.passwordFor.collectAsState()
@@ -132,6 +137,11 @@ fun TalkScreen(
     val list = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val openPerms = { screen = "izinler" }
+    val openFeatures = { screen = "ozellikler" }
+    // Basit modda Dosyalar sekmesi yok (Features); gizlenen sekmede kalınmaz.
+    val enabled by Features.enabled.collectAsState()
+    val tabs = Tab.entries.filter { it != Tab.FILES || "files" in enabled }
+    val shown = if (tab in tabs) tab else Tab.HOME
 
     Scaffold(
         topBar = {
@@ -157,6 +167,7 @@ fun TalkScreen(
                     actions = {
                         MoreMenu(
                             "İzinler ve yetkiler" to openPerms,
+                            "Görünüm ve özellikler" to openFeatures,
                             "Kurulum yardımcısı" to { wizardFrom = "ana"; screen = "kurulum" },
                             "Bağlantıyı kes" to { askDisconnect = true },
                         )
@@ -166,6 +177,7 @@ fun TalkScreen(
                 TopAppBar(title = { Text("Talk To Linux", fontWeight = FontWeight.SemiBold) }, actions = {
                     MoreMenu(
                         "İzinler ve yetkiler" to openPerms,
+                        "Görünüm ve özellikler" to openFeatures,
                         "Kurulum yardımcısı" to { wizardFrom = "ana"; screen = "kurulum" },
                     )
                 })
@@ -174,10 +186,10 @@ fun TalkScreen(
         bottomBar = {
             if (connected != null) {
                 NavigationBar {
-                    Tab.entries.forEach {
-                        NavigationBarItem(selected = tab == it, onClick = {
+                    tabs.forEach {
+                        NavigationBarItem(selected = shown == it, onClick = {
                             // Seçili sekmeye yeniden dokunmak başa kaydırır (M3 gezinme çubuğu).
-                            if (tab == it) scope.launch { list.animateScrollToItem(0) } else tab = it
+                            if (shown == it) scope.launch { list.animateScrollToItem(0) } else tab = it
                         }, icon = { Icon(it.icon, null) }, label = { Text(it.label) })
                     }
                 }
@@ -192,11 +204,12 @@ fun TalkScreen(
             verticalArrangement = Arrangement.spacedBy(Gap.section),
         ) {
             when (val s = state) {
-                is Talk.State.Connected -> when (tab) {
-                    Tab.HOME -> homeTab(notifAccess, onOpenNotifAccess, onPickFiles, onSendClipboard, openPerms) { tab = it }
+                is Talk.State.Connected -> when (shown) {
+                    Tab.HOME -> homeTab(notifAccess, onOpenNotifAccess, onPickFiles, onSendClipboard, openPerms,
+                        openFeatures, enabled) { tab = it }
                     Tab.MEDIA -> mediaTab()
                     Tab.FILES -> filesTab(onPickFiles, onSendClipboard)
-                    Tab.PC -> computerTab(s)
+                    Tab.PC -> computerTab(s, enabled)
                 }
                 is Talk.State.Approval -> item { ApprovalCard(s) }
                 is Talk.State.Connecting -> item { ConnectingCard(s) }

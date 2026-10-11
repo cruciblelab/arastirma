@@ -42,7 +42,7 @@ class Config:
 
     DEFAULTS = {
         "port": TCP_PORT,
-        "wireless": False,
+        "wireless": True,  # yeni kurulumda Wi-Fi açık: kablo ve geliştirici ayarı gerekmeden bağlanılır
         "usb": True,
         "password": "",
         "receive_dir": "",
@@ -54,6 +54,11 @@ class Config:
         "default_profile": "benim",
         "setup_done": False,  # ilk açılıştaki kurulum yardımcısı bitirildi ya da atlandı
         "firewall_port": None,  # kurulum yardımcısından ufw izni eklenen port
+        # Basit mod (talkto.features): yalnızca bildirimler, çalan müzik ve telefonu bul görünür.
+        "simple_mode": True,
+        "extras": [],  # basit modda yine de görünsün diye eklenen özellikler
+        "mini_player_pinned": False,  # müzik başlayınca mini oynatıcı kendiliğinden açılır
+        "track_popup": True,  # şarkı değişince masaüstü bildirimi
     }
 
     # Profil izinleri: bir telefon bilgisayarda neleri yapabilir.

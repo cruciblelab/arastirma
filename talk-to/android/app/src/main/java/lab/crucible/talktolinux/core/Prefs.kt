@@ -39,6 +39,16 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("notif_asked", false)
         set(v) = sp.edit().putBoolean("notif_asked", v).apply()
 
+    /** Basit mod (Features): yeni kurulumda açık. */
+    var simpleMode: Boolean
+        get() = sp.getBoolean("simple_mode", true)
+        set(v) = sp.edit().putBoolean("simple_mode", v).apply()
+
+    /** Basit modda yine de görünsün diye eklenen özellikler. */
+    var extras: Set<String>
+        get() = sp.getString("extras", "").orEmpty().split(',').filter { it.isNotBlank() }.toSet()
+        set(v) = sp.edit().putString("extras", v.sorted().joinToString(",")).apply()
+
     /** Kullanıcı "bağlantıyı kes" demediyse otomatik yeniden bağlanılacak bilgisayar. */
     var autoServer: String?
         get() = sp.getString("auto_server", null)

@@ -69,7 +69,8 @@ class SetupAssistant(Adw.Window):
     def refresh(self):
         status, usb = self._state()
         self.steps = setup_checks.steps(status, usb, autostart=system.autostart_enabled(),
-                                        firewall_port=self.app.config["firewall_port"])
+                                        firewall_port=self.app.config["firewall_port"],
+                                        simple=self.app.config["simple_mode"])
         self.step = max(0, min(self.step, len(self.steps) - 1))
         s = self.steps[self.step]
         last = self.step == len(self.steps) - 1

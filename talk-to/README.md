@@ -9,14 +9,16 @@ Linux bilgisayar ile Android telefonu **USB kablosu**, **Wi-Fi** ya da **Bluetoo
 
 İki uygulama birbirini tanır: ilk bağlantıda bir kez onaylanır (ya da şifre girilir), sonra telefon bağlandığı anda bilgisayar onu tanır ve **profilini** uygular.
 
-**Durum:** 0.6.0. Ubuntu 22.04 + gerçek bir telefonda USB bağlantısı kuruldu; 0.2.x'te bildirim ve müziğin gelmediği bildirildi, 0.4.x bunun sebebini iki tarafta da gösteriyor ve en olası sebebi (Android'in bildirim dinleyicisini bağlamaması) düzeltmeye çalışıyor; emülatörde çalışıyor, gerçek telefonda henüz doğrulanmadı. 0.5.0 bir denetimde bulunan güvenlik ve sağlamlık hatalarını düzeltti; 0.6.0 arayüzü araştırmalara göre düzenler ve telefonu bilgisayardan tek tıkla ayarlamayı ekler; **telefon ve bilgisayar birlikte güncellenmeli**: 0.5 ve sonrası telefon, 0.4 ve öncesi bilgisayara şifre ya da onayla bağlanmaz. Bluetooth gerçek donanımda denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
+**Durum:** 0.7.0. Ubuntu 22.04 + gerçek bir telefonda USB bağlantısı kuruldu; 0.2.x'te bildirim ve müziğin gelmediği bildirildi, 0.4.x bunun sebebini iki tarafta da gösteriyor ve en olası sebebi (Android'in bildirim dinleyicisini bağlamaması) düzeltmeye çalışıyor; emülatörde çalışıyor, gerçek telefonda henüz doğrulanmadı. 0.5.0 bir denetimde bulunan güvenlik ve sağlamlık hatalarını düzeltti; 0.6.0 arayüzü araştırmalara göre düzenler ve telefonu bilgisayardan tek tıkla ayarlamayı ekler; 0.7.0 **basit mod**u (varsayılan), mini oynatıcıyı ve şarkı bildirimini ekler; **telefon ve bilgisayar birlikte güncellenmeli**: 0.5 ve sonrası telefon, 0.4 ve öncesi bilgisayara şifre ya da onayla bağlanmaz. Bluetooth gerçek donanımda denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
 
 | Telefon | Bilgisayar |
 |---|---|
-| ![Ana sayfa](ekran/android-ana-sayfa.png) | ![Telefonlar](ekran/linux-telefonlar.png) |
+| ![Ana sayfa (basit mod)](ekran/android-ana-sayfa.png) | ![Telefonlar (basit mod)](ekran/linux-telefonlar.png) |
 | ![Medya](ekran/android-medya.png) | ![Medya](ekran/linux-medya.png) |
-| ![Bilgisayar](ekran/android-bilgisayar.png) | ![Komutlar](ekran/linux-komutlar.png) |
+| ![Görünüm ve özellikler](ekran/android-ozellikler.png) | ![Mini oynatıcı](ekran/linux-mini-oynatici.png) |
+| ![Bilgisayar (basit mod)](ekran/android-bilgisayar.png) | ![Özellikler](ekran/linux-ozellikler.png) |
 | ![Sorun gösterimi ve “Bilgisayar ayarlasın”](ekran/android-sorun.png) | ![Tercihler](ekran/linux-tercihler.png) |
+| ![Bilgisayar komutları (eklenince)](ekran/android-komutlar.png) | ![Komutlar (eklenince)](ekran/linux-komutlar.png) |
 | ![Bilgisayar bul](ekran/android-bilgisayar-bul.png) | ![Numaraları karşılaştır](ekran/linux-onay.png) |
 | ![Numaraları karşılaştır](ekran/android-onay.png) | ![Dosyalar](ekran/linux-dosyalar.png) |
 | ![Kurulum sihirbazı](ekran/android-kurulum.png) | ![Kurulum yardımcısı](ekran/linux-kurulum.png) |
@@ -26,10 +28,13 @@ Arayüz kararlarının dayandığı araştırmalar ve talepler: [`TASARIM.md`](T
 
 ## Ne yapar
 
+**Basit mod** (yeni kurulumda açık): iki uygulamada da yalnızca bildirimler, telefonda çalan müzik ve telefonu bul görünür. Dosya ve pano, bilgisayar komutları, telefonun ekranı ve profiller kaldırılmaz, gizlenir; bilgisayarda *Menü → Tercihler → Özellikler*, telefonda *⋮ → Görünüm ve özellikler*'den tek tek eklenir ya da basit mod kapatılır. Bu yalnızca görünümdür: hafif telefon sürümünden farklıdır (orada bildirim özelliği hiç yok) ve bir telefonun neye izinli olduğunu yine profil belirler.
+
 | Özellik | Yön | Not |
 |---|---|---|
 | Bildirimler | telefon → bilgisayar | Masaüstünde uygulama simgesiyle çıkar; telefonda silinince masaüstünden de kalkar. |
 | Telefonda çalan medya | telefon → bilgisayar | Spotify, YouTube, YouTube Music… Bilgisayarda gerçek bir oynatıcı gibi görünür: GNOME üst çubuğundaki medya denetimi, klavyenin medya tuşları, `playerctl`. Kapak, ilerleme; oynat/duraklat/atla/sar/ses. |
+| **Mini oynatıcı, şarkı bildirimi** | telefon → bilgisayar | Telefonda çalan küçük ayrı bir pencerede (Medya → Mini oynatıcı ya da menü). **Sabitle** açıksa müzik başlayınca kendiliğinden açılır. Şarkı değişince ekranın üstünde kısa bir bildirim çıkar (Duraklat, Sonraki; tıklayınca mini oynatıcı); mini oynatıcı açıkken çıkmaz. Pencereyi diğerlerinin üstünde tutmak: mini oynatıcıdaki ⤒ düğmesi pencere menüsünü açar → “Her zaman üstte” (uygulama bunu kendisi yapamaz; Wayland izin vermez). |
 | **İlk kurulum** | iki taraf | İlk açılışta adım adım yardımcı: telefonda bildirim izni, bildirim erişimi (Android 13+'ta “Kısıtlanmış ayar” açıklamasıyla), pil, USB hata ayıklama / Wi-Fi / Bluetooth; bilgisayarda adb, telefon uygulaması, USB'de telefonun durumu, Wi-Fi, güvenlik duvarı (ufw), Bluetooth, scrcpy, oturumla başlat. Her satırda durum, ayarı açan ya da yapan düğme ve **Kontrol et**. Sonradan: telefonda ⚙ “İzinler ve yetkiler”, bilgisayarda menü → “Kurulum yardımcısı”. |
 | **İzinler ve yetkiler** | telefon | Telefonun Android izinleri tek ekranda (durum + aç) ve bağlı bilgisayarın bu telefona verdiği yetkiler (profil; değiştirmek bilgisayardan). |
 | **Neden çalışmıyor?** | iki yön | Telefon bildirim erişimini, Android'in bildirim dinleyicisini bağlayıp bağlamadığını ve sürümünü bilgisayara bildirir; bir şey gelmeyecekse iki tarafta da sebebi ve çözümü yazar. Telefonda "Deneme bildirimi gönder" ile yol baştan sona denenir. |
@@ -49,7 +54,7 @@ Arayüz kararlarının dayandığı araştırmalar ve talepler: [`TASARIM.md`](T
 | Yol | Ne gerekir | İlk bağlantı | Hız |
 |---|---|---|---|
 | **USB** | Telefonda *Geliştirici seçenekleri → USB hata ayıklama*, bilgisayarda `adb` (uygulama içinden "Kur" düğmesiyle kurulur) | İki ekranda aynı 6 haneli numara; bilgisayarda “Numaralar aynı” | En hızlı |
-| **Wi-Fi** | Aynı ağ; bilgisayarda "Kablosuz bağlantıyı aç" | Şifre koyduysan şifre, koymadıysan onay penceresi | Hızlı |
+| **Wi-Fi** | Aynı ağ; bilgisayarda "Kablosuz bağlantı" (yeni kurulumda açık) | Şifre koyduysan şifre, koymadıysan onay penceresi | Hızlı |
 | **Bluetooth** | Telefonla bilgisayarı **önce sistemin Bluetooth ayarlarından eşleştir** | Onay penceresi | Yavaş (bildirim, medya, komut için yeterli; büyük dosyada Wi-Fi/USB tercih et) |
 
 **USB hata ayıklama neden gerekiyor?** Android, kabloyla takılan bilgisayarın bir uygulamayla konuşmasına kendiliğinden izin vermez; kablo varsayılan olarak yalnızca şarj ve dosya aktarımı (MTP) içindir. USB'de bu iş için iki yol var: `adb` (USB hata ayıklama; şu an kullanılan) ve Android'in "USB aksesuar" modu (hata ayıklama gerektirmez, telefon takılınca "Talk To Linux açılsın mı?" diye sorar; henüz yapılmadı). Hata ayıklamayı açmak istemezsen Wi-Fi ya da Bluetooth aynı özellikleri verir. Telefon takılıp hata ayıklama kapalıysa bilgisayardaki uygulama *Telefonlar → USB ile takılı* altında bunu gösterir ve adımları yazar.
@@ -57,6 +62,8 @@ Arayüz kararlarının dayandığı araştırmalar ve talepler: [`TASARIM.md`](T
 **Telefonu bilgisayardan ayarlamak.** Bildirim erişimi, pil kısıtlaması, bildirim ve Bluetooth izni telefonun ayar menülerinde dağınık; Android 13+'ta dışarıdan kurulan uygulamaya bildirim erişimi ayrıca "kısıtlanmış ayar" engeline takılır. Telefon USB ile takılıyken bilgisayardaki **“Telefonu ayarla”** (ya da telefondaki **“Bilgisayar ayarlasın”**) bunların hepsini adb ile bir kerede yapar. Yalnızca Talk To Linux'un kendi izinlerine dokunulur. Xiaomi gibi bazı telefonlarda bunun için Geliştirici seçeneklerinde ayrıca “USB hata ayıklama (Güvenlik ayarları)” açık olmalı; uygulama bu durumda bunu söyler.
 
 Bağlantı koparsa telefon 2 dakika boyunca kendiliğinden yeniden dener (bilgisayara özel ayarlardan kapatılabilir).
+
+**Farklı ağdan (internet üzerinden) bağlanmak.** Uygulamanın kendi aktarma sunucusu yok (olsaydı birinin işletmesi gerekirdi). Bugün çalışan yol bir VPN: telefona ve bilgisayara [Tailscale](https://tailscale.com) (ya da ZeroTier, WireGuard) kurup aynı hesaba bağla; bilgisayar `100.x.y.z` gibi bir adres alır ve *Tercihler → Bağlantı → Adres*'te görünür. Telefonda *Diğer yollar → IP adresiyle bağlan* ile bu adrese bir kez bağlan. Sonra telefon, duyuru ulaşmasa da kayıtlı adrese kendiliğinden yeniden bağlanmayı dener (arka planda dakikada bir, uygulama açıkken 5 dakikada bir; güvenlik kodu yine denetlenir). Trafik zaten TLS ile şifreli; VPN ikinci bir katman ekler. Bilgisayarda ufw açıksa 47600/tcp'ye izin olmalı (kurulum yardımcısındaki “İzin ver”). Gerçek bir VPN üzerinden **henüz denenmedi**.
 
 ## Profiller: birbirini tanıma
 
@@ -106,10 +113,10 @@ Komut satırı, çalışan uygulamayla `$XDG_RUNTIME_DIR/talk-to-android.sock` �
 
 ### Linux (Talk To Android)
 
-**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.6.0_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
+**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.7.0_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
 
 - Uygulama Merkezi yerel `.deb` kurarken eksik bağımlılıkları kendisi indirmiyor (0.2.0'da "unmet dependencies" hatası bundandı). Bu yüzden paketin zorunlu bağımlılığı yalnızca `python3`. GTK4/libadwaita eksikse uygulama **ilk açılışta** "kurulsun mu?" diye sorar ve bilgisayarın şifre penceresiyle kurar.
-- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.6.0_all.deb`.
+- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.7.0_all.deb`.
 
 `.deb` dosyasını üretmek (bir kez): `sh talk-to/linux/paket/deb-olustur.sh`
 
@@ -212,12 +219,13 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 | "Neden gelmiyor" uyarıları | Telefonun `phone_status` iletisinden bilgisayardaki uyarılar (hafif sürüm, erişim kapalı, dinleyici bağlı değil, profil izni) | geçti |
 | **Gerçek Android (emülatör, her push'ta)** | Android 14 emülatöründe tam sürüm APK: USB yolu (adb reverse) ile gerçek Linux sunucusuna bağlanma, bilgisayarda onay, telefonun bildirdiği durum (erişim + dinleyici), telefondaki bildirimin bilgisayara ulaşması, "Deneme bildirimi gönder", uygulama adlarının paket adı yerine çıkması, başlıksız medya oturumunun müzik sayılmaması, USB'den yeniden kurulum sonrası onaysız yeniden bağlanma ve bildirimlerin sürmesi. Ekran görüntüleri `emulator-sonuc` içinde | geçti |
 | Şifre kanıtı, onay kodu, çerçeve | Python ve Kotlin aynı test vektörlerini üretiyor | geçti |
+| Basit mod, mini oynatıcı | Linux: yeni ayarların varsayılanı, eklenen özelliklerin sayfaları göstermesi, gerçek pencerede basit modu açıp kapatınca sayfaların gizlenmesi/görünmesi, sabitlenmiş mini oynatıcının müzik başlayınca açılması, şarkı bildiriminin yalnızca mini oynatıcı kapalıyken çıkması ve düğmeleri, çalanın izi (başladı / parça değişti / durdu, iki telefon); kurulum yardımcısında basit modda Wi-Fi'nin öne geçmesi. 24.04 ve 22.04 (GTK 4.6) kütüphaneleriyle. Android: birim testi, ekran görüntüleri; emülatör testi basit modda Dosyalar sekmesinin olmadığını ve “Dosya ve pano” eklenince göründüğünü dener | geçti / CI |
 | Ubuntu 22.04 uyumu | Ubuntu 22.04'ün gerçek GTK 4.6.9 / libadwaita 1.1.7 kütüphaneleriyle arayüz açıldı ve uyumluluk testleri geçti; çekirdek testleri 22.04'ün Python 3.10'uyla geçti. GitHub'daki derleme her push'ta ubuntu-22.04 ve ubuntu-24.04 makinelerinde çalışır | geçti |
 | Arayüzler | Linux: sanal ekranda ekran görüntüsü (geniş ve dar). Android: Paparazzi ekran görüntüsü | yukarıdaki görüntüler |
 | Android derlemesi | tam ve hafif sürüm + lint; hafif sürümün manifestinde bildirim erişimi olmadığı aapt ile denetlendi | 0 hata |
-| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.6.0_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
+| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.7.0_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
 | Gerçek telefonda | Ubuntu 22.04 + USB hata ayıklama açık telefon: USB tüneli ve bağlantı çalıştı (kullanıcı denemesi). 0.2.x'te bildirim ve müzik gelmedi; 0.4/0.5'in düzeltmesi gerçek telefonda henüz doğrulanmadı | kısmen |
-| **Denenmeyenler** | Gerçek telefonda 0.6.0 (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, Uygulama Merkezi'nden çift tıkla kurulum, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
+| **Denenmeyenler** | Gerçek GNOME'da şarkı bildiriminin görünüşü ve düğmeleri, mini oynatıcıda “Her zaman üstte” menüsü, Tailscale üzerinden bağlantı; gerçek telefonda 0.7.0 (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, Uygulama Merkezi'nden çift tıkla kurulum, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
 
 Testleri çalıştırmak:
 
