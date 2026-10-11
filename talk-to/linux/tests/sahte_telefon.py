@@ -119,7 +119,11 @@ class FakePhone:
         if self.writer:
             self.writer.close()
             try:
-                await self.writer.wait_closed()
+                # Python 3.10'da TLS kapanışı karşının close_notify'ını bekler; okunmamış büyük veri
+                # varsa bu hiç gelmez (bilgisayar tarafı da aynı nedenle 3 sn sonra koparır).
+                await asyncio.wait_for(self.writer.wait_closed(), 3)
+            except asyncio.TimeoutError:
+                self.writer.transport.abort()
             except (ConnectionError, ssl.SSLError):
                 pass
 
