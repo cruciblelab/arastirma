@@ -73,7 +73,8 @@ EOF
 }
 
 log "sunucu başlıyor"
-/usr/bin/python3 "$HERE/emulator_sunucu.py" "$EV" > "$OUT/sunucu.out" 2> "$OUT/sunucu.log" &
+CMD="$OUT/komutlar.jsonl"
+/usr/bin/python3 "$HERE/emulator_sunucu.py" "$EV" "$CMD" > "$OUT/sunucu.out" 2> "$OUT/sunucu.log" &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null || true; adb logcat -d > "$OUT/logcat.txt" 2>/dev/null || true' EXIT
 for _ in $(seq 50); do grep -q hazir "$OUT/sunucu.out" 2>/dev/null && break; sleep 0.2; done
@@ -186,5 +187,43 @@ wait_for "güncellemeden sonra da dinleyici bağlı" \
 adb shell "cmd notification post -S bigtext -t 'Guncelleme sonrasi' e2e2 'Hala geliyor mu'"
 wait_for "güncellemeden sonra bildirim ulaştı" 'any(n["title"] == "Guncelleme sonrasi" for n in of("notification"))' 30
 shot 04-guncelleme-sonrasi
+
+log "6) arama: telefonun kendi araması bilgisayarda; düğmeler bilgisayardan"
+# Bilgisayardaki düğme: son aramanın, adı verilen düğmelerden birine basılır (dil farkı için birkaç ad).
+press() {
+    python3 "$HERE/emulator_dugme.py" "$EV" "$1" >> "$CMD" || fail "aramada “$1” düğmesi yok"
+}
+voice_volume() { adb shell dumpsys audio | grep -A3 "STREAM_VOICE_CALL" | grep -o "streamVolume:[0-9]*" | head -n1; }
+calls_now() { adb emu gsm list | grep -ci "inbound" || true; }
+last_call() {
+    python3 -c 'import json,sys; ev=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]; c=[e["data"] for e in ev if e["event"]=="call"][-1]; print(c["app"], "|", c["caller"], "|", c["state"], "|", [a["title"] for a in c["actions"]])' "$EV"
+}
+
+adb shell input keyevent KEYCODE_HOME
+adb emu gsm call 5551234
+wait_for "gelen arama bilgisayara geldi (çalıyor)" 'any(c["state"] == "ringing" for c in of("call"))' 30
+last_call
+shot 05-arama-caliyor
+press "decline|reddet"
+wait_for "bilgisayardan reddedildi (arama bitti)" 'of("call_ended")' 20
+sleep 2
+[ "$(calls_now)" = "0" ] || fail "arama telefonda hâlâ sürüyor"
+
+E0=$(count call_ended)
+R0=$(python3 -c 'import json,sys; print(sum(1 for l in open(sys.argv[1]) if l.strip() and json.loads(l)["event"]=="call" and json.loads(l)["data"]["state"]=="ringing"))' "$EV")
+adb emu gsm call 5551234
+wait_for "ikinci arama geldi" "len([c for c in of('call') if c['state'] == 'ringing']) > $R0" 30
+press "answer|cevapla"
+wait_for "bilgisayardan cevaplandı (görüşme sürüyor)" 'of("call")[-1]["state"] == "ongoing"' 20
+last_call
+shot 05-arama-suruyor
+V0=$(voice_volume)
+python3 -c 'import json,sys; ev=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]; c=[e["data"] for e in ev if e["event"]=="call"][-1]; print(json.dumps({"method": "call_volume", "args": [c["device_id"], True]}))' "$EV" >> "$CMD"
+sleep 2
+V1=$(voice_volume)
+log "görüşme sesi: $V0 → $V1"
+[ -n "$V0" ] && [ "$V0" != "$V1" ] || fail "görüşme sesi bilgisayardan değişmedi ($V0 → $V1)"
+press "hang up|kapat|end"
+wait_for "bilgisayardan kapatıldı" "len(of('call_ended')) > $E0" 20
 
 log "EMÜLATÖR TESTİ GEÇTİ"

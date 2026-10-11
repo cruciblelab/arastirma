@@ -2,7 +2,10 @@
 
 127.0.0.1:47600'de dinler (emülatörde `adb reverse tcp:47600 tcp:47600` ile USB yolu),
 eşleşme isteklerini kendiliğinden onaylar ve olayları JSON satırları olarak yazar:
-    python3 emulator_sunucu.py olaylar.jsonl
+    python3 emulator_sunucu.py olaylar.jsonl [komutlar.jsonl]
+
+Komut dosyasına eklenen her satır ({"method": "call_action", "args": [...]}) hub'da çalıştırılır:
+bilgisayardaki bir düğmeye basmak gibi (ör. aramayı bilgisayardan reddetmek).
 """
 
 import asyncio
@@ -20,6 +23,21 @@ from talkto.config import Config  # noqa: E402
 from talkto.hub import Hub  # noqa: E402
 
 OUT = Path(sys.argv[1])
+COMMANDS = Path(sys.argv[2]) if len(sys.argv) > 2 else None
+
+
+async def run_commands(hub):
+    """Komut dosyasını izler; yeni satırları hub'ın yöntemleriyle çalıştırır."""
+    done = 0
+    while True:
+        lines = COMMANDS.read_text(encoding="utf-8").splitlines() if COMMANDS.exists() else []
+        for line in lines[done:]:
+            if line.strip():
+                cmd = json.loads(line)
+                await getattr(hub, cmd["method"])(*cmd.get("args", []))
+                print("komut:", cmd, flush=True)
+        done = len(lines)
+        await asyncio.sleep(0.3)
 
 
 async def main():
@@ -44,6 +62,8 @@ async def main():
     hub = Hub(cfg, emit, enable_media=False, enable_discovery=False)
     # adb izleyicisi açık: telefondaki "Bilgisayar ayarlasın" bilgisayarın adb ile izin vermesini ister.
     await hub.start()
+    if COMMANDS:
+        asyncio.get_running_loop().create_task(run_commands(hub))
     print("hazir", flush=True)
     await asyncio.Event().wait()
 
