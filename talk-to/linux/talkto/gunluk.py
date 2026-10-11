@@ -9,6 +9,7 @@ yazılır. Dosyalar küçük tutulur (en çok ~3 MB).
 import faulthandler
 import logging
 import logging.handlers
+import os
 import sys
 import time
 
@@ -39,3 +40,5 @@ def setup(level=logging.INFO):
     def hook(kind, value, tb):
         logging.getLogger("talkto").error("yakalanmamış hata", exc_info=(kind, value, tb))
     sys.excepthook = hook  # GTK geri çağrılarındaki hatalar da buraya düşer
+    from . import __version__
+    logging.getLogger("talkto").info("Talk To Android %s başladı (süreç %d)", __version__, os.getpid())

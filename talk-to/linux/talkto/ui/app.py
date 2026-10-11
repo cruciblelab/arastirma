@@ -87,6 +87,57 @@ class App(Adw.Application):
             self._start_bluetooth()
         if self.config["run_in_background"]:
             self.hold()
+        self._watch_own_version()
+
+    # ---- güncellenince yeniden başla -------------------------------------------------
+
+    def _watch_own_version(self):
+        import talkto
+        self._version_file = Path(talkto.__file__)
+        updated = os.environ.pop("TALKTO_GUNCELLENDI", None)
+        if updated:  # önceki süreç güncelleme yüzünden yeniden başlattı
+            self.notifier.show(f"Talk To Android {updated} sürümüne güncellendi",
+                               "Yeni sürümle yeniden başlatıldı; telefon birkaç saniye içinde yeniden bağlanır.",
+                               key="guncellendi")
+        self._update_timer = None
+        try:
+            self._version_monitor = Gio.File.new_for_path(str(self._version_file)).monitor_file(
+                Gio.FileMonitorFlags.NONE, None)
+            self._version_monitor.connect("changed", lambda *_: self._schedule_update_check())
+        except GLib.Error as e:
+            log.info("sürüm dosyası izlenemiyor: %s", e.message)
+
+    def _schedule_update_check(self, delay=3):
+        # dpkg dosyaları birkaç adımda yazar: son değişiklikten birkaç saniye sonra bakılır.
+        if self._update_timer:
+            GLib.source_remove(self._update_timer)
+        self._update_timer = GLib.timeout_add_seconds(delay, self._check_update)
+
+    def _check_update(self):
+        from .. import surum_izleyici
+        self._update_timer = None
+        new = surum_izleyici.version_in(self._version_file)
+        if not new or new == __version__:
+            return False
+        busy = self.window and any(t["state"] in ("active", "waiting") for t in self.window.transfers.values())
+        if busy:
+            log.info("%s kuruldu; aktarım bitince yeniden başlanacak", new)
+            self._schedule_update_check(30)
+            return False
+        log.info("%s kuruldu, yeni sürümle yeniden başlanıyor", new)
+        self.restart_for_update(new)
+        return False
+
+    def restart_for_update(self, new_version):
+        from .. import surum_izleyici
+        args = surum_izleyici.restart_argv(sys.argv, bool(self.window and self.window.get_visible()))
+        os.environ["TALKTO_GUNCELLENDI"] = new_version  # bildirimi yeni süreç gösterir
+        if self.bt:
+            self.bt.stop()
+        self.thread.stop()  # bağlantılar ve yerel soket temiz kapansın
+        logging.shutdown()
+        # Aynı süreç yeni sürümün koduyla değişir (D-Bus adı ve soketler exec ile bırakılır).
+        os.execv(sys.executable, [sys.executable, "-m", "talkto", *args])
 
     def do_activate(self):
         if not self.window:
