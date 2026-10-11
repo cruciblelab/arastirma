@@ -67,6 +67,18 @@ def _usb_phone(usb: dict) -> Item:
                 "telefonla gelen kabloyu kullan.", False)
 
 
+def _phone_permissions(d: dict, sessions: list[dict]) -> Item:
+    """Bildirim erişimi, pil kısıtlaması gibi telefon ayarları: bilgisayardan tek tıkla."""
+    if d.get("setting_up"):
+        return Item("Telefon ayarlanıyor…", "Telefonda bir şey yapman gerekmiyor.", None)
+    phone = next((s.get("phone") or {} for s in sessions if s.get("kind") == "usb"), {})
+    done = phone.get("notif_access") is True and phone.get("listener") is not False
+    text = ("Bildirim erişimi açık." if done else
+            "Bildirim erişimi, pil kısıtlaması, bildirim ve Bluetooth izni telefonun ayar menülerinde dağınık. "
+            "“Telefonu ayarla” hepsini USB'den bir kerede yapar; telefonda bir şey seçmen gerekmez.")
+    return Item("Telefondaki izinler", text, done, None if done else f"phone_setup:{d['serial']}", "Telefonu ayarla")
+
+
 def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None = None,
           firewall_port: int | None = None) -> list[Step]:
     """firewall_port: güvenlik duvarına bu uygulamadan izin eklenen port (yoksa None)."""
@@ -93,7 +105,7 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
     u.items.append(Item("adb kurulu", "USB bağlantısı için gereken araç." if usb.get("adb") else
                         "USB bağlantısı için gerekli; “Kur”a basınca bilgisayarın şifresi sorulur.",
                         bool(usb.get("adb")), None if usb.get("adb") else "install_adb", "Kur"))
-    u.items.append(Item("USB bağlantısı açık", "Bağlantı sayfasındaki “USB bağlantısı” anahtarı.",
+    u.items.append(Item("USB bağlantısı açık", "Menü → Tercihler'deki “USB bağlantısı” anahtarı.",
                         bool(status.get("usb")), None if status.get("usb") else "enable_usb", "Aç"))
     if usb.get("adb"):
         u.items.append(_usb_phone(usb))
@@ -107,6 +119,7 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
             elif d.get("app"):
                 u.items.append(Item("Telefonda Talk To Linux kurulu",
                                     "Telefondaki uygulamada “USB kablosu”nu seç; ilk seferde burada onay çıkar.", True))
+                u.items.append(_phone_permissions(d, sessions))
     out.append(u)
 
     w = Step("wifi", "Wi-Fi (kablosuz)", "Kablo olmadan, aynı ağdaki telefon bağlanır. İsteğe bağlı.",
@@ -128,7 +141,7 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
                             "verilmeli. “İzin ver” bunu yapar (şifre sorulur). Zaten izin verdiysen geç.",
                             False, "allow_firewall", "İzin ver", optional=True))
     w.items.append(Item("Şifre (isteğe bağlı)", "Şifre koymazsan her yeni telefon için onay penceresi çıkar; "
-                        "koyarsan telefon şifreyle bağlanır. Bağlantı sayfasından ayarlanır.", None))
+                        "koyarsan telefon şifreyle bağlanır. Menü → Tercihler'den ayarlanır.", None))
     out.append(w)
 
     bt = status.get("bt") or {}

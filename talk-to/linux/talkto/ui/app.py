@@ -57,11 +57,13 @@ class App(Adw.Application):
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         for name, cb in (("quit", self._quit), ("about", self._about), ("show", lambda *_: self.present()),
-                         ("setup", lambda *_: self.open_setup())):
+                         ("setup", lambda *_: self.open_setup()), ("preferences", lambda *_: self.open_preferences())):
             a = Gio.SimpleAction.new(name, None)
             a.connect("activate", cb)
             self.add_action(a)
         self.set_accels_for_action("app.quit", ["<Control>q"])
+        self.set_accels_for_action("app.preferences", ["<Control>comma"])
+        self.set_accels_for_action("window.close", ["<Control>w"])
 
         self.config = Config()
         self.notifier = Notifier()
@@ -108,6 +110,11 @@ class App(Adw.Application):
 
     def present(self):
         self.activate()
+
+    def open_preferences(self):
+        self.activate()
+        if self.window:
+            self.window.open_preferences()
 
     def _on_close(self, win):
         if self.config["run_in_background"]:
@@ -298,6 +305,11 @@ class App(Adw.Application):
 
         fut.add_done_callback(lambda f: GLib.idle_add(show, *f.result()))
 
+    def phone_setup(self, serial):
+        """Telefondaki izinleri USB'den verir (bildirim erişimi, pil, bildirim ve Bluetooth izni)."""
+        self.toast("Telefon ayarlanıyor…")
+        self._after(self.hub.phone_setup(serial))
+
     def _ask_replace(self, serial):
         d = compat.Dialog(self.window, "Telefondaki uygulama kaldırılıp yeniden kurulsun mu?",
                           CONFLICT + " Kurulumdan sonra telefonda bildirim erişimini yeniden vermen gerekir.")
@@ -368,7 +380,7 @@ class App(Adw.Application):
         elif event == "paired_by_password":
             # Şifre doğru olunca onay penceresi çıkmaz; yine de kullanıcı haberdar olsun.
             self.notifier.show("Yeni telefon şifreyle eşleşti",
-                               f"{d['name']} ({d['ip']}). İstemediysen Cihazlar'dan unut ve şifreyi değiştir.",
+                               f"{d['name']} ({d['ip']}). İstemediysen Telefonlar sayfasından unut ve şifreyi değiştir.",
                                key="sifre-esleme", urgent=True)
         elif event == "connected":
             text = f"{d['name']} bağlandı ({KIND.get(d['kind'], d['kind'])})"
@@ -378,6 +390,8 @@ class App(Adw.Application):
                 self.notifier.show(text, "Bildirimler ve medya artık bu bilgisayarda.", key="baglanti")
         elif event == "screenshot":
             self._screenshot(d["device_id"])
+        elif event == "phone_setup":
+            self.toast(f"{d['device']} izinlerini ayarlamamı istedi; ayarlanıyor…")
         elif event == "screenshot_taken":
             self._screenshot_taken(d["device_id"])
         elif event == "command_run":
@@ -512,9 +526,9 @@ class App(Adw.Application):
         if d["kind"] == "pair":
             via = {"usb": "USB kablosu", "bluetooth": f"Bluetooth ({d['ip']})"}.get(d["transport"], f"Wi-Fi ({d['ip']})")
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-            box.append(Gtk.Label(label="Telefondaki kod", css_classes=["dim-label"]))
+            box.append(Gtk.Label(label="Eşleşme numarası", css_classes=["dim-label"]))
             code = d["code"]
-            box.append(Gtk.Label(label=f"{code[:3]} {code[3:]}", css_classes=["pair-code"]))
+            box.append(Gtk.Label(label=f"{code[:3]} {code[3:]}", css_classes=["pair-code", "numeric"]))
             pids = list(d.get("profiles") or {})
             if pids:
                 prof_row = Gtk.Box(spacing=8, halign=Gtk.Align.CENTER, margin_top=10)
@@ -524,17 +538,19 @@ class App(Adw.Application):
                     chooser.set_selected(pids.index(d["default_profile"]))
                 prof_row.append(chooser)
                 box.append(prof_row)
+            # Uzun ve ark. 2007: "Evet/Hayır" ile %20 eşleşmeyen kod onaylandı; "aynı/farklı" etiketleri ve
+            # güvenli varsayılanla %0. Enter, Esc ve pencereyi kapatmak "farklı" sayılır.
             dlg = self._dialog(
-                "Telefon bağlanmak istiyor",
+                "Numaraları karşılaştır",
                 f"{d['name']}" + (f" ({d['model']})" if d.get("model") else "") + f" · {via}\n\n"
-                "Yalnızca telefonda da aynı kod görünüyorsa bağlan. "
-                "Telefonun neler yapabileceğini seçtiğin profil belirler (Cihazlar → Profiller).",
+                "Telefonda da aynı numara görünüyor mu? Aynıysa eşleşir ve telefon seçtiğin profille bağlanır. "
+                "Bu numarayı bir yere yazmana gerek yok.",
                 box)
-            dlg.add_response("reject", "Reddet")
-            dlg.add_response("accept", "Bağlan")
-            dlg.set_appearance("accept", compat.SUGGESTED)
-            self.notifier.show("Telefon bağlanmak istiyor", f"{d['name']} · kod {code}", key=f"ask{rid}",
-                               urgent=True, actions={"default": ("Göster", self.present)})
+            dlg.add_response("reject", "Numaralar farklı")
+            dlg.add_response("accept", "Numaralar aynı")
+            dlg.set_default("reject")
+            self.notifier.show("Telefon eşleşmek istiyor", f"{d['name']} · numara {code[:3]} {code[3:]}",
+                               key=f"ask{rid}", urgent=True, actions={"default": ("Göster", self.present)})
         else:
             dlg = self._dialog("Dosya kabul edilsin mi?",
                                f"{d['device']} şu dosyayı göndermek istiyor:\n{d['name']} ({human_size(d['size'])})")

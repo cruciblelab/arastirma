@@ -34,7 +34,7 @@ from . import netinfo
 from .netinfo import interfaces
 from .protocol import CHUNK, ProtocolError, encode_binary, encode_json, read_frame
 from .transfers import Incoming
-from . import mirror
+from . import mirror, phone_setup
 from .usb import AdbWatcher
 
 log = logging.getLogger("talkto")
@@ -70,7 +70,7 @@ def phone_problems(phone: dict, perms: dict, show_notifications: bool = True) ->
     out = []
     if phone.get("flavor") == "hafif":
         out.append("Telefondaki Talk To Linux hafif sürüm: bildirimler ve telefonda çalan müzik gelmez. "
-                   "Bağlantı → USB'den “Talk To Linux'u güncelle” ile tam sürümü kur.")
+                   "Telefonu USB ile takıp Telefonlar sayfasında ⋯ → “Talk To Linux'u güncelle” ile tam sürümü kur.")
     elif phone.get("notif_access") is False:
         out.append("Telefonda bildirim erişimi kapalı: bildirimler ve telefonda çalan müzik gelmez. "
                    "Telefonda Talk To Linux'u aç ve “İzin ver”e dokun.")
@@ -78,11 +78,11 @@ def phone_problems(phone: dict, perms: dict, show_notifications: bool = True) ->
         out.append("Bildirim erişimi açık ama Android bildirim dinleyicisini başlatmamış. Telefonda Talk To Linux'u "
                    "bir kez aç; düzelmezse Ayarlar → Bildirim erişimi'nde kapatıp aç ya da telefonu yeniden başlat.")
     if not perms.get("notifications"):
-        out.append("Bu telefonun profili bildirimlere izin vermiyor (Cihazlar → Profiller).")
+        out.append("Bu telefonun profili bildirimlere izin vermiyor (Telefonlar → Profiller).")
     elif not show_notifications:
         out.append("Bildirimleri gösterme kapalı (Bildirimler sayfası).")
     if not perms.get("media"):
-        out.append("Bu telefonun profili medya kontrolüne izin vermiyor (Cihazlar → Profiller).")
+        out.append("Bu telefonun profili medya kontrolüne izin vermiyor (Telefonlar → Profiller).")
     return out
 
 
@@ -118,6 +118,7 @@ class Hub:
         self.announcing = False
         self.usb = AdbWatcher(config["port"], lambda snap: self.emit("usb", snap))
         self.mirror = mirror.Mirror()
+        self.setting_up: set[str] = set()  # adb ile izinleri verilen telefonlar
         self.media = None
         self.media_state = {"active": False}
         self._tid = itertools.count(1)
@@ -471,7 +472,7 @@ class Hub:
         if not mirror.available():
             return False, "scrcpy kurulu değil"
         if not self.usb.available():
-            return False, "adb kurulu değil (Bağlantı → USB'den kurulur)"
+            return False, "adb kurulu değil (kurulum yardımcısının USB adımından kurulur)"
         if s.kind == "usb":
             serial = self._adb_serial_for(s)
             if not serial:
@@ -495,6 +496,28 @@ class Hub:
 
     async def install_phone_app(self, serial: str, replace: bool = False) -> tuple[bool, str]:
         return await self.usb.install_app(serial, replace)
+
+    async def phone_setup(self, serial: str) -> tuple[bool, str]:
+        """Talk To Linux'un telefondaki izinlerini USB'den verir; bağlı oturuma sonucu da yollar."""
+        if serial in self.setting_up:
+            return False, "Telefon zaten ayarlanıyor"
+        d = self.usb.devices.get(serial)
+        if not d or d.get("state") != "device":
+            return False, "Telefon USB'de görünmüyor ya da USB hata ayıklama onaylanmadı"
+        self.setting_up.add(serial)
+        d["setting_up"] = True
+        self.usb.on_change(self.usb.snapshot())
+        try:
+            items = await phone_setup.setup_phone(serial)
+        finally:
+            self.setting_up.discard(serial)
+            d.pop("setting_up", None)
+            self.usb.on_change(self.usb.snapshot())
+        text = phone_setup.summary(items)
+        for s in list(self.sessions.values()):
+            if s.kind == "usb" and self._adb_serial_for(s) == serial:
+                await s.send({"type": "setup_result", "items": items, "summary": text})
+        return not any(i["ok"] is False for i in items), text
 
     # ---- Bluetooth -------------------------------------------------------------
 
@@ -938,6 +961,15 @@ class Session:
                 await asyncio.to_thread(pc.volume_set, _int(value) if value is not None else None,
                                         bool(msg.get("toggle_mute")))
                 await self.send({"type": "sysinfo", **await asyncio.to_thread(pc.sysinfo)})
+        elif t == "setup_request":
+            # Telefondaki "Bilgisayar ayarlasın": yalnızca USB'de (adb gerekir).
+            serial = hub._adb_serial_for(self) if self.kind == "usb" and hub.usb.available() else None
+            if not serial:
+                await self.send({"type": "setup_result", "items": [], "summary":
+                                 "Bunun için telefon USB ile bağlı ve USB hata ayıklama açık olmalı."})
+            else:
+                hub.emit("phone_setup", {"device_id": self.device_id, "device": self.name})
+                self._spawn(hub.phone_setup(serial))
         elif t == "screenshot_request":
             if not self.perm("screenshot"):
                 await self.send({"type": "command_result", "id": "ekran", "ok": False,

@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +24,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,8 +35,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-/** Bütün ekranlarda aynı köşe ve renk: düz, hafif ayrışan yüzey. */
-internal val PanelShape = RoundedCornerShape(20.dp)
+/** Bütün ekranlarda aynı köşe ve renk: düz, hafif ayrışan yüzey (M3 kart şekli: 12–16 dp). */
+internal val PanelShape = RoundedCornerShape(16.dp)
+
+/**
+ * Boşluk ölçeği (TASARIM.md T9, A1): 8 dp ızgara. Bölüm başlığı kartına 8 dp yakın, bölümler arası
+ * 24 dp: gruplar arası boşluk grup içinin en az iki katı (Gestalt yakınlık).
+ */
+internal object Gap {
+    val inner = 8.dp
+    val section = 24.dp
+    val screen = 16.dp
+}
 
 /** "Çalışıyor" işareti: temadan bağımsız, her iki modda okunur yeşil. */
 internal val OkGreen = Color(0xFF2E9D5B)
@@ -44,9 +59,18 @@ internal fun Panel(modifier: Modifier = Modifier, color: Color = MaterialTheme.c
     }
 }
 
+/** Başlıklı bölüm: başlık ve içerik tek grup (aralarında 8 dp). */
+@Composable
+internal fun Section(title: String, searching: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Gap.inner)) {
+        SectionTitle(title, searching)
+        content()
+    }
+}
+
 @Composable
 internal fun SectionTitle(text: String, searching: Boolean = false) {
-    Row(Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         if (searching) {
             Spacer(Modifier.width(10.dp))
@@ -92,14 +116,17 @@ internal fun SwitchRow(title: String, sub: String?, checked: Boolean, onChange: 
 internal fun RowDivider() = HorizontalDivider(Modifier.padding(start = 16.dp),
     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-/** Kare hızlı işlem düğmesi (ızgarada kullanılır). */
+/**
+ * Kare hızlı işlem düğmesi (ızgarada kullanılır). [quiet]: güç komutları gibi nadir ve geri alınamaz
+ * işler sık kullanılanlardan sönük durur; kırmızı yalnızca onay penceresindeki fiilde (T5, A7).
+ */
 @Composable
-internal fun QuickTile(icon: ImageVector, label: String, modifier: Modifier, danger: Boolean = false,
+internal fun QuickTile(icon: ImageVector, label: String, modifier: Modifier, quiet: Boolean = false,
                        onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Card(onClick = onClick, modifier = modifier.heightIn(min = 84.dp), shape = PanelShape,
-        colors = CardDefaults.cardColors(containerColor = if (danger) cs.errorContainer else cs.secondaryContainer,
-            contentColor = if (danger) cs.onErrorContainer else cs.onSecondaryContainer)) {
+        colors = CardDefaults.cardColors(containerColor = if (quiet) cs.surfaceContainerHigh else cs.secondaryContainer,
+            contentColor = if (quiet) cs.onSurface else cs.onSecondaryContainer)) {
         Column(Modifier.padding(14.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(icon, null, Modifier.size(24.dp))
             Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -119,6 +146,87 @@ internal fun <T> Grid2(items: List<T>, tile: @Composable (T, Modifier) -> Unit) 
         }
     }
 }
+
+/** Durumun tonu: rengi tek başına anlam taşımaz, her zaman simge ve yazıyla gelir (T1, T5). */
+internal enum class Tone { OK, ACTION, NEUTRAL }
+
+/**
+ * Durum kartı: simge, başlık, bir-iki cümle, en çok bir birincil düğme ve bir yazı düğmesi.
+ * "Bir şey yapman gerekiyor" kırmızı değil vurgu rengiyle; kırmızı gerçek hatalara kalır.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun StatusCard(
+    icon: ImageVector, title: String, text: String?, tone: Tone = Tone.NEUTRAL,
+    action: String? = null, onAction: (() -> Unit)? = null, busy: Boolean = false,
+    secondary: String? = null, onSecondary: (() -> Unit)? = null,
+    extra: @Composable (ColumnScope.() -> Unit)? = null,
+) {
+    val cs = MaterialTheme.colorScheme
+    val (bg, fg, tint) = when (tone) {
+        // Ana vurgu rengi: ekrandaki tek öne çıkan öğe (Von Restorff), ama hata kırmızısı değil.
+        Tone.ACTION -> Triple(cs.primaryContainer, cs.onPrimaryContainer, cs.onPrimaryContainer)
+        Tone.OK -> Triple(cs.surfaceContainer, cs.onSurface, OkGreen)
+        Tone.NEUTRAL -> Triple(cs.surfaceContainer, cs.onSurface, cs.onSurfaceVariant)
+    }
+    Panel(color = bg) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(Gap.inner)) {
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, color = fg)
+                    if (!text.isNullOrEmpty()) Text(text, style = MaterialTheme.typography.bodyMedium,
+                        color = if (tone == Tone.ACTION) fg else cs.onSurfaceVariant)
+                }
+            }
+            extra?.invoke(this)
+            if (action != null || secondary != null) {
+                // Dar ekranda düğme yazısı kırılmasın: sığmayan düğme alt satıra geçer.
+                FlowRow(Modifier.padding(start = 40.dp), verticalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.spacedBy(Gap.inner)) {
+                    if (action != null && onAction != null) {
+                        FilledTonalButton(onClick = onAction, enabled = !busy) {
+                            if (busy) {
+                                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text(action)
+                        }
+                    }
+                    if (secondary != null && onSecondary != null) TextButton(onClick = onSecondary) { Text(secondary) }
+                }
+            }
+        }
+    }
+}
+
+/** Boş durum: ne olduğu, ne işe yaradığı ve (varsa) tek sonraki adım (T7). */
+@Composable
+internal fun EmptyState(icon: ImageVector, title: String, text: String, action: String? = null,
+                        onAction: (() -> Unit)? = null) {
+    Panel {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Gap.inner)) {
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.size(56.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(28.dp))
+                }
+            }
+            Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            Text(text, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (action != null && onAction != null) {
+                Spacer(Modifier.size(4.dp))
+                FilledTonalButton(onClick = onAction) { Text(action) }
+            }
+        }
+    }
+}
+
+/** Eşleşme numarası iki ekranda aynı biçimde: 3+3 gruplu, eşit genişlikli rakamlar (T2). */
+internal fun groupedCode(code: String) = if (code.length == 6) "${code.take(3)} ${code.drop(3)}" else code
 
 @Composable
 internal fun IconBadge(icon: ImageVector, size: Int = 44) {

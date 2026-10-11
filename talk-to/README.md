@@ -9,17 +9,20 @@ Linux bilgisayar ile Android telefonu **USB kablosu**, **Wi-Fi** ya da **Bluetoo
 
 İki uygulama birbirini tanır: ilk bağlantıda bir kez onaylanır (ya da şifre girilir), sonra telefon bağlandığı anda bilgisayar onu tanır ve **profilini** uygular.
 
-**Durum:** 0.5.0. Ubuntu 22.04 + gerçek bir telefonda USB bağlantısı kuruldu; 0.2.x'te bildirim ve müziğin gelmediği bildirildi, 0.4.x bunun sebebini iki tarafta da gösteriyor ve en olası sebebi (Android'in bildirim dinleyicisini bağlamaması) düzeltmeye çalışıyor; emülatörde çalışıyor, gerçek telefonda henüz doğrulanmadı. 0.5.0 bir denetimde bulunan güvenlik ve sağlamlık hatalarını düzeltir; **telefon ve bilgisayar birlikte 0.5'e güncellenmeli** (yeni telefon, eski bilgisayara şifre ya da onayla bağlanmaz). Bluetooth gerçek donanımda denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
+**Durum:** 0.6.0. Ubuntu 22.04 + gerçek bir telefonda USB bağlantısı kuruldu; 0.2.x'te bildirim ve müziğin gelmediği bildirildi, 0.4.x bunun sebebini iki tarafta da gösteriyor ve en olası sebebi (Android'in bildirim dinleyicisini bağlamaması) düzeltmeye çalışıyor; emülatörde çalışıyor, gerçek telefonda henüz doğrulanmadı. 0.5.0 bir denetimde bulunan güvenlik ve sağlamlık hatalarını düzeltti; 0.6.0 arayüzü araştırmalara göre düzenler ve telefonu bilgisayardan tek tıkla ayarlamayı ekler; **telefon ve bilgisayar birlikte güncellenmeli**: 0.5 ve sonrası telefon, 0.4 ve öncesi bilgisayara şifre ya da onayla bağlanmaz. Bluetooth gerçek donanımda denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
 
 | Telefon | Bilgisayar |
 |---|---|
-| ![Ana sayfa](ekran/android-ana-sayfa.png) | ![Bağlantı](ekran/linux-baglanti.png) |
+| ![Ana sayfa](ekran/android-ana-sayfa.png) | ![Telefonlar](ekran/linux-telefonlar.png) |
 | ![Medya](ekran/android-medya.png) | ![Medya](ekran/linux-medya.png) |
 | ![Bilgisayar](ekran/android-bilgisayar.png) | ![Komutlar](ekran/linux-komutlar.png) |
-| ![Sorun gösterimi](ekran/android-sorun.png) | ![Cihazlar ve profiller](ekran/linux-cihazlar-profiller.png) |
-| ![Bilgisayar bul](ekran/android-bilgisayar-bul.png) | ![Onay](ekran/linux-onay.png) |
+| ![Sorun gösterimi ve “Bilgisayar ayarlasın”](ekran/android-sorun.png) | ![Tercihler](ekran/linux-tercihler.png) |
+| ![Bilgisayar bul](ekran/android-bilgisayar-bul.png) | ![Numaraları karşılaştır](ekran/linux-onay.png) |
+| ![Numaraları karşılaştır](ekran/android-onay.png) | ![Dosyalar](ekran/linux-dosyalar.png) |
 | ![Kurulum sihirbazı](ekran/android-kurulum.png) | ![Kurulum yardımcısı](ekran/linux-kurulum.png) |
 | ![İzinler ve yetkiler](ekran/android-izinler.png) | |
+
+Arayüz kararlarının dayandığı araştırmalar ve talepler: [`TASARIM.md`](TASARIM.md).
 
 ## Ne yapar
 
@@ -45,17 +48,19 @@ Linux bilgisayar ile Android telefonu **USB kablosu**, **Wi-Fi** ya da **Bluetoo
 
 | Yol | Ne gerekir | İlk bağlantı | Hız |
 |---|---|---|---|
-| **USB** | Telefonda *Geliştirici seçenekleri → USB hata ayıklama*, bilgisayarda `adb` (uygulama içinden "Kur" düğmesiyle kurulur) | Bilgisayarda onay penceresi, iki ekranda aynı 6 haneli kod | En hızlı |
+| **USB** | Telefonda *Geliştirici seçenekleri → USB hata ayıklama*, bilgisayarda `adb` (uygulama içinden "Kur" düğmesiyle kurulur) | İki ekranda aynı 6 haneli numara; bilgisayarda “Numaralar aynı” | En hızlı |
 | **Wi-Fi** | Aynı ağ; bilgisayarda "Kablosuz bağlantıyı aç" | Şifre koyduysan şifre, koymadıysan onay penceresi | Hızlı |
 | **Bluetooth** | Telefonla bilgisayarı **önce sistemin Bluetooth ayarlarından eşleştir** | Onay penceresi | Yavaş (bildirim, medya, komut için yeterli; büyük dosyada Wi-Fi/USB tercih et) |
 
-**USB hata ayıklama neden gerekiyor?** Android, kabloyla takılan bilgisayarın bir uygulamayla konuşmasına kendiliğinden izin vermez; kablo varsayılan olarak yalnızca şarj ve dosya aktarımı (MTP) içindir. USB'de bu iş için iki yol var: `adb` (USB hata ayıklama; şu an kullanılan) ve Android'in "USB aksesuar" modu (hata ayıklama gerektirmez, telefon takılınca "Talk To Linux açılsın mı?" diye sorar; henüz yapılmadı). Hata ayıklamayı açmak istemezsen Wi-Fi ya da Bluetooth aynı özellikleri verir. Telefon takılıp hata ayıklama kapalıysa bilgisayardaki uygulama *Bağlantı → USB* altında bunu gösterir ve adımları yazar.
+**USB hata ayıklama neden gerekiyor?** Android, kabloyla takılan bilgisayarın bir uygulamayla konuşmasına kendiliğinden izin vermez; kablo varsayılan olarak yalnızca şarj ve dosya aktarımı (MTP) içindir. USB'de bu iş için iki yol var: `adb` (USB hata ayıklama; şu an kullanılan) ve Android'in "USB aksesuar" modu (hata ayıklama gerektirmez, telefon takılınca "Talk To Linux açılsın mı?" diye sorar; henüz yapılmadı). Hata ayıklamayı açmak istemezsen Wi-Fi ya da Bluetooth aynı özellikleri verir. Telefon takılıp hata ayıklama kapalıysa bilgisayardaki uygulama *Telefonlar → USB ile takılı* altında bunu gösterir ve adımları yazar.
+
+**Telefonu bilgisayardan ayarlamak.** Bildirim erişimi, pil kısıtlaması, bildirim ve Bluetooth izni telefonun ayar menülerinde dağınık; Android 13+'ta dışarıdan kurulan uygulamaya bildirim erişimi ayrıca "kısıtlanmış ayar" engeline takılır. Telefon USB ile takılıyken bilgisayardaki **“Telefonu ayarla”** (ya da telefondaki **“Bilgisayar ayarlasın”**) bunların hepsini adb ile bir kerede yapar. Yalnızca Talk To Linux'un kendi izinlerine dokunulur. Xiaomi gibi bazı telefonlarda bunun için Geliştirici seçeneklerinde ayrıca “USB hata ayıklama (Güvenlik ayarları)” açık olmalı; uygulama bu durumda bunu söyler.
 
 Bağlantı koparsa telefon 2 dakika boyunca kendiliğinden yeniden dener (bilgisayara özel ayarlardan kapatılabilir).
 
 ## Profiller: birbirini tanıma
 
-Bilgisayarda *Cihazlar → Profiller*: her profil bir telefonun bu bilgisayarda neleri yapabileceğini söyler.
+Bilgisayarda *Telefonlar → Profiller*: her profil bir telefonun bu bilgisayarda neleri yapabileceğini söyler.
 
 | İzin | "Benim telefonum" | "Misafir" |
 |---|---|---|
@@ -65,8 +70,8 @@ Bilgisayarda *Cihazlar → Profiller*: her profil bir telefonun bu bilgisayarda 
 | Uyku / kapat / yeniden başlat | ✓ | — |
 
 - Onay penceresinde telefonun profilini seçersin; şifreyle eşleşen telefon "yeni telefonlar bununla başlar" profilini alır.
-- Profil oluşturma, yeniden adlandırma, silme, profil başına ayrı kayıt klasörü: *Cihazlar → Profiller* (+).
-- Bir telefonun profilini *Güvenilen cihazlar*'dan değiştirebilirsin; bağlıysa **hemen** uygulanır.
+- Profil oluşturma, yeniden adlandırma, silme, profil başına ayrı kayıt klasörü: *Telefonlar → Profiller* (+).
+- Bir telefonun profilini *Telefonlar → Eşleşmiş telefonlar*'dan değiştirebilirsin; bağlıysa **hemen** uygulanır.
 - Telefon bağlanınca "Bilgisayar seni “Benim telefonum” profiliyle tanıyor" yazar ve yalnızca izin verilen düğmeleri gösterir.
 - Telefonda da her bilgisayarın kendi ayarları var: bildirim gönder, medya paylaş, kendiliğinden bağlan.
 
@@ -101,16 +106,16 @@ Komut satırı, çalışan uygulamayla `$XDG_RUNTIME_DIR/talk-to-android.sock` �
 
 ### Linux (Talk To Android)
 
-**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.5.0_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
+**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.6.0_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
 
 - Uygulama Merkezi yerel `.deb` kurarken eksik bağımlılıkları kendisi indirmiyor (0.2.0'da "unmet dependencies" hatası bundandı). Bu yüzden paketin zorunlu bağımlılığı yalnızca `python3`. GTK4/libadwaita eksikse uygulama **ilk açılışta** "kurulsun mu?" diye sorar ve bilgisayarın şifre penceresiyle kurar.
-- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.5.0_all.deb`.
+- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.6.0_all.deb`.
 
 `.deb` dosyasını üretmek (bir kez): `sh talk-to/linux/paket/deb-olustur.sh`
 
 Uygulamanın içinden, terminalsiz:
-- **adb eksikse** *Bağlantı → USB*'de **Kur** düğmesi: bilgisayarın kendi şifre penceresi açılır, dağıtımın paket yöneticisiyle (apt, dnf, pacman, zypper) kurulur.
-- **Oturum açılınca başlat** (*Bağlantı → Genel*).
+- **adb eksikse** kurulum yardımcısının USB adımında **Kur** düğmesi: bilgisayarın kendi şifre penceresi açılır, dağıtımın paket yöneticisiyle (apt, dnf, pacman, zypper) kurulur.
+- **Oturum açılınca başlat** (menü → *Tercihler* → Genel).
 
 **Fedora, Arch ve diğerleri:** henüz paket yok; bir kez terminalde:
 
@@ -133,7 +138,7 @@ Android 10 ve üstü. İki sürüm var; aynı uygulama oldukları için biri di�
 | **Hafif** | `talk-to-linux-0.2.2-hafif.apk` | Telefonda dosya yöneticisinden açıp doğrudan | Telefon bildirimlerinin bilgisayara gelmesi, telefonda çalan müziğin bilgisayardan kontrolü |
 | **Tam** | `talk-to-linux-0.2.2.apk` (ayrıca `.deb`'in içinde) | Bilgisayardan USB ile (aşağıda) | — |
 
-**Tam sürüm için önerilen yol: bilgisayardan USB ile kur.** Telefonda *Geliştirici seçenekleri → USB hata ayıklama*'yı aç, kabloyu tak, telefonda çıkan "USB hata ayıklamaya izin ver" sorusunu onayla. Bilgisayardaki Talk To Android'de *Bağlantı → USB* altında telefonun yanında **"Talk To Linux'u kur"** düğmesi çıkar; basınca APK telefona kurulur ve açılır (APK `.deb` paketinin içinde gelir).
+**Tam sürüm için önerilen yol: bilgisayardan USB ile kur.** Telefonda *Geliştirici seçenekleri → USB hata ayıklama*'yı aç, kabloyu tak, telefonda çıkan "USB hata ayıklamaya izin ver" sorusunu onayla. Bilgisayardaki Talk To Android'de *Telefonlar → USB ile takılı* altında telefonun yanında **"Talk To Linux'u kur"** düğmesi çıkar; basınca APK telefona kurulur ve açılır (APK `.deb` paketinin içinde gelir).
 
 **Neden APK'yı telefona indirip açmak yerine bu yol?** Google Play Protect, bazı ülkelerde internetten (tarayıcı, mesajlaşma, dosya yöneticisi) yüklenen ve **bildirim erişimi** isteyen uygulamaları "Yine de yükle" seçeneği vermeden engelliyor; dolandırıcıların tek kullanımlık şifreleri okumak için kullandığı izinlerden biri bu. Talk To Linux bildirimleri bilgisayara iletmek için bu izni istediğinden engele takılabiliyor. Bu engel USB (adb) ile kuruluma uygulanmıyor. Uygulama bilgileri eksik diye engellenmiyor; sebep bu izin. Hafif sürüm bu izni hiç istemediği için dosya yöneticisinden kurulabilir.
 
@@ -172,7 +177,7 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 ## Güvenlik
 
 - Bütün trafik **TLS** ile şifreli (Bluetooth dahil). Telefon ilk eşleşmede bilgisayarın sertifika parmak izini kaydeder; değişirse bağlanmaz ("güvenlik kodu değişmiş").
-- İlk eşleşmede iki ekrandaki 6 haneli kodu karşılaştır: telefon kendi rastgele değerini koddan önce taahhüt ettiği için araya giren biri iki ekranda aynı kodu çıkaramaz. Kodlara bakmadan onaylarsan bu koruma yok.
+- İlk eşleşmede iki ekrandaki 6 haneli numarayı karşılaştır: telefon kendi rastgele değerini numaradan önce taahhüt ettiği için araya giren biri iki ekranda aynı numarayı çıkaramaz. Düğmeler “Numaralar aynı / Numaralar farklı”; Enter, Esc ve pencereyi kapatmak “farklı” sayılır (araştırmada “Evet/Hayır” düğmeleriyle kullanıcıların %20'si eşleşmeyen kodu onaylamıştı, bkz. [TASARIM.md](TASARIM.md)). Numaralara bakmadan onaylarsan bu koruma yok.
 - Wi-Fi şifresi kısa olmasın: şifre kanıtı PBKDF2 (100 000 tur) ile yavaşlatılır ama çok kısa bir şifre yine de çevrimdışı denenerek bulunabilir. Emin değilsen şifresiz bırak, onay penceresini kullan. Biri şifreyle eşleşince bilgisayarda bildirim çıkar.
 - Aynı adresten 10 dakikada 5 hatalı denemede o adres geçici olarak engellenir (USB/yerel bağlantıda 20). Kimlik doğrulanmadan önce büyük ileti ve dosya parçası kabul edilmez.
 - Telefon, kayıtlı bir bilgisayarın güvenlik kodu değişmişse ya da tanımadığı bir şey telefonun USB portunu açmışsa kendiliğinden bağlanmaz. Paylaş menüsünden gelen her gönderim telefonda kısa bir onay ister (başka bir uygulama sessizce bilgisayarda bağlantı açamasın).
@@ -190,7 +195,7 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 - "Ekranı kilitle" `loginctl lock-session` ile çalışır; bazı hafif masaüstlerinde (kilit ekranı olmayan) etkisiz olabilir. Uyku/kapat, oturumu açık kullanıcıya polkit izin veriyorsa şifresiz çalışır (çoğu masaüstünde öyle).
 - Bilgisayar sesi `wpctl` (PipeWire) ya da `pactl` (PulseAudio) ister.
 - Bildirime bilgisayardan cevap yazma yok. GTK4'te sistem tepsisi simgesi yok (pencere kapanınca arka planda sürer; tamamen kapatmak: menü → "Tamamen kapat").
-- Birden fazla telefon bağlanabilir; sürükle-bırak dosyalar en son bağlanana gider (diğerine *Cihazlar*'daki düğme ya da `-c AD`).
+- Birden fazla telefon bağlanabilir; sürükle-bırak dosyalar en son bağlanana gider (diğerine *Telefonlar*'daki düğme ya da `-c AD`).
 - Keşif UDP yayınıyla çalışır: misafir ağları ve "istemci yalıtımı" açık modemler engeller; o zaman "IP adresiyle bağlan".
 - Paket yalnızca Ubuntu/Debian ailesi için (.deb); rpm, Flatpak, Snap yok.
 
@@ -210,9 +215,9 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 | Ubuntu 22.04 uyumu | Ubuntu 22.04'ün gerçek GTK 4.6.9 / libadwaita 1.1.7 kütüphaneleriyle arayüz açıldı ve uyumluluk testleri geçti; çekirdek testleri 22.04'ün Python 3.10'uyla geçti. GitHub'daki derleme her push'ta ubuntu-22.04 ve ubuntu-24.04 makinelerinde çalışır | geçti |
 | Arayüzler | Linux: sanal ekranda ekran görüntüsü (geniş ve dar). Android: Paparazzi ekran görüntüsü | yukarıdaki görüntüler |
 | Android derlemesi | tam ve hafif sürüm + lint; hafif sürümün manifestinde bildirim erişimi olmadığı aapt ile denetlendi | 0 hata |
-| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.5.0_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
+| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.6.0_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
 | Gerçek telefonda | Ubuntu 22.04 + USB hata ayıklama açık telefon: USB tüneli ve bağlantı çalıştı (kullanıcı denemesi). 0.2.x'te bildirim ve müzik gelmedi; 0.4/0.5'in düzeltmesi gerçek telefonda henüz doğrulanmadı | kısmen |
-| **Denenmeyenler** | Gerçek telefonda 0.5.0 (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, Uygulama Merkezi'nden çift tıkla kurulum, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
+| **Denenmeyenler** | Gerçek telefonda 0.6.0 (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, Uygulama Merkezi'nden çift tıkla kurulum, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
 
 Testleri çalıştırmak:
 

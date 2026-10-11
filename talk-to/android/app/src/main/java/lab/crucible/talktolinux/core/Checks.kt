@@ -43,6 +43,13 @@ object Checks {
 
     fun bluetoothReady(ctx: Context) = BluetoothLink.hasPermission(ctx) && BluetoothLink.enabled(ctx)
 
+    /** Çalışmak için gereken (isteğe bağlı olmayan) ve henüz açılmamış ayar sayısı. */
+    fun missingCount(ctx: Context): Int = listOf(
+        postNotifications(ctx),
+        !hasNotifications || notifAccess(),
+        battery(ctx),
+    ).count { !it }
+
     // ---- ayar sayfaları -----------------------------------------------------------
 
     /** Android 11+: doğrudan Talk To Linux'un bildirim erişimi anahtarı; daha eskide liste. */

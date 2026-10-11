@@ -81,9 +81,7 @@ grep -q hazir "$OUT/sunucu.out" || fail "sunucu açılmadı: $(cat "$OUT/sunucu.
 
 log "uygulama kuruluyor"
 adb install -r "$APK"
-adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS || true
-adb shell cmd notification allow_listener $PKG/$PKG.service.NotificationListener
-adb shell dumpsys deviceidle whitelist +$PKG > /dev/null || true
+# İzinler burada verilmez: 2. adımda telefondaki "Bilgisayar ayarlasın" düğmesiyle bilgisayar verir.
 adb reverse tcp:47600 tcp:47600
 adb logcat -c || true
 
@@ -104,8 +102,18 @@ tap_text "USB kablosu" 30
 wait_for "bilgisayar eşleşme istedi" 'of("ask")' 30
 wait_for "bağlandı" 'of("connected")' 30
 wait_for "telefon durumunu bildirdi" 'phone().get("flavor") == "tam"' 30
-wait_for "bildirim erişimi açık" 'phone().get("notif_access") is True' 20
-wait_for "bildirim dinleyicisi bağlı" 'phone().get("listener") is True' 30
+wait_for "bildirim erişimi başta kapalı" 'phone().get("notif_access") is False' 10
+sleep 2
+shot 02-izin-eksik
+
+log "1b) telefondaki “Bilgisayar ayarlasın”: bilgisayar adb ile izinleri verir"
+tap_text "Bilgisayar ayarlasın"
+wait_for "bilgisayar ayarlamaya başladı" 'of("phone_setup")' 20
+wait_for "bildirim erişimi açık" 'phone().get("notif_access") is True' 40
+wait_for "bildirim dinleyicisi bağlı" 'phone().get("listener") is True' 40
+adb shell dumpsys deviceidle whitelist | grep -q $PKG || fail "pil kısıtlaması kaldırılmadı"
+adb shell dumpsys package $PKG | grep -q "POST_NOTIFICATIONS: granted=true" || fail "bildirim izni verilmedi"
+log "tamam: pil kısıtlaması ve bildirim izni de verildi"
 sleep 2
 shot 02-ana-sayfa
 
@@ -127,7 +135,7 @@ else
 fi
 
 log "3) uygulamadaki Deneme bildirimi düğmesi"
-tap_text "Deneme bildirimi gönder"
+tap_text "Deneme bildirimi"
 wait_for "deneme bildirimi bilgisayara ulaştı" \
     'any(n["title"] == "Talk To Linux deneme bildirimi" for n in of("notification"))' 30
 
@@ -138,6 +146,7 @@ for t in Medya Dosyalar Bilgisayar; do
     shot "03-$t"
 done
 tap_text "Ana sayfa"
+tap_text "Diğer seçenekler"
 tap_text "İzinler ve yetkiler"
 sleep 2
 shot 03-izinler

@@ -113,5 +113,5 @@ async def connect_wireless(ip: str) -> tuple[str | None, str]:
             return target, "bağlandı"
         return None, ("Telefon bu bilgisayara izin vermedi. Telefonda çıkan “USB hata ayıklamaya izin ver” "
                       "sorusunu onayla ve tekrar dene.")
-    return None, ("Telefonun ekranına Wi-Fi'den ulaşılamadı. Telefonu bir kez USB ile takıp Bağlantı → USB'de "
+    return None, ("Telefonun ekranına Wi-Fi'den ulaşılamadı. Telefonu bir kez USB ile takıp Telefonlar sayfasında ⋯ → "
                   "“Kablosuz ekranı hazırla”ya bas (telefon yeniden başlayınca tekrar gerekir).")

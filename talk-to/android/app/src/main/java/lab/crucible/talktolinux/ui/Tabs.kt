@@ -32,6 +32,9 @@ import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.MusicOff
+import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Notifications
@@ -88,78 +91,71 @@ import lab.crucible.talktolinux.net.ClientSession
 
 // ---- Ana sayfa ----------------------------------------------------------------------
 
+/** Ana sayfa: üstte tek durum kartı, sonra en çok dört hızlı işlem (A4; Reinecke 2013: sade ilk ekran). */
 internal fun LazyListScope.homeTab(
     notifAccess: Boolean, onOpenNotifAccess: () -> Unit, onPickFiles: () -> Unit,
-    onSendClipboard: () -> Unit, goTo: (Tab) -> Unit,
+    onSendClipboard: () -> Unit, onOpenPerms: () -> Unit, goTo: (Tab) -> Unit,
 ) {
-    item { HealthCard(notifAccess, onOpenNotifAccess) }
+    item { HealthCard(notifAccess, onOpenNotifAccess, onOpenPerms) }
     item { NowPlayingMini { goTo(Tab.MEDIA) } }
-    item { SectionTitle("Hızlı işlemler") }
-    item { QuickActions(onPickFiles, onSendClipboard) }
+    item { Section("Hızlı işlemler") { QuickActions(onPickFiles, onSendClipboard) } }
     item { RecentTransfers(limit = 3) { goTo(Tab.FILES) } }
 }
 
-/** Bildirimler ve müzik bilgisayara gidiyor mu; gitmiyorsa neden ve nasıl düzelir. */
+/** USB ile bağlıyken eksik telefon ayarlarını bilgisayar adb ile tek seferde yapabilir (T13). */
+internal fun canComputerSetUp() =
+    (Talk.state.value as? Talk.State.Connected)?.target?.kind == "usb"
+
+/**
+ * Bildirimler ve müzik bilgisayara gidiyor mu; gitmiyorsa neden ve tek düzeltme (T1, T6). Sorun kırmızı
+ * değil: hata değil, yapılacak bir ayar (T5). USB'deyken düzeltmeyi bilgisayar yapar (T13).
+ */
 @Composable
-private fun HealthCard(notifAccess: Boolean, onOpenNotifAccess: () -> Unit) {
+private fun HealthCard(notifAccess: Boolean, onOpenNotifAccess: () -> Unit, onOpenPerms: () -> Unit) {
     val ctx = LocalContext.current
     val listener by Talk.listenerConnected.collectAsState()
     val sent by Talk.notificationsSent.collectAsState()
     val player by Talk.phonePlayer.collectAsState()
     val profile by Talk.profile.collectAsState()
+    val running by Talk.setupRunning.collectAsState()
+    val tick by UiTick.tick.collectAsState()
     val server = Talk.currentServer()
+    val usb = canComputerSetUp()
 
-    data class Issue(val title: String, val text: String, val action: String?, val run: () -> Unit)
-    val issues = buildList {
-        when {
-            !BuildConfig.NOTIFICATIONS -> add(Issue("Hafif sürüm",
-                "Bu sürüm bildirimleri ve telefonda çalan müziği bilgisayara gönderemez. Tam sürüm için bilgisayarda " +
-                    "Talk To Android → Bağlantı → USB → “Talk To Linux'u güncelle”.", null) {})
-            !notifAccess -> add(Issue("Bildirim erişimi kapalı",
-                "Bildirimler ve telefonda çalan müzik bilgisayara gitmez.", "İzin ver", onOpenNotifAccess))
-            !listener -> add(Issue("Android bildirim dinleyicisini başlatmadı",
-                "Erişim açık ama Android henüz bağlamadı (genelde güncellemeden sonra olur). Ayarlardan Talk To Linux'u " +
-                    "kapatıp açman düzeltir; olmazsa telefonu yeniden başlat.", "Ayarları aç", onOpenNotifAccess))
-        }
-        if (profile?.can("notifications") == false)
-            add(Issue("Bilgisayar bildirimlere izin vermiyor",
-                "Bilgisayarda Talk To Android → Cihazlar → Profiller'den bu telefonun profilini değiştir.", null) {})
-        if (server?.notif == false)
-            add(Issue("Bu bilgisayara bildirim gönderme kapalı", "Bilgisayar sekmesindeki ayarlardan açılır.", null) {})
+    // Önce telefondaki ayar sorunları (tek tıkla düzelebilir), sonra bilgisayardaki profil kararları.
+    data class Issue(val title: String, val text: String, val fixable: Boolean)
+    val issue = when {
+        !BuildConfig.NOTIFICATIONS -> Issue("Hafif sürüm",
+            "Bu sürüm bildirimleri ve telefonda çalan müziği bilgisayara gönderemez. Tam sürümü bilgisayardaki " +
+                "Talk To Android, telefonu USB ile takınca kurar.", false)
+        !notifAccess -> Issue("Bildirimler bilgisayara gitmiyor",
+            "Talk To Linux'un bildirim erişimi kapalı; telefonda çalan müzik de görünmez.", true)
+        !listener -> Issue("Android bildirim dinleyicisini başlatmadı",
+            "Erişim açık ama Android henüz bağlamadı (çoğunlukla güncellemeden sonra olur).", true)
+        profile?.can("notifications") == false -> Issue("Bilgisayar bildirimlere izin vermiyor",
+            "Bilgisayardaki Talk To Android'de bu telefonun profilinden açılır.", false)
+        server?.notif == false -> Issue("Bu bilgisayara bildirim gönderme kapalı",
+            "Bilgisayar sekmesindeki ayarlardan açılır.", false)
+        else -> null
     }
-
-    if (issues.isNotEmpty()) {
-        Panel(color = MaterialTheme.colorScheme.errorContainer) {
-            issues.forEachIndexed { i, it ->
-                if (i > 0) RowDivider()
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.Warning, null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                        Spacer(Modifier.width(10.dp))
-                        Text(it.title, style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer)
-                    }
-                    Text(it.text, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer)
-                    if (it.action != null) FilledTonalButton(onClick = it.run) { Text(it.action) }
-                }
-            }
-        }
+    if (issue != null) {
+        StatusCard(Icons.Rounded.NotificationsOff, issue.title, issue.text, Tone.ACTION,
+            action = when { !issue.fixable -> null; usb -> "Bilgisayar ayarlasın"; else -> "Ayarı aç" },
+            onAction = { if (usb) Talk.requestSetup() else onOpenNotifAccess() }, busy = running,
+            secondary = if (issue.fixable && usb) "Kendim açarım" else null, onSecondary = onOpenNotifAccess)
         return
     }
-    Panel {
-        ListRow(Icons.Rounded.CheckCircle, "Bildirimler ve müzik bilgisayara gidiyor",
-            buildString {
-                append(if (sent == 0) "Bu bağlantıda henüz bildirim gelmedi" else "Bu bağlantıda $sent bildirim gönderildi")
-                append(" · ")
-                append(player?.let { "Telefonda çalan: $it" } ?: "Telefonda çalan bir şey yok")
-            }, iconTint = OkGreen)
-        RowDivider()
-        ListRow(Icons.Rounded.Notifications, "Deneme bildirimi gönder",
-            "Telefonda bir bildirim çıkar; bilgisayarda da görünmeli", onClick = {
-                if (!Notifs.test(ctx)) Talk.messages.tryEmit("Talk To Linux'un bildirim gösterme izni kapalı")
-            })
-    }
+    val missing = remember(tick) { Checks.missingCount(ctx) }
+    StatusCard(Icons.Rounded.CheckCircle, "Bildirimler ve müzik bilgisayara gidiyor",
+        buildString {
+            append(if (sent == 0) "Bu bağlantıda henüz bildirim gelmedi" else "Bu bağlantıda $sent bildirim gönderildi")
+            append(" · ")
+            append(player?.let { "Telefonda çalan: $it" } ?: "Telefonda çalan bir şey yok")
+        }, Tone.OK,
+        action = if (missing > 0) "Kurulumu bitir ($missing eksik)" else null, onAction = onOpenPerms,
+        secondary = "Deneme bildirimi", onSecondary = {
+            if (!Notifs.test(ctx)) Talk.messages.tryEmit("Talk To Linux'un bildirim gösterme izni kapalı")
+        })
 }
 
 @Composable
@@ -205,11 +201,13 @@ private fun QuickActions(onPickFiles: () -> Unit, onSendClipboard: () -> Unit) {
 // ---- Medya ---------------------------------------------------------------------------
 
 internal fun LazyListScope.mediaTab() {
-    item { SectionTitle("Bilgisayarda çalan") }
-    item { PcPlayer() }
-    item { PcVolume() }
-    item { SectionTitle("Telefonda çalan") }
-    item { PhonePlaying() }
+    item {
+        Section("Bilgisayarda çalan") {
+            PcPlayer()
+            PcVolume()
+        }
+    }
+    item { Section("Telefonda çalan") { PhonePlaying() } }
 }
 
 @Composable
@@ -228,10 +226,11 @@ private fun PcPlayer() {
     val art by Talk.pcArt.collectAsState()
     val media = m
     if (media == null) {
-        Panel {
-            ListRow(Icons.Rounded.MusicNote, "Bilgisayarda çalan bir şey yok",
-                "Spotify, VLC ya da tarayıcıda YouTube açınca burada görünür ve buradan kontrol edilir.")
-        }
+        val profile by Talk.profile.collectAsState()
+        if (profile?.can("media") == false) EmptyState(Icons.Rounded.MusicOff, "Medya kontrolüne izin yok",
+            "Bilgisayardaki Talk To Android'de bu telefonun profilinden açılır.")
+        else EmptyState(Icons.Rounded.MusicNote, "Bilgisayarda çalan bir şey yok",
+            "Spotify, VLC ya da tarayıcıda YouTube açınca burada görünür ve buradan kontrol edilir.")
         return
     }
     var now by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
@@ -336,26 +335,37 @@ private fun PhonePlaying() {
 
 internal fun LazyListScope.filesTab(onPickFiles: () -> Unit, onSendClipboard: () -> Unit) {
     item {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickTile(Icons.Rounded.UploadFile, "Dosya gönder", Modifier.weight(1f), onClick = onPickFiles)
-            QuickTile(Icons.Rounded.ContentPaste, "Panoyu gönder", Modifier.weight(1f), onClick = onSendClipboard)
+        val profile by Talk.profile.collectAsState()
+        Section("Bilgisayara gönder") {
+            if (profile?.can("files") == false && profile?.can("clipboard") == false) {
+                EmptyState(Icons.Rounded.Block, "Dosya ve pano izni yok",
+                    "Bilgisayardaki Talk To Android'de bu telefonun profilinden açılır.")
+            } else Row(horizontalArrangement = Arrangement.spacedBy(Gap.inner)) {
+                if (profile?.can("files") != false)
+                    QuickTile(Icons.Rounded.UploadFile, "Dosya gönder", Modifier.weight(1f), onClick = onPickFiles)
+                if (profile?.can("clipboard") != false)
+                    QuickTile(Icons.Rounded.ContentPaste, "Panoyu gönder", Modifier.weight(1f), onClick = onSendClipboard)
+            }
+            Text("Başka uygulamalarda da Paylaş → Talk To Linux ile gönderebilirsin.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp))
         }
     }
     item {
-        Panel {
-            ListRow(Icons.Rounded.Folder, "Bilgisayardan gelenler",
-                "İndirilenler/TalkToLinux klasörüne kaydedilir. Başka uygulamalarda Paylaş → Talk To Linux ile de gönderebilirsin.")
-        }
+        val list by Talk.transfers.collectAsState()
+        if (list.isEmpty()) Section("Aktarımlar") {
+            EmptyState(Icons.Rounded.Folder, "Henüz aktarım yok",
+                "Bilgisayardan gelen dosyalar İndirilenler/TalkToLinux klasörüne kaydedilir.")
+        } else RecentTransfers(limit = 30, onMore = null)
     }
-    item { RecentTransfers(limit = 30, onMore = null) }
 }
 
 @Composable
 private fun RecentTransfers(limit: Int, onMore: (() -> Unit)?) {
     val list by Talk.transfers.collectAsState()
     if (list.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(verticalArrangement = Arrangement.spacedBy(Gap.inner)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 24.dp)) {
             Box(Modifier.weight(1f)) { SectionTitle("Aktarımlar") }
             if (onMore != null && list.size > limit) TextButton(onClick = onMore) { Text("Tümü") }
         }
@@ -398,8 +408,7 @@ private fun TransferRow(t: ClientSession.Transfer) {
 internal fun LazyListScope.computerTab(s: Talk.State.Connected) {
     item { SysInfoCard() }
     item { Commands() }
-    item { SectionTitle("Bu bilgisayar için ayarlar") }
-    item { ServerSettings(s) }
+    item { Section("Bu bilgisayar için ayarlar") { ServerSettings(s) } }
     item {
         var askForget by remember { mutableStateOf(false) }
         if (askForget) ForgetDialog(s.serverName, onDismiss = { askForget = false }) {
@@ -476,40 +485,49 @@ private fun Commands() {
     var confirm by remember { mutableStateOf<Talk.Command?>(null) }
     val tiles = buildList {
         if (profile?.can("screenshot") == true) add(Talk.Command("__ekran", "Ekran görüntüsü", "screenshot", false))
-        addAll(commands)
+        addAll(commands.filter { !it.power })
     }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle("Komutlar")
-        when {
-            tiles.isNotEmpty() -> Grid2(tiles) { c, mod ->
-                QuickTile(commandIcon(c.icon), c.name, mod, danger = c.power) {
-                    when {
-                        c.id == "__ekran" -> Talk.requestScreenshot()
-                        c.power -> confirm = c
-                        else -> Talk.runCommand(c.id)
+    val power = commands.filter { it.power }
+    Column(verticalArrangement = Arrangement.spacedBy(Gap.section)) {
+        Section("Komutlar") {
+            when {
+                tiles.isNotEmpty() -> Grid2(tiles) { c, mod ->
+                    QuickTile(commandIcon(c.icon), c.name, mod) {
+                        if (c.id == "__ekran") Talk.requestScreenshot() else Talk.runCommand(c.id)
                     }
                 }
+                profile?.can("commands") == false -> EmptyState(Icons.Rounded.Terminal, "Komutlara izin yok",
+                    "Bilgisayardaki Talk To Android'de bu telefonun profilinden açılır.")
+                else -> EmptyState(Icons.Rounded.Terminal, "Henüz komut yok",
+                    "Bilgisayardaki Talk To Android'in Komutlar sayfasından eklenir.")
             }
-            profile?.can("commands") == false -> Panel {
-                ListRow(Icons.Rounded.Terminal, "Komutlara izin yok",
-                    "Bilgisayarda Cihazlar → Profiller'den bu telefonun profiline izin verilebilir.")
-            }
-            else -> Panel {
-                ListRow(Icons.Rounded.Terminal, "Henüz komut yok",
-                    "Bilgisayarda Talk To Android → Komutlar'dan eklenir.")
-            }
+        }
+        // Geri alınamaz komutlar sık kullanılanlardan ayrı ve sönük; onay her zaman sorulur.
+        if (power.isNotEmpty()) Section("Güç") {
+            Grid2(power) { c, mod -> QuickTile(commandIcon(c.icon), c.name, mod, quiet = true) { confirm = c } }
         }
     }
     confirm?.let { c ->
         AlertDialog(
             onDismissRequest = { confirm = null },
             icon = { Icon(commandIcon(c.icon), null) },
-            title = { Text("${c.name}?") },
-            text = { Text("Bilgisayarda açık olan kaydedilmemiş işler kaybolabilir.") },
-            confirmButton = { TextButton(onClick = { Talk.runCommand(c.id); confirm = null }) { Text(c.name) } },
+            title = { Text(powerQuestion(c)) },
+            text = { Text("Bilgisayarda kaydedilmemiş işler kaybolabilir.") },
+            confirmButton = {
+                TextButton(onClick = { Talk.runCommand(c.id); confirm = null }) {
+                    Text(c.name, color = MaterialTheme.colorScheme.error)
+                }
+            },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text("Vazgeç") } },
         )
     }
+}
+
+private fun powerQuestion(c: Talk.Command) = when (c.icon) {
+    "sleep" -> "Bilgisayar uyku moduna geçsin mi?"
+    "restart" -> "Bilgisayar yeniden başlatılsın mı?"
+    "power" -> "Bilgisayar kapatılsın mı?"
+    else -> "${c.name} çalıştırılsın mı?"
 }
 
 private fun commandIcon(name: String): ImageVector = when (name) {
@@ -549,7 +567,7 @@ private fun ServerSettings(s: Talk.State.Connected) {
             RowDivider()
             ListRow(Icons.Rounded.BatteryAlert, "Pil kısıtlamasını kaldır",
                 "Ekran kapalıyken bağlantı kopmasın diye Talk To Linux'u “Kısıtlama yok” yap",
-                iconTint = MaterialTheme.colorScheme.error, onClick = {
+                iconTint = MaterialTheme.colorScheme.tertiary, onClick = {
                     Checks.open(ctx, Checks.batterySettings(), Checks.appDetails(ctx))
                 })
         }
@@ -576,7 +594,7 @@ internal fun CommandResultDialog() {
         title = { Text(res.first) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(if (res.second) "Tamamlandı" else "Başarısız",
+                Text(if (res.second) "Tamamlandı" else "Olmadı",
                     color = if (res.second) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
                 if (res.third.isNotBlank()) Text(res.third, fontFamily = FontFamily.Monospace,
                     style = MaterialTheme.typography.bodySmall,

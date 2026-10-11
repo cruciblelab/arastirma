@@ -23,11 +23,9 @@ import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Security
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.AlertDialog
@@ -48,6 +46,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material.icons.rounded.Lan
+import androidx.compose.material.icons.rounded.MoreVert
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -122,6 +129,9 @@ fun TalkScreen(
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) { Talk.messages.collect { snackbar.showSnackbar(it) } }
     val connected = state as? Talk.State.Connected
+    val list = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val openPerms = { screen = "izinler" }
 
     Scaffold(
         topBar = {
@@ -136,20 +146,28 @@ fun TalkScreen(
                                 Surface(shape = CircleShape, color = OkGreen,
                                     modifier = Modifier.size(8.dp)) {}
                                 Spacer(Modifier.width(6.dp))
-                                Text(listOfNotNull(kindLabel(connected.target), profile?.name).joinToString(" · "),
+                                // Renk tek başına anlam taşımasın: noktanın yanında "bağlı" yazar (T1).
+                                Text(listOfNotNull("${kindLabel(connected.target)} ile bağlı", profile?.name)
+                                    .joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                             }
                         }
                     },
                     actions = {
-                        IconButton(onClick = { screen = "izinler" }) { Icon(Icons.Rounded.Tune, "İzinler ve yetkiler") }
-                        IconButton(onClick = { askDisconnect = true }) { Icon(Icons.Rounded.LinkOff, "Bağlantıyı kes") }
+                        MoreMenu(
+                            "İzinler ve yetkiler" to openPerms,
+                            "Kurulum yardımcısı" to { wizardFrom = "ana"; screen = "kurulum" },
+                            "Bağlantıyı kes" to { askDisconnect = true },
+                        )
                     },
                 )
             } else {
                 TopAppBar(title = { Text("Talk To Linux", fontWeight = FontWeight.SemiBold) }, actions = {
-                    IconButton(onClick = { screen = "izinler" }) { Icon(Icons.Rounded.Tune, "İzinler ve yetkiler") }
+                    MoreMenu(
+                        "İzinler ve yetkiler" to openPerms,
+                        "Kurulum yardımcısı" to { wizardFrom = "ana"; screen = "kurulum" },
+                    )
                 })
             }
         },
@@ -157,8 +175,10 @@ fun TalkScreen(
             if (connected != null) {
                 NavigationBar {
                     Tab.entries.forEach {
-                        NavigationBarItem(selected = tab == it, onClick = { tab = it },
-                            icon = { Icon(it.icon, null) }, label = { Text(it.label) })
+                        NavigationBarItem(selected = tab == it, onClick = {
+                            // Seçili sekmeye yeniden dokunmak başa kaydırır (M3 gezinme çubuğu).
+                            if (tab == it) scope.launch { list.animateScrollToItem(0) } else tab = it
+                        }, icon = { Icon(it.icon, null) }, label = { Text(it.label) })
                     }
                 }
             }
@@ -166,13 +186,14 @@ fun TalkScreen(
         snackbarHost = { SnackbarHost(snackbar) },
     ) { pad ->
         LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = pad.calculateTopPadding() + 4.dp,
-                bottom = pad.calculateBottomPadding() + 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            state = list,
+            contentPadding = PaddingValues(start = Gap.screen, end = Gap.screen, top = pad.calculateTopPadding() + 8.dp,
+                bottom = pad.calculateBottomPadding() + Gap.section),
+            verticalArrangement = Arrangement.spacedBy(Gap.section),
         ) {
             when (val s = state) {
                 is Talk.State.Connected -> when (tab) {
-                    Tab.HOME -> homeTab(notifAccess, onOpenNotifAccess, onPickFiles, onSendClipboard) { tab = it }
+                    Tab.HOME -> homeTab(notifAccess, onOpenNotifAccess, onPickFiles, onSendClipboard, openPerms) { tab = it }
                     Tab.MEDIA -> mediaTab()
                     Tab.FILES -> filesTab(onPickFiles, onSendClipboard)
                     Tab.PC -> computerTab(s)
@@ -189,12 +210,27 @@ fun TalkScreen(
         AlertDialog(
             onDismissRequest = { askDisconnect = false },
             title = { Text("${connected.serverName} bağlantısı kesilsin mi?") },
-            text = { Text("Kendiliğinden yeniden bağlanma da durur. Tekrar bağlanmak için listeden bilgisayarı seçersin.") },
+            text = { Text("Kendiliğinden yeniden bağlanma da durur. Eşleşme silinmez; yeniden bağlanmak için " +
+                "listeden bilgisayarı seçmen yeter.") },
             confirmButton = { TextButton(onClick = { askDisconnect = false; Talk.disconnect() }) { Text("Bağlantıyı kes") } },
             dismissButton = { TextButton(onClick = { askDisconnect = false }) { Text("Vazgeç") } },
         )
     }
     CommandResultDialog()
+}
+
+/** Üç nokta menüsü: her seçenek yazılı (yazısız simge yerine, T3/A3). */
+@Composable
+private fun MoreMenu(vararg items: Pair<String, () -> Unit>) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) { Icon(Icons.Rounded.MoreVert, "Diğer seçenekler") }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            items.forEach { (label, run) ->
+                DropdownMenuItem(text = { Text(label) }, onClick = { open = false; run() })
+            }
+        }
+    }
 }
 
 private fun kindLabel(t: Talk.Target) = when (t.kind) {
@@ -207,35 +243,46 @@ private fun kindLabel(t: Talk.Target) = when (t.kind) {
 
 private fun LazyListScope.disconnected(onManual: () -> Unit, onBluetoothPermission: () -> Unit) {
     item {
-        Text("Bilgisayarda Talk To Android açıkken burada görünür. Bir kez onayladığın bilgisayara sonra kendiliğinden bağlanılır.",
-            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp))
+        // "Bağlı değil" bir hata değil: nötr (T5).
+        StatusCard(Icons.Rounded.Computer, "Bir bilgisayara bağlı değil",
+            "Bilgisayarda Talk To Android açıkken aşağıda görünür. Bir kez eşleştirdiğin bilgisayara sonra " +
+                "kendiliğinden bağlanılır.")
     }
-    item { SectionTitle("Bilgisayarlar", searching = true) }
     item {
         val found by Talk.found.collectAsState()
         val usb by Talk.usbAvailable.collectAsState()
-        Panel {
-            if (usb) {
-                ListRow(Icons.Rounded.Usb, "USB kablosu", "Kabloyla bağlı bilgisayar", onClick = {
-                    Talk.connect(Talk.usbTarget())
-                }) { Icon(Icons.AutoMirrored.Rounded.ArrowForward, null) }
+        Section("Bulunan bilgisayarlar", searching = true) {
+            Panel {
+                if (usb) {
+                    ListRow(Icons.Rounded.Usb, "USB kablosu", "Kabloyla bağlı bilgisayar", onClick = {
+                        Talk.connect(Talk.usbTarget())
+                    }) { Icon(Icons.AutoMirrored.Rounded.ArrowForward, null) }
+                }
+                found.sortedBy { it.name }.forEachIndexed { i, f ->
+                    if (i > 0 || usb) RowDivider()
+                    FoundRow(f)
+                }
+                if (found.isEmpty() && !usb) {
+                    ListRow(Icons.Rounded.Wifi, "Aranıyor…",
+                        "Wi-Fi: bilgisayarda “Kablosuz bağlantı” açık ve ikisi aynı ağda olmalı. " +
+                            "USB: kabloyu tak, telefonda USB hata ayıklama açık olmalı.")
+                }
             }
-            found.sortedBy { it.name }.forEachIndexed { i, f ->
-                if (i > 0 || usb) RowDivider()
-                FoundRow(f)
-            }
-            if (found.isEmpty() && !usb) {
-                ListRow(Icons.Rounded.Wifi, "Henüz bilgisayar görünmüyor",
-                    "Wi-Fi: bilgisayarda “Kablosuz bağlantıyı aç”, ikisi aynı ağda olmalı. " +
-                        "USB: telefonda USB hata ayıklama açık olmalı.")
-            }
-            RowDivider()
-            ListRow(null, "IP adresiyle bağlan", onClick = onManual)
         }
     }
     item { BluetoothSection(onBluetoothPermission) }
     item { PairedList() }
+    item {
+        // Teknik yol varsayılan akışta değil (T11).
+        Section("Diğer yollar") {
+            Panel {
+                ListRow(Icons.Rounded.Lan, "IP adresiyle bağlan",
+                    "Bilgisayar listede görünmüyorsa: adresi bilgisayardaki pencerede yazar", onClick = onManual) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -263,8 +310,7 @@ private fun BluetoothSection(onPermission: () -> Unit) {
     UiTick.tick.collectAsState().value
     LaunchedEffect(Unit) { while (true) { if (Talk.uiVisible) { Talk.refreshBluetooth(); tick++ }; delay(3000) } }
     tick
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle("Bluetooth")
+    Section("Bluetooth") {
         Panel {
             when {
                 !BluetoothLink.hasPermission(ctx) -> ListRow(Icons.Rounded.Bluetooth, "Bluetooth izni ver",
@@ -304,8 +350,7 @@ private fun PairedList() {
         }
     }
     if (servers.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle("Eşleşmiş bilgisayarlar")
+    Section("Eşleşmiş bilgisayarlar") {
         Panel {
             servers.forEachIndexed { i, s ->
                 if (i > 0) RowDivider()
@@ -319,16 +364,22 @@ private fun PairedList() {
     }
 }
 
+/**
+ * Eşleşme: stresli an, tek iş (Norman). Numara 3+3 gruplu ve bilgisayardakiyle aynı biçimde; karar
+ * bilgisayarda "Numaralar aynı / Numaralar farklı" ile verilir (Uzun ve ark. 2007).
+ */
 @Composable
 private fun ApprovalCard(s: Talk.State.Approval) {
     Panel {
         Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             IconBadge(Icons.Rounded.Security, 56)
-            Text("Bilgisayarda onayla", style = MaterialTheme.typography.headlineSmall)
-            Text("${s.code.take(3)} ${s.code.drop(3)}", fontFamily = FontFamily.Monospace, fontSize = 44.sp,
-                fontWeight = FontWeight.Bold, letterSpacing = 4.sp, color = MaterialTheme.colorScheme.primary)
-            Text("Bilgisayardaki pencerede aynı kod görünüyorsa orada “Bağlan”a bas. Kod farklıysa onaylama.",
+            Text("Numaraları karşılaştır", style = MaterialTheme.typography.headlineSmall)
+            Text(groupedCode(s.code), fontFamily = FontFamily.Monospace, fontSize = 44.sp,
+                fontWeight = FontWeight.Bold, letterSpacing = 4.sp, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { contentDescription = "Eşleşme numarası ${s.code.toList().joinToString(" ")}" })
+            Text("Bilgisayarda da aynı numara görünüyorsa orada “Numaralar aynı”yı seç; farklıysa " +
+                "“Numaralar farklı”yı. Bu numarayı bir yere yazmana gerek yok.",
                 textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
             LinearProgressIndicator(Modifier.fillMaxWidth())
             TextButton(onClick = { Talk.cancelConnecting() }) { Text("Vazgeç") }

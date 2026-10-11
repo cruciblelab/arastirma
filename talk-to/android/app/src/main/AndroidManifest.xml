@@ -32,6 +32,8 @@
         android:label="Talk To Linux"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
+        tools:targetApi="33"
         android:theme="@style/Theme.TalkToLinux">
 
         <activity

@@ -708,8 +708,8 @@ class UnitTest(unittest.TestCase):
 
 
 
-class MirrorTest(_Base):
-    """Telefonun ekranını bilgisayarda açma (scrcpy): sahte adb ve scrcpy ile."""
+class _AdbBase(_Base):
+    """Sahte adb ve scrcpy ile çalışan testlerin ortak kurulumu."""
 
     async def asyncSetUp(self):
         await super().asyncSetUp()
@@ -739,6 +739,10 @@ class MirrorTest(_Base):
                 return
             await asyncio.sleep(0.05)
         self.fail(f"{prefix} çağrılmadı: {self.calls()}")
+
+
+class MirrorTest(_AdbBase):
+    """Telefonun ekranını bilgisayarda açma (scrcpy)."""
 
     async def test_usb_phone_screen_opens(self):
         self.fake("adb", """case "$*" in
@@ -812,6 +816,59 @@ exit 0""")
         serial, msg = await mirror.connect_wireless("192.168.1.60")
         self.assertIsNone(serial)
         self.assertIn("USB ile takıp", msg)
+
+
+class PhoneSetupTest(_AdbBase):
+    """Telefondaki izinlerin bilgisayardan (adb) verilmesi: sahte adb, gerçek komut dizisi."""
+
+    ADB = """STATE=%(state)s
+case "$*" in
+  devices) printf 'List of devices attached\\nABC123\\tdevice\\n' ;;
+  *"getprop ro.product.model"*) echo "Pixel 8" ;;
+  *"getprop ro.build.version.sdk"*) echo 34 ;;
+  *"pm path"*) echo "package:/data/app/base.apk" ;;
+  *"dumpsys package"*) echo "  lab.crucible.talktolinux/.service.NotificationListener" ;;
+  *"pm grant"*) %(grant)s ;;
+  *"allow_listener"*) echo lab.crucible.talktolinux/lab.crucible.talktolinux.service.NotificationListener > $STATE ;;
+  *"settings get secure enabled_notification_listeners"*) cat $STATE 2>/dev/null || echo null ;;
+  *"deviceidle whitelist +"*) echo "Added: lab.crucible.talktolinux" ; touch $STATE.pil ;;
+  *"deviceidle whitelist"*) [ -f $STATE.pil ] && echo "user,lab.crucible.talktolinux,10123" ;;
+esac
+exit 0"""
+
+    def phone(self, grant="exit 0"):
+        self.fake("adb", self.ADB % {"state": Path(self.tmp.name) / "durum", "grant": grant})
+
+    async def test_all_permissions_given(self):
+        self.phone()
+        await self.hub.usb._poll()
+        ok, text = await self.hub.phone_setup("ABC123")
+        self.assertTrue(ok, text)
+        calls = "\n".join(self.calls())
+        self.assertIn("appops set lab.crucible.talktolinux ACCESS_RESTRICTED_SETTINGS allow", calls)
+        self.assertIn("pm grant lab.crucible.talktolinux android.permission.POST_NOTIFICATIONS", calls)
+        self.assertIn("cmd notification allow_listener lab.crucible.talktolinux/lab.crucible.talktolinux"
+                      ".service.NotificationListener", calls)
+        self.assertIn("dumpsys deviceidle whitelist +lab.crucible.talktolinux", calls)
+
+    async def test_locked_phone_explains(self):
+        self.phone(grant='echo "java.lang.SecurityException: grantRuntimePermission: Neither user 2000 nor '
+                         'current process has android.permission.GRANT_RUNTIME_PERMISSIONS."; exit 255')
+        await self.hub.usb._poll()
+        ok, text = await self.hub.phone_setup("ABC123")
+        self.assertFalse(ok)
+        self.assertIn("USB hata ayıklama (Güvenlik ayarları)", text)
+
+    async def test_phone_asks_computer(self):
+        self.phone()
+        await self.hub.usb._poll()
+        p = await self.paired_phone()
+        await p.send({"type": "setup_request"})
+        res = await p.recv_type("setup_result", timeout=15)
+        self.assertTrue(all(i["ok"] is not False for i in res["items"]), res)
+        self.assertIn("ayarlandı", res["summary"])
+        self.assertTrue(self.of("phone_setup"))
+        await p.close()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Ana pencere: Bağlantı · Cihazlar · Medya · Dosyalar · Bildirimler."""
+"""Ana pencere: Telefonlar · Medya · Dosyalar · Bildirimler · Komutlar; ayrıca Tercihler penceresi."""
 
 import json
 import time
@@ -207,6 +207,7 @@ class Window(Adw.ApplicationWindow):
             header.set_title_widget(title)
             title.bind_property("title-visible", bottom, "reveal", GObject.BindingFlags.SYNC_CREATE)
         menu = Gio.Menu()
+        menu.append("Tercihler", "app.preferences")
         menu.append("Kurulum yardımcısı", "app.setup")
         menu.append("Hakkında", "app.about")
         menu.append("Tamamen kapat", "app.quit")
@@ -219,9 +220,11 @@ class Window(Adw.ApplicationWindow):
         self.toasts.set_child(view)
         self.set_content(self.toasts)
 
-        compat.add_page(self.stack, self._build_connection(), "baglanti", "Bağlantı",
-                                        "network-wireless-symbolic")
-        compat.add_page(self.stack, self._build_devices(), "cihazlar", "Cihazlar", "phone-symbolic")
+        # GNOME HIG: görünüm değiştiricide 3–5 görünüm. Bağlantı yolları ve genel ayarlar Tercihler'de.
+        self._sig = {}
+        self.prefs_page = self._build_preferences()
+        self.prefs_window = None
+        compat.add_page(self.stack, self._build_phones(), "telefonlar", "Telefonlar", "phone-symbolic")
         compat.add_page(self.stack, self._build_media(), "medya", "Medya", "media-playback-start-symbolic")
         compat.add_page(self.stack, self._build_files(), "dosyalar", "Dosyalar", "folder-symbolic")
         compat.add_page(self.stack, self._build_notifications(), "bildirimler", "Bildirimler",
@@ -233,6 +236,10 @@ class Window(Adw.ApplicationWindow):
         drop.connect("enter", lambda *_: self.dropzone.add_css_class("drop-active") or Gdk.DragAction.COPY)
         drop.connect("leave", lambda *_: self.dropzone.remove_css_class("drop-active"))
         self.add_controller(drop)
+
+        act = Gio.SimpleAction.new("usb", GLib.VariantType.new("s"))
+        act.connect("activate", self._on_usb_action)
+        self.add_action(act)
 
         GLib.timeout_add(500, self._tick)
 
@@ -250,9 +257,18 @@ class Window(Adw.ApplicationWindow):
         sessions = self.status.get("sessions") or []
         return sessions[-1] if sessions else None
 
-    # ---- Bağlantı -----------------------------------------------------------
+    def open_preferences(self):
+        """Bağlantı yolları ve genel ayarlar (Ctrl+,): ayrı pencere, ana pencere sade kalır."""
+        if self.prefs_window is None:
+            self.prefs_window = Adw.PreferencesWindow(transient_for=self, title="Tercihler", modal=False,
+                                                      hide_on_close=True, default_width=640, default_height=720)
+            self.prefs_window.add(self.prefs_page)
+        self.prefs_window.present()
 
-    def _build_connection(self):
+    # ---- Telefonlar -----------------------------------------------------------
+
+    def _build_phones(self):
+        """İlk sayfa: durum, bağlı telefon, USB'deki telefonun işleri, eşleşmiş telefonlar, profiller (L2)."""
         page = Adw.PreferencesPage()
 
         hero_group = Adw.PreferencesGroup()
@@ -269,9 +285,37 @@ class Window(Adw.ApplicationWindow):
         texts.append(self.hero_title)
         texts.append(self.hero_sub)
         texts.append(self.hero_chips)
+        self.hero_button = Gtk.Button(label="Bağlantı ayarları", halign=Gtk.Align.START, margin_top=6,
+                                      css_classes=["pill", "hero-button"])
+        self.hero_button.connect("clicked", lambda *_: self.open_preferences())
+        texts.append(self.hero_button)
         hero.append(texts)
         hero_group.add(hero)
         page.add(hero_group)
+
+        self.connected_group = DynamicGroup(title="Bağlı telefon")
+        page.add(self.connected_group)
+        self.usb_group = DynamicGroup(title="USB ile takılı")
+        page.add(self.usb_group)
+        self.trusted_group = DynamicGroup(
+            title="Eşleşmiş telefonlar",
+            description="Bir kez eşleşen telefon yeniden bağlanırken onay ya da şifre istemez ve profili uygulanır.")
+        page.add(self.trusted_group)
+        self.profile_group = DynamicGroup(
+            title="Profiller",
+            description="Profil, telefonun bu bilgisayarda neler yapabileceğini belirler; değişiklik bağlı telefona "
+                        "hemen uygulanır.")
+        add = Gtk.Button(icon_name="list-add-symbolic", tooltip_text="Yeni profil", css_classes=["flat"],
+                         valign=Gtk.Align.CENTER)
+        add.connect("clicked", lambda *_: self.app.call("save_profile", None, {"name": "Yeni profil"}))
+        self.profile_group.set_header_suffix(add)
+        page.add(self.profile_group)
+        return page
+
+    # ---- Tercihler (bağlantı yolları ve genel) -----------------------------------
+
+    def _build_preferences(self):
+        page = Adw.PreferencesPage(title="Bağlantı", icon_name="network-wireless-symbolic")
 
         g = self.wifi_group = Adw.PreferencesGroup(title="Kablosuz (Wi-Fi)")
         self.sw_wireless = compat.SwitchRow(title="Kablosuz bağlantıyı aç",
@@ -294,20 +338,16 @@ class Window(Adw.ApplicationWindow):
 
         g = Adw.PreferencesGroup(
             title="USB (kablo)",
-            description="Telefonda Geliştirici seçenekleri → USB hata ayıklama açık olmalı. "
-                        "Her yeni telefon için burada onay istenir.")
-        self.sw_usb = compat.SwitchRow(title="USB bağlantısı", subtitle="adb ile tünel kurulur, internet gerekmez")
+            description="Telefonda USB hata ayıklama açık olmalı. İnternet gerekmez; en hızlı yol.")
+        self.sw_usb = compat.SwitchRow(title="USB bağlantısı", subtitle="Takılı telefon “Telefonlar” sayfasında görünür")
         self.sw_usb.connect("notify::active", lambda r, _: self._set("usb", r.get_active()))
         g.add(self.sw_usb)
         page.add(g)
-        self.usb_group = DynamicGroup()
-        page.add(self.usb_group)
 
         g = Adw.PreferencesGroup(
             title="Bluetooth",
-            description="Önce telefonu sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir; sonra telefondaki "
-                        "uygulamada bilgisayarı “Bluetooth” altında seç. Her yeni telefon için burada onay istenir. "
-                        "Bildirim, medya ve komutlar için yeterli; büyük dosyalarda Wi-Fi ya da USB çok daha hızlı.")
+            description="Önce telefonu sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir. Bildirim, medya ve "
+                        "komutlar için yeterli; büyük dosyalarda Wi-Fi ya da USB çok daha hızlı.")
         self.sw_bt = compat.SwitchRow(title="Bluetooth bağlantısı")
         self.sw_bt.connect("notify::active", lambda r, _: self._set_bluetooth(r.get_active()))
         g.add(self.sw_bt)
@@ -373,21 +413,25 @@ class Window(Adw.ApplicationWindow):
                                         else "bluetooth-disabled-symbolic")
 
         sessions = st["sessions"]
+        ways = [w for w, on in (("Wi-Fi", st["wireless"]), ("USB", st["usb"]),
+                                ("Bluetooth", st["bluetooth"] and bt.get("available"))) if on]
         if sessions:
             self.hero_icon.set_from_icon_name("phone-symbolic")
             names = ", ".join(s["name"] for s in sessions)
-            self.hero_title.set_text(names if len(sessions) < 3 else f"{len(sessions)} cihaz bağlı")
-            self.hero_sub.set_text("Bağlı. Bildirimler, medya ve dosyalar hazır.")
-        elif st["listening"] or (st["bluetooth"] and bt.get("available")):
+            self.hero_title.set_text(names if len(sessions) < 3 else f"{len(sessions)} telefon bağlı")
+            problems = sum(len(s.get("problems", [])) for s in sessions)
+            self.hero_sub.set_text("Bağlı. Bildirimler, medya ve dosyalar hazır." if not problems else
+                                   "Bağlı, ama bildirimler gelmiyor: aşağıdaki uyarıya bak.")
+        elif ways:
             self.hero_icon.set_from_icon_name("computer-symbolic")
-            self.hero_title.set_text(st["name"])
-            ways = [w for w, on in (("kablosuz", st["wireless"]), ("USB", st["usb"]),
-                                    ("Bluetooth", st["bluetooth"] and bt.get("available"))) if on]
-            self.hero_sub.set_text(f"Telefon bekleniyor ({', '.join(ways)}).")
+            self.hero_title.set_text("Telefon bekleniyor")
+            self.hero_sub.set_text(f"{st['name']} hazır: {', '.join(ways)}. Telefonda Talk To Linux'u açınca bu "
+                                   "bilgisayar listede görünür.")
         else:
             self.hero_icon.set_from_icon_name("network-offline-symbolic")
-            self.hero_title.set_text(st["name"])
-            self.hero_sub.set_text("Bağlantı kapalı. Aşağıdan kablosuz, USB ya da Bluetooth bağlantısını aç.")
+            self.hero_title.set_text("Bağlantı kapalı")
+            self.hero_sub.set_text("Telefonun bağlanabilmesi için Wi-Fi, USB ya da Bluetooth'tan birini aç.")
+        self.hero_button.set_visible(not sessions)
         child = self.hero_chips.get_first_child()
         while child:
             nxt = child.get_next_sibling()
@@ -476,47 +520,55 @@ class Window(Adw.ApplicationWindow):
             r = row(d.get("model") or d["serial"], sub)
             r.add_prefix(Gtk.Image(icon_name=icon))
             if state == "device":
-                r.add_suffix(icon_button("video-display-symbolic", "Telefonun ekranını aç (fare ve klavyeyle kullan)",
-                                         lambda sr=d["serial"], m=d.get("model"): self.app.mirror_usb(sr, m)))
-                if ":" not in d["serial"]:  # zaten ağ üzerinden bağlı değilse
-                    r.add_suffix(icon_button("network-wireless-symbolic",
-                                             "Kablosuz ekranı hazırla: kabloyu çıkarınca da Wi-Fi'den ekran açılır",
-                                             lambda sr=d["serial"]: self.app.prepare_wireless(sr)))
-            if state == "device" and snap.get("apk"):
-                if d.get("installing"):
-                    r.add_suffix(Gtk.Spinner(spinning=True, valign=Gtk.Align.CENTER))
-                else:
-                    label = "Talk To Linux'u güncelle" if d.get("app") else "Talk To Linux'u kur"
-                    b = Gtk.Button(label=label, valign=Gtk.Align.CENTER,
-                                   css_classes=[] if d.get("app") else ["suggested-action"],
-                                   tooltip_text="USB üzerinden telefona kurar ve açar")
-                    b.connect("clicked", lambda *_, sr=d["serial"]: self.app.install_phone_app(sr))
-                    r.add_suffix(b)
+                self._usb_actions(r, d, snap)
             rows.append(r)
         self.usb_group.set_rows(rows)
+        self.usb_group.set_visible(bool(rows))
 
-    # ---- Cihazlar -------------------------------------------------------------
+    def _usb_actions(self, r, d, snap):
+        """Tek ana iş düğme olarak (kur ya da izinleri ayarla), gerisi "⋯" menüsünde (T10)."""
+        serial = d["serial"]
+        busy = d.get("installing") or d.get("setting_up")
+        phone = next((s.get("phone") or {} for s in self.status.get("sessions", []) if s.get("kind") == "usb"), {})
+        needs_setup = d.get("app") and phone.get("notif_access") is not True
+        if busy:
+            r.add_suffix(Gtk.Spinner(spinning=True, valign=Gtk.Align.CENTER))
+        elif d.get("app") is False and snap.get("apk"):
+            b = Gtk.Button(label="Talk To Linux'u kur", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
+                           tooltip_text="USB üzerinden telefona kurar ve açar")
+            b.connect("clicked", lambda *_: self.app.install_phone_app(serial))
+            r.add_suffix(b)
+        elif needs_setup:
+            b = Gtk.Button(label="Telefonu ayarla", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
+                           tooltip_text="Bildirim erişimi, pil kısıtlaması, bildirim ve Bluetooth izni: "
+                                        "telefonun menülerinde aramadan, tek seferde")
+            b.connect("clicked", lambda *_: self.app.phone_setup(serial))
+            r.add_suffix(b)
+        menu = Gio.Menu()
+        items = [("Telefonun ekranını aç", "mirror")]
+        if ":" not in serial:
+            items.append(("Kablosuz ekranı hazırla", "wireless"))
+        if d.get("app"):
+            items += [("Telefonu ayarla (izinler)", "setup"), ("Talk To Linux'u güncelle", "install")]
+        for label, act in items:
+            item = Gio.MenuItem.new(label, None)
+            item.set_action_and_target_value("win.usb", GLib.Variant("s", f"{act}|{serial}|{d.get('model') or ''}"))
+            menu.append_item(item)
+        r.add_suffix(Gtk.MenuButton(icon_name="view-more-symbolic", menu_model=menu, valign=Gtk.Align.CENTER,
+                                    tooltip_text="Diğer işlemler", css_classes=["flat"]))
 
-    def _build_devices(self):
-        page = Adw.PreferencesPage()
-        self.connected_group = DynamicGroup(title="Bağlı cihazlar")
-        page.add(self.connected_group)
-        self.trusted_group = DynamicGroup(
-            title="Güvenilen cihazlar",
-            description="Bu telefonlar bir kez onaylandı; tekrar bağlanırken onay ya da şifre sorulmaz. "
-                        "Bağlandıkları anda tanınır ve seçili profilleri uygulanır.")
-        page.add(self.trusted_group)
-        self.profile_group = DynamicGroup(
-            title="Profiller",
-            description="Profil, bir telefonun bu bilgisayarda neleri yapabileceğini belirler. "
-                        "Her telefon bir profile bağlıdır; profili değiştirmek bağlı telefona hemen uygulanır.")
-        add = Gtk.Button(icon_name="list-add-symbolic", tooltip_text="Yeni profil", css_classes=["flat"],
-                         valign=Gtk.Align.CENTER)
-        add.connect("clicked", lambda *_: self.app.call("save_profile", None, {"name": "Yeni profil"}))
-        self.profile_group.set_header_suffix(add)
-        page.add(self.profile_group)
-        self._sig = {}
-        return page
+    def _on_usb_action(self, _action, param):
+        act, serial, model = param.unpack().split("|", 2)
+        if act == "mirror":
+            self.app.mirror_usb(serial, model or None)
+        elif act == "wireless":
+            self.app.prepare_wireless(serial)
+        elif act == "setup":
+            self.app.phone_setup(serial)
+        elif act == "install":
+            self.app.install_phone_app(serial)
+
+    # ---- Telefonlar sayfasının satırları ------------------------------------------
 
     def _changed(self, key, *data) -> bool:
         """Grup yalnızca içeriği gerçekten değişince yeniden kurulsun (açık satırlar kapanmasın)."""
@@ -559,9 +611,8 @@ class Window(Adw.ApplicationWindow):
             rows.append(r)
             for text in s.get("problems", []):
                 rows.append(self._problem_row(text))
-        if not rows:
-            rows.append(row("Henüz bağlı telefon yok", "Telefonda Talk To Linux uygulamasını açıp bu bilgisayarı seç"))
         self.connected_group.set_rows(rows)
+        self.connected_group.set_visible(bool(rows))  # yoksa durum kartı zaten "Telefon bekleniyor" diyor
         problems = [(s["name"], text) for s in self.status.get("sessions", []) for text in s.get("problems", [])]
         if self._changed("notif_problems", problems):
             self.notif_problems.set_rows([self._problem_row(t, n) for n, t in problems])
@@ -586,12 +637,11 @@ class Window(Adw.ApplicationWindow):
                 r.set_selected(pids.index(t["profile"]))
             r.connect("notify::selected", lambda r, _, d=t["device_id"]:
                       self.app.call("assign_profile", d, pids[r.get_selected()]))
-            r.add_suffix(icon_button("user-trash-symbolic", "Unut (bir daha onay/şifre gerekir)",
+            r.add_suffix(icon_button("user-trash-symbolic", "Unut (yeniden bağlanırken onay ya da şifre gerekir)",
                                      lambda t=t: self._confirm_forget(t)))
             rows.append(r)
-        if not rows:
-            rows.append(row("Henüz yok"))
         self.trusted_group.set_rows(rows)
+        self.trusted_group.set_visible(bool(rows))
 
     def _render_profiles(self, profiles, trusted):
         # Bir izni değiştirince bütün satırlar yeniden kurulur: açık olan profil açık kalsın.
@@ -652,7 +702,8 @@ class Window(Adw.ApplicationWindow):
 
     def _confirm_forget(self, t):
         self.app.confirm(f"“{t['name']}” unutulsun mu?",
-                         "Bu telefon bir dahaki bağlantıda yeniden onay ya da şifre isteyecek.",
+                         "Eşleşme silinir; bu telefon bir dahaki bağlantıda yeniden numara karşılaştırması ya da "
+                         "şifre isteyecek.",
                          "Unut", lambda: self.app.call("forget", t["device_id"]), destructive=True)
 
     # ---- Medya ----------------------------------------------------------------
@@ -873,6 +924,13 @@ class Window(Adw.ApplicationWindow):
         page.add(self.notif_problems)
         self.notif_group = DynamicGroup(title="Son bildirimler")
         page.add(self.notif_group)
+        self.notif_empty = Adw.StatusPage(
+            icon_name="preferences-system-notifications-symbolic", title="Henüz bildirim yok",
+            description="Telefona gelen bildirimler burada ve masaüstü bildiriminde görünür.")
+        self.notif_empty.add_css_class("compact")
+        empty_group = Adw.PreferencesGroup()
+        empty_group.add(self.notif_empty)
+        page.add(empty_group)
         self.notifs = []
         self._render_notifications()
         return page
@@ -899,9 +957,10 @@ class Window(Adw.ApplicationWindow):
                                   css_classes=["dim-label", "notif-time"]))
             r.add_suffix(meta)
             rows.append(r)
-        if not rows:
-            rows.append(row("Henüz bildirim yok"))
         self.notif_group.set_rows(rows)
+        self.notif_group.set_visible(bool(rows))
+        if hasattr(self, "notif_empty"):
+            self.notif_empty.set_visible(not rows)
 
     # ---- Komutlar -------------------------------------------------------------
 
@@ -909,9 +968,8 @@ class Window(Adw.ApplicationWindow):
         page = Adw.PreferencesPage()
         g = Adw.PreferencesGroup(
             title="Hazır komutlar",
-            description="Telefondaki uygulamada “Bilgisayar” bölümünde görünür. Telefon yalnızca burada listelenenleri "
-                        "tetikleyebilir; profilde “komut çalıştırabilir” açık olmalı (güç komutları için ayrıca "
-                        "“uyku / kapat / yeniden başlat”).")
+            description="Telefondaki “Bilgisayar” sekmesinde görünür. Telefon yalnızca listelenenleri çalıştırabilir; "
+                        "profilinde izin olmalı.")
         for p in pc.PRESETS:
             r = row(p["name"], " ".join(p["argv"]))
             r.add_prefix(Gtk.Image(icon_name="system-shutdown-symbolic" if p.get("power")
@@ -926,9 +984,8 @@ class Window(Adw.ApplicationWindow):
 
         self.cmd_group = DynamicGroup(
             title="Özel komutlar",
-            description="Kendi Linux komutlarını ekle (ör. “Yedeği başlat”: rsync -a ~/Belgeler /mnt/yedek). "
-                        "Komut senin kullanıcınla, ev klasöründe sh -c ile çalışır; çıktısı telefona döner. "
-                        "En çok 2 dakika sürebilir.")
+            description="Kendi komutun (ör. “Yedeği başlat”). Senin kullanıcınla çalışır, çıktısı telefona döner; "
+                        "en çok 2 dakika.")
         add = Gtk.Button(icon_name="list-add-symbolic", tooltip_text="Komut ekle", css_classes=["flat"],
                          valign=Gtk.Align.CENTER)
         add.connect("clicked", lambda *_: self._edit_command(None))
@@ -941,9 +998,11 @@ class Window(Adw.ApplicationWindow):
         self.cmd_log = []
         self._render_cmd_log()
 
-        g = Adw.PreferencesGroup(
-            title="Terminalden kullanım",
-            description="Uygulama açıkken (arka planda da olur) bağlı telefona terminalden iş yaptırabilirsin.")
+        g = Adw.PreferencesGroup()
+        terminal = row("Terminalden kullanım", "Uygulama açıkken bağlı telefona terminalden iş yaptırmak için",
+                       cls=Adw.ExpanderRow)
+        terminal.add_prefix(Gtk.Image(icon_name="utilities-terminal-symbolic"))
+        g.add(terminal)
         for cmd, what in (("talk-to-android durum", "bağlı telefonlar, pil, profil"),
                           ("talk-to-android gonder foto.jpg rapor.pdf", "dosyaları telefona gönder"),
                           ("talk-to-android bildirim \"Derleme bitti\" \"0 hata\"", "telefonda bildirim göster"),
@@ -953,7 +1012,7 @@ class Window(Adw.ApplicationWindow):
             r = row(cmd, what)
             r.add_css_class("monospace")
             r.add_suffix(icon_button("edit-copy-symbolic", "Kopyala", lambda c=cmd: self._copy(c)))
-            g.add(r)
+            terminal.add_row(r)
         page.add(g)
         return page
 
@@ -976,7 +1035,7 @@ class Window(Adw.ApplicationWindow):
                 lambda: self.app.call("delete_command", c["id"]), destructive=True)))
             rows.append(r)
         if not rows:
-            rows.append(row("Henüz özel komut yok", "Sağ üstteki + ile ekle"))
+            rows.append(row("Henüz özel komut yok", "Başlığın yanındaki + ile ekle"))
         self.cmd_group.set_rows(rows)
 
     def _edit_command(self, c):
@@ -1022,6 +1081,5 @@ class Window(Adw.ApplicationWindow):
     def _render_cmd_log(self):
         rows = [row(x["name"], f"{x['device']} · {time.strftime('%H:%M:%S', time.localtime(x['time']))}")
                 for x in self.cmd_log]
-        if not rows:
-            rows.append(row("Henüz yok"))
         self.cmd_log_group.set_rows(rows)
+        self.cmd_log_group.set_visible(bool(rows))

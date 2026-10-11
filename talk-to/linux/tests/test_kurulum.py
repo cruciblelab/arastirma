@@ -47,6 +47,13 @@ class SetupChecksTest(unittest.TestCase):
         items = phone({"devices": [{"serial": "S1", "state": "device", "model": "Pixel 8", "app": True}]})
         self.assertTrue(items[3].ok)
 
+    def test_phone_permissions_from_computer(self):
+        usb = {"adb": True, "apk": "/x.apk", "devices": [{"serial": "S1", "state": "device", "model": "P", "app": True}]}
+        perms = item(step(setup_checks.steps(STATUS, usb, ufw=False), "usb"), "Telefondaki izinler")
+        self.assertEqual((perms.ok, perms.action), (False, "phone_setup:S1"))
+        st = dict(STATUS, sessions=[{"name": "P", "kind": "usb", "phone": {"notif_access": True, "listener": True}}])
+        self.assertTrue(item(step(setup_checks.steps(st, usb, ufw=False), "usb"), "Telefondaki izinler").ok)
+
     def test_firewall_and_extras(self):
         steps = setup_checks.steps(dict(STATUS, wireless=True), {"adb": True, "devices": []}, ufw=True, autostart=True)
         fw = item(step(steps, "wifi"), "Güvenlik duvarı")

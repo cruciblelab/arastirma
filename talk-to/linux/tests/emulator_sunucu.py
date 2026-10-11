@@ -42,7 +42,7 @@ async def main():
             asyncio.get_running_loop().create_task(hub.answer(data["id"], True))
 
     hub = Hub(cfg, emit, enable_media=False, enable_discovery=False)
-    hub.usb.available = staticmethod(lambda: False)  # tüneli betik kurar
+    # adb izleyicisi açık: telefondaki "Bilgisayar ayarlasın" bilgisayarın adb ile izin vermesini ister.
     await hub.start()
     print("hazir", flush=True)
     await asyncio.Event().wait()

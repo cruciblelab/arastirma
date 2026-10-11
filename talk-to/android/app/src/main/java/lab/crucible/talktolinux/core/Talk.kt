@@ -85,6 +85,11 @@ object Talk {
     val listenerConnected = MutableStateFlow(false)
     /** Bu bağlantıda bilgisayara gönderilen bildirim sayısı (tanılama için). */
     val notificationsSent = MutableStateFlow(0)
+    /** Bilgisayarın USB'den verdiği izinlerin sonucu: (özet, başarılı mı); null: istenmedi. */
+    val setupResult = MutableStateFlow<Pair<String, Boolean>?>(null)
+    /** "Bilgisayar ayarlasın" isteği sürüyor. */
+    val setupRunning = MutableStateFlow(false)
+
     /** Telefonda izlenen oynatıcı (Spotify, YouTube...); yoksa null. */
     val phonePlayer = MutableStateFlow<String?>(null)
 
@@ -342,6 +347,20 @@ object Talk {
                     if (msg.isNull("volume")) null else msg.optInt("volume"), msg.optBoolean("can_seek"),
                     msg.optString("art_id").ifEmpty { null }.takeUnless { msg.isNull("art_id") },
                     SystemClock.elapsedRealtime())
+                "setup_result" -> {
+                    val items = msg.optJSONArray("items")
+                    val failed = items != null && (0 until items.length()).any {
+                        items.optJSONObject(it)?.let { o -> !o.isNull("ok") && !o.optBoolean("ok") } == true
+                    }
+                    setupRunning.value = false
+                    setupResult.value = msg.optString("summary") to (items != null && items.length() > 0 && !failed)
+                    say(msg.optString("summary"))
+                    main.post {
+                        ensureListener()
+                        sendPhoneStatus()
+                        lab.crucible.talktolinux.ui.UiTick.bump()
+                    }
+                }
                 "bye" -> {
                     // Bilgisayardaki "Bağlantıyı kes" ya da "Unut": kendiliğinden geri bağlanılmaz.
                     byeReceived = true
@@ -504,6 +523,21 @@ object Talk {
     }
 
     fun runCommand(id: String) = send(JSONObject().put("type", "run_command").put("id", id))
+
+    /** Bilgisayardan (USB + adb) bu uygulamanın izinlerini vermesini ister. */
+    fun requestSetup() {
+        if (!isConnected()) return
+        setupRunning.value = true
+        setupResult.value = null
+        send(JSONObject().put("type", "setup_request"))
+        // Cevap gelmezse (eski bilgisayar sürümü) düğme sonsuza kadar dönmesin.
+        main.postDelayed({
+            if (setupRunning.value) {
+                setupRunning.value = false
+                say("Bilgisayar cevap vermedi; bilgisayardaki Talk To Android'i güncelle")
+            }
+        }, 45_000)
+    }
 
     fun requestSysinfo() = send(JSONObject().put("type", "sysinfo_request"))
 

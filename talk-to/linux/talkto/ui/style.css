@@ -7,6 +7,12 @@
 .hero .title-1,
 .hero label { color: @accent_fg_color; }
 .hero-sub { opacity: 0.85; }
+.hero .hero-button {
+  background-color: alpha(white, 0.18);
+  color: @accent_fg_color;
+  font-weight: 600;
+}
+.hero .hero-button:hover { background-color: alpha(white, 0.26); }
 .hero-icon-box {
   min-width: 64px;
   min-height: 64px;

@@ -42,6 +42,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -97,7 +101,8 @@ private fun CheckRow(item: Item) {
         Row(verticalAlignment = Alignment.Top) {
             val (icon, tint) = when (ok) {
                 true -> Icons.Rounded.CheckCircle to OkGreen
-                false -> Icons.Rounded.RadioButtonUnchecked to (if (item.optional) cs.onSurfaceVariant else cs.error)
+                // Açılmamış izin bir hata değil, yapılacak bir ayar: kırmızı değil vurgu rengi (T5).
+                false -> Icons.Rounded.RadioButtonUnchecked to (if (item.optional) cs.onSurfaceVariant else cs.primary)
                 null -> Icons.Rounded.Info to cs.primary
             }
             Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
@@ -106,11 +111,11 @@ private fun CheckRow(item: Item) {
                 Text(item.title, style = MaterialTheme.typography.titleSmall)
                 Text(when (ok) {
                     true -> "Tamam"
-                    false -> if (item.optional) "Kapalı (isteğe bağlı)" else "Kapalı"
+                    false -> if (item.optional) "Kapalı (isteğe bağlı)" else "Henüz açık değil"
                     null -> ""
                 }.takeIf { it.isNotEmpty() } ?: item.text,
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (ok == false && !item.optional) cs.error else cs.onSurfaceVariant)
+                    color = if (ok == false && !item.optional) cs.primary else cs.onSurfaceVariant)
                 if (ok == false) Text(item.text, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
                 if (ok == false && item.hint != null) {
                     Text(item.hint, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
@@ -138,13 +143,62 @@ private fun CheckRow(item: Item) {
     }
 }
 
+/**
+ * [collapseDone]: tamamlanan satırlar tek "Tamamlananlar" satırında toplanır, istenince açılır
+ * (kademeli gösterim; her satırın "Tamam" demesi taramayı zorlaştırıyordu).
+ */
 @Composable
-private fun CheckPanel(items: List<Item>) {
+private fun CheckPanel(items: List<Item>, collapseDone: Boolean = false) {
+    UiTick.tick.collectAsState().value
+    Talk.listenerConnected.collectAsState().value
+    var showDone by rememberSaveable { mutableStateOf(false) }
+    val done = if (collapseDone) items.filter { it.check?.invoke() == true } else emptyList()
+    val open = items.filter { it !in done }
     Panel {
-        items.forEachIndexed { i, it ->
+        open.forEachIndexed { i, it ->
             if (i > 0) RowDivider()
             CheckRow(it)
         }
+        if (done.isNotEmpty()) {
+            if (open.isNotEmpty()) RowDivider()
+            ListRow(Icons.Rounded.CheckCircle, "Tamamlananlar (${done.size})",
+                done.joinToString(" · ") { it.title }, iconTint = OkGreen, onClick = { showDone = !showDone }) {
+                Icon(if (showDone) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    if (showDone) "Gizle" else "Göster", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (showDone) done.forEach {
+                RowDivider()
+                CheckRow(it)
+            }
+        }
+    }
+}
+
+/** İzinler ekranının üstü: kaç ayar eksik ve (USB'deyse) bilgisayarın tek seferde yapması (A6, T13). */
+@Composable
+private fun SetupSummary() {
+    val ctx = LocalContext.current
+    UiTick.tick.collectAsState().value
+    val running by Talk.setupRunning.collectAsState()
+    val result by Talk.setupResult.collectAsState()
+    Talk.state.collectAsState().value
+    val missing = Checks.missingCount(ctx)
+    val usb = canComputerSetUp()
+    val note: @Composable (ColumnScope.() -> Unit)? = result?.let { (text, ok) ->
+        {
+            Text(text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 40.dp),
+                color = if (ok) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
+        }
+    }
+    when {
+        missing == 0 -> StatusCard(Icons.Rounded.CheckCircle, "Telefon hazır",
+            "Gerekli bütün izinler açık. İsteğe bağlı olanlar aşağıda.", Tone.OK, extra = note)
+        usb -> StatusCard(Icons.Rounded.Usb, "$missing ayar eksik",
+            "Telefon USB ile bağlı: bilgisayar bunları tek seferde açabilir, menülerde aramana gerek kalmaz.",
+            Tone.ACTION, action = "Bilgisayar ayarlasın", onAction = { Talk.requestSetup() }, busy = running, extra = note)
+        else -> StatusCard(Icons.Rounded.Info, "$missing ayar eksik",
+            "Aşağıdan tek tek açabilirsin. Telefonu USB ile bilgisayara bağlarsan bilgisayar hepsini tek seferde açar.",
+            Tone.ACTION, extra = note)
     }
 }
 
@@ -234,7 +288,8 @@ private val STEPS = listOf(
             "ve “Kontrol et” düğmesini göreceksin. Ayarlar kapalı kalsa da uygulama açılır, istediğin zaman " +
             "İzinler ekranından tamamlayabilirsin."),
     Step(Icons.Rounded.Notifications, "Bildirimler ve müzik",
-        "Telefonun bildirimlerinin ve çalan müziğin bilgisayara gitmesi için."),
+        "Telefonun bildirimlerinin ve çalan müziğin bilgisayara gitmesi için. Telefonu kabloyla bilgisayara " +
+            "bağladıysan bunları tek tek açmana gerek yok: bilgisayardaki Talk To Android'de “Telefonu ayarla”."),
     Step(Icons.Rounded.BatteryChargingFull, "Arka planda çalışma",
         "Android pil tasarrufu için arka plandaki uygulamaları kapatabilir; o zaman bağlantı kopar."),
     Step(Icons.Rounded.Usb, "Nasıl bağlanacaksın?",
@@ -242,7 +297,7 @@ private val STEPS = listOf(
     Step(Icons.Rounded.Computer, "Bilgisayar tarafı",
         "Bilgisayarda Talk To Android uygulaması kurulu ve açık olmalı (Ubuntu'da .deb dosyasına çift tıkla). " +
             "Açıkken bu telefon onu Wi-Fi'de kendiliğinden bulur; USB'de kabloyu takman yeter. İlk bağlantıda " +
-            "bilgisayarda bir onay penceresi çıkar ve iki ekranda aynı 6 haneli kod görünür."),
+            "iki ekranda aynı 6 haneli numara görünür; aynıysa bilgisayarda “Numaralar aynı”yı seçersin."),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -315,27 +370,24 @@ fun PermissionsScreen(perms: PermActions, onBack: () -> Unit, onOpenWizard: () -
         snackbarHost = { SnackbarHost(snackbar) },
     ) { pad ->
         LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = pad.calculateTopPadding() + 4.dp,
-                bottom = pad.calculateBottomPadding() + 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(start = Gap.screen, end = Gap.screen, top = pad.calculateTopPadding() + 8.dp,
+                bottom = pad.calculateBottomPadding() + Gap.section),
+            verticalArrangement = Arrangement.spacedBy(Gap.section),
         ) {
-            item { SectionTitle("Bildirimler ve müzik") }
-            item { CheckPanel(notificationItems(perms)) }
-            item { SectionTitle("Arka planda çalışma") }
-            item { CheckPanel(backgroundItems()) }
-            item { SectionTitle("Bağlantı yolları") }
-            item { CheckPanel(connectionItems(perms)) }
-            item { SectionTitle("Bilgisayarın bu telefona verdiği yetkiler") }
+            item { SetupSummary() }
+            item { Section("Bildirimler ve müzik") { CheckPanel(notificationItems(perms), collapseDone = true) } }
+            item { Section("Arka planda çalışma") { CheckPanel(backgroundItems(), collapseDone = true) } }
+            item { Section("Bağlantı yolları") { CheckPanel(connectionItems(perms), collapseDone = true) } }
             item {
                 val connected = state as? Talk.State.Connected
                 val p = profile
-                Panel {
+                Section("Bilgisayarın bu telefona verdiği izinler") { Panel {
                     if (connected == null || p == null) {
                         ListRow(Icons.Rounded.Security, "Bir bilgisayara bağlı değilsin",
                             "Bağlanınca bilgisayarın bu telefonu hangi profille tanıdığı ve neye izin verdiği burada görünür.")
                     } else {
                         ListRow(Icons.Rounded.Security, "${connected.serverName}: “${p.name}” profili",
-                            "Yetkileri bilgisayarın sahibi belirler: Talk To Android → Cihazlar → Profiller.")
+                            "İzinleri bilgisayarın sahibi, bilgisayardaki Talk To Android'de bu telefonun profilinden belirler.")
                         Checks.PROFILE_PERMISSIONS.forEach { (key, label) ->
                             RowDivider()
                             val on = p.can(key)
@@ -344,7 +396,7 @@ fun PermissionsScreen(perms: PermActions, onBack: () -> Unit, onOpenWizard: () -
                                 iconTint = if (on) OkGreen else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                }
+                } }
             }
             item {
                 OutlinedButton(onClick = onOpenWizard, modifier = Modifier.fillMaxWidth()) { Text("Kurulum sihirbazını aç") }

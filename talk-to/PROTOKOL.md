@@ -97,6 +97,8 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | `command_result` | bilgisayar → telefon | `id`, `name`, `ok`, `code`, `output` (son 8000 karakter) |
 | `sysinfo_request` / `sysinfo` | telefon ↔ bilgisayar | `host`, `os`, `cpu`, `cores`, `load`, `mem_used`, `mem_total`, `disk_used`, `disk_total`, `battery`, `uptime`, `volume`, `muted` |
 | `pc_volume` | telefon → bilgisayar | `value` (0-100 ya da null), `toggle_mute`; cevap `sysinfo` |
+| `setup_request` | telefon → bilgisayar | "Bilgisayar ayarlasın": yalnızca USB'de; bilgisayar adb ile bu uygulamanın bildirim erişimini, bildirim ve Bluetooth iznini verir, pil kısıtlamasını kaldırır |
+| `setup_result` | bilgisayar → telefon | `items`: [{`key`, `title`, `ok` (true/false/null: gerekmiyor), `message`}], `summary` |
 | `screenshot_request` | telefon → bilgisayar | bilgisayar görüntüyü alıp `file_offer` ile yollar |
 | `notify` | bilgisayar → telefon | `title`, `text` (ör. terminalde `talk-to-android bildirim`) |
 | `file_offer` | gönderen → alan | `transfer_id`, `name`, `size`, `mime` |

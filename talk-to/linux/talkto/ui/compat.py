@@ -171,6 +171,12 @@ class _FallbackDialog(Adw.Window):
     def set_close_response(self, rid):
         self._close = rid
 
+    def set_default(self, rid):
+        b = self._by_id.get(rid)
+        if b:
+            self.set_default_widget(b)
+            b.grab_focus()
+
     def set_extra_child(self, w):
         self._extra.append(w)
 
@@ -218,6 +224,13 @@ class Dialog:
 
     def set_close_response(self, rid):
         self.d.set_close_response(rid)
+
+    def set_default(self, rid):
+        """Enter'ın seçeceği yanıt (eşleşmede güvenli olan: "farklı")."""
+        if self.kind == "own":
+            self.d.set_default(rid)
+        else:
+            self.d.set_default_response(rid)
 
     def on_response(self, cb):
         self.d.connect("response", lambda _d, r: cb(r))

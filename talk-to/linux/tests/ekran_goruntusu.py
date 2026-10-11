@@ -123,7 +123,7 @@ def fill():
 
 
 FAKE = {}
-pages = ["baglanti", "cihazlar", "medya", "dosyalar", "bildirimler", "komutlar"]
+pages = ["telefonlar", "medya", "dosyalar", "bildirimler", "komutlar"]
 step = {"i": 0}
 
 
@@ -156,17 +156,25 @@ def watchdog():
 def shoot():
     win = app.window
     i = step["i"]
-    if 0 < i <= len(pages):
+    n = len(pages)
+    if 0 < i <= n:
         snap(win, f"{i:02d}-{pages[i - 1]}")
-    if i < len(pages):
+    if i < n:
         app.on_event("status", FAKE["st"])  # hub'ın gerçek durum güncellemeleri örnek veriyi ezmesin
-        if pages[i] == "cihazlar" and win.profile_group.rows:
+        if pages[i] == "telefonlar" and win.profile_group.rows:
             win.profile_group.rows[0].set_expanded(True)
         win.stack.set_visible_child_name(pages[i])
         step["i"] += 1
         return True
-    if i == len(pages):
-        win.stack.set_visible_child_name("baglanti")
+    if i == n:  # Tercihler penceresi (bağlantı yolları ve genel ayarlar)
+        win.open_preferences()
+        win.prefs_window.set_default_size(WIDTH, 900)
+        step["i"] += 1
+        return True
+    if i == n + 1:
+        snap(win.prefs_window, f"{i:02d}-tercihler")
+        win.prefs_window.close()
+        win.stack.set_visible_child_name("telefonlar")
         app._ask({"id": "x", "kind": "pair", "name": "Pixel 8", "model": "Pixel 8", "code": "482913",
                   "transport": "bluetooth", "ip": "AA:BB:CC:DD:EE:FF",
                   "profiles": {"benim": "Benim telefonum", "misafir": "Misafir"}, "default_profile": "benim"})
@@ -174,7 +182,8 @@ def shoot():
         step["i"] += 1
         return True
     # Eski libadwaita'da onay penceresi ayrı bir pencere; varsa onu çek.
-    others = [w for w in Gtk.Window.list_toplevels() if w is not win and w.get_visible() and w.get_width() > 50]
+    others = [w for w in Gtk.Window.list_toplevels()
+              if w is not win and w is not win.prefs_window and w.get_visible() and w.get_width() > 50]
     snap(others[0] if others else win, f"{i:02d}-onay")
     app._quit()
     return False

@@ -157,6 +157,9 @@ class SetupAssistant(Adw.Window):
         elif action == "allow_firewall":
             self._allow_firewall()
             return
+        elif action.startswith("phone_setup:"):
+            app.phone_setup(action.split(":", 1)[1])
+            return
         elif action.startswith("install_phone_app:"):
             app.install_phone_app(action.split(":", 1)[1])
             self.toast("Telefona kuruluyor; telefonda açılınca “USB kablosu”nu seç")
