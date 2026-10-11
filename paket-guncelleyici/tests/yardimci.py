@@ -17,6 +17,19 @@ ICON = (b'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">'
         b'<rect width="16" height="16" fill="#c60"/></svg>')
 
 
+_APP = []
+
+
+def shared_app():
+    """Testlerin tek uygulaması: aynı süreçte aynı kimlikle ikinci kayıt oturum veriyolunda reddedilir."""
+    if not _APP:
+        from guncelleyici.ui import App
+        app = App()
+        app.register(None)
+        _APP.append(app)
+    return _APP[0]
+
+
 def make_key(d: Path, name: str):
     """(gizli anahtar dosyası, açık anahtarlık baytları, parmak izi)"""
     home = d / f"gpg-{name}"

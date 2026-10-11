@@ -10,7 +10,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from yardimci import build_deb, make_key
+from yardimci import build_deb, make_key, shared_app
 
 from guncelleyici import imza, paket, yayinci
 
@@ -148,7 +148,7 @@ class WindowTest(SiteTest):
         gi.require_version("Adw", "1")
         from gi.repository import GLib
 
-        from guncelleyici.ui import App, Window
+        from guncelleyici.ui import Window
 
         d = Path(tempfile.mkdtemp())
         secret, public, fpr = make_key(d, "pencere")
@@ -159,9 +159,7 @@ class WindowTest(SiteTest):
         old = os.environ.get("SSL_CERT_FILE")
         os.environ["SSL_CERT_FILE"] = str(self.cert)  # doğrulama varsayılan sertifika deposunu kullanır
         try:
-            app = App()
-            app.register(None)
-            win = Window(app)
+            win = Window(shared_app())
             win.present()
             win.load(str(deb))
             loop, end = GLib.MainLoop(), GLib.get_monotonic_time() + 60_000_000

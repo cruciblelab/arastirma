@@ -11,7 +11,7 @@ import time
 import unittest
 from pathlib import Path
 
-from yardimci import build_deb, make_key
+from yardimci import build_deb, make_key, shared_app
 
 ENABLED = os.environ.get("PAKET_GUNCELLEYICI_YETKI") == "sudo -n" and bool(os.environ.get("DISPLAY"))
 
@@ -22,7 +22,7 @@ if ENABLED:
     from gi.repository import GLib
 
     from guncelleyici import imza, paket
-    from guncelleyici.ui import App, Window
+    from guncelleyici.ui import Window
 
 
 def wait(cond, secs=120):
@@ -54,8 +54,7 @@ class EndToEndTest(unittest.TestCase):
         v1 = build_deb(cls.d, version="1.0", key=cls.public, secret=cls.secret)
         subprocess.run(["sudo", "-n", "dpkg", "-r", "deneme-uygulama"], capture_output=True)  # önceki çalışmadan kalan
         subprocess.run(["sudo", "-n", "apt-get", "install", "-y", "-q", str(v1)], check=True, capture_output=True)
-        cls.app = App()
-        cls.app.register(None)
+        cls.app = shared_app()
 
     @classmethod
     def tearDownClass(cls):
