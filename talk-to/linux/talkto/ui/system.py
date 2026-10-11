@@ -45,7 +45,7 @@ def adb_install_command() -> list[str] | None:
     if not shutil.which("pkexec"):
         return None
     for tool, cmd in (
-        ("apt-get", ["apt-get", "-o", "DPkg::Lock::Timeout=120", "install", "-y", "adb"]),
+        ("apt-get", ["apt-get", "-o", "DPkg::Lock::Timeout=3600", "-o", "APT::Status-Fd=1", "install", "-y", "adb"]),
         ("dnf", ["dnf", "install", "-y", "android-tools"]),
         ("pacman", ["pacman", "-S", "--noconfirm", "--needed", "android-tools"]),
         ("zypper", ["zypper", "--non-interactive", "install", "android-tools"]),

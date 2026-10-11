@@ -161,7 +161,8 @@ object Talk {
             .put("notif_access", notifAccessGranted())
             .put("listener", listenerConnected.value)
             .put("player", PhoneMedia.playerName() ?: JSONObject.NULL)
-            .put("notifications_sent", notificationsSent.value))
+            .put("notifications_sent", notificationsSent.value)
+            .put("version", BuildConfig.VERSION_NAME))
     }
 
     private fun say(text: String) {
@@ -245,6 +246,7 @@ object Talk {
                         ensureListener()
                         PhoneMedia.push()
                         sendPhoneStatus()
+                        CrashLog.takePending(app)?.let { send(JSONObject().put("type", "crash_report").put("text", it)) }
                         flushPending()
                     }
                 }

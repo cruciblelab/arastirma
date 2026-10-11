@@ -6,7 +6,7 @@ from pathlib import Path
 
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Pango
 
-from .. import features, pc
+from .. import features, pc, setup_checks
 from ..config import Config
 from . import compat, system
 
@@ -530,7 +530,7 @@ class Window(Adw.ApplicationWindow):
             problems = sum(len(s.get("problems", [])) for s in sessions)
             ready = "Bağlı. Bildirimler, müzik ve dosyalar hazır." if "files" in self.f else \
                 "Bağlı. Bildirimler ve müzik hazır."
-            self.hero_sub.set_text(ready if not problems else "Bağlı, ama bildirimler gelmiyor: aşağıdaki uyarıya bak.")
+            self.hero_sub.set_text(ready if not problems else "Bağlı, ama dikkat edilecek bir şey var: aşağıdaki uyarıya bak.")
         elif ways:
             self.hero_icon.set_from_icon_name("computer-symbolic")
             self.hero_title.set_text("Telefon bekleniyor")
@@ -600,6 +600,12 @@ class Window(Adw.ApplicationWindow):
                 sub = "Tünel hazır: telefondaki uygulamada “USB” seç" if d["tunnel"] else "Tünel kurulamadı"
                 if d.get("app") is False and snap.get("apk"):
                     sub = "Telefonda Talk To Linux yok: sağdaki düğmeyle kur, sonra uygulamada “USB” seç"
+                elif setup_checks.app_outdated(d, snap):
+                    sub = (f"Telefondaki Talk To Linux eski ({d['app_version']}; bu bilgisayardaki "
+                           f"{snap['apk_version']}): sağdaki düğmeyle güncelle")
+                elif setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False:
+                    sub = ("Xiaomi: “USB hata ayıklama (Güvenlik ayarları)” kapalı; izinler bilgisayardan verilemez "
+                           "(Geliştirici seçenekleri)")
                 icon = "emblem-ok-symbolic" if d["tunnel"] else "dialog-warning-symbolic"
             elif state == "unauthorized":
                 sub, icon = "Telefonda “USB hata ayıklamaya izin ver” onayını ver", "dialog-question-symbolic"
@@ -631,7 +637,13 @@ class Window(Adw.ApplicationWindow):
                            tooltip_text="USB üzerinden telefona kurar ve açar")
             b.connect("clicked", lambda *_: self.app.install_phone_app(serial))
             r.add_suffix(b)
-        elif needs_setup:
+        elif setup_checks.app_outdated(d, snap):
+            b = Gtk.Button(label="Talk To Linux'u güncelle", valign=Gtk.Align.CENTER,
+                           css_classes=["suggested-action"],
+                           tooltip_text=f"{d['app_version']} → {snap['apk_version']}; eşleşme ve ayarlar korunur")
+            b.connect("clicked", lambda *_: self.app.install_phone_app(serial))
+            r.add_suffix(b)
+        elif needs_setup and not (setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False):
             b = Gtk.Button(label="Telefonu ayarla", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
                            tooltip_text="Bildirim erişimi, pil kısıtlaması, bildirim ve Bluetooth izni: "
                                         "telefonun menülerinde aramadan, tek seferde")

@@ -64,3 +64,10 @@
 .compat-banner {
   background-color: alpha(@error_color, 0.18);
 }
+
+/* Mini oynatıcı */
+.mini-player { padding: 14px 16px 10px 14px; }
+.mini-player .art, .mini-player .art-placeholder { border-radius: 10px; }
+.mini-tool { min-width: 28px; min-height: 28px; padding: 2px; }
+.mini-play { min-width: 40px; min-height: 40px; }
+.mini-progress { margin: 0; padding: 0; }

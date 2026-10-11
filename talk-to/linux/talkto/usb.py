@@ -25,7 +25,12 @@ CONFLICT = ("Telefondaki Talk To Linux başka bir anahtarla imzalanmış; günce
 ANDROID_VENDORS = {
     "18d1", "04e8", "2717", "12d1", "339b", "2a70", "22b8", "22d9", "2d95", "1004", "0fce",
     "0bb4", "19d2", "17ef", "0b05", "2e04", "1ebf", "29a9", "2ae5", "1bbb", "0e8d", "2916",
+    # 51-android.rules'tan diğerleri: Acer, Dell, Foxconn, Fujitsu, Hisense, Kyocera, Nvidia, Pantech,
+    # Pegatron, Qualcomm, Sharp, Sony, Toshiba, Meizu, Unisoc/Spreadtrum, Rockchip, Allwinner, Essential.
+    "0502", "413c", "0489", "04c5", "109b", "0482", "0955", "10a9", "1d4d", "05c6", "04dd", "054c",
+    "0930", "2a45", "1782", "2207", "1f3a", "2e17",
 }
+XIAOMI = ("xiaomi", "redmi", "poco")
 USB_ROOT = "/sys/bus/usb/devices"
 # Telefon üreticileri başka aygıt da yapar (Lenovo dock, Samsung SSD, Asus klavye...): adlarından ele.
 NOT_PHONE = re.compile(r"ethernet|\blan\b|dock|hub|keyboard|mouse|receiver|camera|webcam|audio|headset|speaker|"
@@ -75,6 +80,26 @@ def usb_phones(root: str = USB_ROOT) -> list[dict]:
             continue
         phones.append({"serial": _read(dev / "serial"), "name": name or "Android telefon", "adb": adb})
     return phones
+
+
+def usb_devices(root: str = USB_ROOT) -> list[str]:
+    """Takılı bütün USB aygıtları "Ad (vvvv:pppp)" olarak: telefon tanınmadığında ne görüldüğünü göstermek için."""
+    out = []
+    base = Path(root)
+    try:
+        entries = sorted(base.iterdir())
+    except OSError:
+        return out
+    for dev in entries:
+        if ":" in dev.name or not (dev / "idVendor").exists() or _read(dev / "bDeviceClass") == "09":
+            continue  # 09: USB hub'ları (bilgisayarın kendi kök hub'ları dahil)
+        name = " ".join(x for x in (_read(dev / "manufacturer"), _read(dev / "product")) if x) or "Adsız aygıt"
+        out.append(f"{name} ({_read(dev / 'idVendor')}:{_read(dev / 'idProduct')})")
+    return out
+
+
+def version_tuple(v: str | None) -> tuple[int, ...]:
+    return tuple(int(x) for x in re.findall(r"\d+", v or "")[:3])
 
 
 def find_apk() -> Path | None:
@@ -137,9 +162,12 @@ class AdbWatcher:
         return shutil.which("adb") is not None
 
     def snapshot(self) -> dict:
+        from . import __version__
         apk = find_apk()
         return {"adb": self.available(), "running": self._task is not None, "apk": str(apk) if apk else None,
-                "devices": [dict(serial=s, **d) for s, d in self.devices.items()], "unseen": list(self.unseen)}
+                "apk_version": __version__ if apk else None,
+                "devices": [dict(serial=s, **d) for s, d in self.devices.items()], "unseen": list(self.unseen),
+                "usb_devices": usb_devices() if self._task is not None else []}
 
     async def start(self):
         if self._task is None:
@@ -206,9 +234,37 @@ class AdbWatcher:
                 if rc == 0 and model.strip():
                     d["model"] = model.strip()
                 d["app"] = await self._app_installed(serial)
+                await self.details(serial, d)
                 changed = True
         if changed:
             self.on_change(self.snapshot())
+
+    async def details(self, serial: str, d: dict | None = None):
+        """Kurulumda gereken ayrıntılar: üretici, Xiaomi'nin ek güvenlik anahtarları, telefondaki uygulamanın sürümü."""
+        d = d or self.devices.get(serial)
+        if not d or d.get("state") != "device":
+            return
+
+        async def prop(name):
+            rc, out = await _adb("-s", serial, "shell", "getprop", name, timeout=5)
+            return out.strip() if rc == 0 else ""
+        d["maker"] = await prop("ro.product.manufacturer")
+        if d["maker"].casefold() in XIAOMI:
+            # MIUI/HyperOS: adb'nin izin vermesi ve uygulama kurması ayrı anahtarlar ister.
+            d["xiaomi_permissions"] = await prop("persist.security.adbinput") == "1"
+            d["xiaomi_install"] = await prop("persist.security.adbinstall") == "1"
+        d["app"] = await self._app_installed(serial)
+        d["app_version"] = None
+        if d["app"]:
+            rc, out = await _adb("-s", serial, "shell", "dumpsys", "package", PHONE_PACKAGE, timeout=10)
+            m = re.search(r"versionName=(\S+)", out) if rc == 0 else None
+            d["app_version"] = m.group(1) if m else None
+
+    async def refresh(self):
+        """"Kontrol et": telefondaki ayarlar değişmiş olabilir, ayrıntılar yeniden okunur."""
+        for serial in list(self.devices):
+            await self.details(serial)
+        self.on_change(self.snapshot())
 
     async def _tunnel_alive(self, serial: str) -> bool:
         rc, out = await _adb("-s", serial, "reverse", "--list", timeout=4)
@@ -243,11 +299,12 @@ class AdbWatcher:
             if rc != 0 or "Success" not in out:
                 if "INSTALL_FAILED_UPDATE_INCOMPATIBLE" in out:
                     return False, CONFLICT
-                if "INSTALL_FAILED_USER_RESTRICTED" in out:
+                if "INSTALL_FAILED_USER_RESTRICTED" in out or "INSTALL_FAILED_ABORTED" in out:
                     return False, ("Telefon USB'den kurulumu engelledi. Geliştirici seçeneklerinde "
                                    "“USB üzerinden yükle” (Xiaomi) gibi bir ayarı aç ve telefondaki soruyu onayla.")
                 return False, out.strip().splitlines()[-1] if out.strip() else f"adb hata kodu {rc}"
             d["app"] = True
+            await self.details(serial, d)
             await _adb("-s", serial, "shell", "am", "start", "-n", PHONE_ACTIVITY)
             return True, "Talk To Linux telefona kuruldu ve açıldı."
         finally:

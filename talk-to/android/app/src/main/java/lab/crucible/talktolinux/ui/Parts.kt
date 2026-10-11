@@ -1,5 +1,16 @@
 package lab.crucible.talktolinux.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Slider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,13 +42,16 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /** Bütün ekranlarda aynı köşe ve renk: düz, hafif ayrışan yüzey (M3 kart şekli: 12–16 dp). */
-internal val PanelShape = RoundedCornerShape(16.dp)
+internal val PanelShape = RoundedCornerShape(12.dp)  // libadwaita kartı
 
 /**
  * Boşluk ölçeği (TASARIM.md T9, A1): 8 dp ızgara. Bölüm başlığı kartına 8 dp yakın, bölümler arası
@@ -49,12 +64,14 @@ internal object Gap {
 }
 
 /** "Çalışıyor" işareti: temadan bağımsız, her iki modda okunur yeşil. */
-internal val OkGreen = Color(0xFF2E9D5B)
+internal val OkGreen = Adw.Success
 
 @Composable
 internal fun Panel(modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.surfaceContainer,
                    content: @Composable ColumnScope.() -> Unit) {
-    Card(modifier.fillMaxWidth(), shape = PanelShape, colors = CardDefaults.cardColors(containerColor = color)) {
+    // GNOME kartı: beyaz, ince gölge (karanlık temada gölge görünmez, kart zeminden açık).
+    Card(modifier.fillMaxWidth(), shape = PanelShape, colors = CardDefaults.cardColors(containerColor = color),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(content = content)
     }
 }
@@ -71,7 +88,9 @@ internal fun Section(title: String, searching: Boolean = false, content: @Compos
 @Composable
 internal fun SectionTitle(text: String, searching: Boolean = false) {
     Row(Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        // libadwaita grup başlığı: kalın, normal yazı rengi (mavi değil).
+        Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface)
         if (searching) {
             Spacer(Modifier.width(10.dp))
             CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 2.dp)
@@ -125,10 +144,11 @@ internal fun QuickTile(icon: ImageVector, label: String, modifier: Modifier, qui
                        onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Card(onClick = onClick, modifier = modifier.heightIn(min = 84.dp), shape = PanelShape,
-        colors = CardDefaults.cardColors(containerColor = if (quiet) cs.surfaceContainerHigh else cs.secondaryContainer,
-            contentColor = if (quiet) cs.onSurface else cs.onSecondaryContainer)) {
+        colors = CardDefaults.cardColors(containerColor = if (quiet) cs.surfaceContainerHigh else cs.surfaceContainer,
+            contentColor = cs.onSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (quiet) 0.dp else 1.dp)) {
         Column(Modifier.padding(14.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(icon, null, Modifier.size(24.dp))
+            Icon(icon, null, Modifier.size(24.dp), tint = if (quiet) cs.onSurfaceVariant else cs.primary)
             Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -163,21 +183,24 @@ internal fun StatusCard(
     extra: @Composable (ColumnScope.() -> Unit)? = null,
 ) {
     val cs = MaterialTheme.colorScheme
+    val hero = tone == Tone.OK
     val (bg, fg, tint) = when (tone) {
         // Ana vurgu rengi: ekrandaki tek öne çıkan öğe (Von Restorff), ama hata kırmızısı değil.
         Tone.ACTION -> Triple(cs.primaryContainer, cs.onPrimaryContainer, cs.onPrimaryContainer)
-        Tone.OK -> Triple(cs.surfaceContainer, cs.onSurface, OkGreen)
+        // Her şey yolunda: bilgisayardaki "Telefonlar" sayfasının mavi durum kartıyla aynı.
+        Tone.OK -> Triple(Color.Transparent, Color.White, Color.White)
         Tone.NEUTRAL -> Triple(cs.surfaceContainer, cs.onSurface, cs.onSurfaceVariant)
     }
-    Panel(color = bg) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(Gap.inner)) {
+    HeroOrPanel(hero, bg) {
+        Column(Modifier.padding(if (hero) 20.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(Gap.inner)) {
             Row(verticalAlignment = Alignment.Top) {
                 Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, color = fg)
                     if (!text.isNullOrEmpty()) Text(text, style = MaterialTheme.typography.bodyMedium,
-                        color = if (tone == Tone.ACTION) fg else cs.onSurfaceVariant)
+                        color = when (tone) { Tone.ACTION -> fg; Tone.OK -> Color.White.copy(alpha = 0.88f)
+                            else -> cs.onSurfaceVariant })
                 }
             }
             extra?.invoke(this)
@@ -186,7 +209,9 @@ internal fun StatusCard(
                 FlowRow(Modifier.padding(start = 40.dp), verticalArrangement = Arrangement.Center,
                     horizontalArrangement = Arrangement.spacedBy(Gap.inner)) {
                     if (action != null && onAction != null) {
-                        FilledTonalButton(onClick = onAction, enabled = !busy) {
+                        FilledTonalButton(onClick = onAction, enabled = !busy, colors = if (hero)
+                            ButtonDefaults.filledTonalButtonColors(containerColor = Color.White.copy(alpha = 0.2f),
+                                contentColor = Color.White) else ButtonDefaults.filledTonalButtonColors()) {
                             if (busy) {
                                 CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                                 Spacer(Modifier.width(8.dp))
@@ -194,11 +219,24 @@ internal fun StatusCard(
                             Text(action)
                         }
                     }
-                    if (secondary != null && onSecondary != null) TextButton(onClick = onSecondary) { Text(secondary) }
+                    if (secondary != null && onSecondary != null) TextButton(onClick = onSecondary,
+                        colors = if (hero) ButtonDefaults.textButtonColors(contentColor = Color.White)
+                        else ButtonDefaults.textButtonColors()) { Text(secondary) }
                 }
             }
         }
     }
+}
+
+/** Mavi degrade "her şey yolunda" kartı (bilgisayardaki durum kartıyla aynı) ya da düz kart. */
+@Composable
+private fun HeroOrPanel(hero: Boolean, color: Color, content: @Composable ColumnScope.() -> Unit) {
+    if (!hero) {
+        Panel(color = color, content = content)
+        return
+    }
+    Column(Modifier.fillMaxWidth().clip(PanelShape)
+        .background(Brush.linearGradient(listOf(Adw.Accent, Color(0xFF1A5FB4)))), content = content)
 }
 
 /** Boş durum: ne olduğu, ne işe yaradığı ve (varsa) tek sonraki adım (T7). */
@@ -248,4 +286,37 @@ internal fun size(n: Long): String = when {
     n < 1024 * 1024 -> "%.1f KB".format(n / 1024.0)
     n < 1024L * 1024 * 1024 -> "%.1f MB".format(n / 1048576.0)
     else -> "%.2f GB".format(n / 1073741824.0)
+}
+
+/**
+ * GNOME (libadwaita) kaydırıcısı: ince yuvarlak çizgi, beyaz yuvarlak tutamak. Material 3'ün kalın,
+ * aralıklı ve noktalı kaydırıcısı bilgisayardaki uygulamaya benzemiyordu.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun AdwSlider(
+    value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f, onValueChangeFinished: (() -> Unit)? = null,
+) {
+    val cs = MaterialTheme.colorScheme
+    val trough = cs.onSurface.copy(alpha = 0.15f)
+    val fill = if (enabled) cs.primary else cs.onSurface.copy(alpha = 0.3f)
+    val knob = if (enabled) Color.White else cs.surfaceContainerHigh
+    val interaction = remember { MutableInteractionSource() }
+    Slider(
+        value = value, onValueChange = onValueChange, modifier = modifier, enabled = enabled,
+        valueRange = valueRange, onValueChangeFinished = onValueChangeFinished, interactionSource = interaction,
+        thumb = {
+            Box(Modifier.size(20.dp).shadow(2.dp, CircleShape).background(knob, CircleShape))
+        },
+        track = { st ->
+            val span = st.valueRange.endInclusive - st.valueRange.start
+            val frac = if (span > 0f) ((st.value - st.valueRange.start) / span).coerceIn(0f, 1f) else 0f
+            Canvas(Modifier.fillMaxWidth().height(4.dp)) {
+                val r = CornerRadius(size.height / 2, size.height / 2)
+                drawRoundRect(trough, cornerRadius = r)
+                drawRoundRect(fill, size = Size(size.width * frac, size.height), cornerRadius = r)
+            }
+        },
+    )
 }

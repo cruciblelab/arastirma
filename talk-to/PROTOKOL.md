@@ -81,7 +81,8 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | `ping` / `pong` | iki yön | 15 sn'de bir; 50 sn hiçbir şey gelmezse bağlantı kopmuş sayılır |
 | `bye` | bilgisayar → telefon | `reason`: `disconnected` (bilgisayarda "Bağlantıyı kes") ya da `forgotten` ("Unut"); telefon kendiliğinden yeniden bağlanmaz, `forgotten`'da belirteci de siler. Ardından bağlantı kapanır |
 | `battery` | telefon → bilgisayar | `level` (0-100), `charging` |
-| `phone_status` | telefon → bilgisayar | `flavor` ("tam"/"hafif"), `sdk`, `notif_access`, `listener` (Android bildirim dinleyicisini bağladı mı), `player` (izlenen medya uygulaması ya da null), `notifications_sent`; bağlanınca ve değişince. Bilgisayar bundan "bildirimler neden gelmiyor" uyarısı üretir |
+| `phone_status` | telefon → bilgisayar | `flavor` ("tam"/"hafif"), `sdk`, `notif_access`, `listener` (Android bildirim dinleyicisini bağladı mı), `player` (izlenen medya uygulaması ya da null), `notifications_sent`, `version` (uygulama sürümü; bilgisayardakinden eskiyse güncelleme önerilir); bağlanınca ve değişince. Bilgisayar bundan "bildirimler neden gelmiyor" uyarısı üretir |
+| `crash_report` | telefon → bilgisayar | `text`: telefondaki uygulama son çalışmasında çöktüyse yığın izi (en çok 20.000 karakter); bağlanınca bir kez. Bilgisayar `~/.cache/talk-to-android/telefon-cokme-*.txt` olarak kaydeder ve haber verir |
 | `notification` | telefon → bilgisayar | `key`, `package`, `app`, `title`, `text`, `time_ms` |
 | `notification_removed` | telefon → bilgisayar | `key` |
 | `app_icon` | telefon → bilgisayar | `package`, `data` (base64 PNG); paket başına oturumda bir kez |

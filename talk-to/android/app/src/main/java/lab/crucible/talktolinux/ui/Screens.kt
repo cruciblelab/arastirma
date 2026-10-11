@@ -37,6 +37,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -185,12 +186,19 @@ fun TalkScreen(
         },
         bottomBar = {
             if (connected != null) {
-                NavigationBar {
+                // libadwaita görünüm değiştirici çubuğu gibi: seçili sekme hafif gri zeminli, renk vurgusuz.
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
                     tabs.forEach {
                         NavigationBarItem(selected = shown == it, onClick = {
                             // Seçili sekmeye yeniden dokunmak başa kaydırır (M3 gezinme çubuğu).
                             if (shown == it) scope.launch { list.animateScrollToItem(0) } else tab = it
-                        }, icon = { Icon(it.icon, null) }, label = { Text(it.label) })
+                        }, icon = { Icon(it.icon, null) }, label = { Text(it.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
+                                selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant))
                     }
                 }
             }

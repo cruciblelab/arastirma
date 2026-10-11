@@ -5,7 +5,6 @@ talk-to-android durum|gonder|pano|bildirim|cal|medya ...   çalışan uygulamaya
 """
 
 import asyncio
-import logging
 import sys
 
 
@@ -14,7 +13,8 @@ def headless(approve_all: bool):
     from .hub import Hub
     from .ipc import socket_path
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s")
+    from . import gunluk
+    gunluk.setup()
 
     def emit(event, data):
         if event == "ask":

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import UDP_PORT, mirror
+from .usb import XIAOMI, version_tuple
 
 UFW_CONF = Path("/etc/ufw/ufw.conf")
 
@@ -67,12 +68,35 @@ def _usb_phone(usb: dict) -> Item:
                 "telefonla gelen kabloyu kullan.", False)
 
 
+XIAOMI_PERMISSIONS = ("Ayarlar → Ek ayarlar → Geliştirici seçenekleri → “USB hata ayıklama (Güvenlik ayarları)”nı aç. "
+                      "Xiaomi bunun için telefonda SIM kart takılı olmasını ve Mi hesabına giriş yapılmasını istiyor. "
+                      "Kapalıyken bilgisayar telefondaki izinleri veremez; istersen izinleri telefonda elle ver.")
+XIAOMI_INSTALL = ("Geliştirici seçenekleri → “USB üzerinden yükle”yi aç (Mi hesabı ister). Kapalıyken bilgisayar "
+                  "Talk To Linux'u kuramaz ya da güncelleyemez.")
+
+
+def app_outdated(d: dict, usb: dict) -> bool:
+    """Telefondaki uygulama bu bilgisayardaki APK'dan eski mi?"""
+    return bool(d.get("app") and d.get("app_version") and usb.get("apk_version")
+                and version_tuple(d["app_version"]) < version_tuple(usb["apk_version"]))
+
+
+def xiaomi(d: dict) -> bool:
+    return (d.get("maker") or "").casefold() in XIAOMI
+
+
+def _permissions_done(sessions: list[dict]) -> bool:
+    phone = next((s.get("phone") or {} for s in sessions if s.get("kind") == "usb"), {})
+    return phone.get("notif_access") is True and phone.get("listener") is not False
+
+
 def _phone_permissions(d: dict, sessions: list[dict]) -> Item:
     """Bildirim erişimi, pil kısıtlaması gibi telefon ayarları: bilgisayardan tek tıkla."""
     if d.get("setting_up"):
         return Item("Telefon ayarlanıyor…", "Telefonda bir şey yapman gerekmiyor.", None)
-    phone = next((s.get("phone") or {} for s in sessions if s.get("kind") == "usb"), {})
-    done = phone.get("notif_access") is True and phone.get("listener") is not False
+    done = _permissions_done(sessions)
+    if not done and xiaomi(d) and d.get("xiaomi_permissions") is False:
+        return Item("Telefondaki izinler", "Önce yukarıdaki Xiaomi ayarını aç; sonra “Kontrol et”.", False)
     text = ("Bildirim erişimi açık." if done else
             "Bildirim erişimi, pil kısıtlaması, bildirim ve Bluetooth izni telefonun ayar menülerinde dağınık. "
             "“Telefonu ayarla” hepsini USB'den bir kerede yapar; telefonda bir şey seçmen gerekmez.")
@@ -122,15 +146,32 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
                         bool(status.get("usb")), None if status.get("usb") else "enable_usb", "Aç"))
     if usb.get("adb"):
         u.items.append(_usb_phone(usb))
+        if not ready and not usb.get("unseen") and usb.get("usb_devices"):
+            # Telefon hiç tanınmadıysa bilgisayarın ne gördüğü (kablo mu, telefon mu, mod mu: ayırt etmek için).
+            u.items.append(Item("Bu bilgisayarın gördüğü USB aygıtları", ", ".join(usb["usb_devices"][:8]), None))
         for d in ready:
             if d.get("installing"):
                 u.items.append(Item("Telefona kuruluyor…", "Telefonda bir soru çıkarsa onayla; bitince uygulama açılır.",
                                     None))
-            elif d.get("app") is False and usb.get("apk"):
+                continue
+            needs_install = (d.get("app") is False or app_outdated(d, usb)) and usb.get("apk")
+            if xiaomi(d) and needs_install and d.get("xiaomi_install") is False:
+                u.items.append(Item("Xiaomi: “USB üzerinden yükle” kapalı", XIAOMI_INSTALL, False))
+            if xiaomi(d) and d.get("xiaomi_permissions") is False and not _permissions_done(sessions):
+                u.items.append(Item("Xiaomi: “USB hata ayıklama (Güvenlik ayarları)” kapalı", XIAOMI_PERMISSIONS,
+                                    False))
+            if d.get("app") is False and usb.get("apk"):
                 u.items.append(Item("Telefonda Talk To Linux yok", "Tek tıkla USB'den kurulur ve açılır.", False,
                                     f"install_phone_app:{d['serial']}", "Telefona kur"))
+            elif app_outdated(d, usb):
+                u.items.append(Item(f"Telefondaki Talk To Linux eski ({d['app_version']})",
+                                    f"Bu bilgisayardaki sürüm {usb['apk_version']}. Tek tıkla USB'den güncellenir; "
+                                    "eşleşme ve ayarlar korunur.", False, f"install_phone_app:{d['serial']}",
+                                    "Güncelle"))
+                u.items.append(_phone_permissions(d, sessions))
             elif d.get("app"):
-                u.items.append(Item("Telefonda Talk To Linux kurulu",
+                version = f" ({d['app_version']})" if d.get("app_version") else ""
+                u.items.append(Item(f"Telefonda Talk To Linux kurulu{version}",
                                     "Telefondaki uygulamada “USB kablosu”nu seç; ilk seferde burada onay çıkar.", True))
                 u.items.append(_phone_permissions(d, sessions))
     if simple:
@@ -166,9 +207,15 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
     x.items.append(Item("Bluetooth", bt.get("message") or "Ağ olmadan bağlanmak için; önce telefonla sistem "
                         "ayarlarından eşleştir.", bool(status.get("bluetooth") and bt.get("available")),
                         None if status.get("bluetooth") else "enable_bluetooth", "Aç", optional=True))
-    x.items.append(Item("Telefonun ekranı (scrcpy)", "Telefonun ekranını bu bilgisayarda açıp fare ve klavyeyle "
-                        "kullanmak için.", mirror.available(), None if mirror.available() else "install_scrcpy",
-                        "Kur", optional=True))
+    old = mirror.outdated_system()
+    scr_text = "Telefonun ekranını bu bilgisayarda açıp fare ve klavyeyle kullanmak için."
+    if old and not mirror.available():
+        scr_text = (f"Sistemdeki scrcpy {'.'.join(map(str, old))} yeni Android sürümlerinde açılmıyor. "
+                    + (f"Resmi {mirror.SCRCPY_VERSION} sürümü indirilir (şifre gerekmez)." if mirror.can_download()
+                       else "Daha yeni bir sürüm kur."))
+    x.items.append(Item("Telefonun ekranı (scrcpy)", scr_text, mirror.available(),
+                        None if mirror.available() else "install_scrcpy",
+                        "İndir" if mirror.can_download() else "Kur", optional=True))
     x.items.append(Item("Oturum açılınca başlat", "Bilgisayar açılınca arka planda hazır bekler; telefon "
                         "kendiliğinden bağlanır.", autostart, None if autostart else "enable_autostart", "Aç",
                         optional=True))

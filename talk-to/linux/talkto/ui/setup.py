@@ -114,6 +114,11 @@ class SetupAssistant(Adw.Window):
         return r
 
     def check(self, title):
+        """Telefondaki ayarlar (Xiaomi anahtarları, uygulama sürümü) yeniden okunur, sonra sonuç yazılır."""
+        self.app.call("refresh_usb")
+        GLib.timeout_add(1500, lambda: (self._checked(title), False)[-1])
+
+    def _checked(self, title):
         self.refresh()
         item = next((i for i in self.steps[self.step].items if i.title == title), None)
         done = item is None or item.ok  # başlığı değiştiyse (ör. "takılı değil" → "görünüyor") sorun çözülmüştür

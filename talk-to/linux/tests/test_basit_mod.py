@@ -136,13 +136,21 @@ class WindowTest(unittest.TestCase):
                 seen["extra"] = {n: p.get_visible() for n, p in w.pages.items()}
                 seen["extras"] = list(app.config["extras"])
                 # Müzik başlayınca sabitlenmiş mini oynatıcı kendiliğinden açılır.
+                # Mini oynatıcı boşken ve çalarken aynı yeri kaplar (Wayland'de boyut zıplaması uygulamayı kapatıyordu).
+                from talkto.ui.miniplayer import MiniPlayer
+                probe = MiniPlayer(app)
+                empty_h = probe.get_content().measure(Gtk.Orientation.VERTICAL, 440)[1]
+                probe.show_state("p", "Pixel", song("Çok çok uzun bir şarkı adı " * 4), None)
+                seen["mini_heights"] = (empty_h, probe.get_content().measure(Gtk.Orientation.VERTICAL, 440)[1])
+                seen["mini_resizable"] = probe.get_resizable()
+                probe.close()
                 app.set_pinned(True)
                 app.on_event("status", {**app.hub.status(), "sessions": [
                     {"device_id": "p", "name": "Pixel", "kind": "wifi", "ip": "1.2.3.4", "media": {"active": False},
                      "problems": [], "profile_name": "Benim telefonum"}]})
                 app.on_event("media", {"device_id": "p", "state": song("Firuze")})
                 seen["mini"] = bool(app.mini and app.mini.get_visible())
-                seen["mini_shows"] = app.mini.stack.get_visible_child_name() if app.mini else None
+                seen["mini_shows"] = app.mini.device_id if app.mini else None
                 seen["pin_switch"] = w.sw_pin.get_active()
                 # Şarkı bildirimi: mini oynatıcı açıkken çıkmaz (aynı bilgi ekranda), kapalıyken çıkar.
                 shown = []
@@ -167,8 +175,10 @@ class WindowTest(unittest.TestCase):
         self.assertFalse(seen["extra"]["dosyalar"])
         self.assertEqual(seen["extras"], ["commands"])
         self.assertTrue(seen["mini"])
-        self.assertEqual(seen["mini_shows"], "var")
+        self.assertEqual(seen["mini_shows"], "p")
         self.assertTrue(seen["pin_switch"])
+        self.assertEqual(seen["mini_heights"][0], seen["mini_heights"][1])
+        self.assertTrue(seen["mini_resizable"])
         self.assertEqual(seen["popup_with_mini"], 0)
         (title, body, kw), = seen["popup"]
         self.assertEqual(title, "Firuze")

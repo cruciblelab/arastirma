@@ -58,7 +58,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -227,10 +226,10 @@ internal fun LazyListScope.mediaTab() {
 @Composable
 private fun Cover(bmp: android.graphics.Bitmap?, sizeDp: Int, modifier: Modifier = Modifier) {
     Box(modifier.size(sizeDp.dp).clip(RoundedCornerShape((sizeDp / 5).dp))
-        .background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
+        .background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
         if (bmp != null) Image(bmp.asImageBitmap(), null, contentScale = ContentScale.Crop, modifier = Modifier.size(sizeDp.dp))
         else Icon(Icons.Rounded.MusicNote, null, Modifier.size((sizeDp * 0.42).dp),
-            tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            tint = MaterialTheme.colorScheme.onPrimaryContainer)
     }
 }
 
@@ -264,7 +263,7 @@ private fun PcPlayer() {
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (media.durationMs > 0) {
-                Slider(value = seeking ?: pos.toFloat(), onValueChange = { seeking = it },
+                AdwSlider(value = seeking ?: pos.toFloat(), onValueChange = { seeking = it },
                     onValueChangeFinished = { seeking?.let { Talk.mediaControl("seek", it.toLong()) }; seeking = null },
                     valueRange = 0f..media.durationMs.toFloat(), enabled = media.canSeek,
                     modifier = Modifier.padding(top = 8.dp))
@@ -295,7 +294,7 @@ private fun PcPlayer() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.MusicNote, "Oynatıcının sesi", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.width(8.dp))
-                    Slider(value = vol, valueRange = 0f..100f, modifier = Modifier.weight(1f), onValueChange = {
+                    AdwSlider(value = vol, valueRange = 0f..100f, modifier = Modifier.weight(1f), onValueChange = {
                         dragging = true
                         vol = it
                         val t = SystemClock.elapsedRealtime()
@@ -326,7 +325,7 @@ private fun PcVolume() {
             Column(Modifier.weight(1f)) {
                 Text("Bilgisayarın sesi", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Slider(value = vol, valueRange = 0f..100f, onValueChange = { dragging = true; vol = it },
+                AdwSlider(value = vol, valueRange = 0f..100f, onValueChange = { dragging = true; vol = it },
                     onValueChangeFinished = { dragging = false; Talk.pcVolume(vol.toInt()) })
             }
             Text("%${vol.toInt()}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.width(48.dp),

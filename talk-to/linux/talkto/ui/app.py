@@ -20,7 +20,7 @@ from ..ipc import socket_path  # noqa: E402
 from ..nowplaying import NowPlaying  # noqa: E402
 from .. import mirror  # noqa: E402
 from ..usb import CONFLICT  # noqa: E402
-from . import compat, system  # noqa: E402
+from . import compat, progress, system  # noqa: E402
 from .screenshot import take_screenshot  # noqa: E402
 from .notifier import Notifier  # noqa: E402
 from .phone_mpris import PhonePlayers  # noqa: E402
@@ -254,35 +254,24 @@ class App(Adw.Application):
         cb.read_text_async(None, done)
 
     def install_adb(self):
-        """adb'yi dağıtımın paket yöneticisiyle kurar; şifre pkexec penceresinde sorulur."""
+        """adb'yi dağıtımın paket yöneticisiyle kurar; şifre pkexec penceresinde sorulur, ilerleme pencerede."""
         cmd = system.adb_install_command()
         if not cmd or self.installing_adb:
             return
         self.installing_adb = True
         self.window.update_usb(self.hub.usb.snapshot())
-        try:
-            proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
-        except GLib.Error as e:
-            self._adb_done(False, e.message)
-            return
+        parent = self.setup_window if self.setup_window and self.setup_window.get_visible() else self.window
 
-        def done(p, res):
-            try:
-                _ok, out, _err = p.communicate_utf8_finish(res)
-            except GLib.Error as e:
-                self._adb_done(False, e.message)
-                return
-            status = p.get_exit_status()
-            # pkexec: 126 = şifre penceresi kapatıldı, 127 = yetki verilmedi
-            msg = {126: "Kurulum iptal edildi", 127: "Yetki verilmedi"}.get(status, (out or "").strip()[-200:])
-            self._adb_done(status == 0, msg)
-        proc.communicate_utf8_async(None, None, done)
-
-    def _adb_done(self, ok, msg):
-        self.installing_adb = False
-        self.toast("adb kuruldu; telefonu USB ile takabilirsin" if ok else f"adb kurulamadı: {msg}")
-        if self.window:
-            self.window.update_usb(self.hub.usb.snapshot())
+        def done(ok, msg):
+            self.installing_adb = False
+            win.finish(ok, "adb kuruldu" if ok else "adb kurulamadı",
+                       "Telefonu USB ile takabilirsin; telefonda “USB hata ayıklamaya izin ver” sorusunu onayla."
+                       if ok else msg)
+            if self.window:
+                self.window.update_usb(self.hub.usb.snapshot())
+            if self.setup_window:
+                self.setup_window.refresh()
+        win = progress.run_privileged(parent, "adb kuruluyor", cmd, done)
 
     # ---- telefonun ekranı (scrcpy) ---------------------------------------------
 
@@ -299,53 +288,93 @@ class App(Adw.Application):
         fut.add_done_callback(lambda f: GLib.idle_add(show, *f.result()))
 
     def _with_scrcpy(self, then):
-        """scrcpy yoksa kurmayı önerir (pkexec), kurulunca devam eder."""
+        """scrcpy yoksa (ya da sistemdeki çok eskiyse) resmi sürümü indirmeyi önerir, hazır olunca devam eder."""
         if mirror.available():
             then()
             return
         if self.installing_scrcpy:
-            self.toast("scrcpy kuruluyor…")  # ikinci pkexec apt-get dpkg kilidine takılırdı
+            self.toast("scrcpy hazırlanıyor…")
             return
-        cmd = mirror.install_command()
-        if not cmd:
-            self.toast("scrcpy kurulu değil; dağıtımının paket yöneticisinden “scrcpy” paketini kur")
-            return
-        d = compat.Dialog(self.window, "scrcpy kurulsun mu?",
-                          "Telefonun ekranını bilgisayarda açmak için scrcpy programı gerekiyor. "
-                          "Dağıtımının paket deposundan kurulur; bilgisayarın şifresi sorulur.")
+        parent = self.setup_window if self.setup_window and self.setup_window.get_visible() else self.window
+        old = mirror.outdated_system()
+        if mirror.can_download():
+            body = (f"Telefonun ekranını açmak için scrcpy gerekiyor. Resmi {mirror.SCRCPY_VERSION} sürümü "
+                    f"GitHub'dan indirilir (~{mirror.SCRCPY_SIZE // 1_000_000} MB), doğrulanır ve yalnızca senin "
+                    "kullanıcı klasörüne konur; şifre gerekmez.")
+            if old:
+                body += (f" Sistemdeki scrcpy {'.'.join(map(str, old))} yeni Android sürümlerinde açılmıyor; "
+                         "ona dokunulmaz.")
+            label, start = "İndir", lambda: self._download_scrcpy(parent, then)
+        else:
+            cmd = mirror.install_command()
+            if not cmd:
+                self.toast("scrcpy kurulu değil; dağıtımının paket yöneticisinden “scrcpy” paketini kur")
+                return
+            body = ("Telefonun ekranını açmak için scrcpy gerekiyor. Dağıtımının paket deposundan kurulur; "
+                    "bilgisayarın şifresi sorulur.")
+            label, start = "Kur", lambda: self._install_scrcpy_pkg(parent, cmd, then)
+        d = compat.Dialog(parent, "scrcpy hazırlansın mı?", body)
         d.add_response("cancel", "Vazgeç")
-        d.add_response("install", "Kur")
-        d.set_appearance("install", compat.SUGGESTED)
+        d.add_response("go", label)
+        d.set_appearance("go", compat.SUGGESTED)
         d.set_close_response("cancel")
-
-        def install():
-            if self.installing_scrcpy:
-                return
-            try:
-                proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
-            except GLib.Error as e:
-                self.toast(f"scrcpy kurulamadı: {e.message}")
-                return
-            self.installing_scrcpy = True
-            self.toast("scrcpy kuruluyor…")
-
-            def done(p, res):
-                self.installing_scrcpy = False
-                try:
-                    _ok, out, _err = p.communicate_utf8_finish(res)
-                except GLib.Error as e:
-                    out = e.message
-                status = p.get_exit_status()
-                if status == 0 and mirror.available():
-                    then()
-                else:
-                    msg = {126: "Kurulum iptal edildi", 127: "Yetki verilmedi"}.get(status, (out or "").strip()[-200:])
-                    self.toast(f"scrcpy kurulamadı: {msg}")
-                if self.setup_window:
-                    self.setup_window.refresh()
-            proc.communicate_utf8_async(None, None, done)
-        d.on_response(lambda r: r == "install" and install())
+        d.on_response(lambda r: r == "go" and start())
         d.present()
+
+    def _download_scrcpy(self, parent, then):
+        import threading
+        self.installing_scrcpy = True
+        cancel = threading.Event()
+        win = progress.ProgressWindow(parent, f"scrcpy {mirror.SCRCPY_VERSION} indiriliyor", "Bağlanılıyor…",
+                                      cancel=cancel.set)
+        win.present()
+
+        def report(done, total, stage):
+            def ui():
+                if stage == "doğrulanıyor":
+                    win.set_fraction(None)
+                    win.set_text("İndirilen dosya doğrulanıyor (SHA-256)…")
+                else:
+                    win.set_fraction(done / total if total else None)
+                    win.set_text(f"{human_size(done)} / {human_size(total)}")
+                return False
+            GLib.idle_add(ui)
+
+        def work():
+            try:
+                mirror.download(report, cancel)
+                GLib.idle_add(finish, True, "")
+            except InterruptedError:
+                GLib.idle_add(finish, False, "İndirme durduruldu; hiçbir şey kurulmadı.")
+            except Exception as e:  # noqa: BLE001 — ağ/doğrulama hatası pencerede gösterilir
+                log.warning("scrcpy indirilemedi: %s", e)
+                GLib.idle_add(finish, False, str(e))
+
+        def finish(ok, msg):
+            self.installing_scrcpy = False
+            win.finish(ok, f"scrcpy {mirror.SCRCPY_VERSION} hazır" if ok else "scrcpy indirilemedi",
+                       "Telefonun ekranı açılıyor…" if ok else msg)
+            if self.setup_window:
+                self.setup_window.refresh()
+            if ok:
+                then()
+                GLib.timeout_add_seconds(2, lambda: (win.close(), False)[-1])
+            return False
+        threading.Thread(target=work, daemon=True).start()
+
+    def _install_scrcpy_pkg(self, parent, cmd, then):
+        self.installing_scrcpy = True
+
+        def done(ok, msg):
+            self.installing_scrcpy = False
+            ok = ok and mirror.available()
+            win.finish(ok, "scrcpy kuruldu" if ok else "scrcpy kurulamadı",
+                       "Telefonun ekranı açılıyor…" if ok else (msg or "Kurulan sürüm çok eski olabilir."))
+            if self.setup_window:
+                self.setup_window.refresh()
+            if ok:
+                then()
+        win = progress.run_privileged(parent, "scrcpy kuruluyor", cmd, done)
 
     def mirror_usb(self, serial, model=None):
         self._with_scrcpy(lambda: self._after(self.hub.mirror_device(serial, model)))
@@ -465,6 +494,12 @@ class App(Adw.Application):
             self._screenshot(d["device_id"])
         elif event == "phone_setup":
             self.toast(f"{d['device']} izinlerini ayarlamamı istedi; ayarlanıyor…")
+        elif event == "phone_crash":
+            path = d["path"]
+            self.notifier.show(f"{d['device']}: Talk To Linux son seferde çökmüştü",
+                               "Nedeni bir dosyaya kaydedildi; geliştiriciye göndermek için klasörde göster.",
+                               key="telefon-cokme", actions={"default": ("Klasörde göster",
+                                                                         lambda: self.show_in_folder(path))})
         elif event == "screenshot_taken":
             self._screenshot_taken(d["device_id"])
         elif event == "command_run":
@@ -646,7 +681,8 @@ class App(Adw.Application):
 
 
 def run(argv) -> int:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s")
+    from .. import gunluk
+    gunluk.setup()
     hidden = "--arka-planda" in argv
     argv = [a for a in argv if a != "--arka-planda"]
     return App(start_hidden=hidden).run(argv)

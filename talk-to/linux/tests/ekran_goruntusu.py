@@ -189,6 +189,7 @@ def shoot():
         return True
     if i == n + 3:
         snap(app.mini, f"{i:02d}-mini-oynatici")
+        print("mini boyut", app.mini.get_width(), app.mini.get_height())
         app.mini.close()
         win.stack.set_visible_child_name("telefonlar")
         app._ask({"id": "x", "kind": "pair", "name": "Pixel 8", "model": "Pixel 8", "code": "482913",

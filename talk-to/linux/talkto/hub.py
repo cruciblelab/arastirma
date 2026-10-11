@@ -6,7 +6,7 @@ emit geri çağrısıyla alır: emit(olay_adı, sözlük).
 
 Olaylar: status, usb, ask, ask_closed, notification, notification_removed,
 media, media_art, transfer, clipboard, open_url, connected, disconnected, error,
-screenshot, command_run.
+screenshot, command_run, phone_crash.
 """
 
 import asyncio
@@ -83,6 +83,10 @@ def phone_problems(phone: dict, perms: dict, show_notifications: bool = True) ->
         out.append("Bildirimleri gösterme kapalı (Bildirimler sayfası).")
     if not perms.get("media"):
         out.append("Bu telefonun profili medya kontrolüne izin vermiyor (Telefonlar → Profiller).")
+    from .usb import version_tuple
+    if phone.get("version") and version_tuple(phone["version"]) < version_tuple(__version__):
+        out.append(f"Telefondaki Talk To Linux eski ({phone['version']}; bu bilgisayardaki {__version__}). Bazı "
+                   "özellikler çalışmayabilir. Telefonu USB ile takınca Telefonlar sayfasından tek tıkla güncellenir.")
     return out
 
 
@@ -494,6 +498,10 @@ class Hub:
             text += ". USB bağlantısı birkaç saniye kopup kendiliğinden geri gelir."
         return ok, text
 
+    async def refresh_usb(self):
+        """Kurulum yardımcısındaki "Kontrol et": telefondaki ayarlar yeniden okunur."""
+        await self.usb.refresh()
+
     async def install_phone_app(self, serial: str, replace: bool = False) -> tuple[bool, str]:
         return await self.usb.install_app(serial, replace)
 
@@ -567,6 +575,7 @@ class Session:
         self.serial = next(hub._tid)  # bu bağlantıya özgü sayı (aktarım anahtarları için)
         self.offers: dict[int, asyncio.Task] = {}  # onay bekleyen gelen teklifler
         self.icons: dict[str, str] = {}
+        self.crash_saved = False
         self.incoming: dict[int, Incoming] = {}
         self.outgoing: dict[int, dict] = {}
         self._progress_at: dict[tuple, float] = {}
@@ -884,7 +893,8 @@ class Session:
             self.phone = {"flavor": _s(msg.get("flavor"), 20), "sdk": _int(msg.get("sdk")),
                           "notif_access": bool(msg.get("notif_access")), "listener": bool(msg.get("listener")),
                           "player": _s(player, 100) if isinstance(player, str) else None,
-                          "notifications_sent": _int(msg.get("notifications_sent"))}
+                          "notifications_sent": _int(msg.get("notifications_sent")),
+                          "version": _s(msg.get("version"), 40) or None}
             hub.emit_status()
         elif t == "app_icon":
             if self.perm("notifications"):
@@ -905,6 +915,9 @@ class Session:
             hub.emit("media", {"device_id": self.device_id, "state": self.media})
         elif t == "media_art":
             self._save_art(msg)
+        elif t == "crash_report" and not self.crash_saved:
+            self.crash_saved = True  # bağlantı başına bir rapor
+            self._save_crash(_s(msg.get("text"), 20000))
         elif t == "media_control":
             if hub.media and self.config["share_media"] and self.perm("media"):
                 action = _s(msg.get("action"), 20)
@@ -1016,6 +1029,21 @@ class Session:
                 "can_seek": bool(msg.get("can_seek")),
                 "art_id": art if isinstance(art, str) and _ART.match(art) else None,
                 "received_at": time.monotonic()}
+
+    def _save_crash(self, text: str):
+        """Telefondaki uygulama son çalışmasında çöktüyse raporunu kaydeder (nedeni bulunabilsin)."""
+        if not text:
+            return
+        safe = re.sub(r"[^A-Za-z0-9_-]", "_", self.device_id)[:40]
+        p = cache_dir() / f"telefon-cokme-{safe}-{time.strftime('%Y%m%d-%H%M%S')}.txt"
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text, encoding="utf-8")
+        except OSError as e:
+            log.warning("telefonun çökme raporu kaydedilemedi: %s", e)
+            return
+        log.warning("%s: telefondaki uygulama son çalışmasında çökmüş; rapor %s", self.name, p)
+        self.hub.emit("phone_crash", {"device_id": self.device_id, "device": self.name, "path": str(p)})
 
     def _decode_image(self, msg, limit) -> bytes | None:
         data = msg.get("data")

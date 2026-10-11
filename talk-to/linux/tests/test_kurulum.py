@@ -47,6 +47,31 @@ class SetupChecksTest(unittest.TestCase):
         items = phone({"devices": [{"serial": "S1", "state": "device", "model": "Pixel 8", "app": True}]})
         self.assertTrue(items[3].ok)
 
+    def test_xiaomi_and_outdated_app(self):
+        dev = {"serial": "S1", "state": "device", "model": "Redmi Note 12", "app": True, "app_version": "0.6.0",
+               "maker": "Xiaomi", "xiaomi_permissions": False, "xiaomi_install": False}
+        usb = {"adb": True, "apk": "/x.apk", "apk_version": "0.7.1", "devices": [dev]}
+        u = step(setup_checks.steps(STATUS, usb, ufw=False), "usb")
+        titles = [i.title for i in u.items]
+        self.assertIn("Xiaomi: “USB üzerinden yükle” kapalı", titles)
+        self.assertIn("Xiaomi: “USB hata ayıklama (Güvenlik ayarları)” kapalı", titles)
+        upd = item(u, "Telefondaki Talk To Linux eski (0.6.0)")
+        self.assertEqual((upd.ok, upd.action), (False, "install_phone_app:S1"))
+        # İzinler Xiaomi ayarı açılmadan bilgisayardan verilemez: düğme yerine ne yapılacağı yazar.
+        perms = item(u, "Telefondaki izinler")
+        self.assertIsNone(perms.action)
+        # Ayarlar açılıp uygulama güncellenince uyarılar kalkar.
+        dev.update(xiaomi_permissions=True, xiaomi_install=True, app_version="0.7.1")
+        u = step(setup_checks.steps(STATUS, usb, ufw=False), "usb")
+        self.assertFalse(any(i.title.startswith(("Xiaomi", "Telefondaki Talk To Linux eski")) for i in u.items))
+        self.assertTrue(item(u, "Telefonda Talk To Linux kurulu (0.7.1)").ok)
+        self.assertEqual(item(u, "Telefondaki izinler").action, "phone_setup:S1")
+
+    def test_nothing_recognised_lists_usb_devices(self):
+        usb = {"adb": True, "apk": "/x.apk", "devices": [], "usb_devices": ["Logitech USB Receiver (046d:c52b)"]}
+        info = item(step(setup_checks.steps(STATUS, usb, ufw=False), "usb"), "Bu bilgisayarın gördüğü")
+        self.assertIn("046d:c52b", info.text)
+
     def test_phone_permissions_from_computer(self):
         usb = {"adb": True, "apk": "/x.apk", "devices": [{"serial": "S1", "state": "device", "model": "P", "app": True}]}
         perms = item(step(setup_checks.steps(STATUS, usb, ufw=False), "usb"), "Telefondaki izinler")

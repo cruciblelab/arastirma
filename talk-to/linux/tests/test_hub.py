@@ -10,11 +10,12 @@ import os
 import socket
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from sahte_telefon import FakePhone
 
-from talkto import auth
+from talkto import auth, mirror
 from talkto.config import Config
 from talkto.hub import Hub
 from talkto.transfers import safe_name
@@ -268,6 +269,16 @@ class HubTest(_Base):
         self.assertEqual(self.of("media")[-1]["state"]["title"], "Şarkı")
         await self.hub.media_control(p.device_id, "next")
         self.assertEqual((await p.recv_type("media_control"))["action"], "next")
+        await p.close()
+
+    async def test_phone_crash_report_is_saved_once(self):
+        p = await self.paired_phone()
+        await p.send({"type": "crash_report", "text": "java.lang.IllegalStateException: deneme\n\tat X.y(X.kt:1)"})
+        await p.send({"type": "crash_report", "text": "ikinci rapor yok sayılır"})
+        await asyncio.sleep(0.2)
+        crashes = self.of("phone_crash")
+        self.assertEqual(len(crashes), 1)
+        self.assertIn("IllegalStateException", Path(crashes[0]["path"]).read_text())
         await p.close()
 
     async def _stalled_phone(self, size=48 * 1024 * 1024):
@@ -584,9 +595,11 @@ class InstallTest(unittest.IsolatedAsyncioTestCase):
         os.environ.pop("TALKTO_APK", None)
         self.tmp.cleanup()
 
-    def fake(self, name, body):
+    def fake(self, name, body, version="3.1"):
         f = self.bin / name
-        f.write_text(f"#!/bin/sh\necho \"{name} $*\" >> {self.log}\n{body}\n")
+        # scrcpy sürümü sorulunca (yeni sürüm denetimi) çağrı kaydına yazılmaz.
+        ver = f'[ "$1" = "--version" ] && {{ echo "scrcpy {version} <x>"; exit 0; }}\n' if name == "scrcpy" else ""
+        f.write_text(f"#!/bin/sh\n{ver}echo \"{name} $*\" >> {self.log}\n{body}\n")
         f.chmod(0o755)
 
     def calls(self):
@@ -719,15 +732,18 @@ class _AdbBase(_Base):
         self.old_path = os.environ["PATH"]
         os.environ["PATH"] = f"{self.bin}:{self.old_path}"
         self.hub.usb.available = staticmethod(lambda: True)
+        os.environ["TALKTO_DATA_DIR"] = str(Path(self.tmp.name) / "veri")  # indirilmiş scrcpy yok
         self.fake("scrcpy", "exit 0")
 
     async def asyncTearDown(self):
         await super().asyncTearDown()  # hub kapanırken sahte adb'yi hâlâ çağırır
         os.environ["PATH"] = self.old_path
 
-    def fake(self, name, body):
+    def fake(self, name, body, version="3.1"):
         f = self.bin / name
-        f.write_text(f"#!/bin/sh\necho \"{name} $*\" >> {self.log}\n{body}\n")
+        # scrcpy sürümü sorulunca (yeni sürüm denetimi) çağrı kaydına yazılmaz.
+        ver = f'[ "$1" = "--version" ] && {{ echo "scrcpy {version} <x>"; exit 0; }}\n' if name == "scrcpy" else ""
+        f.write_text(f"#!/bin/sh\n{ver}echo \"{name} $*\" >> {self.log}\n{body}\n")
         f.chmod(0o755)
 
     def calls(self):
@@ -741,8 +757,96 @@ class _AdbBase(_Base):
         self.fail(f"{prefix} çağrılmadı: {self.calls()}")
 
 
+class UsbDetailsTest(_AdbBase):
+    async def test_xiaomi_switches_and_app_version(self):
+        self.fake("adb", """case "$*" in
+  devices) printf 'List of devices attached\\nR1\\tdevice\\n' ;;
+  *"ro.product.model"*) echo "Redmi Note 12" ;;
+  *"ro.product.manufacturer"*) echo "Xiaomi" ;;
+  *"adbinput"*) echo "0" ;;
+  *"adbinstall"*) echo "1" ;;
+  *"pm path"*) echo "package:/data/app/x/base.apk" ;;
+  *"dumpsys package"*) printf '    versionCode=10 minSdk=26\\n    versionName=0.6.0\\n' ;;
+esac
+exit 0""")
+        await self.hub.usb._poll()
+        d = self.hub.usb.devices["R1"]
+        self.assertEqual((d["maker"], d["xiaomi_permissions"], d["xiaomi_install"], d["app_version"]),
+                         ("Xiaomi", False, True, "0.6.0"))
+        self.fake("adb", """case "$*" in
+  devices) printf 'List of devices attached\\nR1\\tdevice\\n' ;;
+  *"ro.product.manufacturer"*) echo "Xiaomi" ;;
+  *"adbinput"*) echo "1" ;;
+  *"adbinstall"*) echo "1" ;;
+  *"pm path"*) echo "package:/data/app/x/base.apk" ;;
+  *"dumpsys package"*) echo "    versionName=0.7.1" ;;
+esac
+exit 0""")
+        await self.hub.refresh_usb()  # kurulumdaki "Kontrol et"
+        self.assertTrue(d["xiaomi_permissions"])
+        self.assertEqual(d["app_version"], "0.7.1")
+
+    async def test_outdated_phone_is_reported(self):
+        p = await self.paired_phone()
+        await p.send({"type": "phone_status", "flavor": "tam", "notif_access": True, "listener": True,
+                      "version": "0.6.0"})
+        await asyncio.sleep(0.1)
+        problems = self.hub.status()["sessions"][0]["problems"]
+        self.assertTrue(any("eski (0.6.0" in t for t in problems), problems)
+        await p.close()
+
+
 class MirrorTest(_AdbBase):
     """Telefonun ekranını bilgisayarda açma (scrcpy)."""
+
+    def test_old_system_scrcpy_is_not_used(self):
+        self.fake("scrcpy", "exit 0", version="1.21")
+        self.assertFalse(mirror.available())
+        self.assertEqual(mirror.outdated_system(), (1, 21))
+        self.fake("scrcpy", "exit 0", version="2.4")
+        self.assertTrue(mirror.available())
+        self.assertIsNone(mirror.outdated_system())
+
+    def _release(self, sha=None):
+        """Resmi sürümün düzeninde küçük bir arşiv; indirme adresi ve özeti ona çevrilir."""
+        import hashlib
+        import tarfile
+        src = Path(self.tmp.name) / "kaynak" / f"scrcpy-linux-x86_64-v{mirror.SCRCPY_VERSION}"
+        src.mkdir(parents=True)
+        (src / "scrcpy").write_text("#!/bin/sh\necho scrcpy 5.0.1\n")
+        (src / "scrcpy").chmod(0o755)
+        (src / "scrcpy-server").write_bytes(b"x")
+        arc = Path(self.tmp.name) / "surum.tar.gz"
+        with tarfile.open(arc, "w:gz") as t:
+            t.add(src, arcname=src.name)
+        data = arc.read_bytes()
+        patch = mock.patch.multiple(mirror, SCRCPY_URL=arc.as_uri(), SCRCPY_SIZE=len(data),
+                                    SCRCPY_SHA256=sha or hashlib.sha256(data).hexdigest())
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_download_verifies_and_installs(self):
+        self._release()
+        seen = []
+        path = mirror.download(lambda d, t, st: seen.append(st))
+        self.assertTrue(os.access(path, os.X_OK))
+        self.assertEqual(mirror.binary(), str(path))
+        self.assertIn("doğrulanıyor", seen)
+
+    def test_download_rejects_wrong_checksum(self):
+        self._release(sha="0" * 64)
+        with self.assertRaisesRegex(ValueError, "SHA-256"):
+            mirror.download()
+        self.assertFalse(mirror.managed_path().exists())
+
+    def test_download_can_be_cancelled(self):
+        import threading
+        self._release()
+        stop = threading.Event()
+        stop.set()
+        with self.assertRaises(InterruptedError):
+            mirror.download(cancel=stop)
+        self.assertFalse(mirror.managed_path().exists())
 
     async def test_usb_phone_screen_opens(self):
         self.fake("adb", """case "$*" in
