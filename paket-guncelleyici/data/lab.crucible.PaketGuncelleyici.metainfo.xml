@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>lab.crucible.PaketGuncelleyici</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>CC-BY-NC-4.0</project_license>
+  <name>Paket Güncelleyici</name>
+  <summary>.deb dosyasını kurulu sürümle karşılaştırıp imzasını denetleyerek kurar</summary>
+  <description>
+    <p>Ubuntu'nun Uygulama Merkezi yerel .deb dosyasında sürümleri karşılaştırmıyor; o adla paket kuruluysa yalnızca kaldırmayı gösteriyor. Paket Güncelleyici dosyayı kurulu sürümle karşılaştırır (yeni kurulum, güncelleme, aynı sürüm, eski sürüm), yayıncının imzasını kurulu sürümün anahtarıyla denetler, kurmadan önce başka hangi paketlerin kurulacağını ya da kaldırılacağını gösterir ve Ubuntu'nun otomatik güncellemesi sürerken sıraya girip bekler.</p>
+  </description>
+  <launchable type="desktop-id">lab.crucible.PaketGuncelleyici.desktop</launchable>
+  <url type="homepage">https://github.com/cruciblelab/arastirma</url>
+  <developer id="lab.crucible"><name>Crucible ekibi</name></developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-11">
+      <description><p>İlk sürüm: sürüm karşılaştırma, yayıncı imzası (debsigs), apt denemesi, kilit bekleme.</p></description>
+    </release>
+  </releases>
+</component>

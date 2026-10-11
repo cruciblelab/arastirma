@@ -1,0 +1,507 @@
+"""Arayüz (GTK 4 + libadwaita; Ubuntu 22.04'teki libadwaita 1.1'de olan parçalarla).
+
+Akış: dosya → okunuyor → özet (sürüm, yayıncı, değişiklikler, tek ana düğme) → kuruluyor → bitti/olmadı.
+Riskli durumlarda (farklı yayıncı, paket kaldırma, eski sürüme dönme) ana düğme ancak kullanıcı ilgili
+kutuyu işaretleyince açılır: karar kullanıcıda, ama bilerek verilir.
+"""
+
+import os
+import threading
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
+
+from . import APP_ID, __version__, apt, imza, paket  # noqa: E402
+
+VERDICT = {
+    paket.KUR: ("Yeni kurulum", "Bu bilgisayarda kurulu değil."),
+    paket.GUNCELLE: ("Güncelleme", "Daha yeni bir sürüm."),
+    paket.AYNI: ("Aynı sürüm", "Bu sürüm zaten kurulu; yeniden kurulabilir."),
+    paket.ESKI: ("Eski sürüm", "Kurulu olandan daha eski. Geri dönmek ayarları bozabilir."),
+    paket.UYUMSUZ: ("Bu bilgisayara uygun değil", "Paket başka bir işlemci mimarisi için."),
+}
+
+
+def human_size(n: int) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}".replace(".", ",")
+        n /= 1024
+    return str(n)
+
+
+def desktop_app(desktop_id):
+    """Kurulu masaüstü uygulaması ya da None (PyGObject bulunamayınca istisna atar)."""
+    try:
+        return Gio.DesktopAppInfo.new(desktop_id)
+    except TypeError:
+        return None
+
+
+def row(title, subtitle="", icon=None, css=None):
+    r = Adw.ActionRow(title=GLib.markup_escape_text(title), subtitle=GLib.markup_escape_text(subtitle or ""))
+    r.set_subtitle_lines(6)
+    if icon:
+        r.add_prefix(Gtk.Image(icon_name=icon, css_classes=css or []))
+    return r
+
+
+class Window(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title="Paket Güncelleyici", default_width=560, default_height=720)
+        self.app = app
+        self.pkg: paket.Paket | None = None
+        self.sig: imza.Sonuc | None = None
+        self.sim: apt.Deneme | None = None
+        self.copy: str | None = None
+        self.checks: list[Gtk.CheckButton] = []
+        self.busy = False
+
+        self.toasts = Adw.ToastOverlay()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        header = Adw.HeaderBar()
+        self.title = Adw.WindowTitle(title="Paket Güncelleyici")
+        header.set_title_widget(self.title)
+        self.open_btn = Gtk.Button(icon_name="document-open-symbolic", tooltip_text="Başka bir paket aç")
+        self.open_btn.connect("clicked", lambda *_: self.choose())
+        header.pack_start(self.open_btn)
+        menu = Gio.Menu()
+        menu.append("Hakkında", "app.about")
+        header.pack_end(Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, tooltip_text="Menü"))
+        box.append(header)
+        self.stack = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE)
+        box.append(self.stack)
+        self.toasts.set_child(box)
+        self.set_content(self.toasts)
+
+        empty = Adw.StatusPage(icon_name="package-x-generic-symbolic", title="Bir paket dosyası aç",
+                               description="Bir .deb dosyasına sağ tıklayıp “Birlikte aç → Paket Güncelleyici”yi "
+                                           "seç ya da buradan seç. Kurulu sürümle karşılaştırılır, yayıncının "
+                                           "imzası denetlenir; kurmadan önce ne değişeceği gösterilir.")
+        b = Gtk.Button(label="Dosya seç", halign=Gtk.Align.CENTER, css_classes=["pill", "suggested-action"])
+        b.connect("clicked", lambda *_: self.choose())
+        empty.set_child(b)
+        self.stack.add_named(empty, "bos")
+
+        loading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, valign=Gtk.Align.CENTER)
+        loading.append(Gtk.Spinner(spinning=True, width_request=32, height_request=32))
+        loading.append(Gtk.Label(label="Paket okunuyor, imza denetleniyor…", css_classes=["dim-label"]))
+        self.stack.add_named(loading, "okunuyor")
+
+        # Özet: içerik kayar, tek ana düğme altta hep görünür.
+        detail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.detail_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        detail.append(self.detail_scroll)
+        detail.append(Gtk.Separator())
+        bar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=12, margin_bottom=12,
+                      margin_start=18, margin_end=18)
+        self.primary = Gtk.Button(halign=Gtk.Align.CENTER, css_classes=["pill", "suggested-action"])
+        self.primary.connect("clicked", lambda *_: self.install())
+        self.blocker = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["caption", "dim-label"])
+        bar.append(self.primary)
+        bar.append(self.blocker)
+        detail.append(bar)
+        self.stack.add_named(detail, "ozet")
+
+        self.progress_page = Adw.StatusPage(icon_name="software-update-available-symbolic")
+        pbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        self.progress = Gtk.ProgressBar(show_text=False)
+        self.progress_text = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["dim-label"])
+        pbox.append(self.progress)
+        pbox.append(self.progress_text)
+        clamp = Adw.Clamp(maximum_size=420, child=pbox)
+        self.progress_page.set_child(clamp)
+        self.stack.add_named(self.progress_page, "kuruluyor")
+
+        self.result_page = Adw.StatusPage()
+        self.result_buttons = Gtk.Box(spacing=12, halign=Gtk.Align.CENTER)
+        self.result_page.set_child(self.result_buttons)
+        self.stack.add_named(self.result_page, "sonuc")
+
+        drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop.connect("drop", self._on_drop)
+        self.add_controller(drop)
+        self.connect("close-request", self._on_close)
+
+    # ---- dosya ----------------------------------------------------------------------
+
+    def toast(self, text):
+        self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(text), timeout=4))
+
+    def _on_close(self, *_):
+        if self.busy:
+            self.toast("Kurulum sürüyor; bitince kapanabilir")
+            return True
+        return False
+
+    def choose(self):
+        if self.busy:
+            return
+        dlg = Gtk.FileChooserNative(title="Paket dosyası seç", transient_for=self,
+                                    action=Gtk.FileChooserAction.OPEN, accept_label="Aç")
+        flt = Gtk.FileFilter(name="Debian paketleri (.deb)")
+        flt.add_pattern("*.deb")
+        flt.add_mime_type("application/vnd.debian.binary-package")
+        dlg.add_filter(flt)
+
+        def done(d, response):
+            if response == Gtk.ResponseType.ACCEPT and d.get_file() and d.get_file().get_path():
+                self.load(d.get_file().get_path())
+            d.destroy()
+        dlg.connect("response", done)
+        dlg.show()
+        self._chooser = dlg  # çöp toplayıcı kapatmasın
+
+    def _on_drop(self, _t, value, _x, _y):
+        files = [f.get_path() for f in value.get_files() if f.get_path()]
+        if files and not self.busy:
+            self.load(files[0])
+            return True
+        return False
+
+    def load(self, path: str):
+        """Okuma ve denetimler ayrı iş parçacığında: büyük pakette pencere donmasın."""
+        self.stack.set_visible_child_name("okunuyor")
+        self.title.set_subtitle(os.path.basename(path))
+
+        def work():
+            try:
+                copy = apt.private_copy(path)
+                pkg = paket.read(copy)
+                pkg.path = copy
+                known = imza.anchors(pkg.package, pkg.installed is not None)
+                sig = imza.check(copy, pkg.package, pkg.keyring, known)
+                sim = (apt.simulate(copy, apt.flags_for(pkg.verdict, True))
+                       if pkg.verdict != paket.UYUMSUZ else apt.Deneme())
+                # Varsayılan öncelik: dönen bekleme göstergesinin çizimleri sonucu geciktirmesin.
+                GLib.idle_add(self.show_package, path, copy, pkg, sig, sim, priority=GLib.PRIORITY_DEFAULT)
+            except Exception as e:  # noqa: BLE001 — kullanıcıya anlaşılır biçimde gösterilir
+                GLib.idle_add(self.show_error, "Paket okunamadı", str(e), priority=GLib.PRIORITY_DEFAULT)
+        threading.Thread(target=work, daemon=True).start()
+
+    # ---- özet -----------------------------------------------------------------------
+
+    def show_package(self, original, copy, pkg, sig, sim):
+        self.pkg, self.sig, self.sim, self.copy = pkg, sig, sim, copy
+        self.checks = []
+        page = Adw.PreferencesPage()
+
+        head = Adw.PreferencesGroup()
+        top = Gtk.Box(spacing=16, margin_bottom=6)
+        top.append(self._icon(pkg))
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER, hexpand=True)
+        texts.append(Gtk.Label(label=pkg.name, xalign=0, wrap=True, css_classes=["title-1"]))
+        if pkg.summary:
+            texts.append(Gtk.Label(label=pkg.summary, xalign=0, wrap=True, css_classes=["dim-label"]))
+        texts.append(Gtk.Label(label=f"Paket: {pkg.package}", xalign=0, css_classes=["caption", "dim-label"],
+                               ellipsize=Pango.EllipsizeMode.END))
+        top.append(texts)
+        head.add(top)
+        page.add(head)
+
+        title, sub = VERDICT[pkg.verdict]
+        g = Adw.PreferencesGroup(title="Sürüm")
+        versions = (f"Kurulu {pkg.installed}  →  bu dosya {pkg.version}" if pkg.installed
+                    else f"Bu dosya {pkg.version}")
+        icon = {paket.GUNCELLE: "software-update-available-symbolic", paket.KUR: "list-add-symbolic",
+                paket.AYNI: "view-refresh-symbolic", paket.ESKI: "edit-undo-symbolic",
+                paket.UYUMSUZ: "dialog-error-symbolic"}[pkg.verdict]
+        r = row(title, f"{versions}\n{sub}", icon,
+                ["error"] if pkg.verdict == paket.UYUMSUZ else ["warning"] if pkg.verdict == paket.ESKI else [])
+        g.add(r)
+        if pkg.verdict == paket.ESKI:
+            g.add(self._check("Eski sürüme dönmek istiyorum"))
+        page.add(g)
+
+        page.add(self._signature_group(pkg, sig))
+        changes = self._changes_group(pkg, sim)
+        if changes:
+            page.add(changes)
+
+        g = Adw.PreferencesGroup(title="Ayrıntılar")
+        g.add(row("Dosya", original, "document-open-symbolic"))
+        g.add(row("Boyut", human_size(pkg.size), "drive-harddisk-symbolic"))
+        if pkg.maintainer:
+            g.add(row("Paketi hazırlayan", pkg.maintainer + "  (pakette yazan; imza değil)", "avatar-default-symbolic"))
+        if pkg.homepage:
+            g.add(row("Ana sayfa", pkg.homepage, "web-browser-symbolic"))
+        if pkg.description:
+            exp = Adw.ExpanderRow(title="Açıklama")
+            lbl = Gtk.Label(label=pkg.description, wrap=True, xalign=0, selectable=True, margin_top=8,
+                            margin_bottom=8, margin_start=12, margin_end=12)
+            exp.add_row(lbl)
+            g.add(exp)
+        page.add(g)
+
+        self.primary.set_label(self._primary_label(pkg))
+        self.primary.set_css_classes(["pill", "destructive-action" if pkg.verdict == paket.ESKI or sig.needs_confirmation
+                                      else "suggested-action"])
+
+        self.detail_scroll.set_child(page)
+        self._update_primary()
+        self.stack.set_visible_child_name("ozet")
+        return False
+
+    def _icon(self, pkg):
+        size = 64
+        if pkg.icon_name and Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).has_icon(pkg.icon_name):
+            return Gtk.Image(icon_name=pkg.icon_name, pixel_size=size)
+        if pkg.icon_data:
+            try:
+                tex = Gdk.Texture.new_from_bytes(GLib.Bytes.new(pkg.icon_data))
+                img = Gtk.Image.new_from_paintable(tex)
+                img.set_pixel_size(size)
+                return img
+            except GLib.Error:
+                pass
+        return Gtk.Image(icon_name="package-x-generic", pixel_size=size)
+
+    def _check(self, label):
+        c = Gtk.CheckButton(label=label, margin_top=6, margin_bottom=6, margin_start=12)
+        c.connect("toggled", lambda *_: self._update_primary())
+        self.checks.append(c)
+        return c
+
+    def _signature_group(self, pkg, sig):
+        g = Adw.PreferencesGroup(title="Yayıncı")
+        fpr = imza.grouped(sig.fingerprint) if sig.fingerprint else ""
+        if sig.state == imza.AYNI:
+            src = "kurulu sürümün anahtarıyla" if sig.anchor == "kurulu" else "daha önce onayladığın anahtarla"
+            g.add(row("Aynı yayıncı", f"İmza {src} tutuyor. Paket, kurulu sürümü yayımlayan kişiden geliyor.",
+                      "security-high-symbolic", ["success"]))
+        elif sig.state == imza.ILK:
+            g.add(row("İmzalı, yayıncı ilk kez görülüyor",
+                      "Bu yayıncıdan daha önce imzalı paket kurulmamış. Aşağıdaki parmak izini yayıncının sitesinde "
+                      "yazanla karşılaştır. Kurarsan bu anahtar kaydedilir; sonraki sürümler bununla denetlenir.",
+                      "security-medium-symbolic", ["warning"]))
+        elif sig.state == imza.FARKLI:
+            g.add(row("Farklı yayıncı",
+                      "İmza geçerli ama kurulu sürümü yayımlayan anahtar değil. Başka biri hazırlamış olabilir: "
+                      "yayıncı anahtarını değiştirdiğini duyurmadıysa kurma.", "dialog-warning-symbolic", ["error"]))
+            g.add(self._check("Yayıncının değiştiğini biliyorum, yine de kur"))
+        elif sig.state == imza.BOZUK:
+            g.add(row("İmza tutmuyor",
+                      "Paket imzalı ama imza içerikle uyuşmuyor: dosya bozulmuş ya da değiştirilmiş olabilir. "
+                      "Paketi yayıncının sitesinden yeniden indir.", "dialog-error-symbolic", ["error"]))
+            g.add(self._check("Riskini biliyorum, yine de kur"))
+        else:
+            if sig.had_anchor:
+                g.add(row("İmzasız (önceki sürüm imzalıydı)",
+                          "Kurulu sürüm imzalıydı, bu dosya değil. Yayıncı imzalamayı bırakmadıysa bu dosya başka "
+                          "birinden gelmiş olabilir.", "dialog-warning-symbolic", ["error"]))
+                g.add(self._check("İmzasız olduğunu biliyorum, yine de kur"))
+            else:
+                g.add(row("İmzasız",
+                          "Yayıncı bu paketi imzalamamış; kimden geldiği denetlenemiyor. Güvendiğin bir yerden "
+                          "indirdiysen kurabilirsin (çoğu .deb imzasızdır).", "security-low-symbolic", ["dim-label"]))
+        if fpr:
+            r = Adw.ActionRow(title="Parmak izi", subtitle=fpr, css_classes=["property"])
+            if hasattr(r, "set_subtitle_selectable"):  # libadwaita 1.3+
+                r.set_subtitle_selectable(True)
+            g.add(r)
+        return g
+
+    def _changes_group(self, pkg, sim):
+        if pkg.verdict == paket.UYUMSUZ:
+            return None
+        g = Adw.PreferencesGroup(title="Kurulunca", description="apt'nin denemesi; henüz hiçbir şey değişmedi.")
+        extra = sim.extra(pkg.package)
+        if sim.errors:
+            g.add(row("Kurulamıyor", "\n".join(sim.errors[:6]), "dialog-error-symbolic", ["error"]))
+            return g
+        if extra:
+            names = ", ".join(n for n, _, _ in extra[:12]) + (f" ve {len(extra) - 12} paket daha"
+                                                              if len(extra) > 12 else "")
+            g.add(row(f"Ayrıca {len(extra)} paket kurulacak ya da güncellenecek", names, "list-add-symbolic"))
+        if sim.remove:
+            g.add(row(f"{len(sim.remove)} paket kaldırılacak", ", ".join(sim.remove[:20]), "user-trash-symbolic",
+                      ["error"]))
+            g.add(self._check("Bu paketlerin kaldırılmasını onaylıyorum"))
+        if not extra and not sim.remove:
+            g.add(row("Yalnızca bu paket", "Başka paket kurulmayacak ya da kaldırılmayacak.", "emblem-ok-symbolic",
+                      ["success"]))
+        return g
+
+    @staticmethod
+    def _primary_label(pkg):
+        return {paket.KUR: "Kur", paket.GUNCELLE: f"{pkg.version} sürümüne güncelle", paket.AYNI: "Yeniden kur",
+                paket.ESKI: f"{pkg.version} sürümüne geri dön", paket.UYUMSUZ: "Kurulamaz"}[pkg.verdict]
+
+    def _update_primary(self):
+        pkg, sim = self.pkg, self.sim
+        reason = ""
+        if pkg.verdict == paket.UYUMSUZ:
+            reason = f"Paket “{pkg.arch}” için; bu bilgisayar {', '.join(sorted(paket.architectures() - {'all'}))}."
+        elif sim.errors:
+            reason = "apt bu paketi kuramayacağını söylüyor (yukarıda)."
+        elif not all(c.get_active() for c in self.checks):
+            reason = "Devam etmek için yukarıdaki kutuyu işaretle."
+        self.primary.set_sensitive(not reason)
+        self.blocker.set_label(reason or "Kurulum için bilgisayarın şifresi sorulur.")
+
+    # ---- kurulum --------------------------------------------------------------------
+
+    def install(self):
+        pkg = self.pkg
+        allow_remove = bool(self.sim.remove)  # kaldırma varsa onay kutusu işaretlenmiş olmalı (_update_primary)
+        cmd = apt.install_command(self.copy, apt.flags_for(pkg.verdict, allow_remove))
+        self.busy = True
+        self.open_btn.set_sensitive(False)
+        self.progress_page.set_title(f"{pkg.name} kuruluyor")
+        self.progress_page.set_description("")
+        self.progress.set_fraction(0)
+        self.progress_text.set_label("Şifre bekleniyor…")
+        self.stack.set_visible_child_name("kuruluyor")
+        self._pulse = GLib.timeout_add(150, self._pulse_tick)
+        self._waiting = False
+        try:
+            proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
+        except GLib.Error as e:
+            self._finished(False, e.message)
+            return
+        self.parser = apt.Ayristirici()
+        self.errors = []
+        self._read(proc, proc.get_stdout_pipe())
+        proc.wait_async(None, self._on_exit)
+
+    def _pulse_tick(self):
+        if self._waiting or self.progress.get_fraction() == 0:
+            self.progress.pulse()
+        return True
+
+    def _read(self, proc, stream):
+        def got(s, res):
+            try:
+                data = s.read_bytes_finish(res)
+            except GLib.Error:
+                return
+            if data.get_size() == 0:
+                for o in self.parser.flush():
+                    self._event(o)
+                return
+            for o in self.parser.feed(data.get_data().decode("utf-8", "replace")):
+                self._event(o)
+            s.read_bytes_async(4096, GLib.PRIORITY_DEFAULT, None, got)
+        stream.read_bytes_async(4096, GLib.PRIORITY_DEFAULT, None, got)
+
+    def _event(self, o):
+        if o.kind == "kilit":
+            self._waiting = True
+            who = apt.holder_text(o.holder)
+            self.progress_text.set_label(
+                f"Sırada: {who} şu an paket kilidini tutuyor" + (f" (süreç {o.pid})" if o.pid else "") +
+                ". O bitince kurulum kendiliğinden başlar; bir şey yapmana gerek yok.")
+        elif o.kind == "ilerleme":
+            self._waiting = False
+            if o.percent is not None:
+                self.progress.set_fraction(max(0.02, min(1.0, o.percent / 100)))
+            self.progress_text.set_label(o.text)
+        elif o.kind == "hata":
+            self.errors.append(o.text)
+
+    def _on_exit(self, proc, res):
+        try:
+            proc.wait_finish(res)
+        except GLib.Error:
+            pass
+        code = proc.get_exit_status()
+        if code == 0 and paket.installed_version(self.pkg.package) == self.pkg.version:
+            if self.sig.state in (imza.ILK, imza.FARKLI) and self.pkg.keyring:
+                try:
+                    imza.remember(self.pkg.package, self.pkg.keyring)
+                except OSError:
+                    pass
+            self._finished(True)
+        else:
+            text = apt.EXIT_TEXT.get(code) or ("\n".join(self.errors[-4:]) or f"apt {code} koduyla bitti.")
+            self._finished(False, text)
+
+    def _finished(self, ok, text=""):
+        GLib.source_remove(self._pulse) if getattr(self, "_pulse", None) else None
+        self._pulse = None
+        self.busy = False
+        self.open_btn.set_sensitive(True)
+        child = self.result_buttons.get_first_child()
+        while child:
+            nxt = child.get_next_sibling()
+            self.result_buttons.remove(child)
+            child = nxt
+        pkg = self.pkg
+        if ok:
+            self.result_page.set_icon_name("emblem-ok-symbolic")
+            self.result_page.set_title(f"{pkg.name} {pkg.version} kuruldu")
+            self.result_page.set_description("Uygulama şu an açıksa yeni sürüm, kapatıp yeniden açınca devreye girer.")
+            app_id = next((d for d in pkg.desktop_ids if desktop_app(d)), None)
+            if app_id:
+                b = Gtk.Button(label="Aç", css_classes=["pill", "suggested-action"])
+                b.connect("clicked", lambda *_: self._launch(app_id))
+                self.result_buttons.append(b)
+        else:
+            self.result_page.set_icon_name("dialog-error-symbolic")
+            self.result_page.set_title("Kurulmadı")
+            self.result_page.set_description(GLib.markup_escape_text(text))
+            b = Gtk.Button(label="Tekrar dene", css_classes=["pill", "suggested-action"])
+            b.connect("clicked", lambda *_: self.load(self.pkg.path))
+            self.result_buttons.append(b)
+        b = Gtk.Button(label="Kapat", css_classes=["pill"])
+        b.connect("clicked", lambda *_: self.close())
+        self.result_buttons.append(b)
+        self.stack.set_visible_child_name("sonuc")
+
+    def _launch(self, desktop_id):
+        info = desktop_app(desktop_id)
+        if info:
+            info.launch([], None)
+        self.close()
+
+    def show_error(self, title, text):
+        self.result_page.set_icon_name("dialog-error-symbolic")
+        self.result_page.set_title(title)
+        self.result_page.set_description(GLib.markup_escape_text(text))
+        child = self.result_buttons.get_first_child()
+        while child:
+            nxt = child.get_next_sibling()
+            self.result_buttons.remove(child)
+            child = nxt
+        b = Gtk.Button(label="Başka dosya seç", css_classes=["pill", "suggested-action"])
+        b.connect("clicked", lambda *_: self.choose())
+        self.result_buttons.append(b)
+        self.stack.set_visible_child_name("sonuc")
+        return False
+
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id=APP_ID,
+                         flags=Gio.ApplicationFlags.HANDLES_OPEN | Gio.ApplicationFlags.NON_UNIQUE)
+        a = Gio.SimpleAction.new("about", None)
+        a.connect("activate", self._about)
+        self.add_action(a)
+
+    def _window(self):
+        w = Window(self)
+        w.present()
+        return w
+
+    def do_activate(self):
+        self._window()
+
+    def do_open(self, files, _n, _hint):
+        for f in files:
+            if f.get_path():
+                self._window().load(f.get_path())
+
+    def _about(self, *_):
+        w = self.get_active_window()
+        about = Gtk.AboutDialog(transient_for=w, modal=True, program_name="Paket Güncelleyici", version=__version__,
+                                logo_icon_name=APP_ID, comments=".deb dosyasını kurulu sürümle karşılaştırır, "
+                                "yayıncının imzasını denetler ve kurar.",
+                                website="https://github.com/cruciblelab/arastirma", authors=["Crucible ekibi"])
+        about.present()
+
+
+def run(argv) -> int:
+    return App().run(argv)

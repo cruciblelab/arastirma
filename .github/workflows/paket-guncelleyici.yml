@@ -1,0 +1,75 @@
+name: Paket Güncelleyici
+
+# Her push'ta: testler (gerçek pencere, gerçek apt kurulumu, gerçek dpkg kilidi) ve .deb.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.04: GTK 4.6 + libadwaita 1.1, 24.04: GTK 4.14 + libadwaita 1.5
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: paket-guncelleyici
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bağımlılıklar
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 gsettings-desktop-schemas xvfb imagemagick gpgv gnupg
+
+      - name: Testler (uçtan uca kurulum dahil; sudo -n ile, şifre penceresi yerine)
+        env:
+          PAKET_GUNCELLEYICI_YETKI: sudo -n
+          NO_AT_BRIDGE: "1"
+        run: timeout 900 xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v
+
+      - name: Ekran görüntüleri
+        run: timeout 180 xvfb-run -a -s "-screen 0 1280x1000x24" env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran
+
+      - name: .deb paketi (sır tanımlıysa imzalı)
+        env:
+          DEB_IMZA: ${{ secrets.TALKTO_DEB_IMZA_ANAHTARI }}
+        run: |
+          if [ -n "$DEB_IMZA" ]; then
+            printf '%s\n' "$DEB_IMZA" > "$RUNNER_TEMP/deb-imza.asc"
+            export DEB_IMZA_ANAHTARI="$RUNNER_TEMP/deb-imza.asc"
+          else
+            echo "::warning::TALKTO_DEB_IMZA_ANAHTARI sırrı yok: .deb imzasız üretiliyor."
+          fi
+          r=0
+          sh paket/deb-olustur.sh || r=$?
+          rm -f "$RUNNER_TEMP/deb-imza.asc"
+          exit $r
+
+      - name: Paket kurulup açılıyor mu
+        run: |
+          python3 paket/deb-imzala.py dogrula paket/paket-guncelleyici_*_all.deb || true
+          sudo apt-get install -y -q ./paket/paket-guncelleyici_*_all.deb
+          paket-guncelleyici --surum
+          test -f /usr/share/applications/lab.crucible.PaketGuncelleyici.desktop
+          grep -q "application/vnd.debian.binary-package" /usr/share/applications/lab.crucible.PaketGuncelleyici.desktop
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-24.04'
+        with:
+          name: paket-guncelleyici-deb
+          path: paket-guncelleyici/paket/*.deb
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ekran-goruntuleri-${{ matrix.os }}
+          path: paket-guncelleyici/ekran/

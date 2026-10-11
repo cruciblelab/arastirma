@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Paket Güncelleyici
+GenericName=Paket kurucu
+Comment=.deb dosyasını kurulu sürümle karşılaştırır, yayıncının imzasını denetler ve kurar
+Exec=paket-guncelleyici %F
+Icon=lab.crucible.PaketGuncelleyici
+Terminal=false
+Categories=System;PackageManager;GTK;
+MimeType=application/vnd.debian.binary-package;application/x-deb;
+Keywords=deb;paket;kur;güncelle;güncelleme;package;install;update;
+StartupNotify=true
