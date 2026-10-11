@@ -17,6 +17,7 @@ class NotificationListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
         Talk.listenerConnected.value = true
+        lab.crucible.talktolinux.ui.UiTick.bump()  // açık ekranlardaki denetimler yeniden okunsun
         // Erişim kapatılıp açıldıysa eski kayıt geçersiz: baştan kur.
         PhoneMedia.stop()
         PhoneMedia.start(this)

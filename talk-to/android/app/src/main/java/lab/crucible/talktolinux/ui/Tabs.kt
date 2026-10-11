@@ -121,6 +121,9 @@ private fun HealthCard(notifAccess: Boolean, onOpenNotifAccess: () -> Unit, onOp
     val tick by UiTick.tick.collectAsState()
     val server = Talk.currentServer()
     val usb = canComputerSetUp()
+    // Erişim, uygulama açıkken de verilebilir (bilgisayar adb ile ayarlayınca): yalnızca onResume'daki
+    // değere güvenilmez, tik ve dinleyici değişince yeniden okunur.
+    val hasAccess = remember(tick, listener, notifAccess) { notifAccess || Checks.notifAccess() }
 
     // Önce telefondaki ayar sorunları (tek tıkla düzelebilir), sonra bilgisayardaki profil kararları.
     data class Issue(val title: String, val text: String, val fixable: Boolean)
@@ -128,7 +131,7 @@ private fun HealthCard(notifAccess: Boolean, onOpenNotifAccess: () -> Unit, onOp
         !BuildConfig.NOTIFICATIONS -> Issue("Hafif sürüm",
             "Bu sürüm bildirimleri ve telefonda çalan müziği bilgisayara gönderemez. Tam sürümü bilgisayardaki " +
                 "Talk To Android, telefonu USB ile takınca kurar.", false)
-        !notifAccess -> Issue("Bildirimler bilgisayara gitmiyor",
+        !hasAccess -> Issue("Bildirimler bilgisayara gitmiyor",
             "Talk To Linux'un bildirim erişimi kapalı; telefonda çalan müzik de görünmez.", true)
         !listener -> Issue("Android bildirim dinleyicisini başlatmadı",
             "Erişim açık ama Android henüz bağlamadı (çoğunlukla güncellemeden sonra olur).", true)
