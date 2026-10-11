@@ -190,6 +190,90 @@ class HubTest(_Base):
         self.assertEqual((await p.recv_type("media_control"))["action"], "next")
         await p.close()
 
+    async def _stalled_phone(self, size=48 * 1024 * 1024):
+        """Bilgisayardan büyük dosya gelirken okumayı bırakan telefon (TCP tamponları dolar)."""
+        p = await self.paired_phone()
+        f = Path(self.tmp.name) / "buyuk.bin"
+        with f.open("wb") as fh:
+            fh.truncate(size)
+        sending = asyncio.create_task(self.hub.send_file(p.device_id, str(f)))
+        offer = await p.recv_type("file_offer")
+        await p.send({"type": "file_accept", "transfer_id": offer["transfer_id"]})
+        await asyncio.sleep(1.0)  # tamponlar dolsun; telefon bundan sonra hiç okumuyor
+        return p, sending
+
+    async def test_reader_never_blocks_on_writes(self):
+        """Bilgisayar yazarken takılı kalsa da gelen iletiler işlenmeli (ping/pong kilitlenmesi)."""
+        p, sending = await self._stalled_phone()
+        await p.send({"type": "ping"})  # eskiden okuyucu burada pong'u yazmak için takılıyordu
+        await p.send({"type": "notification", "key": "k1", "package": "x", "app": "X", "title": "Hâlâ", "text": "okunuyor"})
+        for _ in range(30):
+            if self.of("notification"):
+                break
+            await asyncio.sleep(0.1)
+        self.assertEqual(self.of("notification")[0]["title"], "Hâlâ")
+        sending.cancel()
+        await p.close()
+
+    async def test_peer_that_stops_reading_is_dropped(self):
+        import talkto.hub as hubmod
+        old = hubmod.WRITE_TIMEOUT
+        hubmod.WRITE_TIMEOUT = 1
+        try:
+            p, sending = await self._stalled_phone()
+            result = await asyncio.wait_for(sending, 10)
+            self.assertEqual(result["state"], "failed")
+            for _ in range(50):
+                if p.device_id not in self.hub.sessions:
+                    break
+                await asyncio.sleep(0.1)
+            self.assertNotIn(p.device_id, self.hub.sessions)
+        finally:
+            hubmod.WRITE_TIMEOUT = old
+
+    async def test_failing_message_does_not_drop_session(self):
+        class Broken:
+            def control(self, *a):
+                raise RuntimeError("oynatıcı bu komutu desteklemiyor")
+
+            def state(self):
+                return {"active": False}
+        self.hub.media = Broken()
+        p = await self.paired_phone()
+        await p.send({"type": "media_control", "action": "next"})
+        await p.send({"type": "battery", "level": 50, "charging": True})
+        await asyncio.sleep(0.3)
+        self.assertIn(p.device_id, self.hub.sessions)
+        self.assertEqual(self.hub.sessions[p.device_id].battery["level"], 50)
+        await p.close()
+
+    async def test_cancel_only_hits_the_named_direction(self):
+        """Telefonun gönderdiği 1 numaralı aktarımın iptali, bilgisayarın gönderdiği 1 numarayı bozmamalı."""
+        p = await self.paired_phone()
+        f = Path(self.tmp.name) / "giden.bin"
+        f.write_bytes(b"x" * 1000)
+        sending = asyncio.create_task(self.hub.send_file(p.device_id, str(f)))
+        offer = await p.recv_type("file_offer")
+        tid = offer["transfer_id"]
+        # Telefon kendi giden aktarımını (aynı numara) iptal ediyor: bilgisayar için yön "in".
+        await p.send({"type": "file_offer", "transfer_id": tid, "name": "telefondan.txt", "size": 10})
+        await p.send({"type": "file_cancel", "transfer_id": tid, "direction": "in"})
+        await asyncio.sleep(0.2)
+        self.assertFalse(sending.done())  # bilgisayarın gönderimi hâlâ kabul bekliyor
+        await p.send({"type": "file_accept", "transfer_id": tid})
+        from talkto.protocol import read_frame  # gönderim iptal edilmeden tamamlanmalı
+        got = b""
+        while True:
+            kind, msg = await asyncio.wait_for(read_frame(p.reader), 10)
+            if kind == "binary":
+                got += msg[1]
+            elif msg["type"] == "file_done":
+                await p.send({"type": "file_result", "transfer_id": tid, "ok": True})
+                break
+        self.assertEqual(got, b"x" * 1000)
+        self.assertEqual((await asyncio.wait_for(sending, 5))["state"], "done")
+        await p.close()
+
     async def test_phone_status_explains_missing_notifications(self):
         p = await self.paired_phone()
         await p.send({"type": "phone_status", "flavor": "tam", "sdk": 34, "notif_access": True,

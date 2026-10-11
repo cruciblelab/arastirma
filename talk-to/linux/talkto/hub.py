@@ -39,6 +39,9 @@ log = logging.getLogger("talkto")
 
 PING_EVERY = 15
 READ_TIMEOUT = 50
+# Bir yazma bu kadar ilerlemezse karşı taraf okumuyor sayılır ve bağlantı koparılır
+# (yavaş Bluetooth'ta ~800 KB'lık kapak ya da 256 KB'lık parça bile birkaç saniye sürer).
+WRITE_TIMEOUT = 120
 APPROVAL_TIMEOUT = 60
 PASSWORD_TIMEOUT = 120
 MAX_FAILURES = 5
@@ -501,7 +504,13 @@ class Session:
         self.incoming: dict[int, Incoming] = {}
         self.outgoing: dict[int, dict] = {}
         self._progress_at: dict[tuple, float] = {}
-        self._wlock = asyncio.Lock()
+        # Ağa yalnızca _write_loop yazar. Okuma döngüsü (ping'e pong, dosya sonucu...) ağın
+        # boşalmasını hiç beklemez; yoksa iki taraf aynı anda yazarken ikisi de okumayı
+        # bırakır ve bağlantı kalıcı kilitlenir.
+        self._outq: collections.deque = collections.deque()
+        self._out_ready = asyncio.Event()
+        self._out_idle = asyncio.Event()
+        self._out_idle.set()
         self._tasks: set[asyncio.Task] = set()
 
     def info(self) -> dict:
@@ -530,18 +539,62 @@ class Session:
     # ---- yazma ------------------------------------------------------------
 
     async def send(self, msg: dict):
-        if self.closed:
-            return
-        async with self._wlock:
-            self.writer.write(encode_json(msg))
-            await self.writer.drain()
+        """İletiyi sıraya koyar ve hemen döner (gönderim sırası korunur)."""
+        if not self.closed:
+            self._enqueue(encode_json(msg), None)
 
     async def send_chunk(self, tid: int, data: bytes):
-        async with self._wlock:
-            if self.closed:
-                raise ConnectionError("bağlantı kapandı")
-            self.writer.write(encode_binary(tid, data))
-            await self.writer.drain()
+        """Dosya parçası: ağa yazılana kadar bekler (gönderen tarafta akış denetimi)."""
+        if self.closed:
+            raise ConnectionError("bağlantı kapandı")
+        fut = asyncio.get_running_loop().create_future()
+        self._enqueue(encode_binary(tid, data), fut)
+        await fut
+
+    def _enqueue(self, data: bytes, fut):
+        self._outq.append((data, fut))
+        self._out_idle.clear()
+        self._out_ready.set()
+
+    async def _write_loop(self):
+        fut = None
+        try:
+            while True:
+                while not self._outq:
+                    self._out_idle.set()
+                    self._out_ready.clear()
+                    await self._out_ready.wait()
+                data, fut = self._outq.popleft()
+                self.writer.write(data)
+                await asyncio.wait_for(self.writer.drain(), WRITE_TIMEOUT)
+                if fut is not None and not fut.done():
+                    fut.set_result(None)
+                fut = None
+        except asyncio.CancelledError:
+            raise
+        except asyncio.TimeoutError:
+            log.info("%s (%s): %d sn yazılamadı, bağlantı koparılıyor", self.name, self.ip, WRITE_TIMEOUT)
+            self._abort()
+        except (ConnectionError, OSError, ssl.SSLError, RuntimeError) as e:
+            log.info("%s (%s): yazma hatası: %s", self.name, self.ip, e)
+            self._abort()
+        finally:
+            if fut is not None and not fut.done():  # yazılmakta olan parça kuyruktan çıkmıştı
+                fut.set_exception(ConnectionError("bağlantı kapandı"))
+            self._fail_pending()
+
+    def _fail_pending(self):
+        while self._outq:
+            _, fut = self._outq.popleft()
+            if fut is not None and not fut.done():
+                fut.set_exception(ConnectionError("bağlantı kapandı"))
+        self._out_idle.set()
+
+    def _abort(self):
+        """Bağlantıyı hemen kopar (TLS kapanışını beklemeden); okuma döngüsü de böylece biter."""
+        transport = getattr(self.writer, "transport", None)
+        if transport is not None:
+            transport.abort()
 
     def _spawn(self, coro):
         t = asyncio.create_task(coro)
@@ -552,6 +605,7 @@ class Session:
 
     async def run(self):
         reason = None
+        self._spawn(self._write_loop())
         try:
             if not await asyncio.wait_for(self._handshake(), APPROVAL_TIMEOUT + PASSWORD_TIMEOUT + 30):
                 return
@@ -560,10 +614,18 @@ class Session:
             self._spawn(self._pinger())
             while not self.closed:
                 kind, payload = await asyncio.wait_for(read_frame(self.reader), READ_TIMEOUT)
-                if kind == "json":
-                    await self._dispatch(payload)
-                else:
-                    await self._on_chunk(*payload)
+                try:
+                    if kind == "json":
+                        await self._dispatch(payload)
+                    else:
+                        await self._on_chunk(*payload)
+                except (ConnectionError, ProtocolError, asyncio.CancelledError):
+                    raise
+                except Exception:
+                    # Tek bir iletinin hatası (ör. oynatıcının desteklemediği medya komutu, dolu disk)
+                    # bütün bağlantıyı koparmasın.
+                    log.exception("%s: ileti işlenemedi (%s)", self.name,
+                                  payload.get("type") if kind == "json" else "parça")
         except asyncio.IncompleteReadError:
             reason = "karşı taraf kapattı"
         except (ConnectionError, asyncio.TimeoutError, ssl.SSLError, OSError) as e:
@@ -583,8 +645,14 @@ class Session:
         if self.closed:
             return
         self.closed = True
+        # Sıradaki son iletiler (ör. auth_failed nedeni) gitsin; en fazla 2 sn.
+        try:
+            await asyncio.wait_for(self._out_idle.wait(), 2)
+        except asyncio.TimeoutError:
+            pass
         for t in list(self._tasks):
             t.cancel()
+        self._fail_pending()
         for inc in self.incoming.values():
             inc.abort()
             self._transfer_event("in", inc.tid, inc.name, inc.size, inc.received, "failed", error="bağlantı koptu")
@@ -597,6 +665,12 @@ class Session:
             self.writer.close()
         except Exception:
             pass
+        # Python 3.10'da TLS kapanışı karşı tarafın close_notify'ını süresiz bekleyebilir; soket
+        # açık kalmasın diye kısa süre sonra kesin olarak kopar.
+        try:
+            asyncio.get_running_loop().call_later(3, self._abort)
+        except RuntimeError:
+            self._abort()
         if self.registered:
             self.hub.unregister(self)
 
@@ -737,11 +811,14 @@ class Session:
             await self._on_file_done(msg)
         elif t == "file_cancel":
             tid = _int(msg.get("transfer_id"))
-            if tid in self.incoming:
+            # İki uç da aktarımları 1'den numaralar; "direction" alıcının (bilgisayarın) gözünden
+            # hangi yöndekinin iptal edildiğini söyler. Eski telefonlar göndermez: iki yöne de bak.
+            direction = msg.get("direction")
+            if direction != "out" and tid in self.incoming:
                 inc = self.incoming.pop(tid)
                 inc.abort()
                 self._transfer_event("in", tid, inc.name, inc.size, inc.received, "cancelled")
-            o = self.outgoing.get(tid)
+            o = self.outgoing.get(tid) if direction != "in" else None
             if o:
                 o["cancelled"] = True
                 for f in ("accept", "result"):
@@ -898,7 +975,7 @@ class Session:
             self.incoming.pop(tid, None)
             inc.abort()
             self._transfer_event("in", tid, inc.name, inc.size, inc.received, "failed", error=str(e))
-            await self.send({"type": "file_cancel", "transfer_id": tid, "reason": str(e)})
+            await self.send({"type": "file_cancel", "transfer_id": tid, "direction": "out", "reason": str(e)})
             return
         self._progress("in", tid, inc.name, inc.size, inc.received)
 
@@ -971,7 +1048,7 @@ class Session:
     async def _cancel_out(self, tid, o):
         if not self.closed:
             try:
-                await self.send({"type": "file_cancel", "transfer_id": tid})
+                await self.send({"type": "file_cancel", "transfer_id": tid, "direction": "in"})
             except (ConnectionError, OSError):
                 pass
 
@@ -980,7 +1057,7 @@ class Session:
             inc = self.incoming.pop(tid)
             inc.abort()
             self._transfer_event("in", tid, inc.name, inc.size, inc.received, "cancelled")
-            await self.send({"type": "file_cancel", "transfer_id": tid})
+            await self.send({"type": "file_cancel", "transfer_id": tid, "direction": "out"})
         elif direction == "out" and tid in self.outgoing:
             o = self.outgoing[tid]
             o["cancelled"] = True

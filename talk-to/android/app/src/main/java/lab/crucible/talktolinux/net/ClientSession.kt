@@ -65,7 +65,14 @@ class ClientSession(
 
     /** TCP'de SSLSocket; Bluetooth'ta null (zaman aşımı uygulanamaz, kopunca okuma hata verir). */
     private var socket: SSLSocket? = null
-    private var closer: () -> Unit = {}
+    @Volatile private var closer: () -> Unit = {}
+    /** Okuyucunun yazdığı cevaplar (pong, dosya kabul/sonuç/iptal) buradan gider: okuyucu, gönderen
+     *  iş parçacığı yazmada takılıyken asla beklemesin (iki taraf aynı anda yazarken kilitlenme). */
+    private val replies = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "talkto-cevap").apply { isDaemon = true }
+    }
+    /** Son çerçevenin geldiği an; 50 sn hiçbir şey gelmezse bağlantı kopmuş sayılır (Bluetooth dahil). */
+    @Volatile private var lastRx = System.nanoTime()
     private lateinit var input: DataInputStream
     private lateinit var output: BufferedOutputStream
     private val writeLock = Any()
@@ -76,6 +83,7 @@ class ClientSession(
 
     private class Incoming(val tid: Long, val name: String, val size: Long, val sink: Sink) {
         var received = 0L
+        var aborted = false  // iptal ile okuyucunun yazması aynı anda olmasın: synchronized(this)
         val sha: MessageDigest = MessageDigest.getInstance("SHA-256")
     }
     private class Outgoing { @Volatile var cancelled = false; val reply = java.util.concurrent.LinkedBlockingQueue<JSONObject>() }
@@ -93,6 +101,7 @@ class ClientSession(
         val ssl = ctx.socketFactory.createSocket(raw, host, port, true) as SSLSocket
         socket = ssl
         closer = { ssl.close() }
+        abortIfClosed()
         ssl.soTimeout = timeoutMs * 3
         ssl.startHandshake()
         fingerprint = Auth.sha256Hex(ssl.session.peerCertificates[0].encoded)
@@ -109,7 +118,10 @@ class ClientSession(
         val ctx = SSLContext.getInstance("TLS")
         ctx.init(null, arrayOf(AcceptAll), SecureRandom())
         val tls = EngineTls(ctx.createSSLEngine(), rawIn, rawOut)
-        closer = { tls.close(); close() }
+        // Önce ham bağlantı: yazmada takılı bir iş parçacığı EngineTls kilidini tutuyorsa
+        // close_notify yazmaya çalışan tls.close() sonsuza dek beklerdi.
+        closer = { runCatching { close() }; runCatching { tls.close() } }
+        abortIfClosed()
         try {
             tls.handshake()
         } catch (e: Exception) {
@@ -123,6 +135,14 @@ class ClientSession(
     }
 
     private fun tlsPeerCert(tls: EngineTls) = tls.peerCertificate()
+
+    /** Bağlantı kurulurken "Vazgeç"e basıldıysa açılanı hemen kapat. */
+    private fun abortIfClosed() {
+        if (closed) {
+            runCatching { closer() }
+            throw IOException("vazgeçildi")
+        }
+    }
 
     /**
      * Engelleyen el sıkışma. [password] yalnızca bilgisayar şifre isterse
@@ -168,11 +188,16 @@ class ClientSession(
     fun start() {
         socket?.soTimeout = 50_000
         Thread({ readLoop() }, "talkto-okuyucu").start()
+        lastRx = System.nanoTime()
         Thread({
             try {
                 while (!closed) {
                     Thread.sleep(15_000)
-                    send(JSONObject().put("type", "ping"))
+                    if (System.nanoTime() - lastRx > 50_000_000_000L) {
+                        close()  // okuyucu da hata alıp onClosed'u çağırır
+                        break
+                    }
+                    reply(JSONObject().put("type", "ping"))
                 }
             } catch (_: Exception) {
             }
@@ -183,7 +208,9 @@ class ClientSession(
         var reason: String? = null
         try {
             while (!closed) {
-                when (val f = Frame.read(input)) {
+                val f = Frame.read(input)
+                lastRx = System.nanoTime()
+                when (f) {
                     is Frame.In.Json -> dispatch(f.msg)
                     is Frame.In.Binary -> onChunk(f.tid, f.data)
                 }
@@ -199,17 +226,19 @@ class ClientSession(
     private fun dispatch(msg: JSONObject) {
         val tid = msg.optLong("transfer_id")
         when (msg.optString("type")) {
-            "ping" -> send(JSONObject().put("type", "pong"))
+            "ping" -> reply(JSONObject().put("type", "pong"))
             "pong" -> {}
             "file_offer" -> onOffer(msg)
             "file_done" -> onFileDone(msg)
             "file_accept", "file_reject", "file_result" -> outgoing[tid]?.reply?.offer(msg)
             "file_cancel" -> {
-                incoming.remove(tid)?.let {
-                    it.sink.abort()
+                // "direction" alıcının (bu telefonun) gözünden; eski bilgisayarlar göndermez → iki yöne de bak.
+                val dir = msg.optString("direction")
+                if (dir != "out") incoming.remove(tid)?.let {
+                    abortIncoming(it)
                     listener.onTransfer(Transfer("in", tid, it.name, it.size, it.received, "cancelled"))
                 }
-                outgoing[tid]?.let { it.cancelled = true; it.reply.offer(msg) }
+                if (dir != "in") outgoing[tid]?.let { it.cancelled = true; it.reply.offer(msg) }
             }
             else -> listener.onMessage(msg)
         }
@@ -220,19 +249,19 @@ class ClientSession(
         val name = msg.optString("name", "dosya")
         val size = msg.optLong("size", -1)
         if (tid <= 0 || size < 0 || incoming.containsKey(tid)) {
-            send(JSONObject().put("type", "file_reject").put("transfer_id", tid).put("reason", "geçersiz teklif"))
+            reply(JSONObject().put("type", "file_reject").put("transfer_id", tid).put("reason", "geçersiz teklif"))
             return
         }
         val sink = try {
             files.create(name, size, msg.optString("mime", "application/octet-stream"))
-        } catch (e: IOException) {
-            send(JSONObject().put("type", "file_reject").put("transfer_id", tid).put("reason", e.message))
+        } catch (e: Exception) {  // MediaStore SecurityException/IllegalStateException de olabilir
+            reply(JSONObject().put("type", "file_reject").put("transfer_id", tid).put("reason", e.message))
             listener.onTransfer(Transfer("in", tid, name, size, 0, "failed", e.message))
             return
         }
         incoming[tid] = Incoming(tid, name, size, sink)
         listener.onTransfer(Transfer("in", tid, name, size, 0, "active"))
-        send(JSONObject().put("type", "file_accept").put("transfer_id", tid))
+        reply(JSONObject().put("type", "file_accept").put("transfer_id", tid))
     }
 
     private var lastProgress = 0L
@@ -240,13 +269,16 @@ class ClientSession(
     private fun onChunk(tid: Long, data: ByteArray) {
         val inc = incoming[tid] ?: return
         try {
-            if (inc.received + data.size > inc.size) throw IOException("bildirilen boyuttan fazla veri")
-            inc.sink.write(data)
-        } catch (e: IOException) {
+            synchronized(inc) {
+                if (inc.aborted) return  // bu arada iptal edildi
+                if (inc.received + data.size > inc.size) throw IOException("bildirilen boyuttan fazla veri")
+                inc.sink.write(data)
+            }
+        } catch (e: Exception) {
             incoming.remove(tid)
-            inc.sink.abort()
+            abortIncoming(inc)
             listener.onTransfer(Transfer("in", tid, inc.name, inc.size, inc.received, "failed", e.message))
-            send(JSONObject().put("type", "file_cancel").put("transfer_id", tid))
+            reply(JSONObject().put("type", "file_cancel").put("transfer_id", tid).put("direction", "out"))
             return
         }
         inc.sha.update(data)
@@ -264,19 +296,20 @@ class ClientSession(
         val ok = inc.received == inc.size &&
             inc.sha.digest().joinToString("") { "%02x".format(it) } == msg.optString("sha256").lowercase()
         if (!ok) {
-            inc.sink.abort()
+            abortIncoming(inc)
             listener.onTransfer(Transfer("in", tid, inc.name, inc.size, inc.received, "failed", "doğrulama başarısız"))
-            send(JSONObject().put("type", "file_result").put("transfer_id", tid).put("ok", false))
+            reply(JSONObject().put("type", "file_result").put("transfer_id", tid).put("ok", false))
             return
         }
         val location = try {
-            inc.sink.commit()
-        } catch (e: IOException) {
-            send(JSONObject().put("type", "file_result").put("transfer_id", tid).put("ok", false).put("reason", e.message))
+            synchronized(inc) { inc.sink.commit() }
+        } catch (e: Exception) {
+            abortIncoming(inc)  // yarım MediaStore kaydı "bekliyor" olarak kalmasın
+            reply(JSONObject().put("type", "file_result").put("transfer_id", tid).put("ok", false).put("reason", e.message))
             listener.onTransfer(Transfer("in", tid, inc.name, inc.size, inc.received, "failed", e.message))
             return
         }
-        send(JSONObject().put("type", "file_result").put("transfer_id", tid).put("ok", true))
+        reply(JSONObject().put("type", "file_result").put("transfer_id", tid).put("ok", true))
         listener.onTransfer(Transfer("in", tid, inc.name, inc.size, inc.size, "done", location = location))
     }
 
@@ -294,7 +327,11 @@ class ClientSession(
                 .put("size", src.size).put("mime", src.mime))
             val reply = o.reply.poll(120, java.util.concurrent.TimeUnit.SECONDS) ?: throw IOException("zaman aşımı")
             if (reply.optString("type") != "file_accept") {
-                event(if (reply.optString("type") == "file_reject") "rejected" else "cancelled", reply.optString("reason"))
+                when (reply.optString("type")) {
+                    "file_reject" -> event("rejected", reply.optString("reason"))
+                    "closed" -> event("failed", "bağlantı koptu")
+                    else -> event("cancelled", reply.optString("reason"))
+                }
                 return
             }
             val sha = MessageDigest.getInstance("SHA-256")
@@ -302,7 +339,8 @@ class ClientSession(
             var last = 0L
             src.open().use { ins ->
                 while (true) {
-                    if (o.cancelled || closed) throw IOException("iptal edildi")
+                    if (o.cancelled) throw IOException("iptal edildi")
+                    if (closed) throw IOException("bağlantı koptu")
                     val n = ins.readNBytesCompat(buf)
                     if (n <= 0) break
                     sha.update(buf, 0, n)
@@ -316,11 +354,14 @@ class ClientSession(
             send(JSONObject().put("type", "file_done").put("transfer_id", tid)
                 .put("sha256", sha.digest().joinToString("") { "%02x".format(it) }))
             val res = o.reply.poll(60, java.util.concurrent.TimeUnit.SECONDS) ?: throw IOException("zaman aşımı")
+            if (res.optString("type") == "closed") throw IOException("bağlantı koptu")
             if (res.optString("type") == "file_result" && res.optBoolean("ok")) event("done")
             else throw IOException(res.optString("reason").ifEmpty { "bilgisayar doğrulayamadı" })
         } catch (e: Exception) {
             event(if (o.cancelled) "cancelled" else "failed", e.message)
-            if (!closed) runCatching { send(JSONObject().put("type", "file_cancel").put("transfer_id", tid)) }
+            if (!closed) runCatching {
+                send(JSONObject().put("type", "file_cancel").put("transfer_id", tid).put("direction", "in"))
+            }
         } finally {
             outgoing.remove(tid)
         }
@@ -330,10 +371,23 @@ class ClientSession(
         if (direction == "out") {
             outgoing[tid]?.let { it.cancelled = true; it.reply.offer(JSONObject().put("type", "file_cancel")) }
         } else incoming.remove(tid)?.let {
-            it.sink.abort()
+            abortIncoming(it)
             listener.onTransfer(Transfer("in", tid, it.name, it.size, it.received, "cancelled"))
-            send(JSONObject().put("type", "file_cancel").put("transfer_id", tid))
+            reply(JSONObject().put("type", "file_cancel").put("transfer_id", tid).put("direction", "out"))
         }
+    }
+
+    private fun abortIncoming(inc: Incoming) = synchronized(inc) {
+        if (!inc.aborted) {
+            inc.aborted = true
+            runCatching { inc.sink.abort() }
+        }
+    }
+
+    /** Okuyucudan (ve ping'den) yazma: sıraya koy, hemen dön. */
+    private fun reply(msg: JSONObject) {
+        if (closed) return
+        runCatching { replies.execute { trySend(msg) } }
     }
 
     fun send(msg: JSONObject) = sendRaw(Frame.encodeJson(msg))
@@ -352,10 +406,15 @@ class ClientSession(
     fun close() {
         if (closed) return
         closed = true
-        incoming.values.forEach { it.sink.abort() }
+        incoming.values.forEach {
+            abortIncoming(it)
+            listener.onTransfer(Transfer("in", it.tid, it.name, it.size, it.received, "failed", "bağlantı koptu"))
+        }
         incoming.clear()
-        outgoing.values.forEach { it.cancelled = true; it.reply.offer(JSONObject().put("type", "file_cancel")) }
+        // Gönderilenler "iptal edildi" değil "bağlantı koptu" olarak bitsin.
+        outgoing.values.forEach { it.reply.offer(JSONObject().put("type", "closed")) }
         runCatching { closer() }
+        replies.shutdownNow()
     }
 
     /**

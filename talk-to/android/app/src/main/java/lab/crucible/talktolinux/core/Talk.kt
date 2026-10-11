@@ -159,7 +159,8 @@ object Talk {
 
     /** Bağlanırken ya da onay beklerken vazgeç. */
     fun cancelConnecting() {
-        pending?.close()
+        // Kapanış (TLS close_notify) takılabilir: ana iş parçacığında ve bağlantı kuyruğunda değil.
+        pending?.let { s -> Thread({ s.close() }, "talkto-kapat").start() }
     }
 
     private fun doConnect(target: Target, password: String?) {
@@ -249,7 +250,7 @@ object Talk {
         state.value = State.Idle
         pcMedia.value = null
         profile.value = null
-        connector.execute { s?.close() }
+        if (s != null) Thread({ s.close() }, "talkto-kapat").start()
         app.stopService(Intent(app, TalkService::class.java))
     }
 

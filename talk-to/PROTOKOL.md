@@ -82,7 +82,7 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | *ikili parçalar* | gönderen → alan | `transfer_id` + veri |
 | `file_done` | gönderen → alan | `transfer_id`, `sha256` |
 | `file_result` | alan → gönderen | `transfer_id`, `ok`, (`reason`) |
-| `file_cancel` | iki yön | `transfer_id` |
+| `file_cancel` | iki yön | `transfer_id`, `direction` ("in": alıcıya gelen aktarım, "out": alıcının gönderdiği aktarım; iki uç da numaraları 1'den saydığı için gerekli; yoksa iki yöne de bakılır), isteğe bağlı `reason` |
 
 Bilinmeyen türler yok sayılır (ileri uyumluluk). Aktarım numaraları gönderene göre ayrı tutulur.
 Bilgisayar her iletiyi telefonun **güncel** profil izniyle denetler; izin yoksa ileti yok sayılır ya da reddedilir
