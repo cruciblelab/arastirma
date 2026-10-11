@@ -40,8 +40,11 @@ rm -rf "$APP"
 mkdir -p "$APP" "$BIN" "$DATA/applications" "$DATA/icons/hicolor/scalable/apps"
 cp -r "$HERE/talkto" "$APP/"
 # Telefona USB'den kurulacak APK (derlendiyse)
-[ -f "$HERE/../android/app/build/outputs/apk/tam/release/app-tam-release.apk" ] && \
+if [ -f "$HERE/../android/app/build/outputs/apk/tam/release/app-tam-release.apk" ]; then
     cp "$HERE/../android/app/build/outputs/apk/tam/release/app-tam-release.apk" "$APP/talk-to-linux.apk"
+    sed -n 's/.*versionName = "\(.*\)".*/\1/p' "$HERE/../android/app/build.gradle.kts" | head -n 1 \
+        > "$APP/talk-to-linux.apk.surum"
+fi
 find "$APP" -name __pycache__ -prune -exec rm -rf {} +
 cat > "$BIN/talk-to-android" <<SH
 #!/bin/sh

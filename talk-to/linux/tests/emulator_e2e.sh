@@ -93,12 +93,19 @@ tap_text "Başla"
 for n in 2 3 4; do sleep 2; shot "00-kurulum-$n"; tap_text "İleri"; done
 sleep 2
 shot 00-kurulum-5
-tap_text "Bitir"
 
-log "1) ilk bağlantı (USB yolu, bilgisayarda onay)"
+# Sihirbazın son adımında "Bitir"e basılmaz: bilgisayardaki "Bağlan" düğmesinin yaptığı gibi uygulama
+# adb'nin açabildiği kapıdan açılır. Telefonda dokunmadan bağlanmalı ve sihirbaz kendiliğinden kapanmalı.
+log "1) ilk bağlantı: bilgisayardaki “Bağlan” (telefonda dokunmadan, bilgisayarda onay)"
+adb shell am start -n $PKG/.ui.UsbBaglan > "$OUT/kapi.txt" 2>&1
+cat "$OUT/kapi.txt"
+grep -qi "error\|exception" "$OUT/kapi.txt" && fail "bağlan kapısı açılmadı"
 sleep 3
 shot 01-baglan
-tap_text "USB kablosu" 30
+adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 || true
+adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1 || true
+grep -q 'text="Bitir"' "$OUT/ui.xml" && fail "bilgisayar bağlarken telefondaki sihirbaz kapanmadı"
+log "tamam: sihirbaz kendiliğinden kapandı"
 wait_for "bilgisayar eşleşme istedi" 'of("ask")' 30
 wait_for "bağlandı" 'of("connected")' 30
 wait_for "telefon durumunu bildirdi" 'phone().get("flavor") == "tam"' 30

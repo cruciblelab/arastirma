@@ -33,6 +33,9 @@ cp "$HERE/data/icons/hicolor/256x256/apps/lab.crucible.TalkToAndroid.png" "$ROOT
 APK=${1:-$HERE/../android/app/build/outputs/apk/tam/release/app-tam-release.apk}
 if [ -f "$APK" ]; then
     cp "$APK" "$ROOT/usr/share/talk-to-android/talk-to-linux.apk"
+    # Telefon uygulamasının sürümü: bilgisayar telefondakiyle karşılaştırıp "eski" der (usb.apk_version).
+    sed -n 's/.*versionName = "\(.*\)".*/\1/p' "$HERE/../android/app/build.gradle.kts" | head -n 1 \
+        > "$ROOT/usr/share/talk-to-android/talk-to-linux.apk.surum"
     echo "APK pakete eklendi: $APK" >&2
 else
     echo "Not: APK yok; paket telefona kurulum düğmesi olmadan üretiliyor." >&2

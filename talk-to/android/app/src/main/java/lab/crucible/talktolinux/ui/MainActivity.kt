@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // İlk açılışta izni kurulum sihirbazı ister; sihirbazı geçmiş eski kurulumlarda burada, yalnızca bir kez
         // (döndürmede, tema değişiminde ve her açılışta yeniden sorulmaz).
+        if (savedInstanceState == null) handlePcIntent(intent)
         if (savedInstanceState == null && Talk.prefs.setupDone && !Talk.prefs.notifAsked && Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             Talk.prefs.notifAsked = true
@@ -75,6 +76,17 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePcIntent(intent)
+    }
+
+    /** Bilgisayardaki "Bağlan" (adb ile, yalnızca adb'nin açabildiği .ui.UsbBaglan kapısından). */
+    private fun handlePcIntent(intent: Intent?) {
+        if (intent?.component?.className == "$packageName.ui.UsbBaglan") Talk.connectFromPc()
     }
 
     private fun askBluetoothPermission() {

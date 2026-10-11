@@ -171,6 +171,17 @@ object Talk {
 
     // ---- bağlanma ----------------------------------------------------------------
 
+    /** Bilgisayar "Bağlan" dedi: kurulumu bilgisayar yönetiyor, telefondaki sihirbaz atlanır. */
+    val pcConnect = MutableStateFlow(0)
+
+    /** Bilgisayar adb ile USB tünelini hazırlayıp bu uygulamayı açtı: tanımasak da USB'den bağlan. */
+    fun connectFromPc() {
+        prefs.setupDone = true
+        pcConnect.value += 1
+        autoPausedUntil = 0
+        if (state.value is State.Idle) connect(usbTarget())
+    }
+
     fun connect(target: Target, password: String? = null) {
         if (state.value !is State.Idle) return
         passwordFor.value = null

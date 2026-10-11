@@ -98,14 +98,22 @@ def fill():
         st["sessions"][0]["problems"] = phone_problems({"flavor": "tam", "notif_access": True, "listener": False},
                                                       {"notifications": True, "media": True})
     st["bt"] = {"available": True, "message": "Hazır. Telefonu önce sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir."}
+    if os.environ.get("USB_HAZIR"):  # telefon USB'de, uygulaması kurulu, henüz bağlı değil ("Bağlan")
+        st["sessions"] = []
     app.on_event("status", st)
-    app.on_event("media", {"device_id": "pixel", "state": st["sessions"][0]["media"]})
+    if st["sessions"]:
+        app.on_event("media", {"device_id": "pixel", "state": st["sessions"][0]["media"]})
     FAKE["st"] = st
     pages[:] = [p for p in pages if win.pages[p].get_visible()]
     if os.environ.get("ADB_YOK"):  # adb kurulu değilken görünen "Kur" düğmesi
         from talkto.ui import system
         system.adb_install_command = lambda: ["pkexec", "apt-get", "install", "-y", "adb"]
         app.on_event("usb", {"adb": False, "running": True, "devices": []})
+    elif os.environ.get("USB_HAZIR"):
+        app.on_event("usb", {"adb": True, "running": True, "apk": "/x.apk", "apk_version": "0.9.0", "devices": [
+            {"serial": "38XYZ", "state": "device", "tunnel": True, "model": "2311DRK48G", "name": "POCO X6 Pro",
+             "maker": "Xiaomi", "xiaomi_permissions": False, "app": True, "app_version": "0.9.0",
+             "perms": {"post": True, "listener": True, "battery": False}}]})
     elif os.environ.get("USB_KAPALI"):  # telefon takılı ama USB hata ayıklama kapalı
         app.on_event("usb", {"adb": True, "running": True, "apk": "/x.apk", "devices": [],
                              "unseen": [{"serial": "abc", "name": "Xiaomi Redmi Note 12", "adb": False}]})

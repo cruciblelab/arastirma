@@ -112,6 +112,16 @@ fun TalkScreen(
     var tab by rememberSaveable { mutableStateOf(initialTab) }
     var manual by remember { mutableStateOf(false) }
     var askDisconnect by remember { mutableStateOf(false) }
+    // Bilgisayardan "Bağlan" gelince sihirbaz kapanır: adımları bilgisayar yapıyor, telefonda tekrar gerekmez.
+    // Yalnızca yeni gelen istek için (döndürmede ya da sihirbaz sonradan elle açılınca kapatılmasın).
+    val pcConnect by Talk.pcConnect.collectAsState()
+    var pcHandled by rememberSaveable { mutableIntStateOf(Talk.pcConnect.value) }
+    LaunchedEffect(pcConnect) {
+        if (pcConnect != pcHandled) {
+            pcHandled = pcConnect
+            if (screen == "kurulum") screen = "ana"
+        }
+    }
     when (screen) {
         "kurulum" -> {
             SetupWizard(perms, onBack = if (wizardFrom == "izinler") ({ screen = "izinler" }) else null) {

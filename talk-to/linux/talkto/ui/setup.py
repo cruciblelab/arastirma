@@ -1,6 +1,8 @@
-"""Kurulum yardımcısı: ilk açılışta adım adım; her satırda durum, yapan düğme ve "Kontrol et".
+"""Kurulum yardımcısı: ilk açılışta adım adım; her satırda durum ve yapan düğme.
 
-Denetimler talkto.setup_checks'te; bu dosya yalnızca gösterir ve düğmeleri uygulamaya bağlar.
+Denetimler talkto.setup_checks'te; bu dosya yalnızca gösterir ve düğmeleri uygulamaya bağlar. Satırlar
+kendiliğinden güncellenir: bağlantı ve USB olayları geldikçe, ayrıca pencere açıkken telefondaki ayarlar
+(izinler, Xiaomi anahtarları) birkaç saniyede bir yeniden okunur. "Kontrol et"e basmak gerekmez.
 libadwaita 1.1'de olan parçalarla yazıldı (Ubuntu 22.04).
 """
 
@@ -10,6 +12,9 @@ from .. import setup_checks
 from . import compat, system
 
 
+POLL_SECONDS = 3
+
+
 class SetupAssistant(Adw.Window):
     def __init__(self, app, parent=None):
         super().__init__(title="Kurulum yardımcısı", default_width=620, default_height=680,
@@ -17,6 +22,7 @@ class SetupAssistant(Adw.Window):
         self.app = app
         self.step = 0
         self.steps = []
+        self._shown = None  # çizilen adımın imzası: değişmediyse satırlar yeniden kurulmaz (düğme altında kaymasın)
 
         self.toasts = Adw.ToastOverlay()
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -57,6 +63,19 @@ class SetupAssistant(Adw.Window):
         self.toasts.set_child(outer)
         self.set_content(self.toasts)
         self.refresh()
+        self._poll = GLib.timeout_add_seconds(POLL_SECONDS, self._tick)
+        self.connect("close-request", self._on_close)
+
+    def _tick(self):
+        if self.get_visible():
+            self.app.call("refresh_usb")
+        return True
+
+    def _on_close(self, *_):
+        if self._poll:
+            GLib.source_remove(self._poll)
+            self._poll = None
+        return False
 
     # ---- durum ----------------------------------------------------------------
 
@@ -74,6 +93,10 @@ class SetupAssistant(Adw.Window):
         self.step = max(0, min(self.step, len(self.steps) - 1))
         s = self.steps[self.step]
         last = self.step == len(self.steps) - 1
+        sig = repr((self.step, len(self.steps), s))
+        if sig == self._shown:
+            return
+        self._shown = sig
         self.title.set_subtitle(f"Adım {self.step + 1}/{len(self.steps)}")
         self.icon.set_from_icon_name(s.icon)
         self.heading.set_label(s.title)
@@ -102,27 +125,12 @@ class SetupAssistant(Adw.Window):
         else:
             icon, cls = "dialog-information-symbolic", ["dim-label"]
         r.add_prefix(Gtk.Image(icon_name=icon, css_classes=cls))
-        if item.ok is False:
-            if item.action:
-                b = Gtk.Button(label=item.action_label or "Yap", valign=Gtk.Align.CENTER,
-                               css_classes=["suggested-action"])
-                b.connect("clicked", lambda *_, a=item.action: self.run(a))
-                r.add_suffix(b)
-            check = Gtk.Button(label="Kontrol et", valign=Gtk.Align.CENTER, css_classes=["flat"])
-            check.connect("clicked", lambda *_, t=item.title: self.check(t))
-            r.add_suffix(check)
+        if item.ok is False and item.action:
+            b = Gtk.Button(label=item.action_label or "Yap", valign=Gtk.Align.CENTER,
+                           css_classes=["suggested-action"])
+            b.connect("clicked", lambda *_, a=item.action: self.run(a))
+            r.add_suffix(b)
         return r
-
-    def check(self, title):
-        """Telefondaki ayarlar (Xiaomi anahtarları, uygulama sürümü) yeniden okunur, sonra sonuç yazılır."""
-        self.app.call("refresh_usb")
-        GLib.timeout_add(1500, lambda: (self._checked(title), False)[-1])
-
-    def _checked(self, title):
-        self.refresh()
-        item = next((i for i in self.steps[self.step].items if i.title == title), None)
-        done = item is None or item.ok  # başlığı değiştiyse (ör. "takılı değil" → "görünüyor") sorun çözülmüştür
-        self.toast(f"✓ {title}: tamam" if done else f"{title}: henüz değil")
 
     def toast(self, text):
         self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(text), timeout=3))
@@ -163,12 +171,15 @@ class SetupAssistant(Adw.Window):
         elif action == "allow_firewall":
             self._allow_firewall()
             return
+        elif action.startswith("connect_usb:"):
+            app.connect_phone(action.split(":", 1)[1])
+            return
         elif action.startswith("phone_setup:"):
             app.phone_setup(action.split(":", 1)[1])
             return
         elif action.startswith("install_phone_app:"):
             app.install_phone_app(action.split(":", 1)[1])
-            self.toast("Telefona kuruluyor; telefonda açılınca “USB kablosu”nu seç")
+            self.toast("Telefona kuruluyor; bitince açılıp bağlanır")
             GLib.timeout_add(600, lambda: (self.refresh(), False)[-1])
             return
         # Ayar değişikliği hub'da; kısa süre sonra durum güncellenince yeniden çizilir.

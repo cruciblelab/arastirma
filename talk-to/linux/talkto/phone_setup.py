@@ -7,6 +7,7 @@ Linux'un kendi izinlerine dokunulur; başka uygulamaya ya da sistem ayarına de�
 """
 
 import asyncio
+import re
 
 from .usb import PHONE_PACKAGE, _adb
 
@@ -46,42 +47,68 @@ async def setup_phone(serial: str) -> list[dict]:
         return [_item("app", "Talk To Linux telefonda yok", False, "Önce “Talk To Linux'u kur” ile kur.")]
     rc, out = await _sh(serial, "dumpsys", "package", PHONE_PACKAGE)
     full = "service.NotificationListener" in out  # hafif sürümde bildirim dinleyicisi yok
+    granted = {k: bool(re.search(rf"android\.permission\.{k}: granted=true", out))
+               for k in ("POST_NOTIFICATIONS", "BLUETOOTH_CONNECT")}
 
+    # Telefonda elle verilmiş olanlara dokunulmaz ("zaten açık"): bazı telefonlar (Xiaomi) adb'nin izin
+    # vermesini engelliyor, verilmiş izni yeniden vermeye çalışıp "olmadı" demek yanıltıcıydı.
     items = []
     if sdk >= 33:
         # Dışarıdan kurulan uygulamada bildirim erişimini açan "kısıtlanmış ayarlara izin ver" anahtarı.
         await _sh(serial, "appops", "set", PHONE_PACKAGE, "ACCESS_RESTRICTED_SETTINGS", "allow")
-        rc, out = await _sh(serial, "pm", "grant", PHONE_PACKAGE, "android.permission.POST_NOTIFICATIONS")
-        items.append(_item("post", "Bildirim gösterme izni", rc == 0, "" if rc == 0 else _explain(out)))
+        if granted["POST_NOTIFICATIONS"]:
+            items.append(_item("post", "Bildirim gösterme izni", True, "zaten açık"))
+        else:
+            rc, out = await _sh(serial, "pm", "grant", PHONE_PACKAGE, "android.permission.POST_NOTIFICATIONS")
+            items.append(_item("post", "Bildirim gösterme izni", rc == 0, "" if rc == 0 else (
+                "telefon bilgisayarın vermesine izin vermedi; telefonda Talk To Linux açılınca çıkan soruya "
+                "“İzin ver” de" if _explain(out) == LOCKED else _explain(out))))
     else:
         items.append(_item("post", "Bildirim gösterme izni", None, "Bu Android sürümünde gerekmiyor."))
 
     if full:
-        rc, out = await _sh(serial, "cmd", "notification", "allow_listener", LISTENER)
-        # Android ayarı bir an geç yazabiliyor: hemen okuyunca verilmemiş sanılıyordu ("bilinmeyen hata").
-        ok = False
-        for _ in range(8):
-            _, now = await _sh(serial, "settings", "get", "secure", "enabled_notification_listeners")
-            ok = LISTENER in now or f"{PHONE_PACKAGE}/.service.NotificationListener" in now
-            if ok or (rc != 0 and out.strip()):
-                break
-            await asyncio.sleep(0.5)
-        items.append(_item("listener", "Bildirim erişimi (bildirimler ve müzik)", ok,
-                           "" if ok else (_explain(out) if out.strip() else
-                                          "telefon onaylamadı; telefonda Bildirim erişimi'nden elle aç")))
+        _, now = await _sh(serial, "settings", "get", "secure", "enabled_notification_listeners")
+        if _listener_on(now):
+            items.append(_item("listener", "Bildirim erişimi (bildirimler ve müzik)", True, "zaten açık"))
+        else:
+            rc, out = await _sh(serial, "cmd", "notification", "allow_listener", LISTENER)
+            # Android ayarı bir an geç yazabiliyor: hemen okuyunca verilmemiş sanılıyordu ("bilinmeyen hata").
+            ok = False
+            for _ in range(8):
+                _, now = await _sh(serial, "settings", "get", "secure", "enabled_notification_listeners")
+                ok = _listener_on(now)
+                if ok or (rc != 0 and out.strip()):
+                    break
+                await asyncio.sleep(0.5)
+            items.append(_item("listener", "Bildirim erişimi (bildirimler ve müzik)", ok,
+                               "" if ok else (_explain(out) if out.strip() else
+                                              "telefon onaylamadı; telefonda Bildirim erişimi'nden elle aç")))
     else:
         items.append(_item("listener", "Bildirim erişimi", None, "Hafif sürümde bu özellik yok."))
 
-    rc, out = await _sh(serial, "dumpsys", "deviceidle", "whitelist", f"+{PHONE_PACKAGE}")
-    await _sh(serial, "cmd", "appops", "set", PHONE_PACKAGE, "RUN_ANY_IN_BACKGROUND", "allow")
     _, now = await _sh(serial, "dumpsys", "deviceidle", "whitelist")
-    ok = PHONE_PACKAGE in now
-    items.append(_item("battery", "Pil kısıtlaması kaldırıldı", ok, "" if ok else _explain(out)))
+    if PHONE_PACKAGE in now:
+        items.append(_item("battery", "Pil kısıtlaması kaldırıldı", True, "zaten kaldırılmış"))
+    else:
+        rc, out = await _sh(serial, "dumpsys", "deviceidle", "whitelist", f"+{PHONE_PACKAGE}")
+        await _sh(serial, "cmd", "appops", "set", PHONE_PACKAGE, "RUN_ANY_IN_BACKGROUND", "allow")
+        _, now = await _sh(serial, "dumpsys", "deviceidle", "whitelist")
+        ok = PHONE_PACKAGE in now
+        items.append(_item("battery", "Pil kısıtlaması kaldırıldı", ok, "" if ok else _explain(out)))
 
     if sdk >= 31:
-        rc, out = await _sh(serial, "pm", "grant", PHONE_PACKAGE, "android.permission.BLUETOOTH_CONNECT")
-        items.append(_item("bluetooth", "Bluetooth izni", rc == 0, "" if rc == 0 else _explain(out)))
+        if granted["BLUETOOTH_CONNECT"]:
+            items.append(_item("bluetooth", "Bluetooth izni", True, "zaten açık"))
+        else:
+            rc, out = await _sh(serial, "pm", "grant", PHONE_PACKAGE, "android.permission.BLUETOOTH_CONNECT")
+            # Yalnızca Bluetooth ile bağlanmak için; verilemezse eksik sayılmaz (telefon gerekince kendisi sorar).
+            items.append(_item("bluetooth", "Bluetooth izni", True if rc == 0 else None,
+                               "" if rc == 0 else "verilemedi; Bluetooth kullanırsan telefon gerektiğinde sorar"))
     return items
+
+
+def _listener_on(enabled: str) -> bool:
+    return LISTENER in enabled or f"{PHONE_PACKAGE}/.service.NotificationListener" in enabled
 
 
 def summary(items: list[dict]) -> str:

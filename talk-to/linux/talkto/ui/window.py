@@ -364,7 +364,7 @@ class Window(Adw.ApplicationWindow):
         texts.append(self.hero_chips)
         self.hero_button = Gtk.Button(label="Bağlantı ayarları", halign=Gtk.Align.START, margin_top=6,
                                       css_classes=["pill", "hero-button"])
-        self.hero_button.connect("clicked", lambda *_: self.open_preferences())
+        self.hero_button.connect("clicked", lambda *_: self._on_hero_button())
         texts.append(self.hero_button)
         hero.append(texts)
         hero_group.add(hero)
@@ -500,6 +500,8 @@ class Window(Adw.ApplicationWindow):
                                         else "bluetooth-disabled-symbolic")
 
         self._update_hero()
+        if self.usb:
+            self.update_usb(self.usb)  # USB satırı bağlı/bağlı değil durumuna göre değişir
         addrs = st["addresses"]
         self.addr_row.set_subtitle("  ·  ".join(f"{a}:{st['port']}" for a in addrs) if addrs else "Ağ bulunamadı")
         self.addr_row.set_sensitive(st["wireless"])
@@ -531,6 +533,12 @@ class Window(Adw.ApplicationWindow):
             ready = "Bağlı. Bildirimler, müzik ve dosyalar hazır." if "files" in self.f else \
                 "Bağlı. Bildirimler ve müzik hazır."
             self.hero_sub.set_text(ready if not problems else "Bağlı, ama dikkat edilecek bir şey var: aşağıdaki uyarıya bak.")
+        elif (d := self._usb_connectable()) is not None:
+            # Telefon USB'de, uygulaması hazır: telefona gitmeden buradan bağlanılır.
+            self.hero_icon.set_from_icon_name("phone-symbolic")
+            self.hero_title.set_text(f"{setup_checks.display_name(d)} USB'de")
+            self.hero_sub.set_text("“Bağlan”a bas: telefonda Talk To Linux açılır ve bağlanır, telefonda bir şey "
+                                   "seçmen gerekmez. İlk seferde burada iki ekrandaki numarayı karşılaştırırsın.")
         elif ways:
             self.hero_icon.set_from_icon_name("computer-symbolic")
             self.hero_title.set_text("Telefon bekleniyor")
@@ -541,6 +549,7 @@ class Window(Adw.ApplicationWindow):
             self.hero_title.set_text("Bağlantı kapalı")
             self.hero_sub.set_text("Telefonun bağlanabilmesi için Wi-Fi, USB ya da Bluetooth'tan birini aç.")
         self.hero_button.set_visible(not sessions)
+        self.hero_button.set_label("Bağlan" if not sessions and self._usb_connectable() else "Bağlantı ayarları")
         child = self.hero_chips.get_first_child()
         while child:
             nxt = child.get_next_sibling()
@@ -554,8 +563,24 @@ class Window(Adw.ApplicationWindow):
             self.hero_chips.append(Gtk.Label(label=text, css_classes=["chip"]))
         self.hero_chips.set_visible(bool(sessions))
 
+    def _usb_connectable(self):
+        """Bağlı telefon yokken USB'de uygulaması hazır (güncel) ilk telefon; yoksa None."""
+        if not self.usb or (self.status or {}).get("sessions"):
+            return None
+        return next((d for d in self.usb.get("devices", []) if d.get("state") == "device" and d.get("app")
+                     and not d.get("installing") and not setup_checks.app_outdated(d, self.usb)), None)
+
+    def _on_hero_button(self):
+        d = self._usb_connectable()
+        if d:
+            self.app.connect_phone(d["serial"])
+        else:
+            self.open_preferences()
+
     def update_usb(self, snap):
         self.usb = snap
+        if self.status:
+            self._update_hero()
         rows = []
         if not snap.get("running"):
             pass
@@ -597,15 +622,23 @@ class Window(Adw.ApplicationWindow):
         for d in snap.get("devices", []):
             state = d["state"]
             if state == "device":
-                sub = "Tünel hazır: telefondaki uygulamada “USB” seç" if d["tunnel"] else "Tünel kurulamadı"
+                session = setup_checks.session_of(d, self.status.get("sessions", [])) if self.status else None
+                missing = setup_checks.perms_missing(d, session)
+                if session:
+                    sub = "Bağlı" + (f" · eksik izin: {', '.join(missing)}" if missing else "")
+                elif d["tunnel"]:
+                    sub = "Bağlanmaya hazır: “Bağlan”a bas (telefonda bir şey seçmen gerekmez)"
+                else:
+                    sub = "USB tüneli kurulamadı: kabloyu çıkarıp tak"
                 if d.get("app") is False and snap.get("apk"):
-                    sub = "Telefonda Talk To Linux yok: sağdaki düğmeyle kur, sonra uygulamada “USB” seç"
+                    sub = "Telefonda Talk To Linux yok: sağdaki düğme kurar, açar ve bağlar"
                 elif setup_checks.app_outdated(d, snap):
                     sub = (f"Telefondaki Talk To Linux eski ({d['app_version']}; bu bilgisayardaki "
                            f"{snap['apk_version']}): sağdaki düğmeyle güncelle")
-                elif setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False:
-                    sub = ("Xiaomi: “USB hata ayıklama (Güvenlik ayarları)” kapalı; izinler bilgisayardan verilemez "
-                           "(Geliştirici seçenekleri)")
+                elif setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False and missing:
+                    # Yalnızca eksik izin varken önemli: bağlanmayı engellemez.
+                    sub += ("\nEksik izinler bilgisayardan verilemiyor (Xiaomi: “USB hata ayıklama (Güvenlik "
+                            "ayarları)” kapalı); telefonda Talk To Linux → İzinler'den ver")
                 icon = "emblem-ok-symbolic" if d["tunnel"] else "dialog-warning-symbolic"
             elif state == "unauthorized":
                 sub, icon = "Telefonda “USB hata ayıklamaya izin ver” onayını ver", "dialog-question-symbolic"
@@ -616,7 +649,7 @@ class Window(Adw.ApplicationWindow):
                 sub, icon = "Telefon yanıt vermiyor: kabloyu çıkarıp tekrar tak", "dialog-warning-symbolic"
             else:
                 sub, icon = f"Durum: {state}", "dialog-warning-symbolic"
-            r = row(d.get("model") or d["serial"], sub)
+            r = row(setup_checks.display_name(d), sub)
             r.add_prefix(Gtk.Image(icon_name=icon))
             if state == "device":
                 self._usb_actions(r, d, snap)
@@ -625,16 +658,16 @@ class Window(Adw.ApplicationWindow):
         self.usb_group.set_visible(bool(rows))
 
     def _usb_actions(self, r, d, snap):
-        """Tek ana iş düğme olarak (kur ya da izinleri ayarla), gerisi "⋯" menüsünde (T10)."""
+        """Tek ana iş düğme olarak (kur, güncelle, bağlan ya da eksik izinleri tamamla), gerisi "⋯" menüsünde."""
         serial = d["serial"]
         busy = d.get("installing") or d.get("setting_up")
-        phone = next((s.get("phone") or {} for s in self.status.get("sessions", []) if s.get("kind") == "usb"), {})
-        needs_setup = d.get("app") and phone.get("notif_access") is not True
+        session = setup_checks.session_of(d, self.status.get("sessions", [])) if self.status else None
+        missing = setup_checks.perms_missing(d, session)
         if busy:
             r.add_suffix(Gtk.Spinner(spinning=True, valign=Gtk.Align.CENTER))
         elif d.get("app") is False and snap.get("apk"):
-            b = Gtk.Button(label="Talk To Linux'u kur", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
-                           tooltip_text="USB üzerinden telefona kurar ve açar")
+            b = Gtk.Button(label="Kur ve bağlan", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
+                           tooltip_text="USB üzerinden telefona kurar, açar ve bağlar")
             b.connect("clicked", lambda *_: self.app.install_phone_app(serial))
             r.add_suffix(b)
         elif setup_checks.app_outdated(d, snap):
@@ -643,10 +676,15 @@ class Window(Adw.ApplicationWindow):
                            tooltip_text=f"{d['app_version']} → {snap['apk_version']}; eşleşme ve ayarlar korunur")
             b.connect("clicked", lambda *_: self.app.install_phone_app(serial))
             r.add_suffix(b)
-        elif needs_setup and not (setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False):
-            b = Gtk.Button(label="Telefonu ayarla", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
-                           tooltip_text="Bildirim erişimi, pil kısıtlaması, bildirim ve Bluetooth izni: "
-                                        "telefonun menülerinde aramadan, tek seferde")
+        elif not session and d.get("app"):
+            b = Gtk.Button(label="Bağlan", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
+                           tooltip_text="Telefonda Talk To Linux'u açar ve USB'den bağlar")
+            b.connect("clicked", lambda *_: self.app.connect_phone(serial))
+            r.add_suffix(b)
+        elif missing and not (setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False):
+            b = Gtk.Button(label="İzinleri tamamla", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
+                           tooltip_text="Eksik olanlar: " + ", ".join(missing) + ". Telefonda verilmiş olanlara "
+                                        "dokunulmaz.")
             b.connect("clicked", lambda *_: self.app.phone_setup(serial))
             r.add_suffix(b)
         menu = Gio.Menu()

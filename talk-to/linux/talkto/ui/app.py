@@ -448,6 +448,12 @@ class App(Adw.Application):
 
         fut.add_done_callback(lambda f: GLib.idle_add(show, *f.result()))
 
+    def connect_phone(self, serial):
+        """Telefona gitmeden bağlan: telefondaki uygulama USB'den bağlanacak şekilde açılır; ilk seferde
+        eşleşme numarası burada (kurulum yardımcısı açıksa onun üstünde) sorulur."""
+        self.toast("Telefonda Talk To Linux açılıyor…")
+        self._after(self.hub.connect_phone(serial), lambda ok, msg: None if ok else self.toast(msg))
+
     def phone_setup(self, serial):
         """Telefondaki izinleri USB'den verir (bildirim erişimi, pil, bildirim ve Bluetooth izni)."""
         self.toast("Telefon ayarlanıyor…")
@@ -575,8 +581,12 @@ class App(Adw.Application):
 
     # ---- diyaloglar -----------------------------------------------------------
 
+    def _front(self):
+        """Soru pencerelerinin sahibi: kurulum yardımcısı açıksa o (ana pencere arkasında kalır)."""
+        return self.setup_window if self.setup_window and self.setup_window.get_visible() else self.window
+
     def _dialog(self, heading, body, extra=None):
-        return compat.Dialog(self.window, heading, body, extra)
+        return compat.Dialog(self._front(), heading, body, extra)
 
     def _show(self, dlg):
         dlg.present()
@@ -679,7 +689,10 @@ class App(Adw.Application):
                            "İstemiyorsan profilinden “Ekran görüntüsü” iznini kapat.", key="ekran")
 
     def _ask(self, d):
-        self.activate()
+        if self._front() is self.window:
+            self.activate()
+        else:
+            self.setup_window.present()
         rid = d["id"]
         pids = []
         if d["kind"] == "pair":

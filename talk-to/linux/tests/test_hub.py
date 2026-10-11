@@ -628,7 +628,8 @@ exit 0""")
         self.assertTrue(ok, msg)
         self.assertTrue(w.devices["ABC123"]["app"])
         self.assertIn(f"adb -s ABC123 install -r {apk}", self.calls())
-        self.assertIn("adb -s ABC123 shell am start -n lab.crucible.talktolinux/.ui.MainActivity", self.calls())
+        # Kurulunca açılır ve bilgisayardan bağlanır (telefonda "USB kablosu"na dokunmak gerekmez).
+        self.assertIn("adb -s ABC123 shell am start -n lab.crucible.talktolinux/.ui.UsbBaglan", self.calls())
 
     async def test_install_reports_signature_conflict(self):
         apk = Path(self.tmp.name) / "a.apk"
@@ -940,8 +941,14 @@ case "$*" in
 esac
 exit 0"""
 
-    def phone(self, grant="exit 0"):
-        self.fake("adb", self.ADB % {"state": Path(self.tmp.name) / "durum", "grant": grant})
+    def phone(self, grant="exit 0", dump="", first=""):
+        """dump: `dumpsys package` çıktısına eklenecek satırlar; first: diğerlerinden önce denenecek case kolu."""
+        body = self.ADB % {"state": Path(self.tmp.name) / "durum", "grant": grant}
+        if dump:
+            body = body.replace('NotificationListener" ;;', f'NotificationListener"; {dump} ;;', 1)
+        if first:
+            body = body.replace('case "$*" in', 'case "$*" in\n' + first, 1)
+        self.fake("adb", body)
 
     async def test_all_permissions_given(self):
         self.phone()
@@ -973,7 +980,43 @@ exit 0"""
         await self.hub.usb._poll()
         ok, text = await self.hub.phone_setup("ABC123")
         self.assertFalse(ok)
-        self.assertIn("USB hata ayıklama (Güvenlik ayarları)", text)
+        # Bildirim izni telefonda verilebilir (uygulama açılınca sorar); Bluetooth izni eksik sayılmaz.
+        self.assertIn("“İzin ver” de", text)
+        self.assertNotIn("Bluetooth", text)
+
+    async def test_already_granted_on_phone_is_not_redone(self):
+        """Telefonda elle verilen izinler yeniden istenmez; Xiaomi'nin engeli de "olmadı" dedirtmez."""
+        st = Path(self.tmp.name) / "durum"
+        st.write_text("lab.crucible.talktolinux/lab.crucible.talktolinux.service.NotificationListener")
+        Path(f"{st}.pil").touch()
+        self.phone(grant='echo "java.lang.SecurityException: GRANT_RUNTIME_PERMISSIONS"; exit 255',
+                   dump='echo "    android.permission.POST_NOTIFICATIONS: granted=true, flags=[ USER_SET ]"; '
+                        'echo "    android.permission.BLUETOOTH_CONNECT: granted=true"')
+        await self.hub.usb._poll()
+        d = self.hub.usb.devices["ABC123"]
+        self.assertEqual(d["perms"], {"post": True, "listener": True, "battery": True})
+        ok, text = await self.hub.phone_setup("ABC123")
+        self.assertTrue(ok, text)
+        calls = "\n".join(self.calls())
+        self.assertNotIn("pm grant", calls)
+        self.assertNotIn("allow_listener", calls)
+        self.assertNotIn("whitelist +", calls)
+
+    async def test_connect_from_computer(self):
+        """"Bağlan": tünel kurulur, telefondaki uygulama adb'nin açabildiği kapıdan USB'ye bağlanacak şekilde açılır."""
+        self.phone()
+        await self.hub.usb._poll()
+        ok, text = await self.hub.connect_phone("ABC123")
+        self.assertTrue(ok, text)
+        self.assertIn("adb -s ABC123 shell am start -n lab.crucible.talktolinux/.ui.UsbBaglan", self.calls())
+        # Eski telefon uygulamasında kapı yok: ne yapılacağı söylenir.
+        self.phone(first='  *"am start"*) echo "Error type 3"; echo "Error: Activity class '
+                         '{lab.crucible.talktolinux/lab.crucible.talktolinux.ui.UsbBaglan} does not exist." ;;')
+        ok, text = await self.hub.connect_phone("ABC123")
+        self.assertFalse(ok)
+        self.assertIn("önce güncelle", text)
+        ok, text = await self.hub.connect_phone("YOK")
+        self.assertFalse(ok)
 
     async def test_phone_asks_computer(self):
         self.phone()

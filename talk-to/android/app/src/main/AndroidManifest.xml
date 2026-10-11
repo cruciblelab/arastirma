@@ -47,6 +47,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Bilgisayarın "Bağlan" düğmesi: adb ile açılır, telefon USB tünelinden bağlanır. DUMP izni yalnızca
+             adb kabuğunda ve sistemde var; telefondaki başka bir uygulama bu kapıyı açıp Talk To'yu kendi
+             dinlediği 127.0.0.1:47600'e bağlatamaz. -->
+        <activity-alias
+            android:name=".ui.UsbBaglan"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
+            android:targetActivity=".ui.MainActivity" />
+
         <activity
             android:name=".ui.ShareActivity"
             android:excludeFromRecents="true"

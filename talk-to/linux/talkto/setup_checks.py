@@ -47,25 +47,25 @@ def firewall_command(port: int) -> list[str] | None:
     return ["pkexec", "sh", "-c", f"ufw allow {int(port)}/tcp && ufw allow {UDP_PORT}/udp"]
 
 
-def _usb_phone(usb: dict) -> Item:
+def _usb_phone(usb: dict, optional: bool) -> Item:
+    """USB'de hazır telefon yokken neden: onay, izin, hata ayıklama kapalı ya da hiç takılı değil."""
     devices = usb.get("devices", [])
-    ready = [d for d in devices if d.get("state") == "device"]
-    if ready:
-        return Item("Telefon USB'de görünüyor", f"{ready[0].get('model') or ready[0]['serial']} bağlı ve onaylı.", True)
     if any(d.get("state") == "unauthorized" for d in devices):
         return Item("Telefon onay bekliyor", "Telefonda çıkan “USB hata ayıklamaya izin ver” sorusunu onayla "
-                    "(“Bu bilgisayara her zaman izin ver”i işaretle).", False)
+                    "(“Bu bilgisayara her zaman izin ver”i işaretle).", False, optional=optional)
     if any(d.get("state") == "no" for d in devices):
         return Item("Bilgisayarın telefona erişim izni yok", "Kabloyu çıkarıp tak; düzelmezse "
-                    "“android-sdk-platform-tools-common” paketini kur.", False)
+                    "“android-sdk-platform-tools-common” paketini kur.", False, optional=optional)
+    if any(d.get("state") == "offline" for d in devices):
+        return Item("Telefon yanıt vermiyor", "Kabloyu çıkarıp tekrar tak.", False, optional=optional)
     if usb.get("unseen"):
         name = usb["unseen"][0].get("name") or "Telefon"
         return Item(f"{name} takılı ama USB hata ayıklama kapalı",
                     "Telefonda: Ayarlar → Telefon hakkında → “Yapım numarası”na 7 kez dokun; sonra Geliştirici "
-                    "seçenekleri → “USB hata ayıklama”yı aç. Telefondaki Talk To Linux'un kurulum sihirbazı da "
-                    "bu adımları gösterir.", False)
-    return Item("Telefon takılı değil", "Telefonu USB kablosuyla tak. Yalnızca şarj eden kablolar veri taşımaz; "
-                "telefonla gelen kabloyu kullan.", False)
+                    "seçenekleri → “USB hata ayıklama”yı aç. Açınca burası kendiliğinden güncellenir.", False,
+                    optional=optional)
+    return Item("USB ile: telefon takılı değil", "Telefonu USB kablosuyla tak (telefonla gelen kablo; yalnızca şarj "
+                "eden kablolar veri taşımaz). Takınca burası kendiliğinden güncellenir.", None)
 
 
 XIAOMI_PERMISSIONS = ("Ayarlar → Ek ayarlar → Geliştirici seçenekleri → “USB hata ayıklama (Güvenlik ayarları)”nı aç. "
@@ -73,6 +73,7 @@ XIAOMI_PERMISSIONS = ("Ayarlar → Ek ayarlar → Geliştirici seçenekleri → 
                       "Kapalıyken bilgisayar telefondaki izinleri veremez; istersen izinleri telefonda elle ver.")
 XIAOMI_INSTALL = ("Geliştirici seçenekleri → “USB üzerinden yükle”yi aç (Mi hesabı ister). Kapalıyken bilgisayar "
                   "Talk To Linux'u kuramaz ya da güncelleyemez.")
+PERM_NAMES = {"listener": "bildirim erişimi", "battery": "pil kısıtlamasının kaldırılması", "post": "bildirim izni"}
 
 
 def app_outdated(d: dict, usb: dict) -> bool:
@@ -85,32 +86,149 @@ def xiaomi(d: dict) -> bool:
     return (d.get("maker") or "").casefold() in XIAOMI
 
 
-def _permissions_done(sessions: list[dict]) -> bool:
-    phone = next((s.get("phone") or {} for s in sessions if s.get("kind") == "usb"), {})
-    return phone.get("notif_access") is True and phone.get("listener") is not False
+def display_name(d: dict) -> str:
+    return d.get("name") or d.get("model") or d["serial"]
 
 
-def _phone_permissions(d: dict, sessions: list[dict]) -> Item:
-    """Bildirim erişimi, pil kısıtlaması gibi telefon ayarları: bilgisayardan tek tıkla."""
-    if d.get("setting_up"):
+def session_of(d: dict, sessions: list[dict]) -> dict | None:
+    """USB'deki telefonun bağlı oturumu (bağlantı USB'den ya da Wi-Fi'den olabilir)."""
+    return next((s for s in sessions if s.get("adb_serial") == d["serial"]), None)
+
+
+def perms_missing(d: dict | None, session: dict | None) -> list[str] | None:
+    """Telefondaki izinlerden eksik olanlar; telefonda elle verilenler de sayılır (tekrar istenmez).
+
+    Kaynak: adb'nin okuduğu ayarlar (bağlantı gerekmez) ya da bağlı telefonun bildirdiği durum.
+    None: bilinmiyor (ne USB'den okunabildi ne telefon bağlı).
+    """
+    perms = dict((d or {}).get("perms") or {})
+    phone = (session or {}).get("phone") or {}
+    if phone.get("flavor") == "hafif":
+        perms["listener"] = None  # hafif sürümde bildirim erişimi yok
+    elif phone.get("notif_access") is not None:
+        perms["listener"] = phone["notif_access"]  # telefonun kendi söylediği daha güncel
+    known = [k for k in PERM_NAMES if perms.get(k) is not None]
+    if not known:
+        return None
+    return [PERM_NAMES[k] for k in PERM_NAMES if perms.get(k) is False]
+
+
+def _phone_permissions(d: dict | None, session: dict | None) -> Item | None:
+    """Bildirim erişimi, pil kısıtlaması, bildirim izni: eksik varsa USB'den tek tıkla."""
+    if d and d.get("setting_up"):
         return Item("Telefon ayarlanıyor…", "Telefonda bir şey yapman gerekmiyor.", None)
-    done = _permissions_done(sessions)
-    if not done and xiaomi(d) and d.get("xiaomi_permissions") is False:
-        return Item("Telefondaki izinler", "Önce yukarıdaki Xiaomi ayarını aç; sonra “Kontrol et”.", False)
-    text = ("Bildirim erişimi açık." if done else
-            "Bildirim erişimi, pil kısıtlaması, bildirim ve Bluetooth izni telefonun ayar menülerinde dağınık. "
-            "“Telefonu ayarla” hepsini USB'den bir kerede yapar; telefonda bir şey seçmen gerekmez.")
-    return Item("Telefondaki izinler", text, done, None if done else f"phone_setup:{d['serial']}", "Telefonu ayarla")
+    missing = perms_missing(d, session)
+    if missing is None:
+        return None
+    if not missing:
+        return Item("Telefondaki izinler tamam", "Bildirim erişimi ve diğer izinler verilmiş.", True)
+    text = "Eksik: " + ", ".join(missing) + "."
+    if d is None:
+        return Item("Telefondaki izinler", text + " Telefonda Talk To Linux → İzinler ve yetkiler'den ver; ya da "
+                    "telefonu USB ile takınca buradan tek tıkla tamamlanır.", False)
+    if xiaomi(d) and d.get("xiaomi_permissions") is False:
+        return Item("Telefondaki izinler", text + " Bilgisayarın verebilmesi için yukarıdaki Xiaomi ayarını aç ya da "
+                    "telefonda Talk To Linux → İzinler ve yetkiler'den kendin ver.", False)
+    return Item("Telefondaki izinler", text + " “Tamamla” eksikleri USB'den bir kerede verir; telefonda menü "
+                "aramana gerek yok.", False, f"phone_setup:{d['serial']}", "Tamamla")
+
+
+def _usb_device_items(d: dict, usb: dict, sessions: list[dict]) -> list[Item]:
+    name, serial = display_name(d), d["serial"]
+    session = session_of(d, sessions)
+    if d.get("installing"):
+        return [Item(f"{name}: Talk To Linux kuruluyor…", "Telefonda bir soru çıkarsa onayla; bitince kendiliğinden "
+                     "açılır ve bağlanır.", None)]
+    items = []
+    needs_install = (d.get("app") is False or app_outdated(d, usb)) and usb.get("apk")
+    if xiaomi(d) and needs_install and d.get("xiaomi_install") is False:
+        items.append(Item("Xiaomi: “USB üzerinden yükle” kapalı", XIAOMI_INSTALL, False))
+    if d.get("app") is False and usb.get("apk"):
+        items.append(Item(f"{name}: Talk To Linux yok", "Tek tıkla USB'den kurulur, açılır ve bağlanır.", False,
+                          f"install_phone_app:{serial}", "Kur ve bağlan"))
+        return items
+    if d.get("app") is False:
+        items.append(Item(f"{name}: Talk To Linux yok", "Bu pakette telefon uygulaması yok; GitHub'daki sürümler "
+                          "sayfasından indirip telefona kur.", False))
+        return items
+    if app_outdated(d, usb):
+        items.append(Item(f"{name}: Talk To Linux eski ({d['app_version']})",
+                          f"Bu bilgisayardaki sürüm {usb['apk_version']}. Tek tıkla USB'den güncellenir ve bağlanır; "
+                          "eşleşme ve ayarlar korunur.", False, f"install_phone_app:{serial}", "Güncelle"))
+    elif session:
+        via = {"usb": "USB", "wifi": "Wi-Fi", "bluetooth": "Bluetooth"}.get(session.get("kind"), session.get("kind"))
+        items.append(Item(f"{session.get('name') or name} bağlı ({via})",
+                          "Bundan sonra kablo takılınca ya da aynı ağdayken kendiliğinden bağlanır.", True))
+    elif d.get("app"):
+        items.append(Item(f"{name} USB'de, bağlanmaya hazır",
+                          "“Bağlan”a bas: telefonda Talk To Linux açılır ve bağlanır, telefonda bir şey seçmen "
+                          "gerekmez. İlk seferde burada iki ekrandaki numarayı karşılaştırırsın.", False,
+                          f"connect_usb:{serial}", "Bağlan"))
+    missing = perms_missing(d, session)
+    if xiaomi(d) and d.get("xiaomi_permissions") is False and missing:
+        items.append(Item("Xiaomi: “USB hata ayıklama (Güvenlik ayarları)” kapalı", XIAOMI_PERMISSIONS, False,
+                          optional=True))
+    perms = _phone_permissions(d, session)
+    if perms:
+        items.append(perms)
+    return items
+
+
+def _phone_step(status: dict, usb: dict, simple: bool) -> Step:
+    """Telefonu bağla: USB'deki telefona tek tık ("Bağlan"), yoksa Wi-Fi; bağlanınca izinler."""
+    sessions = status.get("sessions", [])
+    ready = [d for d in usb.get("devices", []) if d.get("state") == "device"]
+    host = status.get("name") or "bu bilgisayar"
+    connected = bool(sessions)
+    st = Step("telefon", "Telefonu bağla",
+              "Telefon bağlı. Bundan sonra kendiliğinden bağlanır." if connected else
+              "Telefon USB kablosuyla takılıysa “Bağlan” yeter, telefonda bir şey seçmen gerekmez. Kablo yoksa "
+              "aynı Wi-Fi ağında telefondan bağlanılır.", "phone-symbolic")
+    if not usb.get("apk"):
+        st.items.append(Item("Telefon uygulaması bu pakette yok", "Talk To Linux'u GitHub'daki sürümler sayfasından "
+                             "indirip telefona kur.", False, optional=True))
+    usb_optional = simple or connected
+    if not usb.get("adb"):
+        st.items.append(Item("USB için adb gerekli", "Telefonu kabloyla bağlamak ve uygulamayı tek tıkla kurmak "
+                             "için; “Kur”a basınca bilgisayarın şifresi sorulur.", False, "install_adb", "Kur",
+                             optional=usb_optional))
+    elif not status.get("usb"):
+        st.items.append(Item("USB bağlantısı kapalı", "Menü → Tercihler'deki “USB bağlantısı” anahtarı.", False,
+                             "enable_usb", "Aç", optional=usb_optional))
+    elif ready:
+        for d in ready:
+            st.items += _usb_device_items(d, usb, sessions)
+    elif not connected:
+        st.items.append(_usb_phone(usb, usb_optional))
+        if not usb.get("unseen") and usb.get("usb_devices") and usb.get("devices") == []:
+            # Telefon hiç tanınmadıysa bilgisayarın ne gördüğü (kablo mu, telefon mu, mod mu: ayırt etmek için).
+            st.items.append(Item("Bu bilgisayarın gördüğü USB aygıtları", ", ".join(usb["usb_devices"][:8]), None))
+    # USB'de olmayan bağlı telefonlar (Wi-Fi, Bluetooth): bağlantı ve izinleri telefonun bildirdiğinden.
+    on_usb = {d["serial"] for d in ready}
+    for s in sessions:
+        if s.get("adb_serial") in on_usb:
+            continue
+        via = {"usb": "USB", "wifi": "Wi-Fi", "bluetooth": "Bluetooth"}.get(s.get("kind"), s.get("kind"))
+        st.items.append(Item(f"{s.get('name')} bağlı ({via})", "Bundan sonra kendiliğinden bağlanır.", True))
+        perms = _phone_permissions(None, s)
+        if perms:
+            st.items.append(perms)
+    if not connected:
+        if status.get("wireless"):
+            st.items.append(Item("Wi-Fi ile", f"Telefon aynı Wi-Fi ağındaysa: telefonda Talk To Linux'u aç, listede "
+                                 f"“{host}”a dokun.", None))
+        else:
+            st.items.append(Item("Wi-Fi ile bağlanmak için kablosuz bağlantıyı aç", "Açınca bu bilgisayar yerel ağda "
+                                 "görünür.", False, "enable_wireless", "Aç", optional=not simple))
+    return st
 
 
 def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None = None,
           firewall_port: int | None = None, simple: bool = False) -> list[Step]:
     """firewall_port: güvenlik duvarına bu uygulamadan izin eklenen port (yoksa None).
 
-    simple: basit mod. Wi-Fi öne geçer (kablo ve geliştirici ayarı gerekmez), USB isteğe bağlı olur.
+    simple: basit mod. Wi-Fi zorunlu, USB isteğe bağlı sayılır (kablo ve geliştirici ayarı gerekmez).
     """
-    sessions = status.get("sessions", [])
-    ready = [d for d in usb.get("devices", []) if d.get("state") == "device"]
     if simple:
         welcome = ("Telefon bildirimleri bu bilgisayarda görünür, telefonda çalan müzik buradan kontrol edilir, "
                    "kaybolan telefon tek tıkla çaldırılır. Dosya, komut gibi diğer özellikler gizli; istediğinde "
@@ -118,65 +236,10 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
     else:
         welcome = ("Bu bilgisayarı Android telefonuna bağlar: telefon bildirimleri burada görünür, müzik iki yönden "
                    "kontrol edilir, dosya ve pano gider gelir, telefon bu bilgisayara komut verir. Birkaç adımda "
-                   "hazırlayalım; her adımda “Kontrol et” ile durumu yeniden okuyabilirsin. İstediğin zaman "
+                   "hazırlayalım; adımlar telefonun durumuna göre kendiliğinden güncellenir. İstediğin zaman "
                    "menüdeki “Kurulum yardımcısı”ndan geri dönebilirsin.")
-    out = [Step("hos-geldin", "Talk To Android'e hoş geldin", welcome, "lab.crucible.TalkToAndroid")]
-
-    phone = Step("telefon", "Telefondaki uygulama",
-                 "Telefona Talk To Linux uygulaması kurulmalı. En kolayı: telefonu USB ile takıp USB adımından "
-                 "tek tıkla kurmak (Play Protect bu yolla engellemez).", "phone-symbolic")
-    phone.items.append(Item("Telefon uygulaması bu pakette", "Kurulum için dosya hazır." if usb.get("apk") else
-                            "Paket içinde APK yok; GitHub'daki sürümler sayfasından indir.", bool(usb.get("apk"))))
-    phone.items.append(Item("Bağlı telefon", ", ".join(s["name"] for s in sessions) + " bağlı." if sessions else
-                            "Henüz bağlı telefon yok. Telefonda Talk To Linux'u açınca bu bilgisayar listede görünür.",
-                            bool(sessions)))
-    out.append(phone)
-
-    if simple:
-        u = Step("usb", "USB kablosu (isteğe bağlı)",
-                 "Wi-Fi yetiyorsa geçebilirsin. Kablo, telefona uygulamayı kurmak ve telefondaki izinleri tek tıkla "
-                 "ayarlamak için işe yarar; telefonda USB hata ayıklama açık olmalı.", "media-removable-symbolic")
-    else:
-        u = Step("usb", "USB kablosu", "En hızlı ve en kolay yol. Telefonda USB hata ayıklama açık olmalı.",
-                 "media-removable-symbolic")
-    u.items.append(Item("adb kurulu", "USB bağlantısı için gereken araç." if usb.get("adb") else
-                        "USB bağlantısı için gerekli; “Kur”a basınca bilgisayarın şifresi sorulur.",
-                        bool(usb.get("adb")), None if usb.get("adb") else "install_adb", "Kur"))
-    u.items.append(Item("USB bağlantısı açık", "Menü → Tercihler'deki “USB bağlantısı” anahtarı.",
-                        bool(status.get("usb")), None if status.get("usb") else "enable_usb", "Aç"))
-    if usb.get("adb"):
-        u.items.append(_usb_phone(usb))
-        if not ready and not usb.get("unseen") and usb.get("usb_devices"):
-            # Telefon hiç tanınmadıysa bilgisayarın ne gördüğü (kablo mu, telefon mu, mod mu: ayırt etmek için).
-            u.items.append(Item("Bu bilgisayarın gördüğü USB aygıtları", ", ".join(usb["usb_devices"][:8]), None))
-        for d in ready:
-            if d.get("installing"):
-                u.items.append(Item("Telefona kuruluyor…", "Telefonda bir soru çıkarsa onayla; bitince uygulama açılır.",
-                                    None))
-                continue
-            needs_install = (d.get("app") is False or app_outdated(d, usb)) and usb.get("apk")
-            if xiaomi(d) and needs_install and d.get("xiaomi_install") is False:
-                u.items.append(Item("Xiaomi: “USB üzerinden yükle” kapalı", XIAOMI_INSTALL, False))
-            if xiaomi(d) and d.get("xiaomi_permissions") is False and not _permissions_done(sessions):
-                u.items.append(Item("Xiaomi: “USB hata ayıklama (Güvenlik ayarları)” kapalı", XIAOMI_PERMISSIONS,
-                                    False))
-            if d.get("app") is False and usb.get("apk"):
-                u.items.append(Item("Telefonda Talk To Linux yok", "Tek tıkla USB'den kurulur ve açılır.", False,
-                                    f"install_phone_app:{d['serial']}", "Telefona kur"))
-            elif app_outdated(d, usb):
-                u.items.append(Item(f"Telefondaki Talk To Linux eski ({d['app_version']})",
-                                    f"Bu bilgisayardaki sürüm {usb['apk_version']}. Tek tıkla USB'den güncellenir; "
-                                    "eşleşme ve ayarlar korunur.", False, f"install_phone_app:{d['serial']}",
-                                    "Güncelle"))
-                u.items.append(_phone_permissions(d, sessions))
-            elif d.get("app"):
-                version = f" ({d['app_version']})" if d.get("app_version") else ""
-                u.items.append(Item(f"Telefonda Talk To Linux kurulu{version}",
-                                    "Telefondaki uygulamada “USB kablosu”nu seç; ilk seferde burada onay çıkar.", True))
-                u.items.append(_phone_permissions(d, sessions))
-    if simple:
-        for i in u.items:
-            i.optional = True
+    out = [Step("hos-geldin", "Talk To Android'e hoş geldin", welcome, "lab.crucible.TalkToAndroid"),
+           _phone_step(status, usb, simple)]
 
     w = Step("wifi", "Wi-Fi (kablosuz)",
              "En kolay yol: kablo ve geliştirici ayarı gerekmez. Telefon ve bilgisayar aynı Wi-Fi ağında olmalı; "
@@ -200,7 +263,7 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
                             False, "allow_firewall", "İzin ver", optional=True))
     w.items.append(Item("Şifre (isteğe bağlı)", "Şifre koymazsan her yeni telefon için onay penceresi çıkar; "
                         "koyarsan telefon şifreyle bağlanır. Menü → Tercihler'den ayarlanır.", None))
-    out += [w, u] if simple else [u, w]
+    out.append(w)
 
     bt = status.get("bt") or {}
     x = Step("ekler", "Bluetooth ve diğerleri", "Hepsi isteğe bağlı.", "applications-system-symbolic")

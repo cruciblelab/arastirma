@@ -16,6 +16,9 @@ log = logging.getLogger("talkto.usb")
 INTERVAL = 2.5
 PHONE_PACKAGE = "lab.crucible.talktolinux"
 PHONE_ACTIVITY = PHONE_PACKAGE + "/.ui.MainActivity"
+# Bilgisayardaki "Bağlan": telefondaki uygulamayı USB tünelinden bağlanacak şekilde açar (0.9.0+). Telefonda
+# yalnızca adb'nin açabildiği bir kapı (DUMP izniyle korunur); başka uygulamalar kullanamaz.
+PHONE_CONNECT = PHONE_PACKAGE + "/.ui.UsbBaglan"
 # Telefondaki uygulama başka anahtarla imzalı: üzerine kurulamaz, önce kaldırılmalı.
 CONFLICT = ("Telefondaki Talk To Linux başka bir anahtarla imzalanmış; güncellemek için kaldırıp yeniden kurmak "
             "gerekiyor. Eşleşme ve bildirim erişimi sıfırlanır.")
@@ -115,6 +118,28 @@ def find_apk() -> Path | None:
     return None
 
 
+def parse_perms(package_dump: str) -> dict:
+    """`dumpsys package` çıktısından bildirim gösterme izni (Android 13+; daha eskide None)."""
+    m = re.search(r"android\.permission\.POST_NOTIFICATIONS: granted=(true|false)", package_dump)
+    return {"post": (m.group(1) == "true") if m else None}
+
+
+def apk_version(apk: Path | None) -> str | None:
+    """Paketteki telefon uygulamasının sürümü: APK'nın yanındaki .surum dosyasından (paket üretilirken yazılır)
+    ya da kaynakta derlenmişse build.gradle.kts'ten. Bilinmiyorsa None (o zaman "eski" uyarısı verilmez)."""
+    if not apk:
+        return None
+    side = apk.with_name(apk.name + ".surum")
+    if side.is_file():
+        return _read(side) or None
+    for parent in apk.parents:
+        gradle = parent / "build.gradle.kts"
+        if gradle.is_file() and parent.name == "app":
+            m = re.search(r'versionName\s*=\s*"([^"]+)"', _read(gradle))
+            return m.group(1) if m else None
+    return None
+
+
 async def _adb(*args, timeout=8.0) -> tuple[int, str]:
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -162,10 +187,9 @@ class AdbWatcher:
         return shutil.which("adb") is not None
 
     def snapshot(self) -> dict:
-        from . import __version__
         apk = find_apk()
         return {"adb": self.available(), "running": self._task is not None, "apk": str(apk) if apk else None,
-                "apk_version": __version__ if apk else None,
+                "apk_version": apk_version(apk),
                 "devices": [dict(serial=s, **d) for s, d in self.devices.items()], "unseen": list(self.unseen),
                 "usb_devices": usb_devices() if self._task is not None else []}
 
@@ -249,22 +273,65 @@ class AdbWatcher:
             rc, out = await _adb("-s", serial, "shell", "getprop", name, timeout=5)
             return out.strip() if rc == 0 else ""
         d["maker"] = await prop("ro.product.manufacturer")
+        # "2311DRK48G" yerine "POCO X6 Pro" gibi bilinen adı (yalnızca bazı üreticiler yazar).
+        d["name"] = await prop("ro.product.marketname") or await prop("ro.product.vendor.marketname") or None
         if d["maker"].casefold() in XIAOMI:
             # MIUI/HyperOS: adb'nin izin vermesi ve uygulama kurması ayrı anahtarlar ister.
             d["xiaomi_permissions"] = await prop("persist.security.adbinput") == "1"
             d["xiaomi_install"] = await prop("persist.security.adbinstall") == "1"
         d["app"] = await self._app_installed(serial)
         d["app_version"] = None
+        d["perms"] = {}
         if d["app"]:
             rc, out = await _adb("-s", serial, "shell", "dumpsys", "package", PHONE_PACKAGE, timeout=10)
             m = re.search(r"versionName=(\S+)", out) if rc == 0 else None
             d["app_version"] = m.group(1) if m else None
+            d["perms"] = await self._perms(serial, out if rc == 0 else "")
+
+    async def _perms(self, serial: str, package_dump: str) -> dict:
+        """Telefondaki izinlerin şu anki durumu (bağlantı gerekmeden, adb'den okunur): telefonda elle verilenler
+        de görünür, bilgisayar onları yeniden istemez. Değer None: okunamadı ya da bu Android'de gerekmiyor."""
+        perms = parse_perms(package_dump)
+        if "service.NotificationListener" not in package_dump:
+            perms["listener"] = None  # hafif sürümde bildirim erişimi yok
+            return perms | await self._battery(serial)
+        rc, out = await _adb("-s", serial, "shell", "settings", "get", "secure", "enabled_notification_listeners",
+                             timeout=5)
+        perms["listener"] = (PHONE_PACKAGE + "/") in out if rc == 0 else None
+        return perms | await self._battery(serial)
+
+    @staticmethod
+    async def _battery(serial: str) -> dict:
+        rc, out = await _adb("-s", serial, "shell", "dumpsys", "deviceidle", "whitelist", timeout=5)
+        return {"battery": PHONE_PACKAGE in out if rc == 0 else None}
+
+    async def connect_phone(self, serial: str) -> tuple[bool, str]:
+        """Bilgisayardaki "Bağlan": tüneli kurar ve telefondaki uygulamayı USB'den bağlanacak şekilde açar."""
+        d = self.devices.get(serial)
+        if not d or d.get("state") != "device":
+            return False, "Telefon USB'de görünmüyor ya da USB hata ayıklama onaylanmadı."
+        if not d.get("tunnel"):
+            rc, out = await _adb("-s", serial, "reverse", f"tcp:{self.port}", f"tcp:{self.port}")
+            d["tunnel"] = rc == 0
+            if rc != 0:
+                return False, "USB tüneli kurulamadı: " + (out.strip().splitlines() or ["adb hatası"])[-1][:200]
+        rc, out = await _adb("-s", serial, "shell", "am", "start", "-n", PHONE_CONNECT, timeout=10)
+        if rc != 0 or "Error" in out or "Exception" in out:
+            if "does not exist" in out:
+                return False, "Telefondaki Talk To Linux bilgisayardan bağlanmayı bilmiyor (eski sürüm); önce güncelle."
+            if "Permission Denial" in out or "SecurityException" in out:
+                return False, ("Telefon bu bilgisayarın uygulamayı açmasına izin vermedi. Telefonda Talk To Linux'u "
+                               "açıp “USB kablosu”na dokun.")
+            return False, (out.strip().splitlines() or ["adb hatası"])[-1][:200]
+        return True, "Telefonda Talk To Linux açıldı, bağlanıyor…"
 
     async def refresh(self):
-        """"Kontrol et": telefondaki ayarlar değişmiş olabilir, ayrıntılar yeniden okunur."""
+        """Telefondaki ayarlar değişmiş olabilir: ayrıntılar yeniden okunur, değiştiyse bildirilir."""
+        before = repr(self.devices)
         for serial in list(self.devices):
             await self.details(serial)
-        self.on_change(self.snapshot())
+        if repr(self.devices) != before:
+            self.on_change(self.snapshot())
 
     async def _tunnel_alive(self, serial: str) -> bool:
         rc, out = await _adb("-s", serial, "reverse", "--list", timeout=4)
@@ -305,8 +372,12 @@ class AdbWatcher:
                 return False, out.strip().splitlines()[-1] if out.strip() else f"adb hata kodu {rc}"
             d["app"] = True
             await self.details(serial, d)
-            await _adb("-s", serial, "shell", "am", "start", "-n", PHONE_ACTIVITY)
-            return True, "Talk To Linux telefona kuruldu ve açıldı."
+            # Yeni sürüm bilgisayardan bağlanmayı bilir: açılır ve USB'den bağlanır; eskisi yalnızca açılır.
+            ok, _ = await self.connect_phone(serial)
+            if not ok:
+                await _adb("-s", serial, "shell", "am", "start", "-n", PHONE_ACTIVITY)
+            return True, ("Talk To Linux telefona kuruldu ve bağlanıyor…" if ok else
+                          "Talk To Linux telefona kuruldu ve açıldı.")
         finally:
             d["installing"] = False
             self.on_change(self.snapshot())

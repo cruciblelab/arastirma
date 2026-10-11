@@ -149,5 +149,29 @@ class AdbWatcherTest(unittest.TestCase):
         self.assertIn("zaten", text)
 
 
+
+class ApkVersionTest(unittest.TestCase):
+    """Paketteki telefon uygulamasının sürümü bilgisayarın sürümünden ayrı okunur (0.8.1'de aynı sanılıyordu:
+    telefondaki 0.8.0 hep "eski" görünür, "Güncelle" aynı sürümü yeniden kurardı)."""
+
+    def test_sidecar_and_source(self):
+        import tempfile
+        from talkto.usb import apk_version, parse_perms
+        d = Path(tempfile.mkdtemp())
+        apk = d / "talk-to-linux.apk"
+        apk.write_bytes(b"PK")
+        self.assertIsNone(apk_version(apk))  # bilinmiyorsa "eski" denmez
+        (d / "talk-to-linux.apk.surum").write_text("0.9.0\n")
+        self.assertEqual(apk_version(apk), "0.9.0")
+        src = d / "android/app"
+        (src / "build/outputs/apk/tam/release").mkdir(parents=True)
+        (src / "build.gradle.kts").write_text('        versionCode = 14\n        versionName = "0.9.1"\n')
+        self.assertEqual(apk_version(src / "build/outputs/apk/tam/release/app-tam-release.apk"), "0.9.1")
+        self.assertIsNone(apk_version(None))
+        self.assertEqual(parse_perms("android.permission.POST_NOTIFICATIONS: granted=false, flags=[ ]"),
+                         {"post": False})
+        self.assertEqual(parse_perms(""), {"post": None})
+
+
 if __name__ == "__main__":
     unittest.main()

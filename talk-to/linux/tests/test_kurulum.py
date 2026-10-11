@@ -22,62 +22,98 @@ def item(s, prefix):
 
 
 class SetupChecksTest(unittest.TestCase):
+    def phone_step(self, usb, status=STATUS, simple=False):
+        return step(setup_checks.steps(status, dict({"adb": True, "apk": "/x.apk", "apk_version": "0.9.0"}, **usb),
+                                       ufw=False, simple=simple), "telefon")
+
     def test_fresh_computer(self):
         steps = setup_checks.steps(dict(STATUS, usb=False), {"adb": False, "apk": "/x.apk", "devices": []}, ufw=False)
-        self.assertEqual([s.key for s in steps], ["hos-geldin", "telefon", "usb", "wifi", "ekler"])
-        usb = step(steps, "usb")
-        adb = item(usb, "adb")
+        self.assertEqual([s.key for s in steps], ["hos-geldin", "telefon", "wifi", "ekler"])
+        tel = step(steps, "telefon")
+        adb = item(tel, "USB için adb")
         self.assertEqual((adb.ok, adb.action, adb.action_label), (False, "install_adb", "Kur"))
-        self.assertEqual(item(usb, "USB bağlantısı").action, "enable_usb")
-        self.assertFalse(any(i.title.startswith("Telefon") for i in usb.items))  # adb yokken telefon denetlenemez
-        self.assertFalse(item(step(steps, "telefon"), "Bağlı telefon").ok)
-        self.assertEqual(item(step(steps, "wifi"), "Kablosuz").action, "enable_wireless")
+        self.assertEqual(item(tel, "Wi-Fi ile bağlanmak").action, "enable_wireless")
+        tel = self.phone_step({"devices": []}, dict(STATUS, usb=False))
+        self.assertEqual(item(tel, "USB bağlantısı kapalı").action, "enable_usb")
 
     def test_usb_phone_states(self):
-        def phone(usb):
-            return step(setup_checks.steps(STATUS, dict({"adb": True, "apk": "/x.apk"}, **usb), ufw=False), "usb").items
+        self.assertIsNone(item(self.phone_step({"devices": []}), "USB ile: telefon takılı değil").ok)
+        self.assertFalse(item(self.phone_step({"devices": [], "unseen": [{"serial": "s", "name": "Xiaomi Redmi"}]}),
+                              "Xiaomi Redmi takılı ama USB hata ayıklama kapalı").ok)
+        self.assertFalse(item(self.phone_step({"devices": [{"serial": "s", "state": "unauthorized"}]}),
+                              "Telefon onay bekliyor").ok)
 
-        self.assertIn("takılı değil", phone({"devices": []})[2].title)
-        self.assertIn("hata ayıklama kapalı",
-                      phone({"devices": [], "unseen": [{"serial": "s", "name": "Xiaomi Redmi", "adb": False}]})[2].title)
-        self.assertIn("onay bekliyor", phone({"devices": [{"serial": "s", "state": "unauthorized"}]})[2].title)
-        items = phone({"devices": [{"serial": "S1", "state": "device", "model": "Pixel 8", "app": False}]})
-        self.assertTrue(items[2].ok)
-        self.assertEqual(items[3].action, "install_phone_app:S1")
-        items = phone({"devices": [{"serial": "S1", "state": "device", "model": "Pixel 8", "app": True}]})
-        self.assertTrue(items[3].ok)
+    def test_connect_from_computer(self):
+        """USB'deki telefon telefona gitmeden bağlanır: kur → bağlan → bağlı."""
+        dev = {"serial": "S1", "state": "device", "model": "2311DRK48G", "name": "POCO X6 Pro", "app": False}
+        inst = item(self.phone_step({"devices": [dev]}), "POCO X6 Pro: Talk To Linux yok")
+        self.assertEqual((inst.action, inst.action_label), ("install_phone_app:S1", "Kur ve bağlan"))
+        dev.update(app=True, app_version="0.9.0")
+        tel = self.phone_step({"devices": [dev]}, dict(STATUS, wireless=True))
+        conn = item(tel, "POCO X6 Pro USB'de")
+        self.assertEqual((conn.ok, conn.action, conn.action_label), (False, "connect_usb:S1", "Bağlan"))
+        self.assertIn("Wi-Fi ağında", item(tel, "Wi-Fi ile").text)  # kablo yoksa Wi-Fi yolu da yazıyor
+        st = dict(STATUS, sessions=[{"name": "Coşkun'un telefonu", "kind": "usb", "adb_serial": "S1",
+                                     "phone": {"notif_access": True, "listener": True}}])
+        tel = self.phone_step({"devices": [dev]}, st)
+        self.assertTrue(item(tel, "Coşkun'un telefonu bağlı (USB)").ok)
+        self.assertFalse(any(i.action and i.action.startswith("connect_usb") for i in tel.items))
+        self.assertFalse(any(i.title.startswith("Wi-Fi ile") for i in tel.items))
+
+    def test_permissions_given_on_phone_are_not_asked_again(self):
+        """Telefonda elle verilen izinler adb'den okunur: bağlanmadan da "tamam" görünür, yeniden istenmez."""
+        dev = {"serial": "S1", "state": "device", "model": "P", "app": True, "app_version": "0.9.0",
+               "perms": {"post": True, "listener": True, "battery": True}}
+        self.assertTrue(item(self.phone_step({"devices": [dev]}), "Telefondaki izinler tamam").ok)
+        dev["perms"] = {"post": False, "listener": True, "battery": False}
+        perms = item(self.phone_step({"devices": [dev]}), "Telefondaki izinler")
+        self.assertEqual((perms.ok, perms.action, perms.action_label), (False, "phone_setup:S1", "Tamamla"))
+        self.assertIn("pil", perms.text)
+        self.assertIn("bildirim izni", perms.text)
+        self.assertNotIn("bildirim erişimi", perms.text)
+        # Telefonun kendi söylediği (bağlıyken) daha güncel: adb'nin eski okuması "eksik" dese de.
+        dev["perms"] = {"listener": False}
+        st = dict(STATUS, sessions=[{"name": "P", "kind": "usb", "adb_serial": "S1", "phone": {"notif_access": True}}])
+        self.assertTrue(item(self.phone_step({"devices": [dev]}, st), "Telefondaki izinler tamam").ok)
+        # Hiçbir bilgi yoksa satır çıkmaz (telefon takılı değil, bağlı değil).
+        dev["perms"] = {}
+        items = self.phone_step({"devices": [dev]}).items
+        self.assertFalse(any(i.title.startswith("Telefondaki izinler") for i in items))
 
     def test_xiaomi_and_outdated_app(self):
         dev = {"serial": "S1", "state": "device", "model": "Redmi Note 12", "app": True, "app_version": "0.6.0",
-               "maker": "Xiaomi", "xiaomi_permissions": False, "xiaomi_install": False}
-        usb = {"adb": True, "apk": "/x.apk", "apk_version": "0.7.1", "devices": [dev]}
-        u = step(setup_checks.steps(STATUS, usb, ufw=False), "usb")
-        titles = [i.title for i in u.items]
+               "maker": "Xiaomi", "xiaomi_permissions": False, "xiaomi_install": False,
+               "perms": {"post": False, "listener": False, "battery": False}}
+        tel = self.phone_step({"devices": [dev]})
+        titles = [i.title for i in tel.items]
         self.assertIn("Xiaomi: “USB üzerinden yükle” kapalı", titles)
         self.assertIn("Xiaomi: “USB hata ayıklama (Güvenlik ayarları)” kapalı", titles)
-        upd = item(u, "Telefondaki Talk To Linux eski (0.6.0)")
-        self.assertEqual((upd.ok, upd.action), (False, "install_phone_app:S1"))
+        upd = item(tel, "Redmi Note 12: Talk To Linux eski (0.6.0)")
+        self.assertEqual((upd.ok, upd.action, upd.action_label), (False, "install_phone_app:S1", "Güncelle"))
         # İzinler Xiaomi ayarı açılmadan bilgisayardan verilemez: düğme yerine ne yapılacağı yazar.
-        perms = item(u, "Telefondaki izinler")
-        self.assertIsNone(perms.action)
-        # Ayarlar açılıp uygulama güncellenince uyarılar kalkar.
-        dev.update(xiaomi_permissions=True, xiaomi_install=True, app_version="0.7.1")
-        u = step(setup_checks.steps(STATUS, usb, ufw=False), "usb")
-        self.assertFalse(any(i.title.startswith(("Xiaomi", "Telefondaki Talk To Linux eski")) for i in u.items))
-        self.assertTrue(item(u, "Telefonda Talk To Linux kurulu (0.7.1)").ok)
-        self.assertEqual(item(u, "Telefondaki izinler").action, "phone_setup:S1")
+        self.assertIsNone(item(tel, "Telefondaki izinler").action)
+        # Ayarlar açılıp uygulama güncellenince uyarılar kalkar, "Bağlan" ve "Tamamla" çıkar.
+        dev.update(xiaomi_permissions=True, xiaomi_install=True, app_version="0.9.0")
+        tel = self.phone_step({"devices": [dev]})
+        self.assertFalse(any(i.title.startswith(("Xiaomi", "Redmi Note 12: Talk To Linux eski")) for i in tel.items))
+        self.assertEqual(item(tel, "Redmi Note 12 USB'de").action, "connect_usb:S1")
+        self.assertEqual(item(tel, "Telefondaki izinler").action, "phone_setup:S1")
+        # Telefonda izinler verildiyse Xiaomi'nin "Güvenlik ayarları" anahtarı artık gerekmez.
+        dev.update(xiaomi_permissions=False, perms={"post": True, "listener": True, "battery": True})
+        self.assertFalse(any(i.title.startswith("Xiaomi") for i in self.phone_step({"devices": [dev]}).items))
 
     def test_nothing_recognised_lists_usb_devices(self):
-        usb = {"adb": True, "apk": "/x.apk", "devices": [], "usb_devices": ["Logitech USB Receiver (046d:c52b)"]}
-        info = item(step(setup_checks.steps(STATUS, usb, ufw=False), "usb"), "Bu bilgisayarın gördüğü")
+        info = item(self.phone_step({"devices": [], "usb_devices": ["Logitech USB Receiver (046d:c52b)"]}),
+                    "Bu bilgisayarın gördüğü")
         self.assertIn("046d:c52b", info.text)
 
-    def test_phone_permissions_from_computer(self):
-        usb = {"adb": True, "apk": "/x.apk", "devices": [{"serial": "S1", "state": "device", "model": "P", "app": True}]}
-        perms = item(step(setup_checks.steps(STATUS, usb, ufw=False), "usb"), "Telefondaki izinler")
-        self.assertEqual((perms.ok, perms.action), (False, "phone_setup:S1"))
-        st = dict(STATUS, sessions=[{"name": "P", "kind": "usb", "phone": {"notif_access": True, "listener": True}}])
-        self.assertTrue(item(step(setup_checks.steps(st, usb, ufw=False), "usb"), "Telefondaki izinler").ok)
+    def test_wifi_phone_permissions_from_its_status(self):
+        st = dict(STATUS, sessions=[{"name": "Pixel", "kind": "wifi", "phone": {"notif_access": False}}])
+        tel = self.phone_step({"devices": []}, st)
+        self.assertTrue(item(tel, "Pixel bağlı (Wi-Fi)").ok)
+        perms = item(tel, "Telefondaki izinler")
+        self.assertEqual((perms.ok, perms.action), (False, None))
+        self.assertIn("İzinler ve yetkiler", perms.text)
 
     def test_firewall_and_extras(self):
         steps = setup_checks.steps(dict(STATUS, wireless=True), {"adb": True, "devices": []}, ufw=True, autostart=True)
@@ -90,15 +126,14 @@ class SetupChecksTest(unittest.TestCase):
         no_fw = setup_checks.steps(STATUS, {"adb": True, "devices": []}, ufw=False)
         self.assertFalse(any(i.title.startswith("Güvenlik") for i in step(no_fw, "wifi").items))
 
-    def test_simple_mode_puts_wifi_first(self):
+    def test_simple_mode_usb_optional(self):
         steps = setup_checks.steps(STATUS, {"adb": False, "devices": []}, ufw=False, simple=True)
-        keys = [s.key for s in steps]
-        self.assertLess(keys.index("wifi"), keys.index("usb"))
         self.assertFalse(item(step(steps, "wifi"), "Kablosuz").optional)
-        self.assertTrue(all(i.optional for i in step(steps, "usb").items if i.ok is False))
+        self.assertTrue(item(step(steps, "telefon"), "USB için adb").optional)
+        self.assertFalse(item(step(steps, "telefon"), "Wi-Fi ile bağlanmak").optional)
         self.assertIn("Özellikler", steps[0].text)
-        full = [s.key for s in setup_checks.steps(STATUS, {"adb": False, "devices": []}, ufw=False)]
-        self.assertLess(full.index("usb"), full.index("wifi"))
+        full = setup_checks.steps(STATUS, {"adb": False, "devices": []}, ufw=False)
+        self.assertFalse(item(step(full, "telefon"), "USB için adb").optional)
 
     def test_ufw_conf(self):
         with tempfile.TemporaryDirectory() as d:

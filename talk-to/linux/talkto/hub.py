@@ -223,7 +223,7 @@ class Hub:
             "password_set": bool(self.config["password"]),
             "addresses": list(self.addresses),
             "error": self.error,
-            "sessions": [s.info() for s in self.sessions.values()],
+            "sessions": [dict(s.info(), adb_serial=self._serial_of(s)) for s in self.sessions.values()],
             "trusted": [{"device_id": k, "profile": self.config.profile_of(k)[0],
                          **{f: v[f] for f in ("name", "model", "paired_at")}}
                         for k, v in self.config.trusted().items()],
@@ -455,6 +455,15 @@ class Hub:
 
     # ---- telefonun ekranı (scrcpy) -------------------------------------------------
 
+    def _serial_of(self, s) -> str | None:
+        """Bağlı oturum USB'deki hangi telefon (kurulum yardımcısı "bağlı" diyebilsin): modeli eşleşen; USB
+        oturumunda tek telefon takılıysa o. Wi-Fi'deki başka bir telefon USB'dekiyle karıştırılmaz."""
+        ready = {k: d for k, d in self.usb.devices.items() if d.get("state") == "device"}
+        for serial, d in ready.items():
+            if d.get("model") and (s.model or "").casefold().endswith(str(d["model"]).casefold()):
+                return serial
+        return next(iter(ready)) if s.kind == "usb" and len(ready) == 1 else None
+
     def _adb_serial_for(self, s) -> str | None:
         """USB'deki oturumun adb seri numarası: modeli eşleşen ya da tek bağlı telefon."""
         ready = {k: d for k, d in self.usb.devices.items() if d.get("state") == "device"}
@@ -499,8 +508,12 @@ class Hub:
         return ok, text
 
     async def refresh_usb(self):
-        """Kurulum yardımcısındaki "Kontrol et": telefondaki ayarlar yeniden okunur."""
+        """Kurulum yardımcısı açıkken düzenli: telefondaki ayarlar (izinler, Xiaomi anahtarları) yeniden okunur."""
         await self.usb.refresh()
+
+    async def connect_phone(self, serial: str) -> tuple[bool, str]:
+        """Bilgisayardaki "Bağlan": telefondaki uygulama USB tünelinden bağlanacak şekilde açılır."""
+        return await self.usb.connect_phone(serial)
 
     async def install_phone_app(self, serial: str, replace: bool = False) -> tuple[bool, str]:
         return await self.usb.install_app(serial, replace)
