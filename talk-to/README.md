@@ -115,6 +115,7 @@ Komut satırı, çalışan uygulamayla `$XDG_RUNTIME_DIR/talk-to-android.sock` �
 
 **Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.7.0_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
 
+- **Güncellerken:** eski sürüm kuruluyken Uygulama Merkezi yeni `.deb` için çoğu zaman "Güncelle" göstermez, yalnızca çöp kutusu (kaldır) çıkar. Kaldırmaya gerek yok: terminalde dosyanın olduğu klasörde `sudo apt install ./talk-to-android_0.7.0_all.deb` eskisinin üstüne kurar; ayarlar ve eşleşmeler `~/.config` altında kalır. "dpkg/lock-frontend kilidi alınamadı … (unattended-upgr)" hatası, Ubuntu'nun kendi otomatik güncellemesi o an çalışıyor demek: birkaç dakika bekleyip yeniden dene.
 - Uygulama Merkezi yerel `.deb` kurarken eksik bağımlılıkları kendisi indirmiyor (0.2.0'da "unmet dependencies" hatası bundandı). Bu yüzden paketin zorunlu bağımlılığı yalnızca `python3`. GTK4/libadwaita eksikse uygulama **ilk açılışta** "kurulsun mu?" diye sorar ve bilgisayarın şifre penceresiyle kurar.
 - Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.7.0_all.deb`.
 
