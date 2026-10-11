@@ -125,9 +125,17 @@ object Talk {
 
     fun mediaOn() = isConnected() && currentServer()?.media != false && profile.value?.can("media") != false
 
-    fun notifAccessGranted() = BuildConfig.NOTIFICATIONS && runCatching {
+    /**
+     * Sistem servisine sorulur: ayar metni (enabled_notification_listeners) erişim verildikten biraz sonra
+     * yazılabiliyor; bilgisayar adb ile verince eski metin "kapalı" dedirtiyordu. Dinleyici bağlıysa erişim
+     * zaten vardır.
+     */
+    fun notifAccessGranted() = BuildConfig.NOTIFICATIONS && (listenerConnected.value || runCatching {
+        app.getSystemService(android.app.NotificationManager::class.java)
+            .isNotificationListenerAccessGranted(ComponentName(app, NotificationListener::class.java))
+    }.getOrElse {
         NotificationManagerCompat.getEnabledListenerPackages(app).contains(app.packageName)
-    }.getOrDefault(false)
+    })
 
     /**
      * Erişim verilmiş ama dinleyici bağlı değilse (ör. uygulama USB'den güncellendikten sonra bazı

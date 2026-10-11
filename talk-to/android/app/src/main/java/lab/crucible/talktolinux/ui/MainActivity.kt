@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        notifAccess.value = NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName)
+        notifAccess.value = Talk.notifAccessGranted()
         Talk.ensureListener()
         Talk.sendPhoneStatus()
         UiTick.bump()  // ayar sayfasından dönüldü: denetimler yeniden okunsun
