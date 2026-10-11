@@ -50,8 +50,34 @@ jobs:
           name: talk-to-linux-apk
           path: talk-to/linux/apk
 
-      - name: .deb paketi (APK içinde)
-        run: sh paket/deb-olustur.sh "$(ls apk/talk-to-linux-*.apk | grep -v hafif)"
+      - name: .deb paketi (APK içinde; sır tanımlıysa imzalı)
+        # Gizli anahtar yalnızca bu adımda var; dosyası adım bitmeden silinir.
+        env:
+          DEB_IMZA: ${{ secrets.TALKTO_DEB_IMZA_ANAHTARI }}
+        run: |
+          if [ -n "$DEB_IMZA" ]; then
+            printf '%s\n' "$DEB_IMZA" > "$RUNNER_TEMP/deb-imza.asc"
+            export DEB_IMZA_ANAHTARI="$RUNNER_TEMP/deb-imza.asc"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "::error::Etiketli sürüm imzasız .deb ile yayınlanamaz (TALKTO_DEB_IMZA_ANAHTARI sırrı yok)."
+            exit 1
+          else
+            echo "::warning::TALKTO_DEB_IMZA_ANAHTARI sırrı yok: .deb imzasız üretiliyor."
+          fi
+          r=0
+          sh paket/deb-olustur.sh "$(ls apk/talk-to-linux-*.apk | grep -v hafif)" || r=$?
+          rm -f "$RUNNER_TEMP/deb-imza.asc"
+          exit $r
+
+      - name: .deb imzası (sır varsa ya da etiketli sürümde imza zorunlu)
+        env:
+          IMZALI: ${{ secrets.TALKTO_DEB_IMZA_ANAHTARI != '' }}
+        run: |
+          if [ "$IMZALI" = "true" ] || [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            python3 paket/deb-imzala.py dogrula paket/talk-to-android_*_all.deb
+          else
+            python3 paket/deb-imzala.py dogrula paket/talk-to-android_*_all.deb || true
+          fi
 
       - name: Paket kurulup çalışıyor mu
         run: |

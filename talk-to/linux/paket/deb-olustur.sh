@@ -19,7 +19,8 @@ trap 'rm -rf "$BUILD"' EXIT
 
 mkdir -p "$ROOT/DEBIAN" "$ROOT/usr/lib/talk-to-android" "$ROOT/usr/bin" "$ROOT/usr/share/applications" \
     "$ROOT/usr/share/icons/hicolor/scalable/apps" "$ROOT/usr/share/icons/hicolor/256x256/apps" \
-    "$ROOT/usr/share/metainfo" "$ROOT/usr/share/doc/talk-to-android" "$ROOT/usr/share/talk-to-android"
+    "$ROOT/usr/share/metainfo" "$ROOT/usr/share/doc/talk-to-android" "$ROOT/usr/share/talk-to-android" \
+    "$ROOT/usr/share/keyrings"
 cp -r "$HERE/talkto" "$ROOT/usr/lib/talk-to-android/"
 find "$ROOT/usr/lib/talk-to-android" -name __pycache__ -prune -exec rm -rf {} +
 cat > "$ROOT/usr/bin/talk-to-android" <<'SH'
@@ -37,6 +38,8 @@ else
     echo "Not: APK yok; paket telefona kurulum düğmesi olmadan üretiliyor." >&2
 fi
 cp "$HERE/data/lab.crucible.TalkToAndroid.metainfo.xml" "$ROOT/usr/share/metainfo/"
+# Yayıncının açık anahtarı: sonraki sürümün imzası bununla doğrulanır (paket/deb-imzala.py).
+cp "$HERE/paket/talk-to-android-paket.gpg" "$ROOT/usr/share/keyrings/"
 cp "$HERE/../README.md" "$ROOT/usr/share/doc/talk-to-android/"
 SIZE=$(du -sk "$ROOT/usr" | cut -f1)
 cat > "$ROOT/DEBIAN/control" <<CTL
@@ -72,4 +75,8 @@ find "$ROOT/usr" -type d -exec chmod 755 {} +
 find "$ROOT/usr" -type f ! -path "*/usr/bin/*" -exec chmod 644 {} +
 OUT="$HERE/paket/talk-to-android_${VER}_all.deb"
 dpkg-deb --root-owner-group --build "$ROOT" "$OUT" >/dev/null
+# İmza anahtarı verildiyse (CI'da sır) paket imzalanır; yoksa imzasız kalır.
+if [ -n "${DEB_IMZA_ANAHTARI:-}" ] && [ -f "$DEB_IMZA_ANAHTARI" ]; then
+    python3 "$HERE/paket/deb-imzala.py" imzala "$OUT" "$DEB_IMZA_ANAHTARI" >&2
+fi
 echo "$OUT"
