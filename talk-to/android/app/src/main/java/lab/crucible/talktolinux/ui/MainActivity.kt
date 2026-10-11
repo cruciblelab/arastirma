@@ -24,15 +24,23 @@ class MainActivity : ComponentActivity() {
     private val pickFiles = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         sendViaService(this, uris)
     }
+    /** İstek kullanıcının bastığı düğmeden mi geldi (yalnızca o zaman ayar sayfasına götürülür). */
+    private var notifFromUser = false
     private val askNotifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        // Daha önce "bir daha sorma" denmişse Android pencere göstermez: ayar sayfasına götür.
-        if (!granted && Build.VERSION.SDK_INT >= 33 &&
+        // Daha önce "bir daha sorma" denmişse Android pencere göstermez: kullanıcı düğmeye bastıysa ayar sayfasına götür.
+        if (!granted && notifFromUser && Build.VERSION.SDK_INT >= 33 &&
             !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
             Checks.open(this, Checks.appNotificationSettings(this))
         }
+        notifFromUser = false
         UiTick.bump()
     }
-    private val askBluetooth = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+    private val askBluetooth = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        // Kalıcı reddedildiyse pencere çıkmaz; düğme bir şey yapmıyor gibi görünmesin.
+        if (!granted && Build.VERSION.SDK_INT >= 31 &&
+            !shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_CONNECT)) {
+            Checks.open(this, Checks.appDetails(this))
+        }
         Talk.refreshBluetooth()
         UiTick.bump()
     }
@@ -40,9 +48,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // İlk açılışta izni kurulum sihirbazı ister; sihirbazı geçmiş eski kurulumlarda burada.
-        if (Talk.prefs.setupDone && Build.VERSION.SDK_INT >= 33 &&
+        // İlk açılışta izni kurulum sihirbazı ister; sihirbazı geçmiş eski kurulumlarda burada, yalnızca bir kez
+        // (döndürmede, tema değişiminde ve her açılışta yeniden sorulmaz).
+        if (savedInstanceState == null && Talk.prefs.setupDone && !Talk.prefs.notifAsked && Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            Talk.prefs.notifAsked = true
             askNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
         setContent {
@@ -51,12 +61,14 @@ class MainActivity : ComponentActivity() {
                     notifAccess = notifAccess.value,
                     onPickFiles = { pickFiles.launch(arrayOf("*/*")) },
                     onSendClipboard = ::sendClipboard,
-                    onOpenNotifAccess = { Checks.open(this, Checks.notifAccessIntent(this)) },
+                    onOpenNotifAccess = { Checks.openNotifAccess(this) },
                     onBluetoothPermission = ::askBluetoothPermission,
                     perms = PermActions(
                         notifications = {
-                            if (Build.VERSION.SDK_INT >= 33) askNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            else Checks.open(this, Checks.appNotificationSettings(this))
+                            if (Build.VERSION.SDK_INT >= 33) {
+                                notifFromUser = true
+                                askNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else Checks.open(this, Checks.appNotificationSettings(this))
                         },
                         bluetooth = ::askBluetoothPermission,
                     ),
@@ -71,7 +83,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        Talk.uiVisible = true
         Talk.discoveryAcquire()
+        // Bağlanırken uygulama arka plandaysa ön plan servisi başlatılamamış olabilir: şimdi (önde) tamamla.
+        if (Talk.isConnected()) runCatching {
+            ContextCompat.startForegroundService(this, Intent(this, lab.crucible.talktolinux.service.TalkService::class.java))
+        }
     }
 
     override fun onResume() {
@@ -84,13 +101,16 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        Talk.uiVisible = false
         Talk.discoveryRelease()
         super.onStop()
     }
 
     private fun sendClipboard() {
-        val text = getSystemService(ClipboardManager::class.java).primaryClip
-            ?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()
+        // Yalnızca metin: resim/dosya kopyalanmışsa coerceToText "content://…" verir, o gönderilmez.
+        val item = runCatching { getSystemService(ClipboardManager::class.java).primaryClip }.getOrNull()
+            ?.takeIf { it.itemCount > 0 }?.getItemAt(0)
+        val text = (item?.text ?: item?.htmlText)?.toString()
         if (text.isNullOrEmpty()) Talk.messages.tryEmit("Panoda metin yok") else Talk.sendClipboard(text)
     }
 }

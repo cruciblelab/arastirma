@@ -33,23 +33,44 @@ Linux tarafı (Talk To Android): [`linux/talkto/`](linux/talkto/) · Android tar
 ## El sıkışma ve kimlik doğrulama
 
 ```
-telefon → hello {proto:1, app:"talk-to-linux", device_id, name, model, platform, token|null}
-bilgisayar → hello {proto:1, app:"talk-to-android", version, device_id, name, platform:"linux"}
+telefon → hello {proto:1, app:"talk-to-linux", device_id, name, model, platform, token|null,
+                 features:["pair2","pw2"], commit: SHA-256(gizli)}
+bilgisayar → hello {proto:1, app:"talk-to-android", version, device_id, name, platform:"linux",
+                    features:["pair2","pw2"]}
 ```
 
+`gizli`, telefonun her bağlantıda ürettiği 32 baytlık rastgele değerin hex hâlidir; `commit` onun
+SHA-256'sı (hex). Telefon bilgisayarın hello'daki `device_id`'si kayıtlıysa parmak izinin o kayıtla
+aynı olduğunu da denetler; değilse kimlik doğrulamaya hiç geçmez.
+
 1. `token` bilgisayarın kayıtlı belirteciyle (SHA-256'sı saklanır) eşleşirse → `welcome {}`.
+   Telefon belirteç göndermediyse ve şifre/onay adımı olmadıysa gelen `welcome`'u kabul etmez.
 2. Değilse yöntem seçilir:
-   - **USB**, **Bluetooth** ya da **Wi-Fi + şifre yok** → `auth_required {method:"approval", nonce}`.
-     İki taraf da `kod = SHA-256("nonce:parmakizi:device_id")` ilk 4 baytı mod 10⁶ (6 hane) hesaplar.
+   - **USB**, **Bluetooth** ya da **Wi-Fi + şifre yok** → `auth_required {method:"approval", nonce, pair:2}`.
+     Telefon `pair_reveal {secret: gizli}` yollar; bilgisayar `SHA-256(gizli) == commit` olduğunu denetler.
+     İki taraf da `kod = SHA-256("nonce:gizli:parmakizi:device_id")` ilk 4 baytı mod 10⁶ (6 hane) hesaplar.
      Bilgisayar kodu onay penceresinde, telefon ekranında gösterir. Kullanıcı aynı olduğunu görüp onaylar.
-     Telefon kodu **kendi gördüğü** sertifikadan hesapladığı için araya giren biri varsa kodlar farklı çıkar.
+     Telefon `gizli`'ye nonce'u görmeden bağlandığı (taahhüt ettiği) için araya giren biri iki ekranda aynı
+     kodu çıkaracak nonce'u seçemez; telefon kodu kendi gördüğü sertifikadan hesaplar.
    - **Wi-Fi + şifre** → `auth_required {method:"password", nonce}`; telefon
-     `auth_password {proof: HMAC-SHA256(şifre, "nonce:parmakizi")}` yollar. Parmak izi iletiye girdiği için
-     kanıt başka bir sunucuya aktarılamaz.
+     `auth_password {proof}` yollar:
+     `anahtar = PBKDF2-HMAC-SHA256(şifre, tuz="talkto:parmakizi", 100000 tur, 32 bayt)`,
+     `proof = HMAC-SHA256(anahtar, "nonce:parmakizi")`. Parmak izi iletiye girdiği için kanıt başka bir
+     sunucuya aktarılamaz; PBKDF2, sahte bir sunucunun kanıttan şifreyi çevrimdışı denemesini yavaşlatır.
 3. Başarılıysa `welcome {token}` (32 bayt rastgele, hex). Telefon belirteci bilgisayarın parmak iziyle birlikte saklar.
-   Onay penceresinde telefona bir **profil** seçilir; şifreyle eşleşen telefon varsayılan profili alır.
+   Onay penceresinde telefona bir **profil** seçilir; şifreyle eşleşen telefon varsayılan profili alır
+   (bilgisayarda "yeni telefon şifreyle eşleşti" bildirimi çıkar).
 4. Başarısızsa `auth_failed {reason}`: `wrong_password`, `rejected` (reddedildi ya da 60 sn doldu), `too_many_attempts`
-   (aynı IP'den 10 dakikada 5 hata), bağlantı kapanır.
+   (aynı IP'den 10 dakikada 5 hata; USB/yerel bağlantıda 20), bağlantı kapanır.
+
+**Eski sürümler.** Bilgisayar, `features` göndermeyen eski telefonlara eski yöntemlerle cevap verir
+(`kod = SHA-256("nonce:parmakizi:device_id")`, `proof = HMAC-SHA256(şifre, "nonce:parmakizi")`).
+Telefon ise `pair2`/`pw2` bildirmeyen bilgisayara şifre ya da onay için bağlanmaz (`server_outdated`):
+yoksa sahte bir sunucu eski yöntemi isteyerek korumayı atlatabilirdi.
+
+**Sınırlar.** Kimlik doğrulamadan önce JSON çerçevesi en çok 64 KiB, ikili çerçeve yok; aynı anda en çok
+16 doğrulanmamış bağlantı ve IP başına 2 süren el sıkışma; en çok 3 bekleyen onay penceresi.
+Bilgisayardaki yerel bir bağlantı ancak başka bir kullanıcıya ait değilse USB sayılır.
 
 Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorleri.json) (iki tarafın testleri de bu dosyayı okur).
 
@@ -58,6 +79,7 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | Tür | Yön | Alanlar |
 |---|---|---|
 | `ping` / `pong` | iki yön | 15 sn'de bir; 50 sn hiçbir şey gelmezse bağlantı kopmuş sayılır |
+| `bye` | bilgisayar → telefon | `reason`: `disconnected` (bilgisayarda "Bağlantıyı kes") ya da `forgotten` ("Unut"); telefon kendiliğinden yeniden bağlanmaz, `forgotten`'da belirteci de siler. Ardından bağlantı kapanır |
 | `battery` | telefon → bilgisayar | `level` (0-100), `charging` |
 | `phone_status` | telefon → bilgisayar | `flavor` ("tam"/"hafif"), `sdk`, `notif_access`, `listener` (Android bildirim dinleyicisini bağladı mı), `player` (izlenen medya uygulaması ya da null), `notifications_sent`; bağlanınca ve değişince. Bilgisayar bundan "bildirimler neden gelmiyor" uyarısı üretir |
 | `notification` | telefon → bilgisayar | `key`, `package`, `app`, `title`, `text`, `time_ms` |

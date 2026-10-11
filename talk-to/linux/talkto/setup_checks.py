@@ -67,7 +67,9 @@ def _usb_phone(usb: dict) -> Item:
                 "telefonla gelen kabloyu kullan.", False)
 
 
-def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None = None) -> list[Step]:
+def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None = None,
+          firewall_port: int | None = None) -> list[Step]:
+    """firewall_port: güvenlik duvarına bu uygulamadan izin eklenen port (yoksa None)."""
     sessions = status.get("sessions", [])
     ready = [d for d in usb.get("devices", []) if d.get("state") == "device"]
     out = [Step("hos-geldin", "Talk To Android'e hoş geldin",
@@ -96,7 +98,10 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
     if usb.get("adb"):
         u.items.append(_usb_phone(usb))
         for d in ready:
-            if d.get("app") is False and usb.get("apk"):
+            if d.get("installing"):
+                u.items.append(Item("Telefona kuruluyor…", "Telefonda bir soru çıkarsa onayla; bitince uygulama açılır.",
+                                    None))
+            elif d.get("app") is False and usb.get("apk"):
                 u.items.append(Item("Telefonda Talk To Linux yok", "Tek tıkla USB'den kurulur ve açılır.", False,
                                     f"install_phone_app:{d['serial']}", "Telefona kur"))
             elif d.get("app"):
@@ -114,7 +119,10 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
                         "Bilgisayar bir ağa bağlı görünmüyor.", bool(addrs), optional=True))
     if ufw is None:
         ufw = ufw_enabled()
-    if ufw:
+    if ufw and firewall_port == status.get("port"):
+        w.items.append(Item("Güvenlik duvarı (ufw)", f"{status.get('port')}/tcp ve {UDP_PORT}/udp için izin eklendi.",
+                            True, optional=True))
+    elif ufw:
         w.items.append(Item("Güvenlik duvarı (ufw) açık",
                             f"Telefonun bağlanabilmesi için {status.get('port')}/tcp ve {UDP_PORT}/udp portlarına izin "
                             "verilmeli. “İzin ver” bunu yapar (şifre sorulur). Zaten izin verdiysen geç.",

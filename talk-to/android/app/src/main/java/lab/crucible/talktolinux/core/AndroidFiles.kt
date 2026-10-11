@@ -26,9 +26,11 @@ class DownloadsStore(private val context: Context) : ClientSession.FileStore {
         val resolver = context.contentResolver
         val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
             ?: throw IOException("dosya oluşturulamadı")
-        val out: OutputStream = resolver.openOutputStream(uri) ?: run {
-            resolver.delete(uri, null, null)
-            throw IOException("dosya açılamadı")
+        val out: OutputStream = try {
+            resolver.openOutputStream(uri) ?: throw IOException("dosya açılamadı")
+        } catch (e: Exception) {
+            runCatching { resolver.delete(uri, null, null) }  // yarım "bekliyor" kaydı kalmasın
+            throw e
         }
         val buffered = out.buffered(256 * 1024)
         return object : ClientSession.Sink {
@@ -46,25 +48,42 @@ class DownloadsStore(private val context: Context) : ClientSession.FileStore {
     }
 }
 
+private const val TEMP_PREFIX = "gonder-"
+
+/** Önceki çalışmadan kalmış geçici kopyaları siler (uygulama açılışında). */
+fun cleanTempCopies(context: Context) {
+    runCatching { context.cacheDir.listFiles { f -> f.name.startsWith(TEMP_PREFIX) }?.forEach { it.delete() } }
+}
+
 /** Paylaşılan ya da seçilen bir Uri'yi gönderilebilir kaynağa çevirir. */
 fun uriSource(context: Context, uri: Uri): ClientSession.Source {
     val resolver = context.contentResolver
     var name = uri.lastPathSegment?.substringAfterLast('/') ?: "dosya"
     var size = -1L
-    resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
-        if (c.moveToFirst()) {
-            c.getString(0)?.let { name = it }
-            if (!c.isNull(1)) size = c.getLong(1)
+    // Bazı sağlayıcılar projeksiyonu yok sayar ya da sütunları başka sırada döndürür: adla bul.
+    runCatching {
+        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
+            if (c.moveToFirst()) {
+                val n = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (n >= 0 && !c.isNull(n)) c.getString(n)?.takeIf { it.isNotBlank() }?.let { name = it }
+                val z = c.getColumnIndex(OpenableColumns.SIZE)
+                if (z >= 0 && !c.isNull(z)) size = c.getLong(z)
+            }
         }
     }
     val mime = resolver.getType(uri) ?: "application/octet-stream"
     if (size < 0) {
         // Boyutu bilinmeyen kaynak (bazı uygulamalar bildirmez): önce önbelleğe kopyala.
-        val tmp = File(context.cacheDir, "gonder-${System.nanoTime()}")
-        resolver.openInputStream(uri)?.use { i -> tmp.outputStream().use { i.copyTo(it) } }
-            ?: throw IOException("dosya okunamadı")
-        tmp.deleteOnExit()
-        return ClientSession.Source(name, tmp.length(), mime) { tmp.inputStream() }
+        // Android'de deleteOnExit çalışmaz: gönderim bitince cleanup siler, kalan olursa açılışta silinir.
+        val tmp = File(context.cacheDir, "$TEMP_PREFIX${System.nanoTime()}")
+        try {
+            resolver.openInputStream(uri)?.use { i -> tmp.outputStream().use { i.copyTo(it) } }
+                ?: throw IOException("dosya okunamadı")
+        } catch (e: Exception) {
+            tmp.delete()
+            throw e
+        }
+        return ClientSession.Source(name, tmp.length(), mime, cleanup = { tmp.delete() }) { tmp.inputStream() }
     }
     return ClientSession.Source(name, size, mime) {
         resolver.openInputStream(uri) ?: throw IOException("dosya okunamadı")

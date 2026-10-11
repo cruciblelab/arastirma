@@ -49,7 +49,8 @@ class ClientSession(
         fun abort()
     }
 
-    class Source(val name: String, val size: Long, val mime: String, val open: () -> InputStream)
+    class Source(val name: String, val size: Long, val mime: String, val cleanup: () -> Unit = {},
+                 val open: () -> InputStream)
 
     data class Transfer(
         val direction: String, val tid: Long, val name: String, val size: Long, val done: Long,
@@ -148,30 +149,50 @@ class ClientSession(
      * Engelleyen el sıkışma. [password] yalnızca bilgisayar şifre isterse
      * kullanılır; isterse ve yoksa sonuç Failed("password_needed") olur.
      */
-    fun handshake(deviceId: String, name: String, model: String, token: String?, password: String?): AuthResult {
+    /**
+     * [verifyServer] bilgisayarın hello'daki kimliğiyle çağrılır; false dönerse (ör. bu kimlik
+     * kayıtlı ama güvenlik kodu farklı) şifre ya da onay adımına hiç geçilmez.
+     */
+    fun handshake(deviceId: String, name: String, model: String, token: String?, password: String?,
+                  verifyServer: (serverId: String) -> String? = { null }): AuthResult {
+        val secret = Auth.newSecret()
         send(JSONObject().put("type", "hello").put("proto", 1).put("device_id", deviceId)
             .put("name", name).put("model", model).put("platform", "android").put("app", "talk-to-linux")
-            .put("token", token ?: JSONObject.NULL))
+            .put("token", token ?: JSONObject.NULL)
+            .put("features", org.json.JSONArray().put("pair2").put("pw2"))
+            .put("commit", Auth.commitOf(secret)))
         val hello = readJson()
         if (hello.optString("type") != "hello") return AuthResult.Failed("protocol")
         val serverId = hello.optString("device_id")
         val serverName = hello.optString("name", "Linux")
+        verifyServer(serverId)?.let { return AuthResult.Failed(it) }
+        val features = hello.optJSONArray("features")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
         var msg = readJson()
+        var authenticated = false
         if (msg.optString("type") == "auth_required") {
             val nonce = msg.getString("nonce")
             if (msg.optString("method") == "password") {
                 if (password == null) return AuthResult.Failed("password_needed")
+                // Eski bilgisayar PBKDF2'siz kanıt ister; sahte bir sunucu da bunu isteyip şifreyi
+                // çevrimdışı deneyebilirdi. Bu yüzden eski yönteme düşülmez.
+                if ("pw2" !in features) return AuthResult.Failed("server_outdated")
                 send(JSONObject().put("type", "auth_password")
-                    .put("proof", Auth.passwordProof(password, nonce, fingerprint)))
-                msg = readJson()
+                    .put("proof", Auth.passwordProof2(password, nonce, fingerprint)))
             } else {
-                listener.onPairingCode(Auth.pairingCode(nonce, fingerprint, deviceId))
+                // Taahhütsüz (eski) onay kodunu araya giren biri iki ekranda eşitleyebilir.
+                if (msg.optInt("pair") != 2 || "pair2" !in features) return AuthResult.Failed("server_outdated")
+                send(JSONObject().put("type", "pair_reveal").put("secret", secret))
+                listener.onPairingCode(Auth.pairingCode2(nonce, secret, fingerprint, deviceId))
                 socket?.soTimeout = 75_000  // kullanıcı bilgisayarda onaylayana kadar
-                msg = readJson()
             }
+            authenticated = true
+            msg = readJson()
         }
         return when (msg.optString("type")) {
-            "welcome" -> AuthResult.Welcome(msg.optString("token").ifEmpty { null }, serverId, serverName)
+            // Belirteç gönderilmediyse ve şifre/onay yapılmadıysa "welcome" bir kanıt değildir:
+            // gerçek bilgisayar tanımadığı telefona asla doğrudan welcome yollamaz.
+            "welcome" -> if (token == null && !authenticated) AuthResult.Failed("protocol")
+                else AuthResult.Welcome(msg.optString("token").ifEmpty { null }, serverId, serverName)
             "auth_failed" -> AuthResult.Failed(msg.optString("reason", "rejected"))
             else -> AuthResult.Failed("protocol")
         }

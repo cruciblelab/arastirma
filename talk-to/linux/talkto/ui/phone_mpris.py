@@ -78,7 +78,13 @@ def bus_name(device_id: str) -> str:
 class PhonePlayer:
     """Bir telefonun oynatıcısı. control(device_id, action, value) komutu telefona iletir."""
 
-    def __init__(self, bus, device_id: str, device_name: str, control):
+    def __init__(self, device_id: str, device_name: str, control):
+        # Her telefon kendi bağlantısında: aynı bağlantıda /org/mpris/MediaPlayer2 iki kez kaydedilemez
+        # (ikinci telefon "nesne zaten kayıtlı" hatası alırdı).
+        addr = Gio.dbus_address_get_for_bus_sync(Gio.BusType.SESSION, None)
+        bus = Gio.DBusConnection.new_for_address_sync(
+            addr, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
+            None, None)
         self.bus, self.device_id, self.device_name, self.control = bus, device_id, device_name, control
         self.state: dict = {"active": False}
         self.received = time.monotonic()
@@ -92,6 +98,10 @@ class PhonePlayer:
         Gio.bus_unown_name(self.owner)
         for r in self.regs:
             self.bus.unregister_object(r)
+        try:
+            self.bus.close_sync(None)  # ad da bağlantıyla birlikte hemen bırakılır
+        except GLib.Error:
+            pass
 
     # ---- durum ----------------------------------------------------------------
 
@@ -205,7 +215,11 @@ class PhonePlayers:
                 del self.players[device_id]
             return
         if not p:
-            p = self.players[device_id] = PhonePlayer(self.bus, device_id, device_name, self.control)
+            try:
+                p = self.players[device_id] = PhonePlayer(device_id, device_name, self.control)
+            except GLib.Error as e:
+                log.warning("telefon oynatıcısı masaüstüne eklenemedi: %s", e.message)
+                return
         p.update(state)
 
     def art(self, device_id: str, art_id: str):

@@ -6,6 +6,7 @@ Elle deneme için de kullanılabilir:
 
 import asyncio
 import hashlib
+import secrets
 import ssl
 import sys
 from pathlib import Path
@@ -17,7 +18,10 @@ from talkto.protocol import CHUNK, encode_binary, encode_json, read_frame  # noq
 
 
 class FakePhone:
-    def __init__(self, device_id="telefon-test-0001", name="Test Telefonu"):
+    def __init__(self, device_id="telefon-test-0001", name="Test Telefonu", legacy=False):
+        # legacy=True: 0.4 ve öncesi telefon (taahhütsüz onay kodu, PBKDF2'siz şifre kanıtı).
+        self.legacy = legacy
+        self.server_features = []
         self.device_id = device_id
         self.name = name
         self.fp = None
@@ -35,15 +39,24 @@ class FakePhone:
         self.fp = hashlib.sha256(der).hexdigest()
         if expect_fp and expect_fp != self.fp:
             raise RuntimeError("parmak izi değişti")
-        await self.send({"type": "hello", "proto": PROTOCOL_VERSION, "device_id": self.device_id,
-                         "name": self.name, "model": "Python", "platform": "test", "token": token})
+        secret = secrets.token_hex(32)
+        hello = {"type": "hello", "proto": PROTOCOL_VERSION, "device_id": self.device_id,
+                 "name": self.name, "model": "Python", "platform": "test", "token": token}
+        if not self.legacy:
+            hello.update(features=["pair2", "pw2"], commit=auth.commit_of(secret))
+        await self.send(hello)
         hello = await self.recv()
         assert hello["type"] == "hello", hello
+        self.server_features = hello.get("features") or []
         msg = await self.recv()
         if msg["type"] == "auth_required":
             if msg["method"] == "password":
-                await self.send({"type": "auth_password",
-                                 "proof": auth.password_proof(password or "", msg["nonce"], self.fp)})
+                proof = (auth.password_proof(password or "", msg["nonce"], self.fp) if self.legacy
+                         else auth.password_proof2(password or "", msg["nonce"], self.fp))
+                await self.send({"type": "auth_password", "proof": proof})
+            elif msg.get("pair") == 2:
+                await self.send({"type": "pair_reveal", "secret": secret})
+                self.code = auth.pairing_code2(msg["nonce"], secret, self.fp, self.device_id)
             else:
                 self.code = auth.pairing_code(msg["nonce"], self.fp, self.device_id)
             msg = await self.recv()

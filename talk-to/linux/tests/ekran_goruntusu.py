@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import traceback
 import tempfile
 import time
 from pathlib import Path
@@ -72,6 +73,8 @@ def snap(widget, name):
         s = Gtk.Snapshot()
         paintable.snapshot(s, w, h)
         node = s.to_node()
+        if node is None:  # pencere bu değişiklikten sonra henüz çizilmedi: sonraki turda yeniden dene
+            raise NotReady(name)
         tex = widget.get_native().get_renderer().render_texture(node, Graphene.Rect().init(0, 0, w, h))
         tex.save_to_png(str(path))
     print("kaydedildi", path)
@@ -124,6 +127,32 @@ pages = ["baglanti", "cihazlar", "medya", "dosyalar", "bildirimler", "komutlar"]
 step = {"i": 0}
 
 
+class NotReady(Exception):
+    pass
+
+
+def guard(fn):
+    """Zamanlayıcı geri çağrısındaki istisnayı GLib yalnızca yazdırır; uygulama açık kalır ve CI saatlerce
+    bekler. Bu yüzden hata olursa süreç hemen başarısız biter (henüz çizilmemiş pencere hariç: o turda
+    hiçbir şey ilerlemez, zamanlayıcı bir sonraki turda aynı adımı yeniden dener)."""
+    def wrapped(*args):
+        try:
+            return fn(*args)
+        except NotReady as e:
+            print("henüz çizilmedi, yeniden denenecek:", e)
+            return True
+        except Exception:  # noqa: BLE001
+            traceback.print_exc()
+            os._exit(1)
+    return wrapped
+
+
+def watchdog():
+    print("ekran görüntüsü 120 sn içinde bitmedi", file=sys.stderr)
+    os._exit(1)
+
+
+@guard
 def shoot():
     win = app.window
     i = step["i"]
@@ -151,6 +180,7 @@ def shoot():
     return False
 
 
+@guard
 def shoot_setup():
     """Kurulum yardımcısının her adımı (ilk açılışta kendiliğinden açılır)."""
     sw = app.setup_window
@@ -166,11 +196,13 @@ def shoot_setup():
     return False
 
 
+@guard
 def start():
     fill()
     GLib.timeout_add(900, shoot_setup if os.environ.get("KURULUM") else shoot)
     return False
 
 
+GLib.timeout_add_seconds(120, watchdog)
 app.connect("activate", lambda *_: GLib.timeout_add(600, start))
 app.run([])

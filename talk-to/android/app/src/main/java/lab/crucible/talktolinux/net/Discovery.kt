@@ -43,19 +43,25 @@ class Discovery(
     }
 
     private fun openSocket(): DatagramSocket {
-        val s = DatagramSocket(null)
-        s.reuseAddress = true
-        s.broadcast = true
-        try {
-            s.bind(InetSocketAddress(udpPort))
+        val s = try {
+            DatagramSocket(null).apply { reuseAddress = true; bind(InetSocketAddress(udpPort)) }
         } catch (_: Exception) {
-            s.bind(InetSocketAddress(0))  // yalnızca probe cevaplarını alırız
+            DatagramSocket(InetSocketAddress(0))  // port meşgul: yalnızca probe cevaplarını alırız
         }
+        s.broadcast = true
         s.soTimeout = 500
         return s
     }
 
+    /** Beklenmeyen bir hatada (ağ değişti, soket kapandı) iş parçacığı ölmesin: kısa bekleyip yeniden kur. */
     private fun loop() {
+        while (running) {
+            runOnce()
+            if (running) runCatching { Thread.sleep(2000) }
+        }
+    }
+
+    private fun runOnce() {
         var lastProbe = 0L
         var lastUsb = 0L
         var usb = false
@@ -85,7 +91,8 @@ class Discovery(
                 } catch (_: SocketTimeoutException) {
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (running) System.err.println("talkto keşif: ${e.message}")
         } finally {
             socket?.close()
             if (usb) onUsb(false)
@@ -98,8 +105,9 @@ class Discovery(
         val id = o.optString("id").ifEmpty { return }
         val f = Found(id, o.optString("name", host), host, o.optInt("port", tcpPort),
             o.optString("fp"), o.optBoolean("password"), System.currentTimeMillis())
+        // Anahtar kimlik + güvenlik kodu: aynı kimlikle yapılan sahte bir duyuru gerçeğini ezmesin.
         val changed = synchronized(found) {
-            val old = found.put(id, f)
+            val old = found.put("$id|${f.fp}", f)
             old == null || old.copy(seenAt = 0) != f.copy(seenAt = 0)
         }
         if (changed) publish()
@@ -111,8 +119,18 @@ class Discovery(
 
     private fun publish() = onFound(synchronized(found) { found.values.toList() })
 
+    /**
+     * Bilgisayarda sunucu yokken de adb reverse kuralı kalmış olabilir: adb bağlantıyı kabul edip hemen
+     * kapatır. TLS sunucusu ise ClientHello bekler ve kendisi bir şey yollamaz; kısa okuma bunu ayırır.
+     */
     private fun probeUsb(): Boolean = try {
-        Socket().use { it.connect(InetSocketAddress("127.0.0.1", tcpPort), 300); true }
+        Socket().use {
+            it.connect(InetSocketAddress("127.0.0.1", tcpPort), 300)
+            it.soTimeout = 400
+            it.getInputStream().read() != -1
+        }
+    } catch (_: SocketTimeoutException) {
+        true
     } catch (_: Exception) {
         false
     }

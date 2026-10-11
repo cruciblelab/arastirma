@@ -68,8 +68,8 @@ object PhoneMedia {
     }
 
     fun stop() {
-        manager?.removeOnActiveSessionsChangedListener(sessionsListener)
-        controller?.unregisterCallback(callback)
+        runCatching { manager?.removeOnActiveSessionsChangedListener(sessionsListener) }
+        runCatching { controller?.unregisterCallback(callback) }
         controller = null
         manager = null
     }

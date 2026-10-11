@@ -52,6 +52,10 @@ object Checks {
                 ComponentName(ctx, NotificationListener::class.java).flattenToString())
         else Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
 
+    /** Bildirim erişimini açar; o uygulamaya özel sayfa yoksa genel liste (Ayarlar ana sayfası değil). */
+    fun openNotifAccess(ctx: Context) =
+        open(ctx, notifAccessIntent(ctx), Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+
     fun appNotificationSettings(ctx: Context): Intent =
         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)
 

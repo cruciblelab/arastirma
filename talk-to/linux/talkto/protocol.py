@@ -36,14 +36,15 @@ def encode_binary(transfer_id: int, data: bytes) -> bytes:
     return _HEAD.pack(KIND_BINARY, len(data) + 4) + _TID.pack(transfer_id) + data
 
 
-async def read_frame(reader):
+async def read_frame(reader, max_json: int = MAX_JSON, allow_binary: bool = True):
     """('json', dict) ya da ('binary', (aktarım_no, bytes)) döndürür.
 
-    Bağlantı kapanırsa asyncio.IncompleteReadError fırlar.
+    Bağlantı kapanırsa asyncio.IncompleteReadError fırlar. Kimlik doğrulamadan önce
+    küçük bir max_json ve allow_binary=False ile çağrılır (bellek tüketme saldırısı).
     """
     kind, length = _HEAD.unpack(await reader.readexactly(_HEAD.size))
     if kind == KIND_JSON:
-        if length > MAX_JSON:
+        if length > max_json:
             raise ProtocolError("JSON çerçevesi sınırı aşıyor")
         try:
             msg = json.loads(await reader.readexactly(length))
@@ -53,6 +54,8 @@ async def read_frame(reader):
             raise ProtocolError("JSON çerçevesinde 'type' yok")
         return "json", msg
     if kind == KIND_BINARY:
+        if not allow_binary:
+            raise ProtocolError("kimlik doğrulanmadan ikili çerçeve")
         if not 4 <= length <= MAX_BINARY:
             raise ProtocolError("ikili çerçeve uzunluğu geçersiz")
         body = await reader.readexactly(length)

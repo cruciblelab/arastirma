@@ -29,3 +29,32 @@ def interfaces() -> list[dict]:
         except OSError:
             pass
     return out
+
+
+_LOOPBACK_HEX = ("0100007F", "00000000000000000000000001000000", "0000000000000000FFFF00000100007F")
+
+
+def loopback_peer_uid(peer_port: int, local_port: int, tables=("/proc/net/tcp", "/proc/net/tcp6")) -> int | None:
+    """127.0.0.1 üzerinden bize bağlanan soketin sahibi olan kullanıcı (Linux /proc/net/tcp).
+
+    Bağlananın kaydında yerel adres 127.0.0.1:peer_port, uzak adres 127.0.0.1:local_port olur.
+    Bulunamazsa None.
+    """
+    want_local, want_remote = f"{peer_port:04X}", f"{local_port:04X}"
+    for table in tables:
+        try:
+            with open(table, encoding="ascii") as fh:
+                lines = fh.read().splitlines()[1:]
+        except OSError:
+            continue
+        for line in lines:
+            f = line.split()
+            if len(f) < 8:
+                continue
+            (la, lp), (ra, rp) = f[1].split(":"), f[2].split(":")
+            if lp == want_local and rp == want_remote and la in _LOOPBACK_HEX and ra in _LOOPBACK_HEX:
+                try:
+                    return int(f[7])
+                except ValueError:
+                    return None
+    return None

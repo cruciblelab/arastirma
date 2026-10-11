@@ -23,6 +23,7 @@ import androidx.core.content.ContextCompat
 import lab.crucible.talktolinux.BuildConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import lab.crucible.talktolinux.net.ClientSession
 import lab.crucible.talktolinux.net.Discovery
 import lab.crucible.talktolinux.service.NotificationListener
@@ -39,8 +40,9 @@ object Talk {
     lateinit var prefs: Prefs
         private set
 
+    /** [knownOnly]: yalnızca güvenlik kodu kayıtlı (belirteci olan) bir bilgisayara bağlan (otomatik USB). */
     data class Target(val host: String, val port: Int, val kind: String, val serverId: String?,
-                      val name: String, val fp: String?)
+                      val name: String, val fp: String?, val knownOnly: Boolean = false)
 
     sealed class State {
         object Idle : State()
@@ -86,6 +88,9 @@ object Talk {
     /** Telefonda izlenen oynatıcı (Spotify, YouTube...); yoksa null. */
     val phonePlayer = MutableStateFlow<String?>(null)
 
+    private val FINISHED = setOf("done", "failed", "cancelled", "rejected")
+    const val CLIPBOARD_MAX = 100_000
+
     @Volatile private var session: ClientSession? = null
     private val connector = Executors.newSingleThreadExecutor()
     private val sender = Executors.newSingleThreadExecutor()
@@ -95,6 +100,9 @@ object Talk {
     private var discoveryUsers = 0
     private var multicastLock: WifiManager.MulticastLock? = null
     private var lastAutoAttempt = 0L
+    @Volatile private var autoPausedUntil = 0L
+    /** Uygulama ekranı önde mi (periyodik istekler yalnızca o zaman). */
+    @Volatile var uiVisible = false
     private val iconsSent = HashSet<String>()
 
     fun init(context: Context) {
@@ -174,17 +182,33 @@ object Talk {
             val stored = prefs.server(target.serverId)
             if (stored != null && stored.fp != fp) {
                 s.close()
-                fail("${stored.name} bilgisayarının güvenlik kodu değişmiş. Talk To Android yeniden kurulduysa " +
-                    "bilgisayarı listeden unutup tekrar eşleştir; kurulmadıysa bağlanma.", auto = false)
+                if (target.knownOnly) {
+                    // Kendiliğinden denemede ağdaki sahte bir duyuru otomatik bağlanmayı kapatmasın.
+                    state.value = State.Idle
+                    autoPausedUntil = SystemClock.elapsedRealtime() + 60_000
+                } else fail(fpChanged(stored.name), auto = false)
                 return
             }
             val known = prefs.serverByFp(fp)
+            if (target.knownOnly && known?.token == null) {
+                // Telefondaki 127.0.0.1:47600'ü tanımadığımız bir şey açmış (başka bilgisayar ya da başka
+                // bir uygulama): kendiliğinden eşleşmeye girilmez, kullanıcı isterse kendisi dokunur.
+                s.close()
+                state.value = State.Idle
+                autoPausedUntil = SystemClock.elapsedRealtime() + 60_000
+                say("USB'deki bilgisayar tanınmıyor; eşleşmek için “USB kablosu”na dokun.")
+                return
+            }
             approvalTarget = target
+            // Duyurudaki kimlik doğrulanmamış bir iddia: bilgisayarın hello'da söylediği kimlik de
+            // kayıtlıysa güvenlik kodu (parmak izi) onunla da tutmalı; yoksa gerçek bilgisayarın
+            // kaydı başka bir sertifikayla değiştirilebilirdi.
             val res = s.handshake(prefs.deviceId, prefs.deviceName, Build.MANUFACTURER + " " + Build.MODEL,
-                known?.token, password)
+                known?.token, password) { id -> prefs.server(id)?.takeIf { it.fp != fp }?.let { "fp_changed:${it.name}" } }
             approvalTarget = null
             when (res) {
                 is ClientSession.AuthResult.Welcome -> {
+                    if (s.closed) throw IOException("vazgeçildi")  // bu arada "Bağlantıyı kes"e basıldı
                     prefs.saveServer(Prefs.Server(res.serverId, res.serverName, fp, res.token ?: known?.token,
                         target.host, target.port, target.kind))
                     prefs.autoServer = res.serverId.takeIf { prefs.server(it)?.auto != false }
@@ -207,16 +231,26 @@ object Talk {
                         ensureListener()
                         PhoneMedia.push()
                         sendPhoneStatus()
+                        flushPending()
                     }
                 }
                 is ClientSession.AuthResult.Failed -> {
                     s.close()
                     when (res.reason) {
-                        "password_needed" -> { state.value = State.Idle; passwordFor.value = target.copy(fp = fp) }
+                        "password_needed" -> {
+                            // Belirteçle bağlandık ama şifre istendi: bilgisayar bu telefonu unutmuş.
+                            known?.takeIf { it.token != null }?.let { k -> prefs.updateServer(k.id) { it.copy(token = null) } }
+                            state.value = State.Idle
+                            passwordFor.value = target.copy(fp = fp)
+                        }
                         "wrong_password" -> { state.value = State.Idle; say("Şifre yanlış"); passwordFor.value = target.copy(fp = fp) }
                         "rejected" -> fail("Bilgisayarda reddedildi ya da süre doldu", auto = false)
                         "too_many_attempts" -> fail("Çok fazla hatalı deneme. 10 dakika sonra tekrar dene.", auto = false)
-                        else -> fail("Bağlantı kurulamadı (${res.reason})")
+                        "server_outdated" -> fail("Bilgisayardaki Talk To Android eski. Güvenli eşleşme için " +
+                            "bilgisayardaki uygulamayı güncelle (0.5 ya da daha yeni).", auto = false)
+                        "protocol" -> fail("Bilgisayar beklenmeyen bir yanıt verdi; bağlanılmadı.", auto = false)
+                        else -> if (res.reason.startsWith("fp_changed:")) fail(fpChanged(res.reason.substringAfter(':')), auto = false)
+                            else fail("Bağlantı kurulamadı (${res.reason})")
                     }
                 }
             }
@@ -235,6 +269,10 @@ object Talk {
     }
 
     @Volatile private var approvalTarget: Target? = null
+    @Volatile private var byeReceived = false
+
+    private fun fpChanged(name: String) = "$name bilgisayarının güvenlik kodu değişmiş. Talk To Android yeniden " +
+        "kurulduysa bilgisayarı listeden unutup tekrar eşleştir; kurulmadıysa bağlanma."
 
     private fun fail(text: String, auto: Boolean = true) {
         state.value = State.Idle
@@ -245,6 +283,7 @@ object Talk {
     /** Kullanıcı bağlantıyı kesti: otomatik yeniden bağlanma da durur. */
     fun disconnect() {
         prefs.autoServer = null
+        cancelConnecting()  // bağlanma ya da onay sürüyorsa o da kesilsin
         val s = session
         session = null
         state.value = State.Idle
@@ -269,7 +308,9 @@ object Talk {
             session = null
             pcMedia.value = null
             state.value = State.Idle
-            if (wasConnected) {
+            if (byeReceived) {
+                byeReceived = false  // bilgisayar kendisi kesti; nedeni "bye"da söylendi
+            } else if (wasConnected) {
                 say("Bağlantı koptu" + (reason?.let { " ($it)" } ?: ""))
                 lastAutoAttempt = 0
                 // Servis açık kalır ve keşifle yeniden bağlanmayı dener (bkz. TalkService).
@@ -278,12 +319,19 @@ object Talk {
 
         override fun onTransfer(t: ClientSession.Transfer) {
             val key = t.direction + t.tid
-            transfers.value = (listOf(t) + transfers.value.filter { it.direction + it.tid != key }).take(30)
+            var stale = false
+            transfers.update { cur ->
+                val old = cur.firstOrNull { it.direction + it.tid == key }
+                // Okuyucu ve gönderen iş parçacıkları yarışabilir: bitmiş bir kaydı geç gelen ilerleme ezmesin.
+                stale = old != null && old.state in FINISHED && t.state !in FINISHED
+                if (stale) cur else (listOf(t) + cur.filter { it.direction + it.tid != key }).take(30)
+            }
+            if (stale) return
             if (t.direction == "in" && t.state == "done" && t.location != null) {
                 Notifs.fileReceived(app, t.name, t.location, app.contentResolver.getType(Uri.parse(t.location)))
             }
             if (t.state == "failed") say("${t.name}: ${t.error ?: "aktarım başarısız"}")
-            if (t.state == "rejected") say("${t.name} bilgisayarda reddedildi")
+            if (t.state == "rejected") say("${t.name} bilgisayarda reddedildi" + (t.error?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""))
         }
 
         override fun onMessage(msg: JSONObject) {
@@ -294,6 +342,16 @@ object Talk {
                     if (msg.isNull("volume")) null else msg.optInt("volume"), msg.optBoolean("can_seek"),
                     msg.optString("art_id").ifEmpty { null }.takeUnless { msg.isNull("art_id") },
                     SystemClock.elapsedRealtime())
+                "bye" -> {
+                    // Bilgisayardaki "Bağlantıyı kes" ya da "Unut": kendiliğinden geri bağlanılmaz.
+                    byeReceived = true
+                    prefs.autoServer = null
+                    val id = (state.value as? State.Connected)?.serverId
+                    if (msg.optString("reason") == "forgotten") {
+                        id?.let { prefs.updateServer(it) { s -> s.copy(token = null) } }
+                        say("Bilgisayar bu telefonu unuttu; yeniden bağlanmak için bilgisayarda onay gerekir")
+                    } else say("Bilgisayar bağlantıyı kesti")
+                }
                 "media_art" -> runCatching {
                     val bytes = Base64.decode(msg.getString("data"), Base64.DEFAULT)
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { pcArt.value = msg.getString("art_id") to it }
@@ -325,9 +383,17 @@ object Talk {
                 "ring" -> Notifs.ring(app)
                 "ring_stop" -> Notifs.stopRing(app)
                 "clipboard" -> main.post {
-                    val cm = app.getSystemService(ClipboardManager::class.java)
-                    cm.setPrimaryClip(ClipData.newPlainText("Talk To Linux", msg.optString("text")))
-                    if (Build.VERSION.SDK_INT < 33) Toast.makeText(app, "Bilgisayarın panosu kopyalandı", Toast.LENGTH_SHORT).show()
+                    // Binder sınırı ~1 MB: çok uzun metin setPrimaryClip'te süreci çökertir.
+                    val text = msg.optString("text")
+                    val clipped = text.length > CLIPBOARD_MAX
+                    try {
+                        app.getSystemService(ClipboardManager::class.java)
+                            .setPrimaryClip(ClipData.newPlainText("Talk To Linux", text.take(CLIPBOARD_MAX)))
+                        if (clipped) say("Bilgisayarın panosu çok uzundu; ilk ${CLIPBOARD_MAX / 1000} bin karakter kopyalandı")
+                        else if (Build.VERSION.SDK_INT < 33) Toast.makeText(app, "Bilgisayarın panosu kopyalandı", Toast.LENGTH_SHORT).show()
+                    } catch (e: RuntimeException) {
+                        say("Bilgisayarın panosu telefona sığmadı")
+                    }
                 }
             }
         }
@@ -346,27 +412,80 @@ object Talk {
         png()?.let { send(JSONObject().put("type", "app_icon").put("package", pkg).put("data", it)) }
     }
 
+    /** Bağlantı koptuysa ve kendiliğinden yeniden bağlanılacaksa paylaşımlar kısa süre bekletilir. */
+    fun willReconnect() = isConnected() || prefs.server(prefs.autoServer)?.token != null
+
+    private val pendingUris = ArrayList<Uri>()
+    @Volatile private var pendingText: String? = null
+    @Volatile private var pendingUntil = 0L
+
+    private fun queue(uris: List<Uri>, text: String?): Boolean {
+        if (!willReconnect()) return false
+        synchronized(pendingUris) {
+            pendingUris.addAll(uris)
+            if (text != null) pendingText = text
+            pendingUntil = SystemClock.elapsedRealtime() + 120_000
+        }
+        say("Bağlantı bekleniyor; bağlanınca gönderilecek")
+        return true
+    }
+
+    /** Bağlanınca bekleyen paylaşımları gönderir (süresi geçtiyse atar). */
+    private fun flushPending() {
+        val (uris, text) = synchronized(pendingUris) {
+            val fresh = SystemClock.elapsedRealtime() < pendingUntil
+            val out = (if (fresh) pendingUris.toList() else emptyList()) to (if (fresh) pendingText else null)
+            pendingUris.clear()
+            pendingText = null
+            out
+        }
+        if (uris.isNotEmpty()) sendUris(uris)
+        text?.let { sendText(it) }
+    }
+
     fun sendUris(uris: List<Uri>) {
-        val s = session ?: run { say("Önce bir bilgisayara bağlan"); return }
+        val s = session
+        if (s == null || !isConnected()) {
+            if (!queue(uris, null)) say("Önce bir bilgisayara bağlan")
+            return
+        }
         for (uri in uris) {
             fileSender.execute {
+                if (s.closed) return@execute
+                var src: ClientSession.Source? = null
                 try {
-                    s.sendFile(uriSource(app, uri))
-                } catch (e: IOException) {
-                    say("Dosya okunamadı: ${e.message}")
+                    src = uriSource(app, uri)
+                    s.sendFile(src)
+                } catch (e: Exception) {
+                    // SecurityException (izin geri alındı), sağlayıcı hataları, IOException...
+                    say("Dosya gönderilemedi: ${e.message ?: e.javaClass.simpleName}")
+                } finally {
+                    src?.let { runCatching { it.cleanup() } }
                 }
             }
         }
     }
 
+    fun isUrl(text: String) = Regex("^https?://\\S+$", RegexOption.IGNORE_CASE).matches(text.trim())
+
     fun cancelTransfer(t: ClientSession.Transfer) {
         val s = session ?: return
-        sender.execute { s.cancelTransfer(t.direction, t.tid) }
+        sender.execute { runCatching { s.cancelTransfer(t.direction, t.tid) } }
     }
 
     fun sendText(text: String) {
+        if (!isConnected()) {
+            if (!queue(emptyList(), text)) say("Önce bir bilgisayara bağlan")
+            return
+        }
         val t = text.trim()
-        if (Regex("^https?://\\S+$", RegexOption.IGNORE_CASE).matches(t)) {
+        val need = if (isUrl(t)) "open_url" else "clipboard"
+        if (profile.value?.can(need) == false) {
+            say(if (need == "open_url") "Bu bilgisayar bu telefona bağlantı açma izni vermiyor"
+                else "Bu bilgisayar bu telefona pano izni vermiyor")
+            return
+        }
+        if (isUrl(t)) {
             send(JSONObject().put("type", "open_url").put("url", t))
             say("Bağlantı bilgisayarda açılıyor")
         } else {
@@ -376,6 +495,10 @@ object Talk {
     }
 
     fun sendClipboard(text: String) {
+        if (profile.value?.can("clipboard") == false) {
+            say("Bu bilgisayar bu telefona pano izni vermiyor")
+            return
+        }
         send(JSONObject().put("type", "clipboard").put("text", text))
         say("Pano bilgisayara gönderildi")
     }
@@ -456,11 +579,15 @@ object Talk {
         val now = SystemClock.elapsedRealtime()
         if (now - lastAutoAttempt < 8_000) return
         val target = when {
-            auto.kind == "usb" && usbAvailable.value -> usbTarget()
+            // Başka kayıtlı bir bilgisayar da (ör. iş bilgisayarı) olabilir; yalnızca tanınan güvenlik kodu.
+            auto.kind == "usb" && usbAvailable.value && now > autoPausedUntil -> usbTarget().copy(knownOnly = true)
             // Bluetooth'ta yayın yok: kayıtlı adrese, daha seyrek dene (bağlanma denemesi birkaç saniye sürer).
             auto.kind == "bluetooth" && BluetoothLink.enabled(app) && BluetoothLink.hasPermission(app) &&
-                now - lastAutoAttempt > 20_000 -> Target(auto.host, 0, "bluetooth", auto.id, auto.name, auto.fp)
-            else -> found.value.firstOrNull { it.id == auto.id }?.let { targetOf(it) }
+                now - lastAutoAttempt > 20_000 -> Target(auto.host, 0, "bluetooth", auto.id, auto.name, auto.fp, knownOnly = true)
+            // Duyurudaki güvenlik kodu da kayıtlı olanla aynı olmalı (aynı kimlikle sahte duyuru olabilir).
+            now > autoPausedUntil -> found.value.firstOrNull { it.id == auto.id && it.fp == auto.fp }
+                ?.let { targetOf(it).copy(knownOnly = true) }
+            else -> null
         }
         if (target != null) {
             lastAutoAttempt = now

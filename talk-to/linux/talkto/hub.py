@@ -17,6 +17,7 @@ import hashlib
 import itertools
 import logging
 import mimetypes
+import os
 import re
 import secrets
 import socket
@@ -29,6 +30,7 @@ from . import PROTOCOL_VERSION, __version__, auth, pc
 from .config import Config, cache_dir
 from .discovery import Announcer
 from .identity import Identity
+from . import netinfo
 from .netinfo import interfaces
 from .protocol import CHUNK, ProtocolError, encode_binary, encode_json, read_frame
 from .transfers import Incoming
@@ -45,7 +47,16 @@ WRITE_TIMEOUT = 120
 APPROVAL_TIMEOUT = 60
 PASSWORD_TIMEOUT = 120
 MAX_FAILURES = 5
+MAX_FAILURES_LOCAL = 20  # 127.0.0.1 (USB tüneli): vazgeçip yeniden denemek daha sık
 FAILURE_WINDOW = 600
+MAX_INFLIGHT = 2         # aynı adresten aynı anda süren kimlik doğrulama
+MAX_PENDING_ASKS = 3     # aynı anda açık onay penceresi
+MAX_INCOMING = 4         # bir telefondan aynı anda gelen (ya da onay bekleyen) aktarım
+MAX_UNAUTHENTICATED = 16 # kimliği doğrulanmamış toplam bağlantı
+PREAUTH_MAX_JSON = 64 * 1024
+# Bilgisayarın desteklediği el sıkışma özellikleri (PROTOKOL.md): pair2 = taahhütlü onay kodu,
+# pw2 = PBKDF2'li şifre kanıtı.
+FEATURES = ("pair2", "pw2")
 _PKG = re.compile(r"^[A-Za-z0-9._]{1,200}$")
 _ART = re.compile(r"^[0-9a-f]{8,64}$")
 
@@ -95,6 +106,8 @@ class Hub:
         self.sessions: dict[str, "Session"] = {}
         self.pending: dict[str, asyncio.Future] = {}
         self.failures: dict[str, collections.deque] = {}
+        self.inflight: dict[str, int] = {}
+        self.unauthenticated = 0
         self.notifications = collections.deque(maxlen=100)
         self.addresses: list[str] = []
         self.error: str | None = None
@@ -235,7 +248,16 @@ class Hub:
     async def _on_connection(self, reader, writer):
         peer = writer.get_extra_info("peername") or ("?", 0)
         ip = peer[0]
-        kind = "usb" if ip in ("127.0.0.1", "::1") else "wifi"
+        kind = "wifi"
+        # adb reverse tüneli bağlantıyı bu kullanıcının adb sunucusundan 127.0.0.1'e getirir.
+        # USB kapalıysa ya da bağlantıyı başka bir yerel kullanıcının süreci açtıysa "USB"
+        # sayılmaz (şifre ve onay kuralları ağdaki gibi uygulanır).
+        if ip in ("127.0.0.1", "::1", "::ffff:127.0.0.1") and self.config["usb"]:
+            uid = netinfo.loopback_peer_uid(peer[1], (writer.get_extra_info("sockname") or ("", 0))[1])
+            if uid is None or uid == os.getuid():
+                kind = "usb"
+            else:
+                log.info("127.0.0.1'den başka kullanıcının (uid %s) bağlantısı: USB sayılmadı", uid)
         await Session(self, reader, writer, kind, ip).run()
 
     # ---- onay ve deneme sınırı -------------------------------------------
@@ -261,7 +283,8 @@ class Hub:
         now = time.monotonic()
         while q and now - q[0] > FAILURE_WINDOW:
             q.popleft()
-        return bool(q) and len(q) >= MAX_FAILURES
+        limit = MAX_FAILURES_LOCAL if ip in ("127.0.0.1", "::1") else MAX_FAILURES
+        return bool(q) and len(q) >= limit
 
     def record_failure(self, ip: str):
         self.failures.setdefault(ip, collections.deque()).append(time.monotonic())
@@ -276,7 +299,7 @@ class Hub:
         self.emit("connected", s.info())
         self.emit_status()
         await s.send_profile()
-        if self.media_state.get("active") and s.perm("media"):
+        if self.media_state.get("active") and s.perm("media") and self.config["share_media"]:
             await self._send_media(s, self.media_state)
 
     def unregister(self, s: "Session"):
@@ -305,18 +328,25 @@ class Hub:
             if s.perm("media"):
                 await self._send_media(s, st)
 
+    async def media_off(self, s: "Session"):
+        """Paylaşım ya da izin kapandı: telefondaki bilgisayar oynatıcısı donmuş kalmasın."""
+        if s.media_key is not None:
+            s.media_key = None
+            await s.send({"type": "media_state", "active": False})
+
     async def _send_media(self, s: "Session", st: dict):
         key = {k: v for k, v in st.items() if k != "position_ms"}
         now = time.monotonic()
         if key == s.media_key and now - s.media_sent < 5:
             return
         art_id = st.get("art_id")
-        if art_id and art_id not in s.art_sent and self.media:
+        # Telefon yalnızca son kapağı tutar: A→B→A geçişinde A'nın kapağı yeniden gitmeli.
+        if art_id and art_id != s.last_art and self.media:
             art = self.media.art(art_id)
             if art:
                 await s.send({"type": "media_art", "art_id": art_id, "mime": art[0],
                               "data": base64.b64encode(art[1]).decode()})
-                s.art_sent.add(art_id)
+                s.last_art = art_id
         await s.send({"type": "media_state", **st})
         s.media_key, s.media_sent = key, now
 
@@ -331,6 +361,9 @@ class Hub:
         if key in ("wireless", "usb", "port"):
             await self.apply()
         else:
+            if key == "share_media" and not value:
+                for s in list(self.sessions.values()):
+                    await self.media_off(s)
             self.emit_status()
 
     async def answer(self, rid: str, ok):
@@ -338,14 +371,16 @@ class Hub:
         if fut and not fut.done():
             fut.set_result(ok)
 
-    async def disconnect(self, device_id: str):
+    async def disconnect(self, device_id: str, reason: str = "disconnected"):
         s = self.sessions.get(device_id)
         if s:
+            # Telefon "bye" görünce kendiliğinden yeniden bağlanmaz (eski sürümler yok sayar).
+            await s.send({"type": "bye", "reason": reason})
             await s.close()
 
     async def forget(self, device_id: str):
         self.config.forget(device_id)
-        await self.disconnect(device_id)
+        await self.disconnect(device_id, "forgotten")
         self.emit_status()
 
     async def send_file(self, device_id: str, path: str) -> dict | None:
@@ -426,7 +461,7 @@ class Hub:
     async def mirror_device(self, serial: str, title: str | None = None) -> tuple[bool, str]:
         """adb'nin gördüğü telefonun (USB ya da ip:port) ekranını açar."""
         d = self.usb.devices.get(serial, {})
-        return self.mirror.start(serial, f"{title or d.get('model') or serial} · Talk To Android")
+        return await self.mirror.start_checked(serial, f"{title or d.get('model') or serial} · Talk To Android")
 
     async def mirror_session(self, device_id: str) -> tuple[bool, str]:
         """Bağlı telefonun ekranını açar: USB'de doğrudan, Wi-Fi'de adb'nin ağ bağlantısıyla."""
@@ -447,10 +482,16 @@ class Hub:
                 return False, msg
         else:
             return False, "Bluetooth üzerinden ekran açılamaz; USB ya da Wi-Fi gerekir"
-        return self.mirror.start(serial, f"{s.name} · Talk To Android")
+        return await self.mirror.start_checked(serial, f"{s.name} · Talk To Android")
 
     async def mirror_prepare_wireless(self, serial: str) -> tuple[bool, str]:
-        return await mirror.enable_wireless(serial)
+        ok, text = await mirror.enable_wireless(serial)
+        if ok:
+            # "adb tcpip" telefondaki adbd'yi yeniden başlatır: reverse tüneli düşer, sonraki yoklamada kurulur.
+            if serial in self.usb.devices:
+                self.usb.devices[serial]["tunnel"] = False
+            text += ". USB bağlantısı birkaç saniye kopup kendiliğinden geri gelir."
+        return ok, text
 
     async def install_phone_app(self, serial: str, replace: bool = False) -> tuple[bool, str]:
         return await self.usb.install_app(serial, replace)
@@ -499,7 +540,9 @@ class Session:
         self.media = {"active": False}
         self.media_key = None
         self.media_sent = 0.0
-        self.art_sent: set[str] = set()
+        self.last_art: str | None = None
+        self.serial = next(hub._tid)  # bu bağlantıya özgü sayı (aktarım anahtarları için)
+        self.offers: dict[int, asyncio.Task] = {}  # onay bekleyen gelen teklifler
         self.icons: dict[str, str] = {}
         self.incoming: dict[int, Incoming] = {}
         self.outgoing: dict[int, dict] = {}
@@ -535,6 +578,12 @@ class Session:
         await self.send({"type": "profile", "id": pid, "name": prof["name"],
                          "permissions": {k: bool(prof.get(k)) for k in Config.PERMISSIONS}})
         await self.send({"type": "commands", "items": pc.command_list(self.config.commands(), prof)})
+        if not (prof.get("media") and self.config["share_media"]):
+            await self.hub.media_off(self)
+        if not prof.get("media") and self.media.get("active"):
+            # İzin kalktı: telefonun oynatıcısı bilgisayarda (MPRIS) kapansın.
+            self.media = {"active": False}
+            self.hub.emit("media", {"device_id": self.device_id, "state": self.media})
 
     # ---- yazma ------------------------------------------------------------
 
@@ -606,8 +655,17 @@ class Session:
     async def run(self):
         reason = None
         self._spawn(self._write_loop())
+        if self.hub.unauthenticated >= MAX_UNAUTHENTICATED:
+            log.info("çok fazla doğrulanmamış bağlantı; %s reddedildi", self.ip)
+            await self.close()
+            return
+        self.hub.unauthenticated += 1
         try:
-            if not await asyncio.wait_for(self._handshake(), APPROVAL_TIMEOUT + PASSWORD_TIMEOUT + 30):
+            try:
+                authed = await asyncio.wait_for(self._handshake(), APPROVAL_TIMEOUT + PASSWORD_TIMEOUT + 30)
+            finally:
+                self.hub.unauthenticated -= 1
+            if not authed:
                 return
             self.registered = True
             await self.hub.register(self)
@@ -683,7 +741,8 @@ class Session:
 
     async def _read_json(self, timeout) -> dict:
         while True:
-            kind, msg = await asyncio.wait_for(read_frame(self.reader), timeout)
+            kind, msg = await asyncio.wait_for(
+                read_frame(self.reader, max_json=PREAUTH_MAX_JSON, allow_binary=False), timeout)
             if kind == "json" and msg["type"] != "ping":
                 return msg
 
@@ -695,10 +754,12 @@ class Session:
         self.name = _s(hello.get("name"), 64) or "Telefon"
         self.model = _s(hello.get("model"), 64)
         self.app = _s(hello.get("app"), 40)
+        features = hello.get("features") if isinstance(hello.get("features"), list) else []
+        commit = hello.get("commit") if auth.valid_commit(hello.get("commit")) else None
         fp = self.hub.identity.fingerprint
         await self.send({"type": "hello", "proto": PROTOCOL_VERSION, "device_id": self.config["device_id"],
                          "name": self.config["name"], "platform": "linux", "app": "talk-to-android",
-                         "version": __version__})
+                         "version": __version__, "features": list(FEATURES)})
 
         trusted = self.config.trusted().get(self.device_id)
         token = hello.get("token")
@@ -706,51 +767,83 @@ class Session:
             await self.send({"type": "welcome"})
             return True
 
-        if self.hub.blocked(self.ip):
+        # Buradan sonrası bir deneme sayılır. Aynı adresten aynı anda en fazla 2 deneme;
+        # başarıyla bitmeyen her deneme (yanlış şifre, ret, yarıda bırakma) hata olarak sayılır.
+        if self.hub.blocked(self.ip) or self.hub.inflight.get(self.ip, 0) >= MAX_INFLIGHT:
             await self.send({"type": "auth_failed", "reason": "too_many_attempts"})
             return False
-
-        nonce = auth.new_nonce()
-        password = self.config["password"]
-        chosen = None
-        if self.kind == "wifi" and password:
-            await self.send({"type": "auth_required", "method": "password", "nonce": nonce})
-            msg = await self._read_json(PASSWORD_TIMEOUT)
-            proof = msg.get("proof") if msg.get("type") == "auth_password" else None
-            if not isinstance(proof, str) or not auth.equal(proof, auth.password_proof(password, nonce, fp)):
+        self.hub.inflight[self.ip] = self.hub.inflight.get(self.ip, 0) + 1
+        ok = False
+        try:
+            chosen = await self._authenticate(fp, features, commit)
+            if chosen is False:
+                return False
+            ok = True
+        finally:
+            self.hub.inflight[self.ip] -= 1
+            if not self.hub.inflight[self.ip]:
+                del self.hub.inflight[self.ip]
+            if not ok:
                 self.hub.record_failure(self.ip)
-                await self.send({"type": "auth_failed", "reason": "wrong_password"})
-                return False
-        else:
-            code = auth.pairing_code(nonce, fp, self.device_id)
-            await self.send({"type": "auth_required", "method": "approval", "nonce": nonce})
-            # Telefon beklerken bağlantıyı kapatırsa soruyu da kapat.
-            watch = asyncio.create_task(read_frame(self.reader))
-            ask = asyncio.create_task(self.hub.ask("pair", {
-                "name": self.name, "model": self.model, "code": code, "transport": self.kind, "ip": self.ip,
-                "profiles": {k: v["name"] for k, v in self.config.profiles().items()},
-                "default_profile": self.config.profile_of(self.device_id)[0],
-            }, APPROVAL_TIMEOUT))
-            done, _ = await asyncio.wait({watch, ask}, return_when=asyncio.FIRST_COMPLETED)
-            if watch in done:
-                ask.cancel()
-                if not watch.cancelled():
-                    watch.exception()
-                return False
-            watch.cancel()
-            await asyncio.gather(watch, return_exceptions=True)  # okuyucu serbest kalsın
-            answer = ask.result()
-            if not answer:
-                self.hub.record_failure(self.ip)
-                await self.send({"type": "auth_failed", "reason": "rejected"})
-                return False
-            if isinstance(answer, str) and answer in self.config.profiles():
-                chosen = answer
 
         token = auth.new_token()
         self.config.trust(self.device_id, self.name, self.model, auth.token_hash(token), chosen)
         await self.send({"type": "welcome", "token": token})
         return True
+
+    async def _authenticate(self, fp: str, features: list, commit: str | None):
+        """Şifre ya da onayla kimlik doğrular. False: başarısız; None ya da profil kimliği: başarılı."""
+        nonce = auth.new_nonce()
+        password = self.config["password"]
+        if self.kind == "wifi" and password:
+            await self.send({"type": "auth_required", "method": "password", "nonce": nonce})
+            msg = await self._read_json(PASSWORD_TIMEOUT)
+            proof = msg.get("proof") if msg.get("type") == "auth_password" else None
+            if "pw2" in features:
+                expected = await asyncio.to_thread(auth.password_proof2, password, nonce, fp)
+            else:  # eski telefon
+                expected = auth.password_proof(password, nonce, fp)
+            if self.hub.blocked(self.ip) or not isinstance(proof, str) or not auth.equal(proof, expected):
+                await self.send({"type": "auth_failed", "reason": "wrong_password"})
+                return False
+            self.hub.emit("paired_by_password", {"name": self.name, "model": self.model, "ip": self.ip})
+            return None
+
+        if sum(1 for _ in self.hub.pending) >= MAX_PENDING_ASKS:
+            await self.send({"type": "auth_failed", "reason": "too_many_attempts"})
+            return False
+        if commit:
+            # Sürüm 2: telefon rastgele değerini ancak nonce'u gördükten sonra açıklar.
+            await self.send({"type": "auth_required", "method": "approval", "nonce": nonce, "pair": 2})
+            reveal = await self._read_json(30)
+            secret = reveal.get("secret") if reveal.get("type") == "pair_reveal" else None
+            if not isinstance(secret, str) or not auth.equal(auth.commit_of(secret), commit):
+                await self.send({"type": "auth_failed", "reason": "protocol"})
+                return False
+            code = auth.pairing_code2(nonce, secret, fp, self.device_id)
+        else:  # eski telefon
+            await self.send({"type": "auth_required", "method": "approval", "nonce": nonce})
+            code = auth.pairing_code(nonce, fp, self.device_id)
+        # Telefon beklerken bağlantıyı kapatırsa soruyu da kapat.
+        watch = asyncio.create_task(read_frame(self.reader, max_json=PREAUTH_MAX_JSON, allow_binary=False))
+        ask = asyncio.create_task(self.hub.ask("pair", {
+            "name": self.name, "model": self.model, "code": code, "transport": self.kind, "ip": self.ip,
+            "profiles": {k: v["name"] for k, v in self.config.profiles().items()},
+            "default_profile": self.config.profile_of(self.device_id)[0],
+        }, APPROVAL_TIMEOUT))
+        done, _ = await asyncio.wait({watch, ask}, return_when=asyncio.FIRST_COMPLETED)
+        if watch in done:
+            ask.cancel()
+            if not watch.cancelled():
+                watch.exception()
+            return False
+        watch.cancel()
+        await asyncio.gather(watch, return_exceptions=True)  # okuyucu serbest kalsın
+        answer = ask.result()
+        if not answer:
+            await self.send({"type": "auth_failed", "reason": "rejected"})
+            return False
+        return answer if isinstance(answer, str) and answer in self.config.profiles() else None
 
     # ---- gelen iletiler -----------------------------------------------------
 
@@ -771,7 +864,8 @@ class Session:
                           "notifications_sent": _int(msg.get("notifications_sent"))}
             hub.emit_status()
         elif t == "app_icon":
-            self._save_icon(msg)
+            if self.perm("notifications"):
+                self._save_icon(msg)
         elif t == "notification":
             if not (self.config["show_notifications"] and self.perm("notifications")):
                 return
@@ -814,6 +908,8 @@ class Session:
             # İki uç da aktarımları 1'den numaralar; "direction" alıcının (bilgisayarın) gözünden
             # hangi yöndekinin iptal edildiğini söyler. Eski telefonlar göndermez: iki yöne de bak.
             direction = msg.get("direction")
+            if direction != "out" and tid in self.offers:
+                self.offers.pop(tid).cancel()
             if direction != "out" and tid in self.incoming:
                 inc = self.incoming.pop(tid)
                 inc.abort()
@@ -854,8 +950,10 @@ class Session:
 
     async def _run_command(self, cid: str):
         _pid, prof = self.config.profile_of(self.device_id)
-        name = next((c["name"] for c in pc.command_list(self.config.commands(), prof) if c["id"] == cid), cid)
-        self.hub.emit("command_run", {"device_id": self.device_id, "device": self.name, "id": cid, "name": name})
+        allowed = {c["id"]: c["name"] for c in pc.command_list(self.config.commands(), prof)}
+        name = allowed.get(cid, cid)
+        if cid in allowed:  # izinsiz ya da bilinmeyen komut "çalıştırıldı" diye duyurulmaz
+            self.hub.emit("command_run", {"device_id": self.device_id, "device": self.name, "id": cid, "name": name})
         res = await pc.run_command(cid, self.config.commands(), prof)
         await self.send({"type": "command_result", "id": cid, "name": name, **res})
 
@@ -863,7 +961,11 @@ class Session:
         path = cache_dir() / f"ekran-{time.strftime('%Y%m%d-%H%M%S')}.png"
         path.parent.mkdir(parents=True, exist_ok=True)
         if await asyncio.to_thread(pc.screenshot_with_tools, path):
-            await self.send_file(path)
+            self.hub.emit("screenshot_taken", {"device_id": self.device_id})
+            try:
+                await self.send_file(path)
+            finally:
+                path.unlink(missing_ok=True)
         else:
             await self.send({"type": "command_result", "id": "ekran", "ok": False,
                              "output": "Ekran görüntüsü alınamadı (gnome-screenshot, spectacle ya da grim yok)."})
@@ -903,6 +1005,8 @@ class Session:
         d = cache_dir() / "simgeler"
         d.mkdir(parents=True, exist_ok=True)
         p = d / f"{pkg}.png"
+        if not p.exists() and len(self.icons) >= 300:
+            return  # bir telefon sınırsız simge yazarak diski dolduramasın
         p.write_bytes(raw)
         self.icons[pkg] = str(p)
 
@@ -925,8 +1029,10 @@ class Session:
     # ---- dosya aktarımı -----------------------------------------------------
 
     def _transfer_event(self, direction, tid, name, size, done, state, **extra) -> dict:
+        # Telefon her bağlantıda 1'den numaralar: arayüzde eski bağlantının satırıyla çakışmasın.
         ev = {"device_id": self.device_id, "device": self.name, "direction": direction,
-              "tid": tid, "name": name, "size": size, "done": done, "state": state, **extra}
+              "tid": tid, "key": f"{self.device_id}:{self.serial}:{direction}:{tid}",
+              "name": name, "size": size, "done": done, "state": state, **extra}
         self.hub.emit("transfer", ev)
         return ev
 
@@ -947,9 +1053,23 @@ class Session:
             await self.send({"type": "file_reject", "transfer_id": tid,
                              "reason": "bu telefonun profili dosya göndermeye izin vermiyor"})
             return
+        if len(self.incoming) + len(self.offers) >= MAX_INCOMING:
+            await self.send({"type": "file_reject", "transfer_id": tid,
+                             "reason": "bilgisayar meşgul (çok fazla aktarım); birazdan tekrar dene"})
+            return
         if not self.config["auto_accept"]:
             self._transfer_event("in", tid, name, size, 0, "waiting")
-            ok = await self.hub.ask("file", {"device": self.name, "name": name, "size": size}, 120)
+            # Telefon vazgeçerse (file_cancel) ya da bağlantı koparsa bu görev iptal edilir; soru penceresi
+            # ask()'in finally'siyle kapanır ve sahipsiz .part oluşmaz.
+            self.offers[tid] = asyncio.current_task()
+            try:
+                ok = await self.hub.ask("file", {"device": self.name, "name": name, "size": size}, 120)
+            except asyncio.CancelledError:
+                self._transfer_event("in", tid, name, size, 0, "failed" if self.closed else "cancelled",
+                                     error="bağlantı koptu" if self.closed else "telefon vazgeçti")
+                raise
+            finally:
+                self.offers.pop(tid, None)
             if not ok:
                 self._transfer_event("in", tid, name, size, 0, "rejected")
                 await self.send({"type": "file_reject", "transfer_id": tid, "reason": "reddedildi"})
@@ -995,7 +1115,8 @@ class Session:
 
     async def send_file(self, path: Path) -> dict:
         tid = next(self.hub._tid)
-        name = path.name
+        # UTF-8 olmayan dosya adı (eski arşivlerden) JSON'a yazılamaz: bozuk baytlar � olur.
+        name = path.name.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
         try:
             size = path.stat().st_size
         except OSError as e:
@@ -1034,7 +1155,7 @@ class Session:
         except asyncio.TimeoutError:
             final = self._transfer_event("out", tid, name, size, sent, "failed", error="zaman aşımı")
             await self._cancel_out(tid, o)
-        except (TransferFailed, OSError, ConnectionError) as e:
+        except (TransferFailed, OSError, ConnectionError, ValueError) as e:
             state = "cancelled" if o["cancelled"] else "failed"
             final = self._transfer_event("out", tid, name, size, sent, state, error=str(e))
             await self._cancel_out(tid, o)

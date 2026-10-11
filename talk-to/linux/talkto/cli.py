@@ -32,6 +32,8 @@ def request(req: dict, timeout: float = 3600) -> dict:
         except (FileNotFoundError, ConnectionRefusedError):
             raise SystemExit("Talk To Android çalışmıyor. Uygulamayı menüden aç "
                              "(ya da arka planda başlat: talk-to-android --arka-planda &).")
+        except OSError as e:  # ör. soket yolu çok uzun, izin yok
+            raise SystemExit(f"Talk To Android'e bağlanılamadı ({path}): {e.strerror or e}")
         s.sendall(json.dumps(req, ensure_ascii=False).encode() + b"\n")
         buf = b""
         while not buf.endswith(b"\n"):

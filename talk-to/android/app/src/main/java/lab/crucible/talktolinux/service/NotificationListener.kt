@@ -17,6 +17,8 @@ class NotificationListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
         Talk.listenerConnected.value = true
+        // Erişim kapatılıp açıldıysa eski kayıt geçersiz: baştan kur.
+        PhoneMedia.stop()
         PhoneMedia.start(this)
         Talk.sendPhoneStatus()
     }

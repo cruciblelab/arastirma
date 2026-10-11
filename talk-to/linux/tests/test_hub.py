@@ -130,6 +130,86 @@ class HubTest(_Base):
         await blocked.close()
         del orig
 
+    async def _as_wifi_server(self):
+        async def as_wifi(reader, writer):
+            from talkto.hub import Session
+            await Session(self.hub, reader, writer, "wifi", "10.0.0.5").run()
+        self.hub.server.close()
+        self.hub.server = await asyncio.start_server(as_wifi, "127.0.0.1", self.cfg["port"],
+                                                     ssl=self.hub.identity.server_context())
+
+    async def test_legacy_phone_still_pairs(self):
+        """0.4 ve öncesi telefon: taahhütsüz onay kodu ve eski şifre kanıtı kabul edilir."""
+        self.answer = True
+        p = FakePhone(legacy=True)
+        self.assertEqual(await p.connect(port=self.cfg["port"]), "welcome")
+        self.assertEqual(self.of("ask")[0]["code"], p.code)
+        await p.close()
+        self.cfg.set("password", "gizli-şifre")
+        await self._as_wifi_server()
+        q = FakePhone("telefon-eski-0002", legacy=True)
+        self.assertEqual(await q.connect(port=self.cfg["port"], password="gizli-şifre"), "welcome")
+        await q.close()
+
+    async def test_new_phone_uses_committed_code(self):
+        self.answer = True
+        p = FakePhone()
+        self.assertEqual(await p.connect(port=self.cfg["port"]), "welcome")
+        self.assertIn("pair2", p.server_features)
+        self.assertEqual(self.of("ask")[0]["code"], p.code)
+        await p.close()
+
+    async def test_reveal_must_match_commit(self):
+        self.answer = True
+
+        class Cheater(FakePhone):  # nonce'u gördükten sonra başka bir değer açıklıyor
+            async def send(self, msg):
+                if msg.get("type") == "pair_reveal":
+                    msg = dict(msg, secret="0" * 64)
+                await super().send(msg)
+        p = Cheater()
+        self.assertEqual(await p.connect(port=self.cfg["port"]), "protocol")
+        self.assertEqual(self.of("ask"), [])  # bilgisayarda onay penceresi hiç açılmadı
+        await p.close()
+
+    async def test_concurrent_password_guesses_are_limited(self):
+        self.cfg.set("password", "doğru-şifre")
+        await self._as_wifi_server()
+        phones = [FakePhone(f"telefon-kaba-{i:04d}") for i in range(10)]
+        results = await asyncio.gather(*(ph.connect(port=self.cfg["port"], password="yanlış") for ph in phones))
+        self.assertLessEqual(results.count("wrong_password"), 5)
+        self.assertGreaterEqual(results.count("too_many_attempts"), 5)
+        for ph in phones:
+            await ph.close()
+
+    async def test_abandoned_pairing_counts_as_failure(self):
+        self.answer = None  # soru açık kalsın
+        await self._as_wifi_server()
+        for i in range(5):
+            p = FakePhone(f"telefon-vazgec-{i:03d}")
+            task = asyncio.create_task(p.connect(port=self.cfg["port"]))
+            for _ in range(50):
+                if len(self.of("ask")) > i:
+                    break
+                await asyncio.sleep(0.05)
+            task.cancel()
+            await p.close()
+            await asyncio.sleep(0.1)
+        self.assertTrue(self.hub.blocked("10.0.0.5"))
+
+    async def test_huge_frame_before_auth_is_rejected(self):
+        import ssl as _ssl
+        from talkto.protocol import encode_json
+        ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
+        ctx.check_hostname = False
+        ctx.verify_mode = _ssl.CERT_NONE
+        reader, writer = await asyncio.open_connection("127.0.0.1", self.cfg["port"], ssl=ctx)
+        writer.write(encode_json({"type": "hello", "pad": "x" * 200_000}))
+        await writer.drain()
+        data = await asyncio.wait_for(reader.read(), 5)  # sunucu bağlantıyı kapatır
+        self.assertEqual(data, b"")
+        writer.close()
+
     async def test_receive_file_into_folder(self):
         p = await self.paired_phone()
         data = os.urandom(700_000)
@@ -301,9 +381,57 @@ class HubTest(_Base):
         p = await self.paired_phone()
         self.assertIn(p.device_id, self.hub.sessions)
         await self.hub.forget(p.device_id)
+        # Telefon kapanmadan önce nedeni öğrenir: kendiliğinden yeniden bağlanmasın, belirteci silsin.
+        self.assertEqual((await p.recv_type("bye"))["reason"], "forgotten")
         await asyncio.sleep(0.1)
         self.assertNotIn(p.device_id, self.hub.sessions)
         self.assertNotIn(p.device_id, self.cfg.trusted())
+        await p.close()
+
+        q = await self.paired_phone()
+        await self.hub.disconnect(q.device_id)
+        self.assertEqual((await q.recv_type("bye"))["reason"], "disconnected")
+        await q.close()
+
+
+class TransferEdgeTest(_Base):
+    """Bekleyen teklifler, eşzamanlı sınır ve UTF-8 olmayan dosya adları."""
+
+    async def test_phone_cancels_offer_while_pc_asks(self):
+        p = await self.paired_phone()
+        self.cfg.set("auto_accept", False)
+        self.answer = None  # bilgisayardaki soru cevapsız kalsın
+        await p.send({"type": "file_offer", "transfer_id": 7, "name": "a.txt", "size": 3})
+        for _ in range(50):
+            if any(a["kind"] == "file" for a in self.of("ask")):
+                break
+            await asyncio.sleep(0.02)
+        rid = next(a["id"] for a in self.of("ask") if a["kind"] == "file")
+        await p.send({"type": "file_cancel", "transfer_id": 7, "direction": "in"})
+        await asyncio.sleep(0.2)
+        self.assertIn(rid, [d["id"] for d in self.of("ask_closed")])  # soru penceresi kapandı
+        self.assertEqual(self.of("transfer")[-1]["state"], "cancelled")
+        self.assertFalse(list((Path(self.tmp.name) / "gelen").glob(".*talkto-part")))
+        await p.close()
+
+    async def test_concurrent_incoming_limit(self):
+        p = await self.paired_phone()
+        for tid in range(1, 6):
+            await p.send({"type": "file_offer", "transfer_id": tid, "name": f"{tid}.bin", "size": 10})
+        replies = [await p.recv_type("file_accept", "file_reject") for _ in range(5)]
+        self.assertEqual([r["type"] for r in replies].count("file_accept"), 4)
+        self.assertIn("meşgul", next(r for r in replies if r["type"] == "file_reject")["reason"])
+        await p.close()
+
+    async def test_send_file_with_non_utf8_name(self):
+        p = await self.paired_phone()
+        path = Path(os.fsdecode(Path(self.tmp.name).as_posix().encode() + b"/eski-\xe7al\xfd\xfe.txt"))
+        path.write_bytes(b"merhaba")
+        task = asyncio.create_task(self.hub.send_file(p.device_id, str(path)))
+        offer = await p.recv_type("file_offer")
+        self.assertIn("\ufffd", offer["name"])
+        await p.send({"type": "file_reject", "transfer_id": offer["transfer_id"], "reason": "deneme"})
+        self.assertEqual((await asyncio.wait_for(task, 5))["state"], "rejected")
         await p.close()
 
 
@@ -562,6 +690,11 @@ class UnitTest(unittest.TestCase):
             self.assertEqual(auth.password_proof(v["password"], v["nonce"], v["fp"]), v["proof"])
         for v in vec["pairing_code"]:
             self.assertEqual(auth.pairing_code(v["nonce"], v["fp"], v["device_id"]), v["code"])
+        for v in vec["password_proof2"]:
+            self.assertEqual(auth.password_proof2(v["password"], v["nonce"], v["fp"]), v["proof"])
+        for v in vec["pairing_code2"]:
+            self.assertEqual(auth.commit_of(v["secret"]), v["commit"])
+            self.assertEqual(auth.pairing_code2(v["nonce"], v["secret"], v["fp"], v["device_id"]), v["code"])
         for v in vec["frames"]:
             from talkto.protocol import encode_binary, encode_json
             if "json" in v:
@@ -573,8 +706,6 @@ class UnitTest(unittest.TestCase):
         self.assertEqual(auth.token_hash("abc"), hashlib.sha256(b"abc").hexdigest())
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class MirrorTest(_Base):
@@ -628,6 +759,17 @@ exit 0""")
         self.assertEqual((r["ok"], r["device"]), (True, "Test Telefonu"))
         await p.close()
 
+    async def test_scrcpy_crash_is_reported(self):
+        self.fake("adb", """case "$*" in
+  devices) printf 'List of devices attached\\nABC123\\tdevice\\n' ;;
+esac
+exit 0""")
+        self.fake("scrcpy", "echo 'ERROR: Device disconnected' >&2; exit 1")
+        await self.hub.usb._poll()
+        ok, msg = await self.hub.mirror_device("ABC123")
+        self.assertFalse(ok)
+        self.assertIn("Device disconnected", msg)
+
     async def test_without_scrcpy_or_adb_device(self):
         self.fake("adb", "printf 'List of devices attached\\n'; exit 0")
         await self.hub.usb._poll()
@@ -670,3 +812,7 @@ exit 0""")
         serial, msg = await mirror.connect_wireless("192.168.1.60")
         self.assertIsNone(serial)
         self.assertIn("USB ile takıp", msg)
+
+
+if __name__ == "__main__":
+    unittest.main()

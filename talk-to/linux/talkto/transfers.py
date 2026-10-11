@@ -4,6 +4,7 @@ SHA-256 doğrulanınca asıl adına taşınır."""
 import hashlib
 import os
 import re
+import secrets
 import shutil
 from pathlib import Path
 
@@ -51,8 +52,9 @@ class Incoming:
         self.size = size
         self.directory = directory
         self.received = 0
-        self.part = directory / f".{self.name}.{tid}.talkto-part"
-        self._f = open(self.part, "wb")
+        # İki telefon aynı adlı dosyayı aynı tid ile gönderebilir: rastgele ek ve "x" (var olanı açma).
+        self.part = directory / f".{self.name}.{tid}.{secrets.token_hex(4)}.talkto-part"
+        self._f = open(self.part, "xb")
         self._sha = hashlib.sha256()
 
     def write(self, data: bytes):

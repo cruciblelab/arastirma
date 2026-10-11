@@ -52,5 +52,38 @@
       "data": "cafebabe",
       "hex": "420000000800000007cafebabe"
     }
-  ]
+  ],
+  "password_proof2": [
+    {
+      "password": "gizli",
+      "nonce": "00112233445566778899aabbccddeeff",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "proof": "9943050e5434439283c78dbdaeb445f3ea5168e4aff890817f88be639524fcef"
+    },
+    {
+      "password": "Şifre 123 ğüş",
+      "nonce": "ffeeddccbbaa99887766554433221100",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "proof": "6f49218436fb2c1458bbfad51225ad24ddfdbf4ceda9e31553161d6977a7684d"
+    }
+  ],
+  "pairing_code2": [
+    {
+      "nonce": "00112233445566778899aabbccddeeff",
+      "secret": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "device_id": "a1b2c3d4e5f60718",
+      "commit": "a0fab1377f49a759b57f63318262ebe89fabfc990e8e93ceac2984561482b9d4",
+      "code": "624242"
+    },
+    {
+      "nonce": "0123456789abcdef0123456789abcdef",
+      "secret": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+      "fp": "3f1c9a0b7d2e4f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "device_id": "telefon-test-0001",
+      "commit": "7152f9958a983e3313fb2498d743af1e83a0ff5999650fd341f0368d1678992c",
+      "code": "821992"
+    }
+  ],
+  "_pbkdf2_rounds": 100000
 }

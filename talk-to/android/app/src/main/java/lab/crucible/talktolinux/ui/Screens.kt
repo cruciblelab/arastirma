@@ -52,6 +52,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -69,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import lab.crucible.talktolinux.core.BluetoothLink
+import lab.crucible.talktolinux.core.Checks
 import lab.crucible.talktolinux.core.Talk
 import lab.crucible.talktolinux.net.Auth
 import lab.crucible.talktolinux.net.Discovery
@@ -95,21 +97,28 @@ fun TalkScreen(
 ) {
     // Ana ekran, ilk açılıştaki kurulum sihirbazı ya da "İzinler ve yetkiler".
     var screen by rememberSaveable { mutableStateOf(if (showSetup) "kurulum" else "ana") }
+    // Sihirbaz İzinler ekranından açıldıysa bitince/geri tuşunda oraya dönülür.
+    var wizardFrom by rememberSaveable { mutableStateOf("ana") }
+    // Seçili sekme alt ekranlara gidip dönünce sıfırlanmasın: when'den önce tanımlanır.
+    var tab by rememberSaveable { mutableStateOf(initialTab) }
+    var manual by remember { mutableStateOf(false) }
+    var askDisconnect by remember { mutableStateOf(false) }
     when (screen) {
         "kurulum" -> {
-            SetupWizard(perms) { Talk.prefs.setupDone = true; screen = "ana" }
+            SetupWizard(perms, onBack = if (wizardFrom == "izinler") ({ screen = "izinler" }) else null) {
+                Talk.prefs.setupDone = true
+                screen = wizardFrom
+            }
             return
         }
         "izinler" -> {
-            PermissionsScreen(perms, onBack = { screen = "ana" }, onOpenWizard = { screen = "kurulum" })
+            PermissionsScreen(perms, onBack = { screen = "ana" },
+                onOpenWizard = { wizardFrom = "izinler"; screen = "kurulum" })
             return
         }
     }
     val state by Talk.state.collectAsState()
     val passwordFor by Talk.passwordFor.collectAsState()
-    var manual by remember { mutableStateOf(false) }
-    var tab by rememberSaveable { mutableStateOf(initialTab) }
-    var askDisconnect by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) { Talk.messages.collect { snackbar.showSnackbar(it) } }
     val connected = state as? Talk.State.Connected
@@ -249,7 +258,11 @@ private fun FoundRow(f: Discovery.Found) {
 private fun BluetoothSection(onPermission: () -> Unit) {
     val ctx = LocalContext.current
     val devices by Talk.bluetoothDevices.collectAsState()
-    LaunchedEffect(Unit) { while (true) { Talk.refreshBluetooth(); delay(5000) } }
+    // İzin ve açık/kapalı durumu akış değil: döngüdeki tik ve dönüşteki UiTick ile yeniden okunur.
+    var tick by remember { mutableIntStateOf(0) }
+    UiTick.tick.collectAsState().value
+    LaunchedEffect(Unit) { while (true) { if (Talk.uiVisible) { Talk.refreshBluetooth(); tick++ }; delay(3000) } }
+    tick
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionTitle("Bluetooth")
         Panel {
@@ -258,11 +271,11 @@ private fun BluetoothSection(onPermission: () -> Unit) {
                     "Yalnızca eşleşmiş bilgisayarları listelemek ve onlara bağlanmak için", onClick = onPermission)
                 !BluetoothLink.enabled(ctx) -> ListRow(Icons.Rounded.Bluetooth, "Bluetooth kapalı",
                     "Açınca eşleşmiş bilgisayarlar burada görünür", onClick = {
-                        ctx.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                        Checks.open(ctx, Checks.bluetoothSettings())
                     })
                 devices.isEmpty() -> ListRow(Icons.Rounded.Bluetooth, "Eşleşmiş bilgisayar yok",
                     "Önce telefonun Bluetooth ayarlarından bilgisayarla eşleştir", onClick = {
-                        ctx.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                        Checks.open(ctx, Checks.bluetoothSettings())
                     })
                 else -> devices.forEachIndexed { i, d ->
                     if (i > 0) RowDivider()
@@ -282,6 +295,14 @@ private fun BluetoothSection(onPermission: () -> Unit) {
 private fun PairedList() {
     val state by Talk.state.collectAsState()
     var servers by remember(state) { mutableStateOf(Talk.prefs.servers()) }
+    var forget by remember { mutableStateOf<lab.crucible.talktolinux.core.Prefs.Server?>(null) }
+    forget?.let { s ->
+        ForgetDialog(s.name, onDismiss = { forget = null }) {
+            Talk.forget(s.id)
+            servers = Talk.prefs.servers()
+            forget = null
+        }
+    }
     if (servers.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionTitle("Eşleşmiş bilgisayarlar")
@@ -289,7 +310,7 @@ private fun PairedList() {
             servers.forEachIndexed { i, s ->
                 if (i > 0) RowDivider()
                 ListRow(Icons.Rounded.Computer, s.name, "Güvenlik kodu ${Auth.shortFingerprint(s.fp)}") {
-                    IconButton(onClick = { Talk.forget(s.id); servers = Talk.prefs.servers() }) {
+                    IconButton(onClick = { forget = s }) {
                         Icon(Icons.Rounded.Delete, "Unut", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

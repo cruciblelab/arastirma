@@ -21,6 +21,10 @@ try:
 except (ImportError, ValueError):
     HAVE = False
 
+# CI'da (TALKTO_TEST_STRICT=1) bu testler atlanmamalı: ortam eksikse "atlandı" başarı sayılmasın.
+if not HAVE and os.environ.get("TALKTO_TEST_STRICT"):
+    raise RuntimeError("MPRIS testleri çalıştırılamıyor: oturum D-Bus'ı ya da gdbus yok")
+
 STATE = {"active": True, "player": "Spotify", "title": "Şarkı", "artist": "Sanatçı", "album": "Albüm",
          "playing": True, "position_ms": 5000, "duration_ms": 200000, "volume": 50, "can_seek": True,
          "art_id": None}
@@ -71,6 +75,14 @@ class PhoneMprisTest(unittest.TestCase):
         self.gdbus("--method", "org.mpris.MediaPlayer2.Player.SetPosition",
                    "/lab/crucible/TalkToAndroid/track/1", "60000000")
         self.assertEqual(self.calls, [("tel1", "next", None), ("tel1", "play_pause", None), ("tel1", "seek", 60000)])
+
+    def test_two_phones_at_once(self):
+        self.players.update("tel2", "Galaxy S23", dict(STATE, title="Başka şarkı"))
+        self.assertIn("tel2", self.players.players)
+        self.name = bus_name("tel2")
+        self.assertIn("Başka şarkı", self.prop("org.mpris.MediaPlayer2.Player", "Metadata"))
+        self.name = bus_name("tel1")
+        self.assertIn("Şarkı", self.prop("org.mpris.MediaPlayer2.Player", "Metadata"))
 
     def test_not_listed_as_pc_media_and_removed_when_inactive(self):
         from talkto.media import Mpris

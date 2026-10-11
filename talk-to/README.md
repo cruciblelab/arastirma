@@ -9,7 +9,7 @@ Linux bilgisayar ile Android telefonu **USB kablosu**, **Wi-Fi** ya da **Bluetoo
 
 İki uygulama birbirini tanır: ilk bağlantıda bir kez onaylanır (ya da şifre girilir), sonra telefon bağlandığı anda bilgisayar onu tanır ve **profilini** uygular.
 
-**Durum:** 0.4.1. Ubuntu 22.04 + gerçek bir telefonda USB bağlantısı kuruldu; 0.2.x'te bildirim ve müziğin gelmediği bildirildi, 0.4.1 bunun sebebini iki tarafta da gösteriyor ve en olası sebebi (Android'in bildirim dinleyicisini bağlamaması) düzeltmeye çalışıyor — gerçek telefonda henüz doğrulanmadı. Bluetooth gerçek donanımda denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
+**Durum:** 0.5.0. Ubuntu 22.04 + gerçek bir telefonda USB bağlantısı kuruldu; 0.2.x'te bildirim ve müziğin gelmediği bildirildi, 0.4.x bunun sebebini iki tarafta da gösteriyor ve en olası sebebi (Android'in bildirim dinleyicisini bağlamaması) düzeltmeye çalışıyor; emülatörde çalışıyor, gerçek telefonda henüz doğrulanmadı. 0.5.0 bir denetimde bulunan güvenlik ve sağlamlık hatalarını düzeltir; **telefon ve bilgisayar birlikte 0.5'e güncellenmeli** (yeni telefon, eski bilgisayara şifre ya da onayla bağlanmaz). Bluetooth gerçek donanımda denenmedi; neyin nasıl test edildiği [aşağıda](#ne-test-edildi).
 
 | Telefon | Bilgisayar |
 |---|---|
@@ -101,10 +101,10 @@ Komut satırı, çalışan uygulamayla `$XDG_RUNTIME_DIR/talk-to-android.sock` �
 
 ### Linux (Talk To Android)
 
-**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.4.1_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
+**Ubuntu / Debian / Mint / Pop!_OS: terminal gerekmez.** `talk-to-android_0.5.0_all.deb` dosyasına çift tıkla, Uygulama Merkezi'nde **Kur**, sonra uygulama menüsünden "Talk To Android"ı aç. (Çift tıklayınca arşiv yöneticisi açılırsa: sağ tık → "Birlikte aç" → Uygulama Merkezi.)
 
 - Uygulama Merkezi yerel `.deb` kurarken eksik bağımlılıkları kendisi indirmiyor (0.2.0'da "unmet dependencies" hatası bundandı). Bu yüzden paketin zorunlu bağımlılığı yalnızca `python3`. GTK4/libadwaita eksikse uygulama **ilk açılışta** "kurulsun mu?" diye sorar ve bilgisayarın şifre penceresiyle kurar.
-- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.4.1_all.deb`.
+- Terminal kullanmak istersen tek komut her şeyi birlikte kurar: `sudo apt install ./talk-to-android_0.5.0_all.deb`.
 
 `.deb` dosyasını üretmek (bir kez): `sh talk-to/linux/paket/deb-olustur.sh`
 
@@ -172,9 +172,11 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 ## Güvenlik
 
 - Bütün trafik **TLS** ile şifreli (Bluetooth dahil). Telefon ilk eşleşmede bilgisayarın sertifika parmak izini kaydeder; değişirse bağlanmaz ("güvenlik kodu değişmiş").
-- İlk eşleşmede iki ekrandaki 6 haneli kodu karşılaştır: araya giren biri varsa kodlar farklı çıkar. Kodlara bakmadan onaylarsan bu koruma yok.
-- Wi-Fi şifresi kısa olmasın: aynı ağda araya giren biri, eşleşme sırasında yakaladığı kanıttan zayıf şifreyi çevrimdışı deneyerek bulabilir. Emin değilsen şifresiz bırak, onay penceresini kullan.
-- Aynı adresten 10 dakikada 5 hatalı denemede o adres geçici olarak engellenir.
+- İlk eşleşmede iki ekrandaki 6 haneli kodu karşılaştır: telefon kendi rastgele değerini koddan önce taahhüt ettiği için araya giren biri iki ekranda aynı kodu çıkaramaz. Kodlara bakmadan onaylarsan bu koruma yok.
+- Wi-Fi şifresi kısa olmasın: şifre kanıtı PBKDF2 (100 000 tur) ile yavaşlatılır ama çok kısa bir şifre yine de çevrimdışı denenerek bulunabilir. Emin değilsen şifresiz bırak, onay penceresini kullan. Biri şifreyle eşleşince bilgisayarda bildirim çıkar.
+- Aynı adresten 10 dakikada 5 hatalı denemede o adres geçici olarak engellenir (USB/yerel bağlantıda 20). Kimlik doğrulanmadan önce büyük ileti ve dosya parçası kabul edilmez.
+- Telefon, kayıtlı bir bilgisayarın güvenlik kodu değişmişse ya da tanımadığı bir şey telefonun USB portunu açmışsa kendiliğinden bağlanmaz. Paylaş menüsünden gelen her gönderim telefonda kısa bir onay ister (başka bir uygulama sessizce bilgisayarda bağlantı açamasın).
+- Ekran görüntüsünü masaüstü reddederse başka yoldan alınmaz; alındığında bilgisayarda bildirim çıkar.
 - **Komutlar en güçlü izin:** "komut çalıştırabilir" açık bir profildeki telefon, bilgisayarda tanımladığın her komutu çalıştırabilir. Kaybolan telefonu *Güvenilen cihazlar*'dan hemen **unut**. Güç komutları ayrı izindir.
 - Bir telefon dosyayı yalnızca kayıt klasörüne yazabilir; başka klasöre çıkamaz, var olan dosyanın üzerine yazamaz. Bilgisayardaki dosyaları okuyamaz.
 - USB ve Bluetooth bağlantısı otomatik güvenilir sayılmaz, her yeni telefon için onay ister.
@@ -208,9 +210,9 @@ Sırlar yoksa derleme yine çalışır ama APK her seferinde farklı geçici ana
 | Ubuntu 22.04 uyumu | Ubuntu 22.04'ün gerçek GTK 4.6.9 / libadwaita 1.1.7 kütüphaneleriyle arayüz açıldı ve uyumluluk testleri geçti; çekirdek testleri 22.04'ün Python 3.10'uyla geçti. GitHub'daki derleme her push'ta ubuntu-22.04 ve ubuntu-24.04 makinelerinde çalışır | geçti |
 | Arayüzler | Linux: sanal ekranda ekran görüntüsü (geniş ve dar). Android: Paparazzi ekran görüntüsü | yukarıdaki görüntüler |
 | Android derlemesi | tam ve hafif sürüm + lint; hafif sürümün manifestinde bildirim erişimi olmadığı aapt ile denetlendi | 0 hata |
-| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.4.1_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
-| Gerçek telefonda | Ubuntu 22.04 + USB hata ayıklama açık telefon: USB tüneli ve bağlantı çalıştı (kullanıcı denemesi). 0.2.x'te bildirim ve müzik gelmedi; 0.4.1'ın düzeltmesi gerçek telefonda henüz doğrulanmadı | kısmen |
-| **Denenmeyenler** | Gerçek telefonda 0.4.1 (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, Uygulama Merkezi'nden çift tıkla kurulum, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
+| `.deb` | Ubuntu 24.04'te `apt install ./talk-to-android_0.5.0_all.deb`; `talk-to-android` komutu, menü kısayolu ve pakete gömülü APK | geçti |
+| Gerçek telefonda | Ubuntu 22.04 + USB hata ayıklama açık telefon: USB tüneli ve bağlantı çalıştı (kullanıcı denemesi). 0.2.x'te bildirim ve müzik gelmedi; 0.4/0.5'in düzeltmesi gerçek telefonda henüz doğrulanmadı | kısmen |
+| **Denenmeyenler** | Gerçek telefonda 0.5.0 (bildirim dinleyici, medya oturumları, MediaStore, ön plan servisi, USB tüneli, Wi-Fi keşfi), **gerçek Bluetooth** (BlueZ'e profil kaydı ve RFCOMM bağlantısı), gerçek `pkexec` şifre penceresi, Uygulama Merkezi'nden çift tıkla kurulum, ekran görüntüsü portalı, `systemctl`/`loginctl` komutları | **denenmedi** — ilk denemede sorun çıkarsa beklenen yerler bunlar |
 
 Testleri çalıştırmak:
 

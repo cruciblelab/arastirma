@@ -34,6 +34,42 @@ def password_proof(password: str, nonce: str, server_fp: str) -> str:
     return hmac.new(password.encode("utf-8"), msg, hashlib.sha256).hexdigest()
 
 
+# Şifre anahtarı türetme turları: sahte bir sunucu kanıtı ele geçirse bile şifreyi çevrimdışı
+# denemesi yavaş olsun. Android (Auth.kt) aynı değeri kullanır.
+PBKDF2_ROUNDS = 100_000
+_HEX64 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def password_key(password: str, server_fp: str) -> bytes:
+    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), f"talkto:{server_fp}".encode("utf-8"),
+                               PBKDF2_ROUNDS, 32)
+
+
+def password_proof2(password: str, nonce: str, server_fp: str) -> str:
+    """Sürüm 2: HMAC-SHA256(anahtar=PBKDF2(şifre, "talkto:parmakizi"), ileti="nonce:parmakizi")."""
+    msg = f"{nonce}:{server_fp}".encode("utf-8")
+    return hmac.new(password_key(password, server_fp), msg, hashlib.sha256).hexdigest()
+
+
+def valid_commit(value) -> bool:
+    return isinstance(value, str) and bool(_HEX64.match(value))
+
+
+def commit_of(secret: str) -> str:
+    return hashlib.sha256(secret.encode("utf-8")).hexdigest()
+
+
+def pairing_code2(nonce: str, secret: str, server_fp: str, device_id: str) -> str:
+    """Sürüm 2 onay kodu: telefonun rastgele değeri (önceden taahhüt edilmiş) koda girer.
+
+    Telefon hello'da SHA-256(secret)'i yollar, bilgisayarın nonce'unu gördükten sonra secret'i
+    açıklar. Araya giren biri nonce'u telefonun değerini bilmeden seçmek zorunda kaldığından
+    iki ekranda aynı kodu ancak milyonda bir şansla tutturabilir.
+    """
+    d = hashlib.sha256(f"{nonce}:{secret}:{server_fp}:{device_id}".encode("utf-8")).digest()
+    return f"{int.from_bytes(d[:4], 'big') % 1_000_000:06d}"
+
+
 def pairing_code(nonce: str, server_fp: str, device_id: str) -> str:
     """İki ekranda da gösterilen 6 haneli onay kodu.
 

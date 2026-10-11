@@ -53,6 +53,7 @@ class Config:
         "bluetooth": True,
         "default_profile": "benim",
         "setup_done": False,  # ilk açılıştaki kurulum yardımcısı bitirildi ya da atlandı
+        "firewall_port": None,  # kurulum yardımcısından ufw izni eklenen port
     }
 
     # Profil izinleri: bir telefon bilgisayarda neleri yapabilir.
@@ -130,8 +131,18 @@ class Config:
 
     def set(self, key, value):
         with self._lock:
+            missing = object()
+            old = self.data.get(key, missing)
             self.data[key] = value
-            self.save()
+            try:
+                self.save()
+            except OSError:
+                # Disk dolu ya da yazılamıyor: bellekteki ayar diskteki ile ayrışmasın.
+                if old is missing:
+                    self.data.pop(key, None)
+                else:
+                    self.data[key] = old
+                raise
 
     # Güvenilen cihazlar: belirtecin kendisi değil, SHA-256'sı saklanır.
     def trusted(self) -> dict:

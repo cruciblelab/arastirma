@@ -2,6 +2,8 @@
 ve masaüstü bildirimlerine dağıtır."""
 
 import logging
+import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -39,6 +41,8 @@ class App(Adw.Application):
         self.hub = None
         self._hidden_hint_shown = False
         self.installing_adb = False
+        self.installing_scrcpy = False
+        self.pending_clip = None  # Wayland'da pencere odakta değilken gelen pano metni
 
     # ---- yaşam döngüsü --------------------------------------------------------
 
@@ -80,6 +84,8 @@ class App(Adw.Application):
         if not self.window:
             self.window = Window(self)
             self.window.connect("close-request", self._on_close)
+            self.window.connect("notify::is-active",
+                                lambda w, _: w.is_active() and self.apply_pending_clipboard())
             self.window.update_status(self.hub.status())
             self.window.update_usb(self.hub.usb.snapshot())
             if self.start_hidden:
@@ -156,6 +162,12 @@ class App(Adw.Application):
     def call(self, method, *args):
         self.hub.submit(getattr(self.hub, method)(*args))
 
+    def toast(self, text):
+        """Kurulum yardımcısı açıksa sonuç onun üstünde görünsün (ana pencere arkasında kalır)."""
+        target = self.setup_window if self.setup_window and self.setup_window.get_visible() else self.window
+        if target:
+            target.toast(text)
+
     def send_clipboard(self, device_id):
         cb = Gdk.Display.get_default().get_clipboard()
 
@@ -198,8 +210,8 @@ class App(Adw.Application):
 
     def _adb_done(self, ok, msg):
         self.installing_adb = False
+        self.toast("adb kuruldu; telefonu USB ile takabilirsin" if ok else f"adb kurulamadı: {msg}")
         if self.window:
-            self.window.toast("adb kuruldu; telefonu USB ile takabilirsin" if ok else f"adb kurulamadı: {msg}")
             self.window.update_usb(self.hub.usb.snapshot())
 
     # ---- telefonun ekranı (scrcpy) ---------------------------------------------
@@ -211,8 +223,8 @@ class App(Adw.Application):
         def show(ok, msg):
             if on_done:
                 on_done(ok, msg)
-            elif self.window:
-                self.window.toast(msg)
+            else:
+                self.toast(msg)
             return False
         fut.add_done_callback(lambda f: GLib.idle_add(show, *f.result()))
 
@@ -221,9 +233,12 @@ class App(Adw.Application):
         if mirror.available():
             then()
             return
+        if self.installing_scrcpy:
+            self.toast("scrcpy kuruluyor…")  # ikinci pkexec apt-get dpkg kilidine takılırdı
+            return
         cmd = mirror.install_command()
         if not cmd:
-            self.window.toast("scrcpy kurulu değil; dağıtımının paket yöneticisinden “scrcpy” paketini kur")
+            self.toast("scrcpy kurulu değil; dağıtımının paket yöneticisinden “scrcpy” paketini kur")
             return
         d = compat.Dialog(self.window, "scrcpy kurulsun mu?",
                           "Telefonun ekranını bilgisayarda açmak için scrcpy programı gerekiyor. "
@@ -234,14 +249,18 @@ class App(Adw.Application):
         d.set_close_response("cancel")
 
         def install():
+            if self.installing_scrcpy:
+                return
             try:
                 proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
             except GLib.Error as e:
-                self.window.toast(f"scrcpy kurulamadı: {e.message}")
+                self.toast(f"scrcpy kurulamadı: {e.message}")
                 return
-            self.window.toast("scrcpy kuruluyor…")
+            self.installing_scrcpy = True
+            self.toast("scrcpy kuruluyor…")
 
             def done(p, res):
+                self.installing_scrcpy = False
                 try:
                     _ok, out, _err = p.communicate_utf8_finish(res)
                 except GLib.Error as e:
@@ -251,7 +270,9 @@ class App(Adw.Application):
                     then()
                 else:
                     msg = {126: "Kurulum iptal edildi", 127: "Yetki verilmedi"}.get(status, (out or "").strip()[-200:])
-                    self.window.toast(f"scrcpy kurulamadı: {msg}")
+                    self.toast(f"scrcpy kurulamadı: {msg}")
+                if self.setup_window:
+                    self.setup_window.refresh()
             proc.communicate_utf8_async(None, None, done)
         d.on_response(lambda r: r == "install" and install())
         d.present()
@@ -271,8 +292,8 @@ class App(Adw.Application):
         def show(ok, msg):
             if msg == CONFLICT and self.window:
                 self._ask_replace(serial)
-            elif self.window:
-                self.window.toast(msg)
+            else:
+                self.toast(msg)
             return False
 
         fut.add_done_callback(lambda f: GLib.idle_add(show, *f.result()))
@@ -312,9 +333,12 @@ class App(Adw.Application):
         elif event == "ask":
             self._ask(d)
         elif event == "ask_closed":
+            # Süre doldu ya da telefon vazgeçti (kullanıcı cevapladıysa pencere zaten kapanmıştı).
+            self.notifier.close(f"ask{d['id']}")
             dlg = self.dialogs.pop(d["id"], None)
             if dlg:
                 dlg.close()
+                self.toast("İsteğin süresi doldu ya da telefon vazgeçti")
         elif event == "notification":
             self.notifier.show(d["title"] or d["app"], d["text"], key=f"{d['device_id']}|{d['key']}",
                                app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"))
@@ -323,7 +347,10 @@ class App(Adw.Application):
         elif event == "notification_removed":
             self.notifier.close(f"{d['device_id']}|{d['key']}")
         elif event == "media":
-            self.phone_players.update(d["device_id"], self.device_names.get(d["device_id"], "Telefon"), d["state"])
+            try:
+                self.phone_players.update(d["device_id"], self.device_names.get(d["device_id"], "Telefon"), d["state"])
+            except GLib.Error:
+                log.exception("telefon oynatıcısı güncellenemedi")  # penceredeki kart yine güncellensin
             if w:
                 w.update_media(d["device_id"], d["state"])
         elif event == "media_art":
@@ -335,11 +362,14 @@ class App(Adw.Application):
                 w.update_transfer(d)
             self._transfer_notice(d)
         elif event == "clipboard":
-            Gdk.Display.get_default().get_clipboard().set_content(Gdk.ContentProvider.new_for_value(d["text"]))
-            preview = d["text"] if len(d["text"]) < 120 else d["text"][:117] + "…"
-            self.notifier.show(f"{d['device']} panosu kopyalandı", preview, key="pano")
+            self._incoming_clipboard(d)
         elif event == "open_url":
             Gio.AppInfo.launch_default_for_uri(d["url"], None)
+        elif event == "paired_by_password":
+            # Şifre doğru olunca onay penceresi çıkmaz; yine de kullanıcı haberdar olsun.
+            self.notifier.show("Yeni telefon şifreyle eşleşti",
+                               f"{d['name']} ({d['ip']}). İstemediysen Cihazlar'dan unut ve şifreyi değiştir.",
+                               key="sifre-esleme", urgent=True)
         elif event == "connected":
             text = f"{d['name']} bağlandı ({KIND.get(d['kind'], d['kind'])})"
             if w and w.get_visible():
@@ -348,6 +378,8 @@ class App(Adw.Application):
                 self.notifier.show(text, "Bildirimler ve medya artık bu bilgisayarda.", key="baglanti")
         elif event == "screenshot":
             self._screenshot(d["device_id"])
+        elif event == "screenshot_taken":
+            self._screenshot_taken(d["device_id"])
         elif event == "command_run":
             self.notifier.show(f"{d['device']}: {d['name']}", "Telefondan çalıştırıldı", key=f"komut{d['id']}")
             if w:
@@ -396,16 +428,82 @@ class App(Adw.Application):
         self._show(dlg)
         return True
 
+    # ---- telefondan gelen pano ---------------------------------------------------
+
+    @staticmethod
+    def _wayland():
+        display = Gdk.Display.get_default()
+        return "Wayland" in type(display).__name__ or (
+            os.environ.get("XDG_SESSION_TYPE") == "wayland" and os.environ.get("GDK_BACKEND") != "x11")
+
+    def _incoming_clipboard(self, d):
+        text = d["text"]
+        preview = text if len(text) < 120 else text[:117] + "…"
+        title = f"{d['device']} panosu kopyalandı"
+        # Wayland'da (GNOME) odakta olmayan pencere panoyu değiştiremez: GTK hata vermez ama pano değişmez.
+        if not self._wayland() or (self.window and self.window.is_active()):
+            Gdk.Display.get_default().get_clipboard().set_content(Gdk.ContentProvider.new_for_value(text))
+            self.notifier.show(title, preview, key="pano")
+            return
+        if shutil.which("wl-copy"):
+            try:
+                proc = Gio.Subprocess.new(["wl-copy", "--type", "text/plain;charset=utf-8"],
+                                          Gio.SubprocessFlags.STDIN_PIPE)
+            except GLib.Error:
+                proc = None
+            if proc:
+                def done(p, res):
+                    try:
+                        p.communicate_utf8_finish(res)
+                        ok = p.get_exit_status() == 0
+                    except GLib.Error:
+                        ok = False
+                    if ok:
+                        self.notifier.show(title, preview, key="pano")
+                    else:
+                        self._clipboard_later(d, preview)
+                proc.communicate_utf8_async(text, None, done)
+                return
+        self._clipboard_later(d, preview)
+
+    def _clipboard_later(self, d, preview):
+        self.pending_clip = d["text"]
+        self.notifier.show(f"{d['device']} panosu geldi", "Talk To Android'e geçince panoya kopyalanır: " + preview,
+                           key="pano", actions={"default": ("Kopyala", self.present)})
+
+    def apply_pending_clipboard(self):
+        """Pencere odağa gelince (Wayland) bekleyen pano metnini uygular."""
+        if self.pending_clip is None:
+            return
+        Gdk.Display.get_default().get_clipboard().set_content(Gdk.ContentProvider.new_for_value(self.pending_clip))
+        self.pending_clip = None
+        self.notifier.close("pano")
+        if self.window:
+            self.window.toast("Telefonun panosu kopyalandı")
+
     def _screenshot(self, device_id):
         def done(path, err):
+            s = self.hub.sessions.get(device_id)
             if path:
+                self._screenshot_taken(device_id)
                 self.call("send_file", device_id, path)
-            else:
-                # Portal yoksa ya da izin verilmediyse komut satırı araçlarını dene.
-                s = self.hub.sessions.get(device_id)
+            elif err and err.startswith("unavailable"):
+                # Portal hiç yok: komut satırı araçları (gnome-screenshot, grim...).
                 if s:
                     self.hub.submit(s._screenshot_headless())
+            elif s:
+                # Masaüstünün reddi geçerli: başka yoldan arkadan ekran alınmaz.
+                text = ("Bilgisayardaki izin penceresi cevaplanmadı." if err == "timeout" else
+                        "Bilgisayarda izin verilmedi ya da masaüstü ekran görüntüsü vermedi.")
+                self.hub.submit(s.send({"type": "command_result", "id": "ekran", "name": "Ekran görüntüsü",
+                                        "ok": False, "output": text}))
         take_screenshot(done)
+
+    def _screenshot_taken(self, device_id):
+        # Ubuntu 22.04'teki portal sormadan veriyor: en azından kullanıcı haberdar olsun.
+        name = self.device_names.get(device_id, "Telefon")
+        self.notifier.show(f"{name} ekran görüntüsü aldı", "Bu bilgisayarın ekranı telefona gönderildi. "
+                           "İstemiyorsan profilinden “Ekran görüntüsü” iznini kapat.", key="ekran")
 
     def _ask(self, d):
         self.activate()

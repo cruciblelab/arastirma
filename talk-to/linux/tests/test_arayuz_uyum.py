@@ -22,6 +22,10 @@ try:
 except (ImportError, ValueError):
     HAVE = False
 
+# CI'da (TALKTO_TEST_STRICT=1) bu testler atlanmamalı: ortam eksikse "atlandı" başarı sayılmasın.
+if not HAVE and os.environ.get("TALKTO_TEST_STRICT"):
+    raise RuntimeError("arayüz testleri çalıştırılamıyor: GTK4/libadwaita ya da ekran yok")
+
 
 @unittest.skipUnless(HAVE, "GTK4/libadwaita ya da ekran yok")
 class CompatTest(unittest.TestCase):

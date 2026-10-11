@@ -34,6 +34,23 @@ class AuthTest {
     }
 
     @Test
+    fun version2MatchesLinux() {
+        val pw = vec.getJSONArray("password_proof2")
+        for (i in 0 until pw.length()) {
+            val v = pw.getJSONObject(i)
+            assertEquals(v.getString("proof"), Auth.passwordProof2(v.getString("password"), v.getString("nonce"), v.getString("fp")))
+        }
+        val pc = vec.getJSONArray("pairing_code2")
+        for (i in 0 until pc.length()) {
+            val v = pc.getJSONObject(i)
+            assertEquals(v.getString("commit"), Auth.commitOf(v.getString("secret")))
+            assertEquals(v.getString("code"),
+                Auth.pairingCode2(v.getString("nonce"), v.getString("secret"), v.getString("fp"), v.getString("device_id")))
+        }
+        assertEquals(vec.getInt("_pbkdf2_rounds"), Auth.PBKDF2_ROUNDS)
+    }
+
+    @Test
     fun framesMatchLinux() {
         val arr = vec.getJSONArray("frames")
         for (i in 0 until arr.length()) {

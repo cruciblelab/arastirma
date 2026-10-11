@@ -34,6 +34,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("setup_done", false)
         set(v) = sp.edit().putBoolean("setup_done", v).apply()
 
+    /** Bildirim izni açılışta bir kez soruldu (sonrası yalnızca kullanıcının düğmesiyle). */
+    var notifAsked: Boolean
+        get() = sp.getBoolean("notif_asked", false)
+        set(v) = sp.edit().putBoolean("notif_asked", v).apply()
+
     /** Kullanıcı "bağlantıyı kes" demediyse otomatik yeniden bağlanılacak bilgisayar. */
     var autoServer: String?
         get() = sp.getString("auto_server", null)

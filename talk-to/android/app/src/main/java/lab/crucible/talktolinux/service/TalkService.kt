@@ -10,6 +10,7 @@ import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.core.app.ServiceCompat
 import androidx.core.content.IntentCompat
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,7 @@ class TalkService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var discovering = false
     private var lastBattery: Pair<Int, Boolean>? = null
+    private var idleSince = 0L
 
     private val battery = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
@@ -67,6 +69,7 @@ class TalkService : Service() {
             Talk.state.collectLatest { st ->
                 when (st) {
                     is Talk.State.Connected -> {
+                        idleSince = 0L
                         setDiscovery(false)
                         lastBattery = null
                         registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))?.let { battery.onReceive(this@TalkService, it) }
@@ -78,7 +81,10 @@ class TalkService : Service() {
                         } else {
                             update("Bağlantı koptu, yeniden bağlanmaya çalışılıyor…")
                             setDiscovery(true)
-                            delay(120_000)
+                            // Her başarısız deneme Idle'a döndürüp bu bloğu yeniden başlatır; süre ilk
+                            // kopuştan sayılır, yoksa 2 dakikalık sınır hiç dolmazdı.
+                            if (idleSince == 0L) idleSince = SystemClock.elapsedRealtime()
+                            delay((120_000 - (SystemClock.elapsedRealtime() - idleSince)).coerceAtLeast(0))
                             stopSelf()
                         }
                     }

@@ -106,22 +106,33 @@ class MediaCard(Gtk.Box):
         self.vol_box = vol
         col.append(vol)
         self.append(col)
-        self._vol_sent = 0.0
+        self._pending: dict[str, int] = {}
+        self._timers: dict[str, int] = {}
 
     def _cmd(self, action, value=None):
         self.win.app.call("media_control", self.device_id, action, value)
 
+    def _later(self, action, value):
+        """Sürüklerken her fare hareketi telefona gitmesin: son değer 150 ms sonra bir kez gönderilir."""
+        self._pending[action] = value
+        if action not in self._timers:
+            self._timers[action] = GLib.timeout_add(150, self._flush, action)
+
+    def _flush(self, action):
+        self._timers.pop(action, None)
+        value = self._pending.pop(action, None)
+        if value is not None:
+            self._cmd(action, value)
+        return False
+
     def _on_seek(self, _scale, _scroll, value):
-        self._cmd("seek", int(value))
+        self._later("seek", int(value))
         self.state["position_ms"] = int(value)
         self.state["received_at"] = time.monotonic()
         return False
 
     def _on_volume(self, _scale, _scroll, value):
-        now = time.monotonic()
-        if now - self._vol_sent > 0.08:
-            self._vol_sent = now
-            self._cmd("volume", int(max(0, min(100, value))))
+        self._later("volume", int(max(0, min(100, value))))
         return False
 
     def update(self, device_name, st):
@@ -173,6 +184,8 @@ class Window(Adw.ApplicationWindow):
         self.usb = {}
         self._updating = False
         self.transfers: dict[str, dict] = {}
+        self._tr_rows: dict[str, tuple] = {}  # anahtar → (satır, ilerleme çubuğu)
+        self._running_cmds: set[str] = set()  # "Burada dene" ile süren komutlar
         self.media_cards: dict[str, MediaCard] = {}
         self.art_paths: dict[str, str] = {}
         self.ringing: set[str] = set()
@@ -339,6 +352,11 @@ class Window(Adw.ApplicationWindow):
         if not self._updating:
             self.app.set_bluetooth(on)
 
+    def sync_autostart(self):
+        """Kurulum yardımcısından açıldıysa anahtar da açık görünsün."""
+        if self.sw_autostart.get_active() != system.autostart_enabled():
+            self.sw_autostart.set_active(system.autostart_enabled())
+
     def update_status(self, st):
         self.status = st
         self._updating = True
@@ -346,6 +364,7 @@ class Window(Adw.ApplicationWindow):
             self.sw_wireless.set_active(st["wireless"])
             self.sw_usb.set_active(st["usb"])
             self.sw_bt.set_active(st["bluetooth"])
+            self.sync_autostart()
         finally:
             self._updating = False
         bt = st.get("bt") or {}
@@ -575,12 +594,17 @@ class Window(Adw.ApplicationWindow):
         self.trusted_group.set_rows(rows)
 
     def _render_profiles(self, profiles, trusted):
+        # Bir izni değiştirince bütün satırlar yeniden kurulur: açık olan profil açık kalsın.
+        open_ids = {pid for pid, r in zip(getattr(self, "_profile_ids", []), self.profile_group.rows)
+                    if r.get_expanded()}
+        self._profile_ids = list(profiles)
         rows = []
         default = self.status.get("default_profile")
         for pid, prof in profiles.items():
             count = sum(1 for t in trusted if t["profile"] == pid)
             sub = [f"{count} telefon"] + (["yeni telefonlar bununla başlar"] if pid == default else [])
             exp = row(prof["name"], " · ".join(sub), cls=Adw.ExpanderRow)
+            exp.set_expanded(pid in open_ids)
             exp.add_prefix(Gtk.Image(icon_name="avatar-default-symbolic"))
             name = compat.EntryRow(title="Profil adı", show_apply_button=True, text=prof["name"])
             name.connect("apply", lambda r, p=pid: self.app.call("save_profile", p, {"name": r.get_text()}))
@@ -776,10 +800,28 @@ class Window(Adw.ApplicationWindow):
             self.stack.set_visible_child_name("dosyalar")
         return n > 0
 
+    @staticmethod
+    def _transfer_text(tr):
+        arrow = "Telefondan" if tr["direction"] == "in" else "Telefona"
+        size = human_size(tr["size"])
+        text = {"waiting": "bekliyor", "active": f"{human_size(tr['done'])} / {size}", "done": size,
+                "failed": f"başarısız: {tr.get('error') or ''}", "rejected": "reddedildi",
+                "cancelled": "iptal edildi"}.get(tr["state"], tr["state"])
+        return f"{arrow} ({tr['device']}) · {text}"
+
     def update_transfer(self, tr):
-        key = f"{tr['device_id']}:{tr['direction']}:{tr['tid']}"
-        tr["at"] = self.transfers.get(key, {}).get("at", time.time())
+        key = tr.get("key") or f"{tr['device_id']}:{tr['direction']}:{tr['tid']}"
+        old = self.transfers.get(key)
+        tr["at"] = old["at"] if old else time.time()
         self.transfers[key] = tr
+        # İlerleme olaylarında satırlar baştan kurulmaz (0,2 sn'de bir): "İptal"e basılabilsin.
+        live = self._tr_rows.get(key)
+        if old and live and old["state"] in ("active", "waiting") and tr["state"] in ("active", "waiting"):
+            r, bar = live
+            r.set_subtitle(self._transfer_text(tr))
+            if bar:
+                bar.set_fraction(tr["done"] / tr["size"] if tr["size"] else 0)
+            return
         if len(self.transfers) > 30:
             for k in sorted(self.transfers, key=lambda k: self.transfers[k]["at"])[:-30]:
                 del self.transfers[k]
@@ -787,15 +829,12 @@ class Window(Adw.ApplicationWindow):
 
     def _render_transfers(self):
         rows = []
-        for tr in sorted(self.transfers.values(), key=lambda t: -t["at"]):
-            arrow = "Telefondan" if tr["direction"] == "in" else "Telefona"
-            size = human_size(tr["size"])
+        self._tr_rows = {}
+        for key, tr in sorted(self.transfers.items(), key=lambda kv: -kv[1]["at"]):
             state = tr["state"]
-            text = {"waiting": "bekliyor", "active": f"{human_size(tr['done'])} / {size}", "done": size,
-                    "failed": f"başarısız: {tr.get('error') or ''}", "rejected": "reddedildi",
-                    "cancelled": "iptal edildi"}.get(state, state)
-            r = row(tr["name"], f"{arrow} ({tr['device']}) · {text}")
+            r = row(tr["name"], self._transfer_text(tr))
             r.add_prefix(Gtk.Image(icon_name="go-down-symbolic" if tr["direction"] == "in" else "go-up-symbolic"))
+            bar = None
             if state in ("active", "waiting"):
                 bar = Gtk.ProgressBar(valign=Gtk.Align.CENTER, width_request=110)
                 bar.set_fraction(tr["done"] / tr["size"] if tr["size"] else 0)
@@ -814,6 +853,7 @@ class Window(Adw.ApplicationWindow):
             elif state in ("failed", "rejected"):
                 r.add_suffix(Gtk.Image(icon_name="dialog-warning-symbolic", css_classes=["error"]))
             rows.append(r)
+            self._tr_rows[key] = (r, bar)
         if not rows:
             rows.append(row("Henüz aktarım yok", "Telefonda bir dosyayı “Paylaş → Talk To Linux” ile gönderebilirsin"))
         self.transfer_group.set_rows(rows)
@@ -954,12 +994,24 @@ class Window(Adw.ApplicationWindow):
                          "Kaydet", save, extra=box)
 
     def _try_command(self, c):
+        if c["id"] in self._running_cmds:
+            self.toast(f"{c['name']} zaten çalışıyor")
+            return
+        self._running_cmds.add(c["id"])
         self.toast(f"{c['name']} çalışıyor…")
         fut = self.app.hub.submit(pc.run_command(c["id"], [c], {"commands": True}))
 
+        def show(res):
+            self._running_cmds.discard(c["id"])
+            self.app.show_output(c["name"], res)
+            return False
+
         def done(f):
-            res = f.result()
-            GLib.idle_add(lambda: self.app.show_output(c["name"], res) and False)
+            try:
+                res = f.result()
+            except Exception as e:  # noqa: BLE001 — sonuç penceresinde gösterilir
+                res = {"ok": False, "output": str(e)}
+            GLib.idle_add(show, res)
         fut.add_done_callback(done)
 
     def add_command_log(self, d):

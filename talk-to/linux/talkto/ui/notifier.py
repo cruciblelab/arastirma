@@ -19,6 +19,9 @@ class Notifier:
     def __init__(self):
         self.ids: dict[str, int] = {}
         self.actions: dict[int, dict] = {}
+        # Notify cevabı (numara) gelmeden aynı anahtar güncellenir ya da kapatılırsa: sıraya alınır,
+        # yoksa ikinci bir bildirim açılır ve ilki masaüstünde sahipsiz kalırdı.
+        self.pending: dict[str, dict] = {}
         try:
             self.bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
             self.bus.signal_subscribe(NAME, NAME, "ActionInvoked", PATH, None,
@@ -34,6 +37,12 @@ class Notifier:
         """actions: {'kimlik': ('Etiket', geri_çağrı)}"""
         if not self.bus:
             return
+        if key and key in self.pending:
+            self.pending[key].update(next=(title, body, dict(key=key, app_name=app_name, icon=icon,
+                                                             actions=actions, urgent=urgent)), close=False)
+            return
+        if key:
+            self.pending[key] = {"next": None, "close": False}
         replaces = self.ids.get(key, 0) if key else 0
         acts = []
         for k, (label, _) in (actions or {}).items():
@@ -48,17 +57,27 @@ class Notifier:
 
     def _shown(self, bus, res, data):
         key, actions = data
+        waiting = self.pending.pop(key, None) if key else None
         try:
             nid = bus.call_finish(res).unpack()[0]
         except GLib.Error as e:
             log.debug("bildirim gösterilemedi: %s", e.message)
-            return
-        if key:
-            self.ids[key] = nid
-        if actions:
-            self.actions[nid] = actions
+            nid = None
+        if nid is not None:
+            if key:
+                self.ids[key] = nid
+            if actions:
+                self.actions[nid] = actions
+        if waiting and waiting["close"]:
+            self.close(key)
+        elif waiting and waiting["next"]:
+            title, body, kw = waiting["next"]
+            self.show(title, body, **kw)
 
     def close(self, key: str):
+        if key in self.pending:  # numarası henüz gelmedi: gelince kapatılır
+            self.pending[key].update(close=True, next=None)
+            return
         nid = self.ids.pop(key, None)
         if nid and self.bus:
             self.bus.call(NAME, PATH, NAME, "CloseNotification", GLib.Variant("(u)", (nid,)),

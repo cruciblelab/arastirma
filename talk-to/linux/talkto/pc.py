@@ -9,6 +9,7 @@ import asyncio
 import os
 import re
 import shutil
+import signal
 import socket
 import time
 from pathlib import Path
@@ -61,7 +62,11 @@ async def run_command(cid: str, custom: list[dict], profile: dict) -> dict:
     try:
         out, _ = await asyncio.wait_for(proc.communicate(), TIMEOUT)
     except asyncio.TimeoutError:
-        proc.kill()
+        # Yeni oturumda başladı: süreç grubunun tamamı (sh'nin başlattıkları dahil) durdurulur.
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            proc.kill()
         await proc.wait()
         return {"ok": False, "output": f"{TIMEOUT} saniyede bitmedi, durduruldu."}
     text = out.decode("utf-8", "replace")

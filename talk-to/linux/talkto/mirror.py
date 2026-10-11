@@ -6,9 +6,13 @@ telefon yeniden başlayınca sıfırlanır). Telefon her yeni bilgisayarı yine 
 "USB hata ayıklamaya izin ver" sorusuyla onaylar.
 """
 
+import asyncio
+import re
 import shutil
 import subprocess
+from pathlib import Path
 
+from .config import cache_dir
 from .usb import _adb
 
 TCP_PORT = 5555
@@ -23,7 +27,7 @@ def install_command() -> list[str] | None:
     if not shutil.which("pkexec"):
         return None
     for tool, cmd in (
-        ("apt-get", ["apt-get", "install", "-y", "scrcpy"]),
+        ("apt-get", ["apt-get", "-o", "DPkg::Lock::Timeout=120", "install", "-y", "scrcpy"]),
         ("dnf", ["dnf", "install", "-y", "scrcpy"]),
         ("pacman", ["pacman", "-S", "--noconfirm", "--needed", "scrcpy"]),
         ("zypper", ["zypper", "--non-interactive", "install", "scrcpy"]),
@@ -39,6 +43,7 @@ class Mirror:
 
     def __init__(self):
         self.procs: dict[str, subprocess.Popen] = {}
+        self.logs: dict[str, Path] = {}
 
     def running(self, serial: str) -> bool:
         p = self.procs.get(serial)
@@ -49,14 +54,38 @@ class Mirror:
             return False, "scrcpy kurulu değil"
         if self.running(serial):
             return True, "Telefonun ekranı zaten açık"
+        log = cache_dir() / f"scrcpy-{re.sub(r'[^A-Za-z0-9._-]', '_', serial)}.log"
         try:
-            self.procs[serial] = subprocess.Popen(
-                ["scrcpy", "-s", serial, "--window-title", title, "--stay-awake"],
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                start_new_session=True)
+            log.parent.mkdir(parents=True, exist_ok=True)
+            with open(log, "wb") as out:  # çocuk süreç kendi kopyasını tutar
+                self.procs[serial] = subprocess.Popen(
+                    ["scrcpy", "-s", serial, "--window-title", title, "--stay-awake"],
+                    stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
         except OSError as e:
             return False, f"scrcpy açılamadı: {e}"
+        self.logs[serial] = log
         return True, "Telefonun ekranı açılıyor"
+
+    async def start_checked(self, serial: str, title: str, wait: float = 2.5) -> tuple[bool, str]:
+        """Açar ve birkaç saniye bekler: scrcpy hemen hata verip kapanırsa nedenini döndürür."""
+        already = self.running(serial)
+        ok, msg = self.start(serial, title)
+        if not ok or already:
+            return ok, msg
+        p = self.procs[serial]
+        for _ in range(int(wait / 0.25)):
+            await asyncio.sleep(0.25)
+            if p.poll() is not None:
+                break
+        if p.poll() in (None, 0):  # çalışıyor ya da kullanıcı pencereyi kapattı
+            return True, msg
+        try:
+            lines = self.logs[serial].read_text(errors="replace").strip().splitlines()
+        except OSError:
+            lines = []
+        reason = next((ln for ln in reversed(lines) if "ERROR" in ln), lines[-1] if lines else f"çıkış kodu {p.returncode}")
+        return False, (f"scrcpy açılamadı: {reason.strip()[:200]}. Ubuntu 22.04'teki scrcpy (1.21) yeni Android "
+                       "sürümlerinde açılmayabilir; daha yenisi için: snap install scrcpy")
 
     def stop_all(self):
         for p in self.procs.values():

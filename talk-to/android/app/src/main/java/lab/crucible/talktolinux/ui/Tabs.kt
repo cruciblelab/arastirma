@@ -83,6 +83,7 @@ import lab.crucible.talktolinux.BuildConfig
 import lab.crucible.talktolinux.core.Notifs
 import lab.crucible.talktolinux.core.Prefs
 import lab.crucible.talktolinux.core.Talk
+import lab.crucible.talktolinux.core.Checks
 import lab.crucible.talktolinux.net.ClientSession
 
 // ---- Ana sayfa ----------------------------------------------------------------------
@@ -273,16 +274,20 @@ private fun PcPlayer() {
                 }
             }
             media.volume?.let { v ->
-                var vol by remember(v) { mutableFloatStateOf(v.toFloat()) }
+                // Sürüklerken bilgisayardan gelen yankı kaydırıcıyı geri zıplatmasın.
+                var vol by remember { mutableFloatStateOf(v.toFloat()) }
+                var dragging by remember { mutableStateOf(false) }
                 var lastSent by remember { mutableLongStateOf(0L) }
+                LaunchedEffect(v) { if (!dragging) vol = v.toFloat() }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.MusicNote, "Oynatıcının sesi", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.width(8.dp))
                     Slider(value = vol, valueRange = 0f..100f, modifier = Modifier.weight(1f), onValueChange = {
+                        dragging = true
                         vol = it
                         val t = SystemClock.elapsedRealtime()
-                        if (t - lastSent > 120) { lastSent = t; Talk.mediaControl("volume", it.toLong()) }
-                    }, onValueChangeFinished = { Talk.mediaControl("volume", vol.toLong()) })
+                        if (t - lastSent > 400) { lastSent = t; Talk.mediaControl("volume", it.toLong()) }
+                    }, onValueChangeFinished = { dragging = false; Talk.mediaControl("volume", vol.toLong()) })
                 }
             }
         }
@@ -296,7 +301,9 @@ private fun PcVolume() {
     val profile by Talk.profile.collectAsState()
     val i = info ?: return
     if (i.volume == null || profile?.can("media") == false) return
-    var vol by remember(i.volume) { mutableFloatStateOf(i.volume.toFloat()) }
+    var vol by remember { mutableFloatStateOf(i.volume.toFloat()) }
+    var dragging by remember { mutableStateOf(false) }
+    LaunchedEffect(i.volume) { if (!dragging) vol = i.volume.toFloat() }
     Panel {
         Row(Modifier.padding(start = 4.dp, end = 16.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { Talk.pcVolume(toggleMute = true) }) {
@@ -306,8 +313,8 @@ private fun PcVolume() {
             Column(Modifier.weight(1f)) {
                 Text("Bilgisayarın sesi", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Slider(value = vol, valueRange = 0f..100f, onValueChange = { vol = it },
-                    onValueChangeFinished = { Talk.pcVolume(vol.toInt()) })
+                Slider(value = vol, valueRange = 0f..100f, onValueChange = { dragging = true; vol = it },
+                    onValueChangeFinished = { dragging = false; Talk.pcVolume(vol.toInt()) })
             }
             Text("%${vol.toInt()}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.width(48.dp),
                 textAlign = TextAlign.End)
@@ -394,19 +401,38 @@ internal fun LazyListScope.computerTab(s: Talk.State.Connected) {
     item { SectionTitle("Bu bilgisayar için ayarlar") }
     item { ServerSettings(s) }
     item {
+        var askForget by remember { mutableStateOf(false) }
+        if (askForget) ForgetDialog(s.serverName, onDismiss = { askForget = false }) {
+            askForget = false
+            Talk.forget(s.serverId)
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(onClick = { Talk.disconnect() }, Modifier.weight(1f)) { Text("Bağlantıyı kes") }
-            TextButton(onClick = { Talk.forget(s.serverId) }, Modifier.weight(1f)) {
+            TextButton(onClick = { askForget = true }, Modifier.weight(1f)) {
                 Text("Bilgisayarı unut", color = MaterialTheme.colorScheme.error)
             }
         }
     }
 }
 
+/** "Unut" eşleşmeyi siler; yeniden bağlanmak bilgisayarda yeni bir onay ister. */
+@Composable
+internal fun ForgetDialog(name: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("$name unutulsun mu?") },
+        text = { Text("Eşleşme ve otomatik bağlanma silinir. Yeniden bağlanmak için bilgisayarda yeniden onay " +
+            "(ya da şifre) gerekir.") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Unut", color = MaterialTheme.colorScheme.error) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } },
+    )
+}
+
 @Composable
 private fun SysInfoCard() {
     val info by Talk.sysinfo.collectAsState()
-    LaunchedEffect(Unit) { while (true) { Talk.requestSysinfo(); delay(5000) } }
+    // Arka plandayken (ekran kapalı, başka uygulama önde) bilgisayara boşuna sorulmaz.
+    LaunchedEffect(Unit) { while (true) { if (Talk.uiVisible) Talk.requestSysinfo(); delay(5000) } }
     Panel {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             val i = info
@@ -524,7 +550,7 @@ private fun ServerSettings(s: Talk.State.Connected) {
             ListRow(Icons.Rounded.BatteryAlert, "Pil kısıtlamasını kaldır",
                 "Ekran kapalıyken bağlantı kopmasın diye Talk To Linux'u “Kısıtlama yok” yap",
                 iconTint = MaterialTheme.colorScheme.error, onClick = {
-                    ctx.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                    Checks.open(ctx, Checks.batterySettings(), Checks.appDetails(ctx))
                 })
         }
     }

@@ -116,8 +116,15 @@ wait_for "bildirim bilgisayara ulaştı" 'any(n["title"] == "Emulator testi" for
 
 wait_for "uygulama adı paket adı değil" \
     'any(n["title"] == "Emulator testi" and n["app"] != n["package"] for n in of("notification"))' 5
-wait_for "başlıksız medya oturumu müzik sayılmıyor" \
-    'not any(m["state"].get("active") and not m["state"].get("title") for m in of("media"))' 3
+# Emülatörde gerçek bir oynatıcı yok: bu denetim yalnızca bir medya olayı geldiyse anlamlı (Google
+# uygulamasının boş oturumu gibi). Olay yoksa "geçti" sayılmaz, yalnızca bilgi olarak yazılır.
+n_media=$(python3 -c 'import json,sys; print(sum(1 for l in open(sys.argv[1]) if l.strip() and json.loads(l)["event"]=="media"))' "$EV")
+if [ "$n_media" -gt 0 ]; then
+    wait_for "başlıksız medya oturumu müzik sayılmıyor" \
+        'not any(m["state"].get("active") and not m["state"].get("title") for m in of("media"))' 3
+else
+    log "bilgi: medya olayı yok, başlıksız oturum denetimi yapılamadı"
+fi
 
 log "3) uygulamadaki Deneme bildirimi düğmesi"
 tap_text "Deneme bildirimi gönder"
@@ -137,10 +144,14 @@ shot 03-izinler
 adb shell input keyevent KEYCODE_BACK
 
 log "5) güncelleme (USB'den yeniden kurulum) sonrası"
+# Sayımlar güncellemeden hemen önceki değerlere göre: önceki adımlarda bir kopma olduysa yanıltmasın.
+count() { python3 -c 'import json,sys; print(sum(1 for l in open(sys.argv[1]) if l.strip() and json.loads(l)["event"]==sys.argv[2]))' "$EV" "$1"; }
+C0=$(count connected)
+A0=$(count ask)
 adb install -r "$APK"
 sleep 2
 adb shell am start -W -n $PKG/.ui.MainActivity > /dev/null
-wait_for "kendiliğinden yeniden bağlandı (onaysız)" 'len(of("connected")) >= 2 and len(of("ask")) == 1' 45
+wait_for "kendiliğinden yeniden bağlandı (onaysız)" "len(of('connected')) > $C0 and len(of('ask')) == $A0" 45
 wait_for "güncellemeden sonra da dinleyici bağlı" \
     'phone().get("listener") is True and len([e for e in ev if e["event"] == "status"]) > 0' 40
 adb shell "cmd notification post -S bigtext -t 'Guncelleme sonrasi' e2e2 'Hala geliyor mu'"

@@ -21,6 +21,7 @@ jobs:
         # 22.04: GTK 4.6 + libadwaita 1.1 (uyumluluk katmanı), 24.04: GTK 4.14 + libadwaita 1.5
         os: [ubuntu-22.04, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: talk-to/linux
@@ -30,18 +31,19 @@ jobs:
       - name: Bağımlılıklar
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas xvfb imagemagick dbus
+          sudo apt-get install -y -q python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas xvfb imagemagick dbus libglib2.0-bin
 
       - name: Testler (arayüz uyumluluğu ve masaüstü medya oynatıcısı dahil, sanal ekran + D-Bus)
-        run: xvfb-run -a dbus-run-session -- /usr/bin/python3 -m unittest discover -s tests -v
+        # TALKTO_TEST_STRICT: ekran ya da D-Bus eksikse testler "atlandı" değil "başarısız" olur.
+        run: TALKTO_TEST_STRICT=1 xvfb-run -a dbus-run-session -- /usr/bin/python3 -m unittest discover -s tests -v
 
       - name: Arayüz açılıyor mu (sanal ekranda ekran görüntüsü)
         # 22.04'ün PyGObject'i (3.42) GTK'nın çizim düğümlerini çeviremediği için orada pencere
         # X sunucusundan ImageMagick ile çekilir; ekran pencere sığacak kadar büyük olmalı.
-        run: xvfb-run -a -s "-screen 0 1280x1400x24" env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 1300
+        run: timeout 180 xvfb-run -a -s "-screen 0 1280x1400x24" env GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 1300
 
       - name: Kurulum yardımcısı (sanal ekranda ekran görüntüsü)
-        run: xvfb-run -a -s "-screen 0 1280x1400x24" env KURULUM=1 GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 900
+        run: timeout 180 xvfb-run -a -s "-screen 0 1280x1400x24" env KURULUM=1 GSK_RENDERER=cairo NO_AT_BRIDGE=1 /usr/bin/python3 tests/ekran_goruntusu.py ekran 920 900
 
       - uses: actions/download-artifact@v4
         with:
@@ -57,8 +59,18 @@ jobs:
           talk-to-android yardim
           test -f /usr/share/talk-to-android/talk-to-linux.apk
 
-      - name: Kurulan uygulama penceresiyle açılıyor mu (10 sn çökmeden çalışmalı)
-        run: xvfb-run -a sh -c 'timeout 10 talk-to-android; test $? -eq 124'
+      - name: Kurulan uygulama açılıyor mu (arka plan çalışıyor, arayüzde hata yok)
+        # Yalnızca "10 sn kapanmadı" yetmez: pencere istisna atsa da süreç açık kalır. Komut satırının
+        # "durum" cevabı arka planın çalıştığını, stderr'de Traceback olmaması arayüzün açıldığını gösterir.
+        run: |
+          timeout 60 xvfb-run -a dbus-run-session -- sh -c '
+            talk-to-android 2> "$RUNNER_TEMP/arayuz.txt" & app=$!
+            sleep 8
+            talk-to-android durum; r=$?
+            kill $app 2>/dev/null
+            cat "$RUNNER_TEMP/arayuz.txt"
+            ! grep -q Traceback "$RUNNER_TEMP/arayuz.txt" && test $r -eq 0'
+
 
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-24.04'
@@ -93,22 +105,37 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" > /dev/null
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-      - name: İmza anahtarı (depo sırrı tanımlıysa)
+      - name: Derle, birim testleri, lint (sır tanımlıysa kalıcı anahtarla imzalı)
+        # Anahtar ve parola yalnızca bu adımda var; sonraki adımlara (GITHUB_ENV) taşınmaz.
         env:
           KEYSTORE_BASE64: ${{ secrets.TALKTO_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.TALKTO_KEYSTORE_PASSWORD }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/talktolinux.jks"
-            echo "TALKTO_KEYSTORE=$RUNNER_TEMP/talktolinux.jks" >> "$GITHUB_ENV"
-            echo "TALKTO_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            export TALKTO_KEYSTORE="$RUNNER_TEMP/talktolinux.jks" TALKTO_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
             echo "Kalıcı anahtarla imzalanacak."
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "::error::Etiketli sürüm kalıcı imza anahtarı olmadan yayınlanamaz (TALKTO_KEYSTORE_BASE64 sırrı yok)."
+            exit 1
           else
             echo "::warning::TALKTO_KEYSTORE_BASE64 sırrı yok: APK her derlemede farklı geçici anahtarla imzalanır, eski sürümün üzerine kurulamaz."
           fi
+          r=0
+          ./gradlew --no-daemon assembleTamRelease assembleHafifRelease testTamReleaseUnitTest lintTamRelease lintHafifRelease || r=$?
+          rm -f "$RUNNER_TEMP/talktolinux.jks"
+          exit $r
 
-      - name: Derle, birim testleri, lint
-        run: ./gradlew --no-daemon assembleTamRelease assembleHafifRelease testTamReleaseUnitTest lintTamRelease lintHafifRelease
+      - name: İmza sertifikası (etiketli sürümde kalıcı anahtar olmalı)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          signer=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
+          for apk in app/build/outputs/apk/*/release/*.apk; do
+            "$signer" verify --print-certs "$apk" | tee /dev/stderr | grep -qi "SHA-256 digest: $TALKTO_CERT_SHA256" \
+              || { echo "::error::$apk kalıcı anahtarla imzalanmamış"; exit 1; }
+          done
+        env:
+          TALKTO_CERT_SHA256: 89ab48e123fe7920a774b9c95d737b008840b72d4a8a165a432b015f386eb424
 
       - name: Android ağ kodu ↔ gerçek Linux sunucusu (canlı test)
         run: sh ../linux/tests/android_canli_test.sh

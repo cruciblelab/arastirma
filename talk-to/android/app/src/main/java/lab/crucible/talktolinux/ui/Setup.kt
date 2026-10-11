@@ -87,6 +87,10 @@ class Item(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CheckRow(item: Item) {
+    // Değerler gerçekten okunmalı (by ile temsilci okunmadıkça abonelik kaydolmaz): ayardan dönünce,
+    // izin sonucunda ve "Kontrol et"te satır yeniden çizilir.
+    UiTick.tick.collectAsState().value
+    Talk.listenerConnected.collectAsState().value
     val ok = item.check?.invoke()
     val cs = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -149,6 +153,7 @@ private fun CheckPanel(items: List<Item>) {
 @Composable
 private fun notificationItems(perms: PermActions): List<Item> {
     val ctx = LocalContext.current
+    UiTick.tick.collectAsState().value  // koşullu "dinleyici" satırı için
     if (!Checks.hasNotifications) {
         return listOf(Item("Hafif sürüm",
             "Bu sürüm telefon bildirimlerini ve telefonda çalan müziği bilgisayara gönderemez. Tam sürüm için " +
@@ -164,7 +169,7 @@ private fun notificationItems(perms: PermActions): List<Item> {
         Item("Bildirim erişimi",
             "Telefon bildirimlerinin bilgisayarda görünmesi ve telefonda çalan müziğin (Spotify, YouTube…) " +
                 "bilgisayardan kontrolü için. Açılan sayfada Talk To Linux'u aç.",
-            { Checks.notifAccess() }, "Ayarı aç", { Checks.open(ctx, Checks.notifAccessIntent(ctx)) },
+            { Checks.notifAccess() }, "Ayarı aç", { Checks.openNotifAccess(ctx) },
             hint = restricted, hintAction = restricted?.let { "Uygulama bilgisi" },
             onHint = { Checks.open(ctx, Checks.appDetails(ctx)) }),
         // Erişim kapalıyken dinleyici zaten çalışamaz; bu satır yalnızca erişim açıkken anlamlı.
@@ -191,6 +196,7 @@ private fun backgroundItems(): List<Item> {
 @Composable
 private fun connectionItems(perms: PermActions): List<Item> {
     val ctx = LocalContext.current
+    UiTick.tick.collectAsState().value  // Bluetooth düğmesinin yazısı izne göre değişir
     return listOf(
         Item("USB: Geliştirici seçenekleri",
             "Kabloyla bağlanmak için. Kapalıysa: açılan “Telefon hakkında” sayfasında “Yapım numarası”na 7 kez dokun.",
@@ -241,12 +247,11 @@ private val STEPS = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SetupWizard(perms: PermActions, initialStep: Int = 0, onDone: () -> Unit) {
+fun SetupWizard(perms: PermActions, initialStep: Int = 0, onBack: (() -> Unit)? = null, onDone: () -> Unit) {
     var step by rememberSaveable { mutableIntStateOf(initialStep) }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) { Talk.messages.collect { snackbar.showSnackbar(it) } }
-    @Suppress("UNUSED_VARIABLE") val tick by UiTick.tick.collectAsState()  // ayardan dönünce yeniden çiz
-    BackHandler(enabled = step > 0) { step-- }
+    BackHandler(enabled = step > 0 || onBack != null) { if (step > 0) step-- else onBack?.invoke() }
     val s = STEPS[step]
     val last = step == STEPS.lastIndex
 
@@ -298,7 +303,6 @@ fun SetupWizard(perms: PermActions, initialStep: Int = 0, onDone: () -> Unit) {
 fun PermissionsScreen(perms: PermActions, onBack: () -> Unit, onOpenWizard: () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) { Talk.messages.collect { snackbar.showSnackbar(it) } }
-    @Suppress("UNUSED_VARIABLE") val tick by UiTick.tick.collectAsState()
     val state by Talk.state.collectAsState()
     val profile by Talk.profile.collectAsState()
     BackHandler(onBack = onBack)

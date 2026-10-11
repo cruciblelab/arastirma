@@ -19,7 +19,7 @@ PACKAGES = {
     "zypper": ["python3-gobject", "typelib-1_0-Gtk-4_0", "typelib-1_0-Adw-1", "python3-cryptography"],
 }
 INSTALL = {
-    "apt-get": ["install", "-y"],
+    "apt-get": ["-o", "DPkg::Lock::Timeout=120", "install", "-y"],  # güncelleme sürüyorsa bekle
     "dnf": ["install", "-y"],
     "pacman": ["-S", "--noconfirm", "--needed"],
     "zypper": ["--non-interactive", "install"],

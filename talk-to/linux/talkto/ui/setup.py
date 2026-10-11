@@ -68,7 +68,8 @@ class SetupAssistant(Adw.Window):
 
     def refresh(self):
         status, usb = self._state()
-        self.steps = setup_checks.steps(status, usb, autostart=system.autostart_enabled())
+        self.steps = setup_checks.steps(status, usb, autostart=system.autostart_enabled(),
+                                        firewall_port=self.app.config["firewall_port"])
         self.step = max(0, min(self.step, len(self.steps) - 1))
         s = self.steps[self.step]
         last = self.step == len(self.steps) - 1
@@ -150,12 +151,16 @@ class SetupAssistant(Adw.Window):
             return
         elif action == "enable_autostart":
             system.set_autostart(True)
+            w = self.app.window
+            if w and hasattr(w, "sync_autostart"):
+                w.sync_autostart()
         elif action == "allow_firewall":
             self._allow_firewall()
             return
         elif action.startswith("install_phone_app:"):
             app.install_phone_app(action.split(":", 1)[1])
             self.toast("Telefona kuruluyor; telefonda açılınca “USB kablosu”nu seç")
+            GLib.timeout_add(600, lambda: (self.refresh(), False)[-1])
             return
         # Ayar değişikliği hub'da; kısa süre sonra durum güncellenince yeniden çizilir.
         GLib.timeout_add(600, lambda: (self.refresh(), False)[-1])
@@ -177,5 +182,8 @@ class SetupAssistant(Adw.Window):
             except GLib.Error:
                 pass
             ok = p.get_exit_status() == 0
+            if ok:
+                self.app.config.set("firewall_port", self.app.config["port"])
+                self.refresh()
             self.toast("Güvenlik duvarına izin eklendi" if ok else "İzin eklenemedi (iptal edildi ya da yetki yok)")
         proc.communicate_utf8_async(None, None, done)

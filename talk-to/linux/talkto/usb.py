@@ -8,6 +8,7 @@ ve telefon bilgisayarın adb anahtarını bir kez onaylamalıdır.
 import asyncio
 import logging
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -26,6 +27,11 @@ ANDROID_VENDORS = {
     "0bb4", "19d2", "17ef", "0b05", "2e04", "1ebf", "29a9", "2ae5", "1bbb", "0e8d", "2916",
 }
 USB_ROOT = "/sys/bus/usb/devices"
+# Telefon üreticileri başka aygıt da yapar (Lenovo dock, Samsung SSD, Asus klavye...): adlarından ele.
+NOT_PHONE = re.compile(r"ethernet|\blan\b|dock|hub|keyboard|mouse|receiver|camera|webcam|audio|headset|speaker|"
+                       r"card reader|bluetooth|fingerprint|ssd|disk|storage|monitor|display|printer", re.I)
+# Telefonda olmayan arayüz sınıfları: ses, yazıcı, yığın depolama, görüntü.
+NOT_PHONE_CLASSES = {"01", "07", "08", "0e"}
 
 
 def _read(path: Path) -> str:
@@ -56,11 +62,17 @@ def usb_phones(root: str = USB_ROOT) -> list[dict]:
             ifaces.append((_read(itf / "bInterfaceClass").lower(), _read(itf / "bInterfaceSubClass").lower(),
                            _read(itf / "bInterfaceProtocol").lower(), _read(itf / "interface")))
         adb = any(c == "ff" and sc == "42" and pr == "01" for c, sc, pr, _ in ifaces)
-        mtp = any("MTP" in name or c == "06" for c, _, _, name in ifaces)
-        known = vendor in ANDROID_VENDORS and not all(c in ("03", "09") for c, _, _, _ in ifaces)
+        name = " ".join(x for x in (_read(dev / "manufacturer"), _read(dev / "product")) if x)
+        android = vendor in ANDROID_VENDORS
+        # 06 (resim aktarımı) fotoğraf makinelerinde de var: yalnızca telefon üreticisinde ya da adı MTP ise.
+        mtp = any("MTP" in label or (c == "06" and android) for c, _, _, label in ifaces)
+        # Yalnızca şarj modunda telefon çoğunlukla tek bir üreticiye özel (ff) arayüz gösterir;
+        # bağlantı paylaşımında e0/02/0a.
+        known = android and all(c in ("ff", "06", "e0", "02", "0a") for c, _, _, _ in ifaces)
+        if not adb and (NOT_PHONE.search(name) or any(c in NOT_PHONE_CLASSES for c, _, _, _ in ifaces)):
+            continue
         if not (adb or mtp or known):
             continue
-        name = " ".join(x for x in (_read(dev / "manufacturer"), _read(dev / "product")) if x)
         phones.append({"serial": _read(dev / "serial"), "name": name or "Android telefon", "adb": adb})
     return phones
 
@@ -94,12 +106,20 @@ async def _adb(*args, timeout=8.0) -> tuple[int, str]:
 
 
 def parse_devices(text: str) -> dict[str, str]:
+    """`adb devices` çıktısı. adb sunucusu yeni başlıyorsa önce "* daemon ..." satırları gelir."""
+    lines = text.splitlines()
+    start = next((i + 1 for i, line in enumerate(lines) if line.startswith("List of devices")), len(lines))
     devices = {}
-    for line in text.splitlines()[1:]:
+    for line in lines[start:]:
         parts = line.split()
-        if len(parts) >= 2:
+        if len(parts) >= 2 and not line.startswith("*"):
             devices[parts[0]] = parts[1]
     return devices
+
+
+def is_network_serial(serial: str) -> bool:
+    """Wi-Fi üzerinden adb (ip:5555 ya da mDNS ile eşleşmiş) USB sayılmaz, ona tünel kurulmaz."""
+    return ":" in serial or "_adb-tls-" in serial
 
 
 class AdbWatcher:
@@ -159,7 +179,7 @@ class AdbWatcher:
         rc, out = await _adb("devices")
         if rc != 0:
             return
-        seen = parse_devices(out)
+        seen = {k: v for k, v in parse_devices(out).items() if not is_network_serial(k)}
         changed = False
         for serial in list(self.devices):
             if serial not in seen:
@@ -170,6 +190,11 @@ class AdbWatcher:
                                                  "app": None, "installing": False})
             if d["state"] != state:
                 d["state"] = state
+                d["tunnel"] = False
+                changed = True
+            if state == "device" and d["tunnel"] and not await self._tunnel_alive(serial):
+                # adb sunucusu yeniden başladı, telefon "adb tcpip"e geçti ya da USB modu değişti.
+                log.info("adb reverse tüneli düşmüş, yeniden kuruluyor (%s)", serial)
                 d["tunnel"] = False
                 changed = True
             if state == "device" and not d["tunnel"]:
@@ -184,6 +209,11 @@ class AdbWatcher:
                 changed = True
         if changed:
             self.on_change(self.snapshot())
+
+    async def _tunnel_alive(self, serial: str) -> bool:
+        rc, out = await _adb("-s", serial, "reverse", "--list", timeout=4)
+        # Komut başarısızsa (eski adb, kısa kopma) tüneli yıkıp yeniden kurmak yerine bir sonraki yoklamayı bekle.
+        return rc != 0 or f"tcp:{self.port}" in out
 
     async def _app_installed(self, serial: str) -> bool:
         rc, out = await _adb("-s", serial, "shell", "pm", "path", PHONE_PACKAGE)
@@ -202,6 +232,8 @@ class AdbWatcher:
             return False, "Kurulacak APK bulunamadı."
         if not d or d.get("state") != "device":
             return False, "Telefon USB ile bağlı değil ya da USB hata ayıklama onaylanmadı."
+        if d.get("installing"):
+            return False, "Kurulum zaten sürüyor; telefonda bitmesini bekle."
         d["installing"] = True
         self.on_change(self.snapshot())
         try:
