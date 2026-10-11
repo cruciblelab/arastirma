@@ -14,7 +14,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import APP_ID, __version__, apt, imza, paket  # noqa: E402
+from . import APP_ID, __version__, apt, calisan, imza, paket, yayinci  # noqa: E402
 
 VERDICT = {
     paket.KUR: ("Yeni kurulum", "Bu bilgisayarda kurulu değil."),
@@ -59,6 +59,9 @@ class Window(Adw.ApplicationWindow):
         self.copy: str | None = None
         self.checks: list[Gtk.CheckButton] = []
         self.busy = False
+        self.card: yayinci.Kart | None = None
+        self.site: yayinci.Dogrulama | None = None  # site doğrulamasının sonucu (bitince)
+        self._generation = 0  # başka paket açılınca eski doğrulamanın sonucu yok sayılır
 
         self.toasts = Adw.ToastOverlay()
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -174,18 +177,23 @@ class Window(Adw.ApplicationWindow):
                 pkg.path = copy
                 known = imza.anchors(pkg.package, pkg.installed is not None)
                 sig = imza.check(copy, pkg.package, pkg.keyring, known)
+                card = yayinci.parse(pkg.publisher)
+                old_card = yayinci.installed(pkg.package, imza.owned_by) if pkg.installed else None
                 sim = (apt.simulate(copy, apt.flags_for(pkg.verdict, True))
                        if pkg.verdict != paket.UYUMSUZ else apt.Deneme())
                 # Varsayılan öncelik: dönen bekleme göstergesinin çizimleri sonucu geciktirmesin.
-                GLib.idle_add(self.show_package, path, copy, pkg, sig, sim, priority=GLib.PRIORITY_DEFAULT)
+                GLib.idle_add(self.show_package, path, copy, pkg, sig, sim, card, old_card,
+                              priority=GLib.PRIORITY_DEFAULT)
             except Exception as e:  # noqa: BLE001 — kullanıcıya anlaşılır biçimde gösterilir
                 GLib.idle_add(self.show_error, "Paket okunamadı", str(e), priority=GLib.PRIORITY_DEFAULT)
         threading.Thread(target=work, daemon=True).start()
 
     # ---- özet -----------------------------------------------------------------------
 
-    def show_package(self, original, copy, pkg, sig, sim):
+    def show_package(self, original, copy, pkg, sig, sim, card=None, old_card=None):
         self.pkg, self.sig, self.sim, self.copy = pkg, sig, sim, copy
+        self.card, self.site = card, None
+        self._generation += 1
         self.checks = []
         page = Adw.PreferencesPage()
 
@@ -217,6 +225,8 @@ class Window(Adw.ApplicationWindow):
         page.add(g)
 
         page.add(self._signature_group(pkg, sig))
+        if card:
+            page.add(self._publisher_group(sig, card, old_card))
         changes = self._changes_group(pkg, sim)
         if changes:
             page.add(changes)
@@ -274,8 +284,9 @@ class Window(Adw.ApplicationWindow):
                       "security-high-symbolic", ["success"]))
         elif sig.state == imza.ILK:
             g.add(row("İmzalı, yayıncı ilk kez görülüyor",
-                      "Bu yayıncıdan daha önce imzalı paket kurulmamış. Aşağıdaki parmak izini yayıncının sitesinde "
-                      "yazanla karşılaştır. Kurarsan bu anahtar kaydedilir; sonraki sürümler bununla denetlenir.",
+                      "Bu yayıncıdan daha önce imzalı paket kurulmamış. Parmak izini yayıncının sitesinde yazanla "
+                      "karşılaştır (yayıncı bir doğrulama adresi verdiyse bu aşağıda kendiliğinden yapılır). "
+                      "Kurarsan bu anahtar kaydedilir; sonraki sürümler bununla denetlenir.",
                       "security-medium-symbolic", ["warning"]))
         elif sig.state == imza.FARKLI:
             g.add(row("Farklı yayıncı",
@@ -303,6 +314,83 @@ class Window(Adw.ApplicationWindow):
                 r.set_subtitle_selectable(True)
             g.add(r)
         return g
+
+    def _publisher_group(self, sig, card, old_card):
+        """Yayıncının pakette yazan kartı ve (imzalıysa) sitesinin bu anahtarı yayımlayıp yayımlamadığı."""
+        g = Adw.PreferencesGroup(title="Yayıncı bilgisi",
+                                 description="Pakette yayıncının kendi yazdığı bilgi. Gerçekten ona ait olduğunu "
+                                             "aşağıdaki site doğrulaması gösterir.")
+        lines = [f"Kurum: {card.kurum}" if card.kurum else "", f"Yetkili: {card.yetkili}" if card.yetkili else "",
+                 f"Web: {card.web}" if card.web else "", f"İletişim: {card.iletisim}" if card.iletisim else ""]
+        r = row(card.yayinci, "\n".join(x for x in lines if x), "avatar-default-symbolic")
+        if card.web:
+            b = Gtk.Button(icon_name="web-browser-symbolic", tooltip_text="Siteyi aç", valign=Gtk.Align.CENTER,
+                           css_classes=["flat"])
+            b.connect("clicked", lambda *_: Gtk.show_uri(self, card.web, Gdk.CURRENT_TIME))
+            r.add_suffix(b)
+        g.add(r)
+        diff = yayinci.changed(old_card, card)
+        if diff:
+            g.add(row("Yayıncı bilgisi değişmiş",
+                      f"Kurulu sürümde {', '.join(diff)} farklıydı: önce “{old_card.yayinci}”"
+                      + (f" ({old_card.web})" if old_card.web else "") + ".", "dialog-warning-symbolic", ["warning"]))
+        if sig.state not in (imza.AYNI, imza.ILK, imza.FARKLI):
+            g.add(row("Site doğrulaması yapılamaz",
+                      "Paketin geçerli bir imzası yok; yukarıdaki bilgi kimin yazdığı bilinmeyen bir beyan.",
+                      "security-low-symbolic", ["dim-label"]))
+            return g
+        # Kurulu sürüm bir doğrulama adresi verdiyse o kullanılır: yeni paket kendi adresini yazarak
+        # kendini doğrulatamasın (yayıncı anahtar değiştirdiyse eski sitesinde yeni anahtarı yayımlar).
+        anchor = old_card if old_card and old_card.dogrulama else card
+        if not anchor.dogrulama:
+            g.add(row("Doğrulama adresi yok",
+                      "Yayıncı, parmak izini yayımladığı bir adres vermemiş; bilgi doğrulanamıyor.",
+                      "security-low-symbolic", ["dim-label"]))
+            return g
+        self.site_from_installed = anchor is old_card
+        self.site_row = row("Site doğrulanıyor…", yayinci.short_url(anchor.dogrulama), None)
+        self.site_spinner = Gtk.Spinner(spinning=True)
+        self.site_row.add_prefix(self.site_spinner)
+        g.add(self.site_row)
+        gen, fpr = self._generation, sig.fingerprint
+
+        def work():
+            res = yayinci.verify(anchor.dogrulama, fpr, anchor.web)
+            GLib.idle_add(self._show_site, gen, res, priority=GLib.PRIORITY_DEFAULT)
+        threading.Thread(target=work, daemon=True).start()
+        return g
+
+    def _show_site(self, gen, res):
+        if gen != self._generation:
+            return False
+        self.site = res
+        where = yayinci.short_url(res.url)
+        self.site_row.remove(self.site_spinner)
+        if res.state == yayinci.DOGRULANDI and res.same_site:
+            title, text, icon, css = ("Site doğruladı",
+                                      f"{where} bu imzanın parmak izini yayımlıyor: anahtar, bu sitenin "
+                                      "sahibine ait.", "emblem-ok-symbolic", ["success"])
+        elif res.state == yayinci.DOGRULANDI:
+            title, text, icon, css = ("Site doğruladı, ama başka bir adreste",
+                                      f"{where} bu parmak izini yayımlıyor; ancak bu adres yayıncının web "
+                                      "sitesiyle aynı yerde değil. Bu yalnızca o adresi yönetenin anahtarı "
+                                      "onayladığını gösterir.", "dialog-warning-symbolic", ["warning"])
+        elif res.state == yayinci.LISTEDE_YOK:
+            title, text, icon, css = ("Site bu anahtarı listelemiyor",
+                                      f"{where} açıldı ama bu imzanın parmak izi orada yok. Yayıncı anahtarını "
+                                      "değiştirmiş ve siteyi güncellememiş olabilir; ya da paket başkasından.",
+                                      "dialog-warning-symbolic", ["error"])
+        else:
+            title, text, icon, css = ("Site doğrulanamadı",
+                                      f"{where} adresine ulaşılamadı ({res.detail}). İnternet yoksa normal; "
+                                      "yukarıdaki imza denetimi bundan bağımsız.", "network-offline-symbolic",
+                                      ["dim-label"])
+        if self.site_from_installed:
+            text += "\n(Kurulu sürümün verdiği doğrulama adresi kullanıldı.)"
+        self.site_row.set_title(GLib.markup_escape_text(title))
+        self.site_row.set_subtitle(GLib.markup_escape_text(text))
+        self.site_row.add_prefix(Gtk.Image(icon_name=icon, css_classes=css))
+        return False
 
     def _changes_group(self, pkg, sim):
         if pkg.verdict == paket.UYUMSUZ:
@@ -433,12 +521,10 @@ class Window(Adw.ApplicationWindow):
         if ok:
             self.result_page.set_icon_name("emblem-ok-symbolic")
             self.result_page.set_title(f"{pkg.name} {pkg.version} kuruldu")
-            self.result_page.set_description("Uygulama şu an açıksa yeni sürüm, kapatıp yeniden açınca devreye girer.")
+            self.result_page.set_description("")
             app_id = next((d for d in pkg.desktop_ids if desktop_app(d)), None)
             if app_id:
-                b = Gtk.Button(label="Aç", css_classes=["pill", "suggested-action"])
-                b.connect("clicked", lambda *_: self._launch(app_id))
-                self.result_buttons.append(b)
+                self._result_for_app(app_id)
         else:
             self.result_page.set_icon_name("dialog-error-symbolic")
             self.result_page.set_title("Kurulmadı")
@@ -450,6 +536,49 @@ class Window(Adw.ApplicationWindow):
         b.connect("clicked", lambda *_: self.close())
         self.result_buttons.append(b)
         self.stack.set_visible_child_name("sonuc")
+
+    def _result_for_app(self, app_id):
+        """Uygulama açıksa yeni sürümün devreye girmesi için ne gerektiğini söyle (ve yapabiliyorsak yap)."""
+        pkg, name = self.pkg, calisan.bus_name(app_id)
+        info = desktop_app(app_id)
+        if calisan.restarts_itself(info):
+            self.result_page.set_description(f"{pkg.name} açıksa birkaç saniye içinde kendini yeni sürümle "
+                                             "yeniden başlatır; bir şey yapmana gerek yok.")
+        elif calisan.running(name):
+            if calisan.can_quit(name):
+                self.result_page.set_description(f"{pkg.name} şu an açık ve hâlâ eski sürüm çalışıyor. Yeni sürüm "
+                                                 "için yeniden başlat (kaydedilmemiş işin varsa önce kaydet).")
+                b = Gtk.Button(label="Yeniden başlat", css_classes=["pill", "suggested-action"])
+                b.connect("clicked", lambda btn: self._restart(btn, app_id))
+                self.result_buttons.append(b)
+                return
+            self.result_page.set_description(f"{pkg.name} şu an açık ve hâlâ eski sürüm çalışıyor. Yeni sürüm, "
+                                             "uygulamayı kapatıp yeniden açınca devreye girer.")
+            return
+        b = Gtk.Button(label="Aç", css_classes=["pill", "suggested-action"])
+        b.connect("clicked", lambda *_: self._launch(app_id))
+        self.result_buttons.append(b)
+
+    def _restart(self, button, app_id):
+        name = calisan.bus_name(app_id)
+        button.set_sensitive(False)
+        button.set_label("Kapatılıyor…")
+        if not calisan.quit_app(name):
+            self.toast("Uygulama kapatılamadı; kendin kapatıp yeniden aç")
+            return
+        deadline = GLib.get_monotonic_time() + 10 * 1_000_000
+
+        def wait():
+            if not calisan.running(name):
+                self._launch(app_id)
+                return False
+            if GLib.get_monotonic_time() > deadline:
+                button.set_label("Yeniden başlat")
+                button.set_sensitive(True)
+                self.toast("Uygulama kapanmadı (bir şey soruyor olabilir); kapatıp yeniden aç")
+                return False
+            return True
+        GLib.timeout_add(200, wait)
 
     def _launch(self, desktop_id):
         info = desktop_app(desktop_id)

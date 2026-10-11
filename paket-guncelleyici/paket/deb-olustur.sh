@@ -22,6 +22,7 @@ cp "$HERE/data/icons/hicolor/scalable/apps/lab.crucible.PaketGuncelleyici.svg" "
 cp "$HERE/data/lab.crucible.PaketGuncelleyici.metainfo.xml" "$ROOT/usr/share/metainfo/"
 cp "$HERE/README.md" "$ROOT/usr/share/doc/paket-guncelleyici/"
 cp "$HERE/paket/paket-guncelleyici-paket.gpg" "$ROOT/usr/share/keyrings/"
+cp "$HERE/paket/paket-guncelleyici-paket.json" "$ROOT/usr/share/keyrings/"
 SIZE=$(du -sk "$ROOT/usr" | cut -f1)
 cat > "$ROOT/DEBIAN/control" <<CTL
 Package: paket-guncelleyici

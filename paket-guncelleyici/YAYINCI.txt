@@ -1,0 +1,9 @@
+Crucible ekibi — .deb paket imzası
+
+Bu sayfa, Crucible ekibinin .deb paketlerini (Talk To Android, Paket Güncelleyici) imzalayan
+anahtarın parmak izini yayımlar. Paket Güncelleyici, paketin içindeki yayıncı kartında bu adresi
+görür ve imzanın parmak izinin burada yazıp yazmadığına bakar.
+
+Parmak izi: 68E7 8B0A 596A 2E51 8DA0  526B CFBF 9E59 8C96 C9F4
+
+Anahtar değişirse yeni parmak izi buraya eklenir; eskisi "geçersiz" notuyla bir süre kalır.

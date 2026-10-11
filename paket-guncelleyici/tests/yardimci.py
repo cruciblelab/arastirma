@@ -1,6 +1,7 @@
 """Testler için gerçek .deb paketleri ve GPG anahtarları üretir."""
 
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -33,8 +34,9 @@ def make_key(d: Path, name: str):
 
 
 def build_deb(d: Path, package="deneme-uygulama", version="1.0", arch="all", key=None, secret=None,
-              depends="", desktop=True) -> Path:
-    """key: pakete gömülecek açık anahtarlık; secret: imzalanacaksa gizli anahtar dosyası."""
+              depends="", desktop=True, publisher: dict | None = None) -> Path:
+    """key: pakete gömülecek açık anahtarlık; secret: imzalanacaksa gizli anahtar dosyası;
+    publisher: pakete gömülecek yayıncı kartı (yayinci.py)."""
     root = d / f"kok-{package}-{version}-{os.getpid()}-{len(list(d.iterdir()))}"
     (root / "DEBIAN").mkdir(parents=True)
     (root / f"usr/share/{package}").mkdir(parents=True)
@@ -49,6 +51,9 @@ def build_deb(d: Path, package="deneme-uygulama", version="1.0", arch="all", key
     if key:
         (root / "usr/share/keyrings").mkdir(parents=True)
         (root / f"usr/share/keyrings/{package}-paket.gpg").write_bytes(key)
+    if publisher:
+        (root / "usr/share/keyrings").mkdir(parents=True, exist_ok=True)
+        (root / f"usr/share/keyrings/{package}-paket.json").write_text(json.dumps(publisher, ensure_ascii=False))
     ctl = (f"Package: {package}\nVersion: {version}\nArchitecture: {arch}\n"
            "Maintainer: Deneme <deneme@x.invalid>\nHomepage: https://example.invalid\n"
            "Description: Deneme paketi\n Uzun açıklama.\n .\n İkinci paragraf.\n")

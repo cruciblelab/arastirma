@@ -36,10 +36,15 @@ class Paket:
     icon_ext: str = ".png"
     desktop_ids: list[str] = field(default_factory=list)
     keyring: bytes | None = None  # paketin içindeki yayıncı anahtarı (/usr/share/keyrings/<paket>-paket.gpg)
+    publisher: bytes | None = None  # yayıncı kartı (/usr/share/keyrings/<paket>-paket.json, bkz. yayinci.py)
 
     @property
     def keyring_path(self) -> str:
         return f"usr/share/keyrings/{self.package}-paket.gpg"
+
+    @property
+    def publisher_path(self) -> str:
+        return f"usr/share/keyrings/{self.package}-paket.json"
 
 
 def control(text: str) -> dict[str, str]:
@@ -122,12 +127,13 @@ def read(path: str) -> Paket:
     p.verdict = verdict(p.version, p.installed, p.arch, architectures())
 
     def wanted(name: str) -> bool:
-        return (name == p.keyring_path
+        return (name in (p.keyring_path, p.publisher_path)
                 or (name.startswith("usr/share/applications/") and name.endswith(".desktop"))
                 or (name.startswith("usr/share/icons/hicolor/") and "/apps/" in name)
                 or name.startswith("usr/share/pixmaps/"))
     files = arsiv.dosyalar(path, wanted)
     p.keyring = files.get(p.keyring_path)
+    p.publisher = files.get(p.publisher_path)
     for name in sorted(n for n in files if n.endswith(".desktop")):
         title, icon = _desktop(files[name])
         if title is None:

@@ -65,7 +65,7 @@ def _gpgv(sig: bytes, payload: bytes, keyring: bytes) -> str | None:
     return None
 
 
-def _owned_by(path: Path, package: str) -> bool:
+def owned_by(path: Path, package: str) -> bool:
     res = subprocess.run(["dpkg-query", "-S", str(path)], capture_output=True, text=True)
     return res.returncode == 0 and any(line.split(":")[0].strip() == package
                                        for line in res.stdout.splitlines())
@@ -75,7 +75,7 @@ def anchors(package: str, installed: bool, root: Path = Path("/"), pins: Path | 
     """[(tür, anahtar baytları)] — imzanın tutması beklenen anahtarlar."""
     out = []
     key = root / "usr/share/keyrings" / f"{package}-paket.gpg"
-    if installed and key.is_file() and (root != Path("/") or _owned_by(key, package)):
+    if installed and key.is_file() and (root != Path("/") or owned_by(key, package)):
         out.append(("kurulu", key.read_bytes()))
     pin = (pins or pins_dir()) / f"{package}.gpg"
     if pin.is_file():

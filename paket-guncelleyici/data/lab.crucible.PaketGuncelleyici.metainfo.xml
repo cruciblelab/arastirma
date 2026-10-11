@@ -13,6 +13,9 @@
   <developer id="lab.crucible"><name>Crucible ekibi</name></developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.1.1" date="2026-10-11">
+      <description><p>Yayıncı kartı: paketteki ad, site ve iletişim bilgisi gösterilir; yayıncının sitesi imzanın parmak izini yayımlıyorsa "Site doğruladı". Kurulan uygulama açıksa "Yeniden başlat" (kendini yeniden başlatan uygulamalar için gerek yok).</p></description>
+    </release>
     <release version="0.1.0" date="2026-10-11">
       <description><p>İlk sürüm: sürüm karşılaştırma, yayıncı imzası (debsigs), apt denemesi, kilit bekleme.</p></description>
     </release>

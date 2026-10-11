@@ -3,6 +3,7 @@
     xvfb-run -a env GSK_RENDERER=cairo python3 tests/ekran_goruntusu.py cikti_klasoru
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -19,7 +20,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Graphene", "1.0")
 from gi.repository import GLib, Graphene, Gtk  # noqa: E402
 
-from guncelleyici import apt, imza, paket  # noqa: E402
+from guncelleyici import apt, imza, paket, yayinci  # noqa: E402
 from guncelleyici.ui import App  # noqa: E402
 
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else "ekran")
@@ -31,6 +32,17 @@ OLD_GI = gi.version_info < (3, 46) or os.environ.get("TALKTO_SNAP") == "x11"
 
 SIM = apt.parse_simulation("Inst gir1.2-adw-1 (1.1.7 Ubuntu [amd64])\n"
                            "Inst talk-to-android [0.7.0] (0.7.1 local-deb [all])\n")
+
+
+CARD = {"yayinci": "Crucible ekibi", "web": "https://github.com/cruciblelab/arastirma",
+        "iletisim": "https://github.com/cruciblelab/arastirma/issues",
+        "dogrulama": "https://raw.githubusercontent.com/cruciblelab/arastirma/talk-to/talk-to/YAYINCI.txt"}
+FAKE_CARD = {"yayinci": "Crucible ekibi", "web": "https://crucible-indir.example",
+             "dogrulama": "https://crucible-indir.example/anahtar.txt"}
+# Ekran görüntüsünde ağa çıkılmaz: site doğrulamasının sonucu senaryoya göre verilir.
+SITE = {}
+yayinci.verify = lambda url, fpr, web="", **_: yayinci.Dogrulama(SITE.get("state", yayinci.DOGRULANDI), url,
+                                                                 SITE.get("detail", ""), yayinci.same_site(web, url))
 
 
 class NotReady(Exception):
@@ -59,20 +71,26 @@ def snap(widget, name):
 
 def scenario(win, name):
     """Örnek bir paketi verilen durumla pencereye koyar."""
+    old_card = None
     if name == "guncelleme":
-        deb = build_deb(TMP, package="talk-to-android", version="0.7.1", key=PUBLIC, secret=SECRET)
+        deb = build_deb(TMP, package="talk-to-android", version="0.7.1", key=PUBLIC, secret=SECRET, publisher=CARD)
+        SITE["state"] = yayinci.DOGRULANDI
         pkg = paket.read(str(deb))
         pkg.name, pkg.summary = "Talk To Android", "Android telefonu USB, Wi-Fi ya da Bluetooth ile Linux'a bağlar"
         pkg.installed, pkg.verdict = "0.7.0", paket.GUNCELLE
         sig, sim = imza.Sonuc(imza.AYNI, FPR, "kurulu", True), SIM
     elif name == "ilk-kez":
-        deb = build_deb(TMP, package="talk-to-android", version="0.7.1", key=PUBLIC, secret=SECRET)
+        deb = build_deb(TMP, package="talk-to-android", version="0.7.1", key=PUBLIC, secret=SECRET, publisher=CARD)
+        SITE["state"] = yayinci.DOGRULANDI
         pkg = paket.read(str(deb))
         pkg.name, pkg.summary = "Talk To Android", "Android telefonu USB, Wi-Fi ya da Bluetooth ile Linux'a bağlar"
         pkg.installed, pkg.verdict = "0.7.0", paket.GUNCELLE
         sig, sim = imza.Sonuc(imza.ILK, FPR), apt.Deneme(install=[("talk-to-android", "0.7.0", "0.7.1")])
     elif name == "farkli-yayinci":
-        deb = build_deb(TMP, package="talk-to-android", version="9.9.9", key=OTHER_PUBLIC, secret=OTHER_SECRET)
+        deb = build_deb(TMP, package="talk-to-android", version="9.9.9", key=OTHER_PUBLIC, secret=OTHER_SECRET,
+                        publisher=FAKE_CARD)
+        SITE.update(state=yayinci.ULASILAMADI, detail="Name or service not known")
+        old_card = yayinci.parse(json.dumps(CARD).encode())
         pkg = paket.read(str(deb))
         pkg.name = "Talk To Android"
         pkg.installed, pkg.verdict = "0.7.1", paket.GUNCELLE
@@ -84,7 +102,7 @@ def scenario(win, name):
         pkg.installed, pkg.verdict = "1.2", paket.ESKI
         sig, sim = imza.Sonuc(imza.IMZASIZ), apt.Deneme(install=[("deneme-uygulama", "1.2", "1.0")])
     win.title.set_subtitle(deb.name)
-    win.show_package(str(deb), str(deb), pkg, sig, sim)
+    win.show_package(str(deb), str(deb), pkg, sig, sim, yayinci.parse(pkg.publisher), old_card)
 
 
 app = App()
