@@ -273,6 +273,7 @@ class AdbWatcher:
             rc, out = await _adb("-s", serial, "shell", "getprop", name, timeout=5)
             return out.strip() if rc == 0 else ""
         d["maker"] = await prop("ro.product.manufacturer")
+        d["fingerprint"] = await prop("ro.build.fingerprint") or None  # bağlı oturumla eşleştirmek için
         # "2311DRK48G" yerine "POCO X6 Pro" gibi bilinen adı (yalnızca bazı üreticiler yazar).
         d["name"] = await prop("ro.product.marketname") or await prop("ro.product.vendor.marketname") or None
         if d["maker"].casefold() in XIAOMI:

@@ -144,15 +144,38 @@ def install_command() -> list[str] | None:
     return None
 
 
-def quality_args(serial: str) -> list[str]:
-    """Görüntü kalitesi. scrcpy'nin varsayılanı (8 Mbit/s, ekranın tam çözünürlüğü, sınırsız kare) yeni
-    telefonların 2,7K / 120 Hz ekranında bulanık ve takılgan çıkıyordu (~10 kare/s): telefonun kodlayıcısı o
-    çözünürlükte yetişemiyor, bit hızı da yetmiyor. Kısa kenar en çok 1920 piksele indirilir, bit hızı
-    artırılır, kare hızı 60'ta tutulur. Wi-Fi'de (ip:port) bant genişliği az: daha düşük.
+# Ekran ön ayarları (Tercihler → Bağlantı → Telefonun ekranı).
+PRESETS = {
+    "akici": ("Akıcı", "Video izlerken: kısa bir tampon takılmaları yumuşatır (biraz gecikme)"),
+    "hizli": ("Hızlı tepki", "Oyun ve yazı: tampon yok, gecikme en az; ağ dalgalanınca takılabilir"),
+    "hafif": ("Hafif", "Zayıf Wi-Fi ya da eski telefon: daha düşük çözünürlük"),
+}
+
+
+def quality_args(serial: str, preset: str = "akici", audio: bool = True,
+                 version: tuple[int, ...] | None = None) -> list[str]:
+    """Görüntü ayarları. scrcpy'nin varsayılanı (8 Mbit/s, ekranın tam çözünürlüğü, sınırsız kare) yeni
+    telefonların 2,7K / 120 Hz ekranında bulanık ve takılgan çıkıyordu: kodlayıcı o çözünürlükte yetişemiyor.
+    Kısa kenar en çok 1920 piksele indirilir, bit hızı artırılır, kare hızı 60'ta tutulur; Wi-Fi'de (ip:port)
+    bant genişliği az: daha düşük.
+
+    Kalite iyi olduğu hâlde "takıla takıla" gitmesi kareler düzensiz gelince olur (USB/Wi-Fi dalgalanması,
+    telefonun kodlayıcısı): Akıcı ön ayarı kareleri kısa bir tamponda biriktirip düzgün aralıkla gösterir
+    (scrcpy'nin kendi önerisi; bedeli o kadar gecikme). --print-fps saniyedeki kareyi günlüğe yazar
+    (scrcpy-<seri>.log): takılma sürerse sorunun telefonda mı bilgisayarda mı olduğu oradan görülür.
     """
-    if ":" in serial:
-        return ["--video-bit-rate=6M", "--max-size=1600", "--max-fps=60"]
-    return ["--video-bit-rate=16M", "--max-size=1920", "--max-fps=60"]
+    wifi = ":" in serial
+    size, rate = (1600, "8M") if wifi else (1920, "16M")
+    if preset == "hafif":
+        size, rate = 1280, ("4M" if wifi else "8M")
+    args = [f"--video-bit-rate={rate}", f"--max-size={size}", "--max-fps=60"]
+    buffer = {"akici": 120 if wifi else 60, "hafif": 80}.get(preset, 0)
+    if buffer:  # scrcpy 3.0'da --display-buffer'ın adı --video-buffer oldu
+        args.append(f"--{'video' if version is None or version >= (3, 0) else 'display'}-buffer={buffer}")
+    if not audio:
+        args.append("--no-audio")
+    args.append("--print-fps")
+    return args
 
 
 class Mirror:
@@ -166,13 +189,14 @@ class Mirror:
         p = self.procs.get(serial)
         return p is not None and p.poll() is None
 
-    def start(self, serial: str, title: str) -> tuple[bool, str]:
+    def start(self, serial: str, title: str, preset: str = "akici", audio: bool = True) -> tuple[bool, str]:
         exe = binary()
         if not exe:
             return False, "scrcpy kurulu değil"
         if self.running(serial):
             return True, "Telefonun ekranı zaten açık"
         log = cache_dir() / f"scrcpy-{re.sub(r'[^A-Za-z0-9._-]', '_', serial)}.log"
+        version = None if exe == str(managed_path()) else system_version(exe)
         try:
             log.parent.mkdir(parents=True, exist_ok=True)
             with open(log, "wb") as out:  # çocuk süreç kendi kopyasını tutar
@@ -181,17 +205,18 @@ class Mirror:
                 if shutil.which("adb"):
                     env["ADB"] = shutil.which("adb")
                 self.procs[serial] = subprocess.Popen(
-                    [exe, "-s", serial, "--window-title", title, "--stay-awake", *quality_args(serial)], env=env,
+                    [exe, "-s", serial, "--window-title", title, "--stay-awake", *quality_args(serial, preset, audio, version)],
+                    env=env,
                     stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
         except OSError as e:
             return False, f"scrcpy açılamadı: {e}"
         self.logs[serial] = log
         return True, "Telefonun ekranı açılıyor"
 
-    async def start_checked(self, serial: str, title: str, wait: float = 2.5) -> tuple[bool, str]:
+    async def start_checked(self, serial: str, title: str, wait: float = 2.5, **kw) -> tuple[bool, str]:
         """Açar ve birkaç saniye bekler: scrcpy hemen hata verip kapanırsa nedenini döndürür."""
         already = self.running(serial)
-        ok, msg = self.start(serial, title)
+        ok, msg = self.start(serial, title, **kw)
         if not ok or already:
             return ok, msg
         p = self.procs[serial]

@@ -53,14 +53,11 @@ class App(Adw.Application):
 
     def do_startup(self):
         Adw.Application.do_startup(self)
-        icons = Path(__file__).resolve().parents[2] / "data" / "icons"
-        if icons.is_dir():  # kurulmadan, kaynak klasöründen çalıştırılırken
-            Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_search_path(str(icons))
         Gtk.Window.set_default_icon_name(APP_ID)
-        css = Gtk.CssProvider()
-        css.load_from_path(str(Path(__file__).with_name("style.css")))
-        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
-                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self._css = Gtk.CssProvider()
+        self._css.load_from_path(str(Path(__file__).with_name("style.css")))
+        self._styled = set()
+        self._style_display(Gdk.Display.get_default())
         for name, cb in (("quit", self._quit), ("about", self._about), ("show", lambda *_: self.present()),
                          ("setup", lambda *_: self.open_setup()), ("preferences", lambda *_: self.open_preferences()),
                          ("mini-player", lambda *_: self.open_mini_player())):
@@ -168,6 +165,16 @@ class App(Adw.Application):
     def present(self):
         self.activate()
 
+    def _style_display(self, display):
+        """Simgeler ve stil her ekrana ayrı eklenir (mini oynatıcı Wayland'de XWayland ekranında açılabilir)."""
+        if display is None or display.get_name() in self._styled:
+            return
+        self._styled.add(display.get_name())
+        icons = Path(__file__).resolve().parents[2] / "data" / "icons"
+        if icons.is_dir():  # kurulmadan, kaynak klasöründen çalıştırılırken
+            Gtk.IconTheme.get_for_display(display).add_search_path(str(icons))
+        Gtk.StyleContext.add_provider_for_display(display, self._css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
     def open_preferences(self, page=None):
         self.activate()
         if self.window:
@@ -176,16 +183,46 @@ class App(Adw.Application):
     # ---- mini oynatıcı ve şarkı bildirimi ---------------------------------------------
 
     def open_mini_player(self):
+        from . import ustte
         from .miniplayer import MiniPlayer
         if self.mini is None:
-            self.mini = MiniPlayer(self)
+            # Üstte tutulacaksa pencere baştan üstte tutulabilen ekranda açılır (Wayland'de XWayland).
+            display = ustte.x11_display() if self.config["mini_on_top"] else None
+            self._style_display(display)
+            self.mini = MiniPlayer(self, display)
         self._refresh_mini()
         self.mini.present()
+
+    def set_mini_on_top(self, on):
+        """Mini oynatıcı üstte dursun mu. X11'de yerinde değişir; Wayland'de pencere XWayland'de yeniden açılır."""
+        from . import ustte
+        on = bool(on)
+        target = ustte.x11_display() if on else Gdk.Display.get_default()
+        if on and target is None:  # XWayland da yok: yalnızca pencere menüsünden yapılabilir
+            self.config.set("mini_on_top", False)
+            if self.mini:
+                self.mini.sync_actions()
+                self.mini.toast(ustte.WAYLAND_HINT, 8)
+            return
+        self.config.set("mini_on_top", on)
+        mini = self.mini
+        if mini is None:
+            return
+        mini.sync_actions()
+        if mini.get_display() == target:  # aynı ekranda kalır (X11 oturumu)
+            if mini.apply_top(on):
+                mini.toast("Diğer pencerelerin üstünde" if on else "Artık üstte tutulmuyor")
+            return
+        mini.close()
+        self.mini = None
+        self.open_mini_player()
 
     def set_pinned(self, on):
         self.config.set("mini_player_pinned", bool(on))
         if self.window:
             self.window.sync_pin()
+        if self.mini:
+            self.mini.sync_actions()
 
     def _refresh_mini(self):
         if not self.mini:

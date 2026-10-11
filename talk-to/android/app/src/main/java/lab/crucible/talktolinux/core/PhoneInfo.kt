@@ -28,6 +28,8 @@ object PhoneInfo {
             .put("android", Build.VERSION.RELEASE)
             .put("sdk", Build.VERSION.SDK_INT)
             .put("security_patch", Build.VERSION.SECURITY_PATCH)
+            // Bilgisayar USB'deki telefonla bu bağlantıyı eşleştirsin (adb'den ro.build.fingerprint okunur).
+            .put("fingerprint", Build.FINGERPRINT)
             .put("app_version", BuildConfig.VERSION_NAME)
             .put("uptime_s", SystemClock.elapsedRealtime() / 1000)
         runCatching {

@@ -478,23 +478,29 @@ class Hub:
         """Bağlı oturum USB'deki hangi telefon (kurulum yardımcısı "bağlı" diyebilsin): modeli eşleşen; USB
         oturumunda tek telefon takılıysa o. Wi-Fi'deki başka bir telefon USB'dekiyle karıştırılmaz."""
         ready = {k: d for k, d in self.usb.devices.items() if d.get("state") == "device"}
-        for serial, d in ready.items():
-            if d.get("model") and (s.model or "").casefold().endswith(str(d["model"]).casefold()):
+        fp = (s.phone_info or {}).get("fingerprint")
+        for serial, d in ready.items():  # en güvenilir: telefonun bildirdiği yapı parmak izi = adb'nin okuduğu
+            if fp and d.get("fingerprint") == fp:
+                return serial
+        model = (s.model or "").casefold()
+        for serial, d in ready.items():  # "Xiaomi 2311DRK48G" ↔ "2311DRK48G"
+            if d.get("model") and str(d["model"]).casefold() in model:
                 return serial
         return next(iter(ready)) if s.kind == "usb" and len(ready) == 1 else None
 
     def _adb_serial_for(self, s) -> str | None:
-        """USB'deki oturumun adb seri numarası: modeli eşleşen ya da tek bağlı telefon."""
-        ready = {k: d for k, d in self.usb.devices.items() if d.get("state") == "device"}
-        for serial, d in ready.items():
-            if d.get("model") and s.model.casefold().endswith(str(d["model"]).casefold()):
-                return serial
-        return next(iter(ready)) if len(ready) == 1 else None
+        """USB'deki oturumun adb seri numarası (bkz. _serial_of)."""
+        return self._serial_of(s)
+
+    def _mirror_opts(self) -> dict:
+        preset = self.config["mirror_preset"]
+        return {"preset": preset if preset in mirror.PRESETS else "akici", "audio": bool(self.config["mirror_audio"])}
 
     async def mirror_device(self, serial: str, title: str | None = None) -> tuple[bool, str]:
         """adb'nin gördüğü telefonun (USB ya da ip:port) ekranını açar."""
         d = self.usb.devices.get(serial, {})
-        return await self.mirror.start_checked(serial, f"{title or d.get('model') or serial} · Talk To Android")
+        return await self.mirror.start_checked(serial, f"{title or d.get('model') or serial} · Talk To Android",
+                                               **self._mirror_opts())
 
     async def mirror_session(self, device_id: str) -> tuple[bool, str]:
         """Bağlı telefonun ekranını açar: USB'de doğrudan, Wi-Fi'de adb'nin ağ bağlantısıyla."""
@@ -515,7 +521,7 @@ class Hub:
                 return False, msg
         else:
             return False, "Bluetooth üzerinden ekran açılamaz; USB ya da Wi-Fi gerekir"
-        return await self.mirror.start_checked(serial, f"{s.name} · Talk To Android")
+        return await self.mirror.start_checked(serial, f"{s.name} · Talk To Android", **self._mirror_opts())
 
     async def mirror_prepare_wireless(self, serial: str) -> tuple[bool, str]:
         ok, text = await mirror.enable_wireless(serial)

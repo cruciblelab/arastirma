@@ -24,6 +24,7 @@ def clean(msg: dict) -> dict:
     return {"manufacturer": _text(msg.get("manufacturer"), 60), "model": _text(msg.get("model"), 60),
             "android": _text(msg.get("android"), 20), "sdk": _num(msg.get("sdk")),
             "security_patch": _text(msg.get("security_patch"), 20), "app_version": _text(msg.get("app_version"), 40),
+            "fingerprint": _text(msg.get("fingerprint"), 200),
             "uptime_s": _num(msg.get("uptime_s")), "network": _text(msg.get("network"), 30) or None,
             "battery": battery, "storage": part("storage", "total", "free"), "ram": part("ram", "total", "free"),
             "received": time.time()}

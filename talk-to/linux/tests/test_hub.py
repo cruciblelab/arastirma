@@ -860,6 +860,16 @@ class MirrorTest(_AdbBase):
         self.assertTrue(mirror.available())
         self.assertIsNone(mirror.outdated_system())
 
+    def test_quality_presets(self):
+        q = mirror.quality_args
+        self.assertEqual(q("ABC"), ["--video-bit-rate=16M", "--max-size=1920", "--max-fps=60", "--video-buffer=60",
+                                    "--print-fps"])
+        self.assertIn("--video-buffer=120", q("1.2.3.4:5555"))  # Wi-Fi daha çok dalgalanır
+        self.assertNotIn("--video-buffer", " ".join(q("ABC", "hizli")))
+        self.assertIn("--max-size=1280", q("ABC", "hafif"))
+        self.assertIn("--no-audio", q("ABC", audio=False))
+        self.assertIn("--display-buffer=60", q("ABC", version=(2, 4)))  # eski adı
+
     def _release(self, sha=None):
         """Resmi sürümün düzeninde küçük bir arşiv; indirme adresi ve özeti ona çevrilir."""
         import hashlib
@@ -913,7 +923,7 @@ exit 0""")
         self.assertTrue(ok, msg)
         await self.wait_call("scrcpy")
         self.assertIn("scrcpy -s ABC123 --window-title Test Telefonu · Talk To Android --stay-awake "
-                      "--video-bit-rate=16M --max-size=1920 --max-fps=60", self.calls())
+                      "--video-bit-rate=16M --max-size=1920 --max-fps=60 --video-buffer=60 --print-fps", self.calls())
         ok, msg = await self.hub.mirror_session(p.device_id)  # açıkken ikinci pencere açılmaz
         self.assertTrue(ok)
         from talkto import ipc  # terminalden: talk-to-android ekran

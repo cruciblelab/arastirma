@@ -253,6 +253,9 @@ class Window(Adw.ApplicationWindow):
         act = Gio.SimpleAction.new("usb", GLib.VariantType.new("s"))
         act.connect("activate", self._on_usb_action)
         self.add_action(act)
+        act = Gio.SimpleAction.new("phone", GLib.VariantType.new("s"))
+        act.connect("activate", self._on_phone_action)
+        self.add_action(act)
 
         self.apply_features()
         GLib.timeout_add(500, self._tick)
@@ -325,12 +328,10 @@ class Window(Adw.ApplicationWindow):
         self.extras_group.set_sensitive(simple)
         for name, key in (("dosyalar", "files"), ("komutlar", "commands")):
             self.pages[name].set_visible(key in self.f)
+        self.mirror_group.set_visible("mirror" in self.f)
         if not self.pages.get(self.stack.get_visible_child_name()).get_visible():
             self.stack.set_visible_child_name("telefonlar")
         self.profile_group.set_visible("profiles" in self.f)
-        self.trusted_group.set_description(
-            "Bir kez eşleşen telefon yeniden bağlanırken onay ya da şifre istemez" +
-            (" ve profili uygulanır." if "profiles" in self.f else "."))
         hidden = [features.EXTRAS[k][0].lower() for k in features.EXTRAS if k not in self.f]
         self.simple_row.set_subtitle("Gizli: " + ", ".join(hidden) + ". Tercihler → Özellikler'den eklenir."
                                      if hidden else "Bütün eklenebilir özellikler açık.")
@@ -370,14 +371,10 @@ class Window(Adw.ApplicationWindow):
         hero_group.add(hero)
         page.add(hero_group)
 
-        self.connected_group = DynamicGroup(title="Bağlı telefon")
-        page.add(self.connected_group)
-        self.usb_group = DynamicGroup(title="USB ile takılı")
-        page.add(self.usb_group)
-        self.trusted_group = DynamicGroup(
-            title="Eşleşmiş telefonlar",
-            description="Bir kez eşleşen telefon yeniden bağlanırken onay ya da şifre istemez ve profili uygulanır.")
-        page.add(self.trusted_group)
+        # Her telefon tek satır: bağlantı, USB ve eşleşme aynı yerde (eskiden aynı telefon üç grupta görünüyordu).
+        self.phones_group = DynamicGroup(title="Telefonlar")
+        page.add(self.phones_group)
+        self._trusted_open = False
         self.profile_group = DynamicGroup(
             title="Profiller",
             description="Profil, telefonun bu bilgisayarda neler yapabileceğini belirler; değişiklik bağlı telefona "
@@ -443,6 +440,29 @@ class Window(Adw.ApplicationWindow):
         self.bt_icon = Gtk.Image(icon_name="bluetooth-symbolic")
         self.bt_row.add_prefix(self.bt_icon)
         g.add(self.bt_row)
+        page.add(g)
+
+        from .. import mirror
+        g = self.mirror_group = Adw.PreferencesGroup(
+            title="Telefonun ekranı", description="Yeni ayar, ekran bir sonraki açılışında uygulanır.")
+        keys = list(mirror.PRESETS)
+        self.mirror_row = Adw.ComboRow(title="Görüntü", model=Gtk.StringList.new([mirror.PRESETS[k][0] for k in keys]))
+        cur = self.app.config["mirror_preset"]
+        self.mirror_row.set_selected(keys.index(cur) if cur in keys else 0)
+        self.mirror_row.set_subtitle(mirror.PRESETS[keys[self.mirror_row.get_selected()]][1])
+
+        def on_preset(r, _):
+            key = keys[r.get_selected()]
+            r.set_subtitle(mirror.PRESETS[key][1])
+            self._set("mirror_preset", key)
+        self.mirror_row.connect("notify::selected", on_preset)
+        g.add(self.mirror_row)
+        self.sw_mirror_audio = compat.SwitchRow(
+            title="Telefonun sesi bilgisayardan çalsın",
+            subtitle="Ekran açıkken (Android 11 ve üstü). Kapalıysa ses telefonda kalır")
+        self.sw_mirror_audio.set_active(self.app.config["mirror_audio"])
+        self.sw_mirror_audio.connect("notify::active", lambda r, _: self._set("mirror_audio", r.get_active()))
+        g.add(self.sw_mirror_audio)
         page.add(g)
 
         g = Adw.PreferencesGroup(title="Genel")
@@ -609,6 +629,10 @@ class Window(Adw.ApplicationWindow):
         self.usb = snap
         if self.status:
             self._update_hero()
+        if not self._changed("usb_rows", snap, [(s["device_id"], s.get("adb_serial"))
+                                                 for s in (self.status or {}).get("sessions", [])],
+                             self.app.installing_adb, sorted(self.f)):
+            return
         rows = []
         if not snap.get("running"):
             pass
@@ -649,8 +673,10 @@ class Window(Adw.ApplicationWindow):
             rows.append(r)
         for d in snap.get("devices", []):
             state = d["state"]
+            if state == "device" and self.status and setup_checks.session_of(d, self.status.get("sessions", [])):
+                continue  # bağlı telefonun kendi satırında gösterilir (USB'de olduğu orada yazar)
             if state == "device":
-                session = setup_checks.session_of(d, self.status.get("sessions", [])) if self.status else None
+                session = None
                 missing = setup_checks.perms_missing(d, session)
                 if session:
                     sub = "Bağlı" + (f" · eksik izin: {', '.join(missing)}" if missing else "")
@@ -682,8 +708,10 @@ class Window(Adw.ApplicationWindow):
             if state == "device":
                 self._usb_actions(r, d, snap)
             rows.append(r)
-        self.usb_group.set_rows(rows)
-        self.usb_group.set_visible(bool(rows))
+        self._usb_rows_cache = rows
+        if self.status:
+            self._build_session_rows()  # bağlı telefonun satırı da USB bilgisini (takılı, eksik izin) gösterir
+        self._render_phones()
 
     def _usb_actions(self, r, d, snap):
         """Tek ana iş düğme olarak (kur, güncelle, bağlan ya da eksik izinleri tamamla), gerisi "⋯" menüsünde."""
@@ -759,57 +787,135 @@ class Window(Adw.ApplicationWindow):
         r.add_prefix(Gtk.Image(icon_name="dialog-warning-symbolic", css_classes=["warning"]))
         return r
 
-    def _update_devices(self):
-        rows = []
-        for s in self.status.get("sessions", []):
-            sub = [KIND.get(s["kind"], s["kind"]), s["ip"] if s["kind"] == "wifi" else None]
-            if s.get("battery"):
-                b = s["battery"]
-                sub.append(f"%{b['level']} pil" + (", şarj oluyor" if b["charging"] else ""))
-            if "profiles" in self.f:
-                sub.append(f"profil: {s.get('profile_name', '?')}")
-            r = row(s["name"], " · ".join(x for x in sub if x))
-            r.add_prefix(Gtk.Image(icon_name="phone-symbolic", pixel_size=24))
-            did = s["device_id"]
-            ringing = did in self.ringing
-            ring = Gtk.Button(label="Çalmayı durdur" if ringing else "Telefonu bul", valign=Gtk.Align.CENTER,
-                              tooltip_text="Sessizde olsa da telefon 30 saniye yüksek sesle çalar",
-                              css_classes=["suggested-action"] if ringing else [])
-            ring.connect("clicked", lambda *_, d=did: self._ring(d))
-            r.add_suffix(ring)
-            if s["kind"] != "bluetooth" and "mirror" in self.f:
-                r.add_suffix(icon_button("video-display-symbolic", "Telefonun ekranını aç (fare ve klavyeyle kullan)",
-                                         lambda d=did: self.app.mirror_session(d)))
-            if "files" in self.f:
-                r.add_suffix(icon_button("document-send-symbolic", "Dosya gönder", lambda d=did: self.pick_files(d)))
-                r.add_suffix(icon_button("edit-paste-symbolic", "Panoyu telefona gönder",
-                                         lambda d=did: self.app.send_clipboard(d)))
-            r.add_suffix(icon_button("window-close-symbolic", "Bağlantıyı kes",
-                                     lambda d=did: self.app.call("disconnect", d)))
-            rows.append(r)
-            for text in s.get("problems", []):
-                rows.append(self._problem_row(text))
-        self.connected_group.set_rows(rows)
-        self.connected_group.set_visible(bool(rows))  # yoksa durum kartı zaten "Telefon bekleniyor" diyor
-        problems = [(s["name"], text) for s in self.status.get("sessions", []) for text in s.get("problems", [])]
-        if self._changed("notif_problems", problems):
-            self.notif_problems.set_rows([self._problem_row(t, n) for n, t in problems])
+    def _render_phones(self):
+        """Telefonlar grubu: bağlı telefonlar (USB'de olduğu, eksik izni aynı satırda), USB'de bağlı olmayan
+        telefonlar, sonra tek satıra katlanmış eşleşmiş telefonlar."""
+        if not self.status:
+            return
+        if self.phones_group.rows:
+            for r in self.phones_group.rows:
+                if isinstance(r, Adw.ExpanderRow):
+                    self._trusted_open = r.get_expanded()
+        rows = list(getattr(self, "_session_rows_cache", [])) + list(getattr(self, "_usb_rows_cache", []))
+        exp = self._trusted_expander()
+        if exp:
+            rows.append(exp)
+        self.phones_group.set_rows(rows)
+        self.phones_group.set_visible(bool(rows))
 
-        profiles = self.status.get("profiles", {})
+    def _usb_device_of(self, s):
+        return next((d for d in (self.usb or {}).get("devices", [])
+                     if d.get("state") == "device" and d["serial"] == s.get("adb_serial")), None)
+
+    def _phone_row(self, s):
+        """Bağlı telefonun tek satırı: durum, tek ana iş, gerisi ⋮ menüsünde."""
+        did = s["device_id"]
+        d = self._usb_device_of(s)
+        snap = self.usb or {}
+        sub = ["Bağlı · " + KIND.get(s["kind"], s["kind"]) + (f" {s['ip']}" if s["kind"] == "wifi" else "")]
+        if s.get("battery"):
+            b = s["battery"]
+            sub.append(f"%{b['level']} pil" + (", şarj oluyor" if b["charging"] else ""))
+        if d and s["kind"] != "usb":
+            sub.append("USB'de takılı")
+        if "profiles" in self.f:
+            sub.append(f"profil: {s.get('profile_name', '?')}")
+        lines = [" · ".join(sub)]
+        missing = setup_checks.perms_missing(d, s) if d else None
+        outdated = bool(d and setup_checks.app_outdated(d, snap))
+        locked = bool(d and setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False)
+        if outdated:
+            lines.append(f"Telefondaki Talk To Linux eski ({d['app_version']} → {snap['apk_version']})")
+        elif missing:
+            lines.append("Eksik izin: " + ", ".join(missing) + (" (Xiaomi: telefonda Talk To Linux → İzinler'den ver)"
+                                                                 if locked else ""))
+        r = row(s["name"], "\n".join(lines))
+        r.set_subtitle_lines(4)
+        r.add_prefix(Gtk.Image(icon_name="phone-symbolic", pixel_size=24))
+        ringing = did in self.ringing
+        busy = d and (d.get("installing") or d.get("setting_up"))
+        primary = None
+        if busy:
+            r.add_suffix(Gtk.Spinner(spinning=True, valign=Gtk.Align.CENTER))
+        elif outdated:
+            primary = ("Güncelle", lambda: self.app.install_phone_app(d["serial"]), "install")
+        elif missing and not locked:
+            primary = ("İzinleri tamamla", lambda: self.app.phone_setup(d["serial"]), "setup")
+        else:
+            primary = ("Çalmayı durdur" if ringing else "Telefonu bul", lambda: self._ring(did), "ring")
+        if primary:
+            b = Gtk.Button(label=primary[0], valign=Gtk.Align.CENTER,
+                           css_classes=["suggested-action"] if primary[2] != "ring" or ringing else [],
+                           tooltip_text="Sessizde olsa da telefon 30 saniye yüksek sesle çalar"
+                           if primary[2] == "ring" else None)
+            b.connect("clicked", lambda *_, f=primary[1]: f())
+            r.add_suffix(b)
+        items = []
+        if not primary or primary[2] != "ring":
+            items.append(("Telefonu bul", "ring"))
+        if s["kind"] != "bluetooth" and "mirror" in self.f:
+            items.append(("Telefonun ekranını aç", "mirror"))
+            if d and ":" not in d["serial"]:
+                items.append(("Kablosuz ekranı hazırla", "wireless"))
+        if "files" in self.f:
+            items += [("Dosya gönder", "files"), ("Panoyu telefona gönder", "clipboard")]
+        if d and d.get("app"):
+            if not primary or primary[2] != "setup":
+                items.append(("Telefondaki izinleri tamamla", "setup"))
+            if not primary or primary[2] != "install":
+                items.append(("Talk To Linux'u yeniden kur", "install"))
+        items += [("Bağlantıyı kes", "disconnect"), ("Unut…", "forget")]
+        menu = Gio.Menu()
+        for label, act in items:
+            item = Gio.MenuItem.new(label, None)
+            item.set_action_and_target_value("win.phone", GLib.Variant("s", f"{act}|{did}|{d['serial'] if d else ''}"))
+            menu.append_item(item)
+        r.add_suffix(Gtk.MenuButton(icon_name="view-more-symbolic", menu_model=menu, valign=Gtk.Align.CENTER,
+                                    tooltip_text="Diğer işlemler", css_classes=["flat"]))
+        return r
+
+    def _on_phone_action(self, _action, param):
+        act, did, serial = param.unpack().split("|", 2)
+        if act == "ring":
+            self._ring(did)
+        elif act == "mirror":
+            self.app.mirror_session(did)
+        elif act == "wireless":
+            self.app.prepare_wireless(serial)
+        elif act == "files":
+            self.pick_files(did)
+        elif act == "clipboard":
+            self.app.send_clipboard(did)
+        elif act == "setup":
+            self.app.phone_setup(serial)
+        elif act == "install":
+            self.app.install_phone_app(serial)
+        elif act == "disconnect":
+            self.app.call("disconnect", did)
+        elif act == "forget":
+            t = next((t for t in self.status.get("trusted", []) if t["device_id"] == did), None)
+            if t:
+                self._confirm_forget(t)
+
+    def _trusted_expander(self):
+        """Eşleşmiş telefonlar: tek satıra katlanmış (yer kaplamasın); açınca profil ve “unut”."""
         trusted = self.status.get("trusted", [])
-        if self._changed("trusted", trusted, {k: v["name"] for k, v in profiles.items()}, "profiles" in self.f):
-            self._render_trusted(trusted, profiles)
-        if self._changed("profiles", profiles, self.status.get("default_profile"),
-                         [t["profile"] for t in trusted]):
-            self._render_profiles(profiles, trusted)
-
-    def _render_trusted(self, trusted, profiles):
-        rows = []
+        if not trusted:
+            return None
+        profiles = self.status.get("profiles", {})
+        connected = {s["device_id"] for s in self.status.get("sessions", [])}
+        others = [t["name"] for t in trusted if t["device_id"] not in connected]
+        exp = Adw.ExpanderRow(title=GLib.markup_escape_text(f"Eşleşmiş telefonlar ({len(trusted)})"),
+                              subtitle=GLib.markup_escape_text(
+                                  ("Şu an bağlı değil: " + ", ".join(others[:4])) if others else
+                                  "Yeniden bağlanırken onay ya da şifre istemez"))
+        exp.add_prefix(Gtk.Image(icon_name="emblem-shared-symbolic"))
         pids = list(profiles)
         names = Gtk.StringList.new([profiles[p]["name"] for p in pids])
-        for t in sorted(trusted, key=lambda t: -t["paired_at"]):
+        for t in sorted(trusted, key=lambda t: (t["device_id"] not in connected, -t["paired_at"])):
             when = time.strftime("%d.%m.%Y", time.localtime(t["paired_at"]))
-            sub = f"{t['model']} · eşleşme {when}" if t["model"] else f"eşleşme {when}"
+            sub = (f"{t['model']} · " if t["model"] else "") + f"eşleşme {when}" + \
+                (" · bağlı" if t["device_id"] in connected else "")
             if "profiles" in self.f:
                 r = row(t["name"], sub, cls=Adw.ComboRow, model=names)
                 if t["profile"] in pids:
@@ -820,9 +926,45 @@ class Window(Adw.ApplicationWindow):
                 r = row(t["name"], sub)
             r.add_suffix(icon_button("user-trash-symbolic", "Unut (yeniden bağlanırken onay ya da şifre gerekir)",
                                      lambda t=t: self._confirm_forget(t)))
-            rows.append(r)
-        self.trusted_group.set_rows(rows)
-        self.trusted_group.set_visible(bool(rows))
+            exp.add_row(r)
+        exp.set_expanded(self._trusted_open)
+        return exp
+
+    def _build_session_rows(self) -> bool:
+        """Bağlı telefonların satırları; yalnızca satırda görünen bilgi değişince yeniden kurulur (müzik konumu
+        gibi sık değişenler hariç): yoksa açık ⋮ menüsü her durum güncellemesinde kapanırdı."""
+        sessions = self.status.get("sessions", [])
+        shown = [{k: s.get(k) for k in ("device_id", "name", "kind", "ip", "battery", "profile_name", "problems",
+                                         "adb_serial")} for s in sessions]
+        usb = self.usb or {}
+        if not self._changed("phones", shown, sorted(self.ringing), usb.get("devices"), usb.get("apk_version"),
+                             self.status.get("trusted"),
+                             {k: v["name"] for k, v in self.status.get("profiles", {}).items()}, sorted(self.f)):
+            return False
+        rows = []
+        for s in sessions:
+            rows.append(self._phone_row(s))
+            for text in s.get("problems", []):
+                rows.append(self._problem_row(text))
+        self._session_rows_cache = rows
+        return True
+
+    def _update_devices(self):
+        if self._build_session_rows():
+            if self.usb:
+                self._sig.pop("usb_rows", None)
+                self.update_usb(self.usb)  # USB'deki telefon bağlandıysa ayrı satırından kalkar
+            else:
+                self._render_phones()
+        problems = [(s["name"], text) for s in self.status.get("sessions", []) for text in s.get("problems", [])]
+        if self._changed("notif_problems", problems):
+            self.notif_problems.set_rows([self._problem_row(t, n) for n, t in problems])
+
+        profiles = self.status.get("profiles", {})
+        trusted = self.status.get("trusted", [])
+        if self._changed("profiles", profiles, self.status.get("default_profile"),
+                         [t["profile"] for t in trusted]):
+            self._render_profiles(profiles, trusted)
 
     def _render_profiles(self, profiles, trusted):
         # Bir izni değiştirince bütün satırlar yeniden kurulur: açık olan profil açık kalsın.

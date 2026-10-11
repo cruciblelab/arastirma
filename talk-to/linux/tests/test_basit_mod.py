@@ -143,18 +143,38 @@ class WindowTest(unittest.TestCase):
                 probe.show_state("p", "Pixel", song("Çok çok uzun bir şarkı adı " * 4), None)
                 seen["mini_heights"] = (empty_h, probe.get_content().measure(Gtk.Orientation.VERTICAL, 440)[1])
                 seen["mini_resizable"] = probe.get_resizable()
-                # Üstte tut: X11'de (sanal ekran) pencere yöneticisinden istenir, düğme basılı kalır;
-                # Wayland'de (taklit) basılı kalmaz, nasıl yapılacağını söyleyen balon açılır.
+                # ⋮ menüsü: boyut ön ayarı pencereyi büyütüp küçültür; tepecik ince şerittir.
                 probe.present()
-                probe.pin.set_active(True)
-                seen["pin_x11"] = probe.pin.get_active()
+                sizes = {}
+                for key in ("kucuk", "buyuk"):
+                    probe.activate_action("mini.size", GLib.Variant("s", key))
+                    sizes[key] = probe.get_default_size()
+                probe.activate_action("mini.compact", None)
+                sizes["tepecik"] = probe.get_default_size()
+                seen["mini_sizes"] = sizes
+                seen["mini_cfg"] = (app.config["mini_size"], app.config["mini_compact"])
+                probe.activate_action("mini.compact", None)
+                # Masaüstü pencereyi büyütmek isterse (ekranın üstüne sürükleme) tam ekran olmaz, tepeciğe döner.
+                probe.is_maximized = lambda: True
+                probe._on_maximized()
+                probe.is_maximized = lambda: False
+                ctx = GLib.MainContext.default()
+                while ctx.pending():
+                    ctx.iteration(False)
+                seen["mini_snap"] = probe.compact
+                probe.set_compact(False)
+                # Üstte tut: X11'de (sanal ekran) pencere yöneticisinden istenir, ayar açık kalır;
+                # üstte tutulabilecek ekran yoksa (XWayland'siz Wayland) ayar kapanır, nasıl yapılacağı söylenir.
+                app.mini = probe
+                probe.activate_action("mini.top", None)
+                seen["pin_x11"] = (app.config["mini_on_top"], probe.a_top.get_state().get_boolean())
+                probe.activate_action("mini.top", None)
                 from talkto.ui import ustte
-                real = ustte.supported
-                ustte.supported = lambda w: False
-                probe.pin.set_active(False)
-                probe.pin.set_active(True)
-                seen["pin_wayland"] = (probe.pin.get_active(), probe.hint.get_visible())
-                ustte.supported = real
+                real = ustte.x11_display
+                ustte.x11_display = lambda: None
+                probe.activate_action("mini.top", None)
+                seen["pin_wayland"] = (app.config["mini_on_top"], probe.a_top.get_state().get_boolean())
+                ustte.x11_display = real
                 probe.close()
                 app.set_pinned(True)
                 app.on_event("status", {**app.hub.status(), "sessions": [
@@ -183,6 +203,18 @@ class WindowTest(unittest.TestCase):
                 seen["chip"] = (chip.get_label(), labels, asked)
                 chip.popdown()
                 app.call = real_call
+                # Aynı telefon tek satırda: Wi-Fi'den bağlı ve USB'de takılı telefon ayrıca "USB'de" grubunda
+                # görünmez; eşleşmiş telefonlar tek, katlanmış satırdır.
+                st = app.hub.status()
+                st["sessions"] = [{"device_id": "p", "name": "Pixel", "kind": "wifi", "ip": "1.2.3.4", "problems": [],
+                                   "media": {"active": False}, "profile_name": "Benim telefonum", "adb_serial": "S1"}]
+                st["trusted"] = [{"device_id": d, "name": n, "model": "", "paired_at": 1, "profile": "benim"}
+                                 for d, n in (("p", "Pixel"), ("q", "Eski telefon"))]
+                app.on_event("status", st)
+                w.update_usb({"devices": [{"serial": "S1", "state": "device", "model": "Pixel", "app": True}]})
+                rows = w.phones_group.rows
+                seen["phones"] = ([type(r).__name__ for r in rows], rows[0].get_subtitle(),
+                                  rows[-1].get_subtitle() if rows else "")
                 seen["mini"] = bool(app.mini and app.mini.get_visible())
                 seen["mini_shows"] = app.mini.device_id if app.mini else None
                 seen["pin_switch"] = w.sw_pin.get_active()
@@ -237,8 +269,18 @@ class WindowTest(unittest.TestCase):
         self.assertTrue(seen["pin_switch"])
         self.assertEqual(seen["mini_heights"][0], seen["mini_heights"][1])
         self.assertTrue(seen["mini_resizable"])
-        self.assertTrue(seen["pin_x11"])
-        self.assertEqual(seen["pin_wayland"], (False, True))
+        kinds, sub, trusted_sub = seen["phones"]
+        self.assertEqual(kinds, ["ActionRow", "ExpanderRow"])
+        self.assertIn("USB'de takılı", sub)
+        self.assertIn("Eski telefon", trusted_sub)
+        self.assertEqual(seen["pin_x11"], (True, True))
+        self.assertEqual(seen["pin_wayland"], (False, False))
+        sz = seen["mini_sizes"]
+        self.assertLess(sz["kucuk"][0], sz["buyuk"][0])
+        self.assertLess(sz["kucuk"][1], sz["buyuk"][1])
+        self.assertLess(sz["tepecik"][1], 80)  # ince şerit
+        self.assertEqual(seen["mini_cfg"], ("buyuk", True))
+        self.assertTrue(seen["mini_snap"])
         self.assertEqual(seen["popup_with_mini"], 0)
         (title, body, kw), = seen["popup"]
         self.assertEqual(title, "Firuze")

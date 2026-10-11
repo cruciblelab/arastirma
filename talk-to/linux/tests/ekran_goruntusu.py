@@ -100,6 +100,11 @@ def fill():
     st["bt"] = {"available": True, "message": "Hazır. Telefonu önce sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir."}
     if os.environ.get("USB_HAZIR"):  # telefon USB'de, uygulaması kurulu, henüz bağlı değil ("Bağlan")
         st["sessions"] = []
+    if os.environ.get("AYNI_TELEFON"):  # Wi-Fi'den bağlı telefon USB'de de takılı: tek satır
+        st["sessions"][0]["adb_serial"] = "38XYZ"
+        st["trusted"] = [{"device_id": d, "name": n, "model": m, "paired_at": 1760000000 - i * 86400, "profile": "benim"}
+                         for i, (d, n, m) in enumerate((("pixel", "Pixel 8", "Pixel 8"),
+                                                        ("eski", "Redmi Note 9", "M2003J15SC")))]
     app.on_event("status", st)
     if st["sessions"]:
         app.on_event("media", {"device_id": "pixel", "state": st["sessions"][0]["media"]})
@@ -196,8 +201,22 @@ def shoot():
         step["i"] += 1
         return True
     if i == n + 3:
-        snap(app.mini, f"{i:02d}-mini-oynatici")
-        print("mini boyut", app.mini.get_width(), app.mini.get_height())
+        # Mini oynatıcının hâlleri: orta, tepecik, küçük, büyük (her biri bir sonraki turda çizilir).
+        m = step.setdefault("m", 0)
+        names = ["mini-oynatici", "mini-tepecik", "mini-kucuk", "mini-buyuk"]
+        snap(app.mini, f"{i:02d}-{names[m]}")
+        print(names[m], app.mini.get_width(), app.mini.get_height())
+        step["m"] = m + 1
+        if m == 0:
+            app.mini.set_compact(True)
+        elif m == 1:
+            app.mini.set_compact(False)
+            app.mini.set_size("kucuk")
+        elif m == 2:
+            app.mini.set_size("buyuk")
+        if m < 3:
+            return True
+        app.mini.set_size("orta")
         app.mini.close()
         win.stack.set_visible_child_name("telefonlar")
         app._ask({"id": "x", "kind": "pair", "name": "Pixel 8", "model": "Pixel 8", "code": "482913",

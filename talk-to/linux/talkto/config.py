@@ -58,6 +58,11 @@ class Config:
         "simple_mode": True,
         "extras": [],  # basit modda yine de görünsün diye eklenen özellikler
         "mini_player_pinned": False,  # müzik başlayınca mini oynatıcı kendiliğinden açılır
+        "mini_on_top": False,  # mini oynatıcı diğer pencerelerin üstünde (Wayland'de XWayland ile)
+        "mini_compact": False,  # mini oynatıcı tepecik (ince şerit) hâlinde
+        "mini_size": "orta",  # kucuk / orta / buyuk
+        "mirror_preset": "akici",  # telefonun ekranı: akici / hizli / hafif (talkto.mirror.PRESETS)
+        "mirror_audio": True,  # telefonun sesi ekran açıkken bilgisayardan çalsın (Android 11+)
         "track_popup": True,  # şarkı değişince masaüstü bildirimi
     }
 

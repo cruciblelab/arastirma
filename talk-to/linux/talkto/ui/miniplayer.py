@@ -1,21 +1,31 @@
 """Mini oynatıcı: telefonda çalanı küçük, ayrı bir pencerede gösterir.
 
-Tasarım: başlık çubuğu yok, pencerenin her yerinden sürüklenir; solda kapak, sağda parça, altında
-oynat/duraklat ve ince ilerleme. Pencerenin boyutu içerikle değişmez (boş hâl ile çalan hâl aynı yeri
-kaplar): yeniden boyutlanamayan pencerenin içeriği büyüyünce GTK 4.6 Wayland'de protokol hatasıyla
-uygulamayı kapatabiliyordu.
+İki hâli var:
+- normal: solda kapak, sağda parça, oynat/duraklat, ses ve ince ilerleme;
+- tepecik: tek satırlık ince şerit (küçük kapak, parça, dalga, oynat). Pencereyi ekranın üstüne sürükleyince
+  (masaüstü normalde tam ekran yapardı) tepeciğe döner; X11 penceresiyse ekranın üst ortasına yerleşir.
 
-📌 "Üstte tut": X11'de pencereyi diğerlerinin üstünde tutar; Wayland'de buna izin yok, nasıl yapılacağını
-söyler (boş yere sağ tık → "Her zaman üstte"). Müzik başlayınca kendiliğinden açılması ayrı bir ayar
-(Medya sayfası / Tercihler). Pencere menüsünü kendimiz açmaya çalışmak GTK 4.6 + Wayland'de çöküyordu;
-o düğme kaldırıldı.
+Ayarlar ⋮ menüsünde: üstte tut, tepecik, boyut (küçük/orta/büyük), müzik başlayınca kendiliğinden açılma.
+Başlık çubuğu yok; pencerenin her yerinden sürüklenir. Boyut ön ayarla değişir (set_default_size); pencere
+yeniden boyutlanabilir kalır: boyutu sabit pencerenin içeriği büyüyünce GTK 4.6 Wayland'de protokol hatasıyla
+uygulama kapanabiliyordu. Boş hâl ile çalan hâl aynı yeri kaplar.
+
+Üstte tut (bkz. ustte): X11'de doğrudan; Wayland'de pencere XWayland'de açılır ve orada üstte tutulur;
+XWayland de yoksa nasıl yapılacağı söylenir. Pencere hangi ekranda açılacağını oluşturulurken bilir; bu
+yüzden Wayland'de üstte tutmayı açıp kapatmak pencereyi yeniden açar (app.set_mini_on_top).
+
+Dalga gerçek sesten gelmez (telefon ses verisi göndermiyor): çalarken oynar, duraklayınca durur.
 """
 
 import time
 
-from gi.repository import Adw, GLib, Gtk, Pango
+from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
 from . import compat, ustte
+
+# boyut: (normal genişlik, kapak), (tepecik genişlik, kapak). Küçükte ses ve ilerleme çubuğu gizlenir.
+SIZES = {"kucuk": ((340, 64), (300, 34)), "orta": ((440, 96), (340, 40)), "buyuk": ((560, 136), (400, 48))}
+SIZE_NAMES = {"kucuk": "Küçük", "orta": "Orta", "buyuk": "Büyük"}
 
 
 def _mmss(ms: int) -> str:
@@ -23,58 +33,111 @@ def _mmss(ms: int) -> str:
     return f"{s // 3600}:{s // 60 % 60:02d}:{s % 60:02d}" if s >= 3600 else f"{s // 60}:{s % 60:02d}"
 
 
-def _pin_icon():
-    from gi.repository import Gdk
-    theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
-    return "view-pin-symbolic" if theme.has_icon("view-pin-symbolic") else "starred-symbolic"
+def _small(icon, tooltip):
+    return Gtk.Button(icon_name=icon, tooltip_text=tooltip, valign=Gtk.Align.CENTER,
+                      css_classes=["flat", "circular", "mini-tool"])
 
 
-def _small(icon, tooltip, toggle=False):
-    cls = Gtk.ToggleButton if toggle else Gtk.Button
-    return cls(icon_name=icon, tooltip_text=tooltip, valign=Gtk.Align.CENTER,
-               css_classes=["flat", "circular", "mini-tool"])
+class Wave(Gtk.Box):
+    """Çalarken inip kalkan çubuklar (CSS animasyonu: yeniden yerleşim yok, işlemciyi yormaz)."""
+
+    def __init__(self, height=16):
+        super().__init__(spacing=2, valign=Gtk.Align.CENTER, height_request=height, css_classes=["mini-wave"])
+        for i in range(4):
+            self.append(Gtk.Box(width_request=3, css_classes=["bar", f"bar{i}"]))
+
+    def set_playing(self, on):
+        (self.add_css_class if on else self.remove_css_class)("playing")
+
+
+def build_menu() -> Gio.Menu:
+    menu = Gio.Menu()
+    view = Gio.Menu()
+    view.append("Üstte tut", "mini.top")
+    view.append("Tepecik (ince şerit)", "mini.compact")
+    menu.append_section(None, view)
+    size = Gio.Menu()
+    for key, name in SIZE_NAMES.items():
+        item = Gio.MenuItem.new(name, None)
+        item.set_action_and_target_value("mini.size", GLib.Variant("s", key))
+        size.append_item(item)
+    menu.append_submenu("Boyut", size)
+    auto = Gio.Menu()
+    auto.append("Müzik başlayınca kendiliğinden aç", "mini.auto")
+    menu.append_section(None, auto)
+    other = Gio.Menu()
+    other.append("Talk To Android'i aç", "mini.home")
+    other.append("Kapat", "mini.close")
+    menu.append_section(None, other)
+    return menu
 
 
 class MiniPlayer(Adw.Window):
-    WIDTH, HEIGHT = 440, 148
+    WIDTH, HEIGHT = SIZES["orta"][0][0], 148
 
-    def __init__(self, app):
+    def __init__(self, app, display=None):
+        kw = {"display": display} if display is not None else {}
         super().__init__(application=app, title="Telefonda çalan", default_width=self.WIDTH,
-                         default_height=self.HEIGHT, resizable=True)
-        self.set_size_request(360, self.HEIGHT)
+                         default_height=self.HEIGHT, resizable=True, **kw)
         self.app = app
         self.device_id = None
         self.state: dict = {}
         self._pending: dict[str, int] = {}
         self._timers: dict[str, int] = {}
         self._art = None
-        self._pin_guard = False
+        self._snapping = False
+        cfg = app.config
+        self.size_key = cfg["mini_size"] if cfg["mini_size"] in SIZES else "orta"
+        self.compact = bool(cfg["mini_compact"])
 
+        self._actions()
+        menu = build_menu()
         self.toasts = Adw.ToastOverlay()
         handle = Gtk.WindowHandle()  # boş yerden tutup sürüklemek için
+        self.stack = Gtk.Stack(hhomogeneous=False, vhomogeneous=False, interpolate_size=False)
+        self.stack.add_named(self._normal(app, menu), "normal")
+        self.stack.add_named(self._tepecik(menu), "tepecik")
+        handle.set_child(self.stack)
+        self.toasts.set_child(handle)
+        self.set_content(self.toasts)
+
+        twice = Gtk.GestureClick(button=1)  # tepecikte çift tık: normal hâle dön
+        twice.connect("pressed", self._on_click)
+        handle.add_controller(twice)
+
+        self._timer = GLib.timeout_add(500, self._tick)
+        self.connect("close-request", self._on_close)
+        self.connect("notify::maximized", self._on_maximized)
+        self.connect("notify::fullscreened", self._on_maximized)
+        self.connect("map", lambda *_: GLib.timeout_add(150, self._after_map))
+        self.show_state(None, "", {"active": False})
+        self._apply_mode()
+
+    # ---- arayüz ------------------------------------------------------------------
+
+    def _normal(self, app, menu):
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, css_classes=["mini-player"])
         top = Gtk.Box(spacing=14)
 
         self.art_stack = Gtk.Stack(valign=Gtk.Align.START)
-        ph = Gtk.Image(icon_name="audio-x-generic-symbolic", pixel_size=30, css_classes=["art-placeholder"],
-                       width_request=76, height_request=76)
-        self.pic = compat.picture(width_request=76, height_request=76, css_classes=["art"],
-                                  overflow=Gtk.Overflow.HIDDEN)
-        self.art_stack.add_named(ph, "yok")
+        self.ph = Gtk.Image(icon_name="audio-x-generic-symbolic", pixel_size=30, css_classes=["art-placeholder"])
+        self.pic = compat.picture(css_classes=["art"], overflow=Gtk.Overflow.HIDDEN)
+        self.art_stack.add_named(self.ph, "yok")
         self.art_stack.add_named(self.pic, "var")
         top.append(self.art_stack)
 
         col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1, hexpand=True, valign=Gtk.Align.CENTER)
         head = Gtk.Box(spacing=2)
+        self.wave = Wave(12)
+        self.wave.set_margin_end(6)
+        head.append(self.wave)
         self.source = Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END,
                                 css_classes=["caption", "dim-label"])
         head.append(self.source)
-        self.pin = _small(_pin_icon(), "Üstte tut: diğer pencerelerin üstünde kalsın", toggle=True)
-        self.pin.connect("toggled", self._on_pin)
-        head.append(self.pin)
-        self.hint = Gtk.Popover(child=Gtk.Label(label=ustte.WAYLAND_HINT, wrap=True, max_width_chars=34,
-                                                margin_top=8, margin_bottom=8, margin_start=8, margin_end=8))
-        self.hint.set_parent(self.pin)
+        self.menu_button = Gtk.MenuButton(icon_name="view-more-symbolic", menu_model=menu, valign=Gtk.Align.CENTER,
+                                          tooltip_text="Ayarlar: üstte tut, tepecik, boyut",
+                                          css_classes=["flat", "circular", "mini-tool"])
+        head.append(self.menu_button)
         home = _small("go-home-symbolic", "Talk To Android'i aç")
         home.connect("clicked", lambda *_: app.present())
         head.append(home)
@@ -109,7 +172,7 @@ class MiniPlayer(Adw.Window):
         top.append(col)
         root.append(top)
 
-        bottom = Gtk.Box(spacing=8)
+        bottom = self.bottom = Gtk.Box(spacing=8)
         self.pos_label = Gtk.Label(css_classes=["caption", "dim-label", "numeric"], width_chars=5, xalign=0)
         self.progress = Gtk.Scale(draw_value=False, hexpand=True, css_classes=["mini-progress"])
         self.progress.set_range(0, 1)
@@ -118,30 +181,147 @@ class MiniPlayer(Adw.Window):
         for w in (self.pos_label, self.progress, self.dur_label):
             bottom.append(w)
         root.append(bottom)
+        return root
 
-        handle.set_child(root)
-        self.toasts.set_child(handle)
-        self.set_content(self.toasts)
-        self._timer = GLib.timeout_add(500, self._tick)
-        self.connect("close-request", self._on_close)
-        self.show_state(None, "", {"active": False})
+    def _tepecik(self, menu):
+        root = Gtk.Box(spacing=10, css_classes=["mini-tepecik"],
+                       tooltip_text="Çift tıkla: büyüt")
+        self.c_stack = Gtk.Stack(valign=Gtk.Align.CENTER)
+        self.c_ph = Gtk.Image(icon_name="audio-x-generic-symbolic", pixel_size=18, css_classes=["art-placeholder"])
+        self.c_pic = compat.picture(css_classes=["art"], overflow=Gtk.Overflow.HIDDEN)
+        self.c_stack.add_named(self.c_ph, "yok")
+        self.c_stack.add_named(self.c_pic, "var")
+        root.append(self.c_stack)
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, valign=Gtk.Align.CENTER)
+        self.c_title = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, css_classes=["heading", "mini-c-title"])
+        self.c_artist = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, css_classes=["caption", "dim-label"])
+        col.append(self.c_title)
+        col.append(self.c_artist)
+        root.append(col)
+        self.c_wave = Wave(18)
+        root.append(self.c_wave)
+        self.c_play = Gtk.Button(icon_name="media-playback-start-symbolic", tooltip_text="Oynat / duraklat",
+                                 valign=Gtk.Align.CENTER, css_classes=["circular", "flat", "mini-tool"])
+        self.c_play.connect("clicked", lambda *_: self._cmd("play_pause"))
+        root.append(self.c_play)
+        self.c_next = _small("media-skip-forward-symbolic", "Sonraki")
+        self.c_next.connect("clicked", lambda *_: self._cmd("next"))
+        root.append(self.c_next)
+        root.append(Gtk.MenuButton(icon_name="view-more-symbolic", menu_model=menu, valign=Gtk.Align.CENTER,
+                                   tooltip_text="Ayarlar", css_classes=["flat", "circular", "mini-tool"]))
+        return root
+
+    def _actions(self):
+        group = Gio.SimpleActionGroup()
+        cfg = self.app.config
+
+        def toggle(name, value, cb):
+            a = Gio.SimpleAction.new_stateful(name, None, GLib.Variant("b", value))
+            a.connect("change-state", lambda a, v: cb(v.get_boolean()))
+            group.add_action(a)
+            return a
+
+        self.a_top = toggle("top", bool(cfg["mini_on_top"]), lambda on: self.app.set_mini_on_top(on))
+        self.a_compact = toggle("compact", self.compact, self.set_compact)
+        self.a_auto = toggle("auto", bool(cfg["mini_player_pinned"]), lambda on: self.app.set_pinned(on))
+        self.a_size = Gio.SimpleAction.new_stateful("size", GLib.VariantType.new("s"),
+                                                    GLib.Variant("s", self.size_key))
+        self.a_size.connect("change-state", lambda a, v: self.set_size(v.get_string()))
+        group.add_action(self.a_size)
+        for name, cb in (("home", lambda: self.app.present()), ("close", lambda: self.close())):
+            a = Gio.SimpleAction.new(name, None)
+            a.connect("activate", lambda *_, cb=cb: cb())
+            group.add_action(a)
+        self.insert_action_group("mini", group)
+
+    def sync_actions(self):
+        """Ayar başka yerden (Tercihler, app) değişince menüdeki işaretler de güncellensin."""
+        cfg = self.app.config
+        self.a_top.set_state(GLib.Variant("b", bool(cfg["mini_on_top"])))
+        self.a_auto.set_state(GLib.Variant("b", bool(cfg["mini_player_pinned"])))
+
+    # ---- boyut, tepecik, üstte tut ---------------------------------------------
+
+    def set_size(self, key):
+        if key not in SIZES:
+            return
+        self.size_key = key
+        self.a_size.set_state(GLib.Variant("s", key))
+        self.app.config.set("mini_size", key)
+        self._apply_mode()
+
+    def set_compact(self, on):
+        self.compact = bool(on)
+        self.a_compact.set_state(GLib.Variant("b", self.compact))
+        self.app.config.set("mini_compact", self.compact)
+        self._apply_mode()
+        if self.compact and self.get_mapped():
+            GLib.timeout_add(120, lambda: ustte.top_center(self) and False)
+
+    def _apply_mode(self):
+        (width, art), (c_width, c_art) = SIZES[self.size_key]
+        for w in (self.ph, self.pic):
+            w.set_size_request(art, art)
+        self.ph.set_pixel_size(max(24, int(art / 2.5)))
+        for w in (self.c_ph, self.c_pic):
+            w.set_size_request(c_art, c_art)
+        small, big = self.size_key == "kucuk", self.size_key == "buyuk"
+        for w in (self.vol_icon, self.volume, self.bottom):
+            w.set_visible(not small)
+        self.title_label.set_css_classes(["title-3"] if big else ["heading"])
+        self.stack.set_visible_child_name("tepecik" if self.compact else "normal")
+        (self.add_css_class if self.compact else self.remove_css_class)("tepecik")
+        target = c_width if self.compact else width
+        h = self.stack.get_visible_child().measure(Gtk.Orientation.VERTICAL, target)[1]
+        self.set_size_request(min(target, 300), h)
+        self.set_default_size(target, h)
+
+    def _on_maximized(self, *_):
+        """Masaüstü pencereyi büyütmek ya da tam ekran yapmak isterse (ör. üste sürükleyince) tepeciğe dön."""
+        if (self.is_maximized() or self.is_fullscreen()) and not self._snapping:
+            self._snapping = True
+            GLib.idle_add(self._snap)
+
+    def _snap(self):
+        if self.is_fullscreen():
+            self.unfullscreen()
+        self.unmaximize()
+        if not self.compact:
+            self.set_compact(True)
+        GLib.timeout_add(250, self._after_snap)
+        return False
+
+    def _after_snap(self):
+        # Büyütmeden dönen pencereye masaüstü eski boyutunu geri verir; tepecik boyutu yeniden uygulanır.
+        self._snapping = False
+        self.set_default_size(-1, -1)
+        self._apply_mode()
+        ustte.top_center(self)
+        return False
+
+    def _on_click(self, gesture, n_press, _x, _y):
+        if n_press == 2 and self.compact:
+            gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+            self.set_compact(False)
+
+    def _after_map(self):
+        if self.app.config["mini_on_top"]:
+            if ustte.supported(self) and ustte.keep_above(self, True):
+                pass
+            else:
+                self.toast(ustte.WAYLAND_HINT, 8)
+        if self.compact:
+            ustte.top_center(self)
+        return False
+
+    def apply_top(self, on):
+        """Aynı ekranda kalarak üstte tutmayı aç/kapat (X11 penceresi)."""
+        return ustte.supported(self) and ustte.keep_above(self, on)
 
     # ---- düğmeler ---------------------------------------------------------------
 
-    def _on_pin(self, btn):
-        """Üstte tut: X11'de gerçekten; Wayland'de yasak, nasıl yapılacağı gösterilir."""
-        if self._pin_guard:
-            return
-        if ustte.supported(self) and ustte.keep_above(self, btn.get_active()):
-            self.toast("Diğer pencerelerin üstünde" if btn.get_active() else "Artık üstte tutulmuyor")
-            return
-        self._pin_guard = True
-        btn.set_active(False)
-        self._pin_guard = False
-        self.hint.popup()
-
-    def toast(self, text):
-        self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(text), timeout=3))
+    def toast(self, text, timeout=3):
+        self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(text), timeout=timeout))
 
     def _cmd(self, action, value=None):
         if self.device_id:
@@ -171,12 +351,12 @@ class MiniPlayer(Adw.Window):
         return False
 
     def _on_close(self, *_):
-        self.hint.unparent()
         GLib.source_remove(self._timer)
         for t in self._timers.values():
             GLib.source_remove(t)
         self._timers.clear()
-        self.app.mini = None
+        if self.app.mini is self:
+            self.app.mini = None
         return False
 
     # ---- durum ------------------------------------------------------------------
@@ -185,24 +365,36 @@ class MiniPlayer(Adw.Window):
         active = bool(device_id and state.get("active"))
         self.device_id = device_id if active else None
         self.state = dict(state) if active else {}
-        for w in (self.prev, self.play, self.next, self.volume, self.progress):
+        for w in (self.prev, self.play, self.next, self.volume, self.progress, self.c_play, self.c_next):
             w.set_sensitive(active)
+        playing = bool(active and state.get("playing"))
+        self.wave.set_playing(playing)
+        self.c_wave.set_playing(playing)
+        self.wave.set_visible(active)
         if not active:
             self.source.set_text("Telefonda çalan")
             self.title_label.set_text("Şu an bir şey çalmıyor")
             self.artist.set_text("Spotify ya da YouTube'da müzik açınca burada görünür")
+            self.c_title.set_text("Şu an bir şey çalmıyor")
+            self.c_artist.set_text("Telefonda çalan")
             self.art_stack.set_visible_child_name("yok")
-            self.play.set_icon_name("media-playback-start-symbolic")
+            self.c_stack.set_visible_child_name("yok")
+            for b in (self.play, self.c_play):
+                b.set_icon_name("media-playback-start-symbolic")
             self.progress.set_range(0, 1)
             self.progress.set_value(0)
             self.pos_label.set_text("")
             self.dur_label.set_text("")
             return
         self.source.set_text(" · ".join(x for x in (state.get("player"), device_name) if x))
-        self.title_label.set_text(state.get("title") or "Bilinmeyen parça")
+        title = state.get("title") or "Bilinmeyen parça"
+        self.title_label.set_text(title)
         self.artist.set_text(state.get("artist") or "")
-        self.play.set_icon_name("media-playback-pause-symbolic" if state.get("playing")
-                                else "media-playback-start-symbolic")
+        self.c_title.set_text(title)
+        self.c_artist.set_text(state.get("artist") or state.get("player") or "")
+        icon = "media-playback-pause-symbolic" if playing else "media-playback-start-symbolic"
+        for b in (self.play, self.c_play):
+            b.set_icon_name(icon)
         dur = state.get("duration_ms") or 0
         self.progress.set_range(0, max(dur, 1))
         self.progress.set_sensitive(bool(state.get("can_seek")) and dur > 0)
@@ -213,8 +405,11 @@ class MiniPlayer(Adw.Window):
             self.volume.set_value(vol)
         if art_path and art_path != self._art:  # konum her güncellendiğinde kapak yeniden yüklenmesin
             self.pic.set_filename(art_path)
+            self.c_pic.set_paintable(self.pic.get_paintable())
         self._art = art_path
-        self.art_stack.set_visible_child_name("var" if art_path else "yok")
+        name = "var" if art_path else "yok"
+        self.art_stack.set_visible_child_name(name)
+        self.c_stack.set_visible_child_name(name)
         self._tick()
 
     def _tick(self):
