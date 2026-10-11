@@ -6,6 +6,8 @@ USB hata ayıklama açıkken adb aynı ayarları doğrudan yapabilir. Yalnızca 
 Linux'un kendi izinlerine dokunulur; başka uygulamaya ya da sistem ayarına değil.
 """
 
+import asyncio
+
 from .usb import PHONE_PACKAGE, _adb
 
 LISTENER = f"{PHONE_PACKAGE}/{PHONE_PACKAGE}.service.NotificationListener"
@@ -56,10 +58,17 @@ async def setup_phone(serial: str) -> list[dict]:
 
     if full:
         rc, out = await _sh(serial, "cmd", "notification", "allow_listener", LISTENER)
-        _, now = await _sh(serial, "settings", "get", "secure", "enabled_notification_listeners")
-        ok = LISTENER in now or f"{PHONE_PACKAGE}/.service.NotificationListener" in now
+        # Android ayarı bir an geç yazabiliyor: hemen okuyunca verilmemiş sanılıyordu ("bilinmeyen hata").
+        ok = False
+        for _ in range(8):
+            _, now = await _sh(serial, "settings", "get", "secure", "enabled_notification_listeners")
+            ok = LISTENER in now or f"{PHONE_PACKAGE}/.service.NotificationListener" in now
+            if ok or (rc != 0 and out.strip()):
+                break
+            await asyncio.sleep(0.5)
         items.append(_item("listener", "Bildirim erişimi (bildirimler ve müzik)", ok,
-                           "" if ok else _explain(out)))
+                           "" if ok else (_explain(out) if out.strip() else
+                                          "telefon onaylamadı; telefonda Bildirim erişimi'nden elle aç")))
     else:
         items.append(_item("listener", "Bildirim erişimi", None, "Hafif sürümde bu özellik yok."))
 

@@ -955,6 +955,18 @@ exit 0"""
                       ".service.NotificationListener", calls)
         self.assertIn("dumpsys deviceidle whitelist +lab.crucible.talktolinux", calls)
 
+    async def test_listener_setting_written_late(self):
+        """Android ayarı allow_listener'dan biraz sonra yazıyor: hemen "olmadı" denmemeli."""
+        st = Path(self.tmp.name) / "durum"
+        self.phone()
+        late = self.ADB % {"state": st, "grant": "exit 0"}
+        late = late.replace('cat $STATE 2>/dev/null || echo null', 'n=$(cat $STATE.n 2>/dev/null || echo 0); '
+                            'echo $((n+1)) > $STATE.n; if [ "$n" -ge 2 ]; then cat $STATE; else echo null; fi')
+        self.fake("adb", late)
+        await self.hub.usb._poll()
+        ok, text = await self.hub.phone_setup("ABC123")
+        self.assertTrue(ok, text)
+
     async def test_locked_phone_explains(self):
         self.phone(grant='echo "java.lang.SecurityException: grantRuntimePermission: Neither user 2000 nor '
                          'current process has android.permission.GRANT_RUNTIME_PERMISSIONS."; exit 255')
