@@ -4,6 +4,7 @@ Ayrı bir veriyolu (dbus-run-session) içinde küçük bir uygulama başlatılı
 açık görmeli, "quit" eylemini bulmalı ve kapatabilmeli.
 """
 
+import os
 import shutil
 import subprocess
 import sys
@@ -48,6 +49,70 @@ q.terminate()
 print("tamam")
 '''
 
+# Sonuç sayfası, gerçek pencerede: (1) açık uygulama kurulumdan sonra kendini yeniler → "yeniden başladı";
+# (2) yenilemez (eski sürüm bunu bilmiyor) → beklenen süre dolunca "Yeniden başlat"; tıklanınca kapanıp yeniden açılır.
+WINDOW = r'''
+import os, subprocess, sys, time
+sys.path.insert(0, sys.argv[1])
+os.environ["XDG_DATA_HOME"] = data = sys.argv[3]  # GLib bunu ilk kullanımda önbelleğe alır: içe aktarmalardan önce
+import gi
+gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1")
+from gi.repository import GLib
+from guncelleyici import calisan, paket
+from guncelleyici.ui import App, Window
+APP, NAME = sys.argv[2], "lab.deneme.Yenilenen"
+os.makedirs(data + "/applications", exist_ok=True)
+open(data + "/uygulama.py", "w").write(APP)
+with open(data + "/applications/" + NAME + ".desktop", "w") as f:
+    f.write("[Desktop Entry]\nType=Application\nName=Yenilenen\nX-Guncellenince-Yeniden-Baslar=true\n"
+            f"Exec={sys.executable} {data}/uygulama.py {NAME} evet\n")
+
+def start():
+    p = subprocess.Popen([sys.executable, "-c", APP, NAME, "evet"], stdout=subprocess.PIPE, text=True)
+    assert p.stdout.readline().strip() == "hazir"
+    return p
+
+def wait(cond, secs):
+    loop, end = GLib.MainLoop(), time.monotonic() + secs
+    def check():
+        if cond() or time.monotonic() > end:
+            loop.quit(); return False
+        return True
+    if not cond():
+        GLib.timeout_add(50, check); loop.run()
+    return cond()
+
+app = App(); app.register(None)
+Window.RESTART_WAIT = 3
+
+def finished(win):
+    win.pkg = paket.Paket(path="", package="yenilenen", version="2.0", arch="all", summary="", name="Yenilenen",
+                          desktop_ids=[NAME + ".desktop"])
+    win._owners_before = {NAME + ".desktop": calisan.owner(NAME)}
+    return win
+
+# 1) Kendini yeniler: eski süreç kapanır, yenisi gelir.
+p = start()
+win = finished(Window(app)); win.present()
+p.terminate(); p.wait(); p = start()
+win._finished(True)
+assert wait(lambda: "yeniden başladı" in win.result_page.get_description(), 10), win.result_page.get_description()
+win.destroy()
+
+# 2) Yenilemez: süre dolunca "Yeniden başlat"; tıklanınca kapanır ve masaüstü dosyasıyla yeniden açılır.
+win = finished(Window(app)); win.present()
+before = win._owners_before[NAME + ".desktop"]
+win._finished(True)
+assert wait(lambda: "kendiliğinden yeniden başlamadı" in win.result_page.get_description(), 10)
+btn = win.result_buttons.get_first_child()
+assert btn.get_label() == "Yeniden başlat", btn.get_label()
+btn.emit("clicked")
+assert wait(lambda: p.poll() is not None, 10), "uygulama kapanmadı"
+assert wait(lambda: calisan.owner(NAME) not in (None, before), 15), "yeniden açılmadı"
+calisan.quit_app(NAME)
+print("tamam")
+'''
+
 
 @unittest.skipUnless(shutil.which("dbus-run-session"), "dbus-run-session yok")
 class CalisanTest(unittest.TestCase):
@@ -55,6 +120,13 @@ class CalisanTest(unittest.TestCase):
         res = subprocess.run(["dbus-run-session", "--", sys.executable, "-c", CHECK, str(ROOT), "", APP],
                              capture_output=True, text=True, timeout=60)
         self.assertIn("tamam", res.stdout, res.stderr[-2000:])
+
+    @unittest.skipUnless(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"), "ekran yok")
+    def test_result_page_restart(self):
+        import tempfile
+        res = subprocess.run(["dbus-run-session", "--", sys.executable, "-c", WINDOW, str(ROOT), APP,
+                              tempfile.mkdtemp()], capture_output=True, text=True, timeout=120)
+        self.assertIn("tamam", res.stdout, res.stdout[-1000:] + res.stderr[-3000:])
 
     def test_names(self):
         sys.path.insert(0, str(ROOT))

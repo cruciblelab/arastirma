@@ -4,8 +4,10 @@ Paket güncellenince diskteki dosyalar yenilenir ama açık uygulama bellekteki 
 devam eder (Hakkında'da eski sürüm görünür). GTK/GApplication uygulamaları oturum veriyolunda masaüstü
 dosyasının adıyla (ör. lab.crucible.TalkToAndroid) kayıtlıdır ve çoğu "quit" eylemini org.gtk.Actions
 üzerinden sunar; öyleyse "Yeniden başlat" düğmesi gösterilir. Kendini güncellenince yeniden başlatan
-uygulamalar masaüstü dosyasında bunu söyler (X-Guncellenince-Yeniden-Baslar=true); onlar için bir şey
-yapmaya gerek yoktur.
+uygulamalar masaüstü dosyasında bunu söyler (X-Guncellenince-Yeniden-Baslar=true). Ama işarete körü körüne
+güvenilmez: işaret yeni sürümün dosyasında, bellekte çalışan ise eski sürüm (kendini yenilemeyi bilmeyebilir).
+Bu yüzden veriyolundaki sahibin (":1.42" gibi bağlantı adı) kurulumdan sonra değişip değişmediğine bakılır:
+yeniden başlayan uygulama yeni bir bağlantıyla gelir. Değişmezse "Yeniden başlat" önerilir.
 """
 
 from gi.repository import Gio, GLib
@@ -33,6 +35,15 @@ def running(name: str) -> bool:
                      GLib.Variant("(s)", (name,)), "(b)").unpack()[0]
     except GLib.Error:
         return False
+
+
+def owner(name: str) -> str | None:
+    """Adın şu anki sahibi (bağlantı adı) ya da kimse sahip değilse None."""
+    try:
+        return _call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+                     GLib.Variant("(s)", (name,)), "(s)").unpack()[0]
+    except GLib.Error:
+        return None
 
 
 def can_quit(name: str) -> bool:

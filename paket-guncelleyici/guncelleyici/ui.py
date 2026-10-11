@@ -436,6 +436,8 @@ class Window(Adw.ApplicationWindow):
         pkg = self.pkg
         allow_remove = bool(self.sim.remove)  # kaldırma varsa onay kutusu işaretlenmiş olmalı (_update_primary)
         cmd = apt.install_command(self.copy, apt.flags_for(pkg.verdict, allow_remove))
+        # Kurulumdan önce açık olan uygulamanın bağlantısı: sonra değişirse kendini yeniden başlatmış demektir.
+        self._owners_before = {d: calisan.owner(calisan.bus_name(d)) for d in pkg.desktop_ids}
         self.busy = True
         self.open_btn.set_sensitive(False)
         self.progress_page.set_title(f"{pkg.name} kuruluyor")
@@ -540,24 +542,45 @@ class Window(Adw.ApplicationWindow):
     def _result_for_app(self, app_id):
         """Uygulama açıksa yeni sürümün devreye girmesi için ne gerektiğini söyle (ve yapabiliyorsak yap)."""
         pkg, name = self.pkg, calisan.bus_name(app_id)
-        info = desktop_app(app_id)
-        if calisan.restarts_itself(info):
-            self.result_page.set_description(f"{pkg.name} açıksa birkaç saniye içinde kendini yeni sürümle "
-                                             "yeniden başlatır; bir şey yapmana gerek yok.")
-        elif calisan.running(name):
+        before = getattr(self, "_owners_before", {}).get(app_id)
+        if before and calisan.restarts_itself(desktop_app(app_id)):
+            # Yeni sürüm kendini yeniler; bellekteki eski sürüm de yeniliyor mu, bağlantının değişmesinden anla.
+            self.result_page.set_description(f"{pkg.name} açık; yeni sürümle yeniden başlaması bekleniyor…")
+            deadline = GLib.get_monotonic_time() + self.RESTART_WAIT * 1_000_000
+
+            def wait():
+                now = calisan.owner(name)
+                if now and now != before:
+                    self.result_page.set_description(f"{pkg.name} yeni sürümle yeniden başladı.")
+                    return False
+                if GLib.get_monotonic_time() > deadline:
+                    self._offer_restart(app_id, waited=True)
+                    return False
+                return True
+            GLib.timeout_add(300, wait)
+            return
+        self._offer_restart(app_id)
+
+    RESTART_WAIT = 15  # sn: kendini yenileyen uygulama dosya değişiminden birkaç saniye sonra yeniden başlar
+
+    def _offer_restart(self, app_id, waited=False):
+        pkg, name = self.pkg, calisan.bus_name(app_id)
+        if calisan.running(name):
             if calisan.can_quit(name):
-                self.result_page.set_description(f"{pkg.name} şu an açık ve hâlâ eski sürüm çalışıyor. Yeni sürüm "
-                                                 "için yeniden başlat (kaydedilmemiş işin varsa önce kaydet).")
+                self.result_page.set_description(
+                    (f"{pkg.name} kendiliğinden yeniden başlamadı (açık olan eski sürüm bunu bilmiyor olabilir). "
+                     if waited else f"{pkg.name} şu an açık ve hâlâ eski sürüm çalışıyor. ")
+                    + "Yeni sürüm için yeniden başlat (kaydedilmemiş işin varsa önce kaydet).")
                 b = Gtk.Button(label="Yeniden başlat", css_classes=["pill", "suggested-action"])
                 b.connect("clicked", lambda btn: self._restart(btn, app_id))
-                self.result_buttons.append(b)
+                self.result_buttons.prepend(b)  # "Kapat"tan önce
                 return
             self.result_page.set_description(f"{pkg.name} şu an açık ve hâlâ eski sürüm çalışıyor. Yeni sürüm, "
                                              "uygulamayı kapatıp yeniden açınca devreye girer.")
             return
         b = Gtk.Button(label="Aç", css_classes=["pill", "suggested-action"])
         b.connect("clicked", lambda *_: self._launch(app_id))
-        self.result_buttons.append(b)
+        self.result_buttons.prepend(b)
 
     def _restart(self, button, app_id):
         name = calisan.bus_name(app_id)
