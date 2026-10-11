@@ -84,5 +84,44 @@ class OutputTest(unittest.TestCase):
         self.assertEqual([e.percent for e in p.flush()], [100.0])
 
 
+
+class RemoveAndRepairTest(unittest.TestCase):
+    @mock.patch.dict(os.environ, {"PAKET_GUNCELLEYICI_YETKI": "rm -rf"})  # izinli değil → pkexec
+    def test_commands_and_names(self):
+        self.assertTrue(apt.valid_package("talk-to-android"))
+        self.assertTrue(apt.valid_package("libc6:amd64"))
+        for bad in ("--yes", "-o", "a b", "", "Talk", "x;rm"):
+            self.assertFalse(apt.valid_package(bad), bad)
+        with self.assertRaises(ValueError):
+            apt.remove_command("--purge")
+        cmd = apt.remove_command("deneme", purge=True)
+        self.assertEqual(cmd[:4], ["pkexec", "/usr/bin/apt-get", "purge", "-y"])
+        self.assertEqual(cmd[-1], "deneme")
+        self.assertEqual(apt.repair_command("yarim")[1:], ["/usr/bin/dpkg", "--configure", "-a"])
+        self.assertIn("-f", apt.repair_command("bagimlilik"))
+
+    def test_installed_list_parsing(self):
+        inst = apt.parse_installed("Listing...\n"
+                                   "talk-to-android/now 0.9.2 all [installed,local]\n"
+                                   "firefox/jammy-updates,now 1:1snap1-0ubuntu2 amd64 [installed]\n"
+                                   "libc6/jammy,now 2.35-0ubuntu3 amd64 [installed,automatic]\n")
+        self.assertEqual(inst["talk-to-android"], ("0.9.2", True))
+        self.assertEqual(inst["firefox"], ("1:1snap1-0ubuntu2", False))
+        owners = apt.parse_owners("talk-to-android: /usr/share/applications/a.desktop\n"
+                                  "diversion by x from: /usr/share/applications/b.desktop\n"
+                                  "pkg1, pkg2: /usr/share/applications/c.desktop\n"
+                                  "libfoo:amd64: /usr/share/applications/d.desktop\n")
+        self.assertEqual(owners, {"/usr/share/applications/a.desktop": "talk-to-android",
+                                  "/usr/share/applications/c.desktop": "pkg1",
+                                  "/usr/share/applications/d.desktop": "libfoo"})
+
+    def test_interrupted_detection(self):
+        import tempfile
+        d = tempfile.mkdtemp()
+        self.assertEqual(apt.dpkg_interrupted(d), apt.dpkg_interrupted("/olmayan-klasor"))  # yalnızca --audit
+        open(os.path.join(d, "0001"), "w").close()
+        self.assertTrue(apt.dpkg_interrupted(d))
+
+
 if __name__ == "__main__":
     unittest.main()

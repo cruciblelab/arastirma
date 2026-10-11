@@ -30,7 +30,7 @@ Version: $VER
 Section: admin
 Priority: optional
 Architecture: all
-Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, gpgv, apt, dpkg, pkexec | policykit-1
+Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, gpgv, apt, dpkg, pkexec | policykit-1, desktop-file-utils
 Installed-Size: $SIZE
 Maintainer: Crucible ekibi <noreply@crucible.invalid>
 Homepage: https://github.com/cruciblelab/arastirma
@@ -47,7 +47,17 @@ set -e
 find /usr/lib/paket-guncelleyici -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
 exit 0
 SH
-chmod 755 "$ROOT/usr/bin/paket-guncelleyici" "$ROOT/DEBIAN/prerm"
+# Sağ tık → "Başka uygulamayla aç" listesi sistemin dosya türü önbelleğinden gelir: kurulunca hemen yenilensin
+# (desktop-file-utils'in tetikleyicisi de yapar; bu, tetikleyici çalışmadıysa diye).
+cat > "$ROOT/DEBIAN/postinst" <<'SH'
+#!/bin/sh
+set -e
+if [ "$1" = configure ] && command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications || true
+fi
+exit 0
+SH
+chmod 755 "$ROOT/usr/bin/paket-guncelleyici" "$ROOT/DEBIAN/prerm" "$ROOT/DEBIAN/postinst"
 find "$ROOT/usr" -type d -exec chmod 755 {} +
 find "$ROOT/usr" -type f ! -path "*/usr/bin/*" -exec chmod 644 {} +
 OUT="$HERE/paket/paket-guncelleyici_${VER}_all.deb"

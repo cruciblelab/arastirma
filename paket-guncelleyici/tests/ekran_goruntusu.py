@@ -106,7 +106,8 @@ def scenario(win, name):
 
 
 app = App()
-steps = ["bos", "guncelleme", "ilk-kez", "farkli-yayinci", "eski-imzasiz", "kilit", "bitti"]
+steps = ["bos", "guncelleme", "ilk-kez", "farkli-yayinci", "eski-imzasiz", "kilit", "bitti", "uygulamalar",
+         "kaldir", "hata-yarim"]
 state = {"i": 0, "win": None}
 
 
@@ -146,6 +147,21 @@ def tick():
         win.busy = False
         win._pulse = None
         win._finished(True)
+    elif name == "uygulamalar":
+        win._fill_apps([
+            apt.Uygulama("talk-to-android", "0.9.2", "Talk To Android", None, "a.desktop", True),
+            apt.Uygulama("paket-guncelleyici", "0.2.0", "Paket Güncelleyici", None, "b.desktop", True),
+            apt.Uygulama("gnome-calculator", "1:42.2-0ubuntu1", "Hesap Makinesi", "org.gnome.Calculator", "c", False),
+            apt.Uygulama("libreoffice-calc", "1:7.3.7-0ubuntu0.22.04.10", "LibreOffice Calc", None, "d", False)])
+        win.stack.set_visible_child_name("liste")
+    elif name == "kaldir":
+        a = apt.Uygulama("gnome-calculator", "1:42.2-0ubuntu1", "Hesap Makinesi", "org.gnome.Calculator", "c", False)
+        win.show_remove(a, apt.Deneme(remove=["gnome-calculator", "ubuntu-desktop", "ubuntu-desktop-minimal"]))
+    elif name == "hata-yarim":
+        from guncelleyici import hatalar
+        win.mode = "kur"
+        win._failed(hatalar.explain([
+            "E: dpkg was interrupted, you must manually run 'dpkg --configure -a' to correct the problem."], 100))
     state["i"] += 1
     return True
 

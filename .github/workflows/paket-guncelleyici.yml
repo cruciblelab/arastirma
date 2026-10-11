@@ -61,6 +61,8 @@ jobs:
           paket-guncelleyici --surum
           test -f /usr/share/applications/lab.crucible.PaketGuncelleyici.desktop
           grep -q "application/vnd.debian.binary-package" /usr/share/applications/lab.crucible.PaketGuncelleyici.desktop
+          # Sağ tık → "Başka uygulamayla aç" listesinde (sistem önbelleğinden) görünüyor mu.
+          /usr/bin/python3 -c "from gi.repository import Gio; ids=[a.get_id() for a in Gio.AppInfo.get_recommended_for_type('application/vnd.debian.binary-package')]; print(ids); assert 'lab.crucible.PaketGuncelleyici.desktop' in ids"
 
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-24.04'

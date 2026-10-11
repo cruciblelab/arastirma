@@ -118,6 +118,46 @@ class EndToEndTest(unittest.TestCase):
         self.assertEqual(paket.installed_version("deneme-uygulama"), "1.5")
         win.destroy()
 
+    def test_5_remove_from_installed_apps(self):
+        """Kurulu uygulamalar listesinden kaldırma: önce deneme, sonra gerçek kaldırma."""
+        from guncelleyici import apt
+        apps = {a.package: a for a in apt.installed_apps()}
+        self.assertIn("deneme-uygulama", apps)
+        self.assertTrue(apps["deneme-uygulama"].local)  # bir .deb dosyasından kuruldu
+        win = Window(self.app)
+        win.present()
+        win.show_apps()
+        wait(lambda: getattr(win, "apps", None) is not None, 60)
+        win.prepare_remove(apps["deneme-uygulama"])
+        wait(lambda: win.stack.get_visible_child_name() == "ozet" and win.mode == "kaldir", 60)
+        self.assertIn("kaldır", win.primary.get_label())
+        self.assertEqual(win.sim.remove, ["deneme-uygulama"])
+        self.assertIn("kaldırıldı", self.install(win))
+        self.assertIsNone(paket.installed_version("deneme-uygulama"))
+        win.destroy()
+
+    def test_6_interrupted_dpkg_is_explained_and_repaired(self):
+        """Gerçek "yarıda kalmış dpkg": anlaşılır açıklama, tek tıkla onarım, sonra kurulum."""
+        subprocess.run(["sudo", "-n", "sh", "-c", "touch /var/lib/dpkg/updates/0001"], check=True)
+        try:
+            win = self.open(build_deb(self.d, version="3.0", key=self.public, secret=self.secret))
+            self.assertTrue(win.sim.errors, "deneme yarım kalan dpkg'yi görmeliydi")
+            self.assertFalse(win.primary.get_sensitive())
+            from guncelleyici import hatalar
+            ac = hatalar.explain(win.sim.errors, None, "kurulum")
+            self.assertEqual((ac.title, ac.fix), ("Önceki bir kurulum yarıda kalmış", "yarim"))
+            win.repair(ac.fix)
+            wait(lambda: win.stack.get_visible_child_name() == "sonuc" and not win.busy, 120)
+            self.assertEqual(win.result_page.get_title(), "Paket sistemi onarıldı")
+            win._retry()
+            wait(lambda: win.stack.get_visible_child_name() == "ozet", 120)
+            self.assertFalse(win.sim.errors)
+            self.assertIn("kuruldu", self.install(win))
+            self.assertEqual(paket.installed_version("deneme-uygulama"), "3.0")
+            win.destroy()
+        finally:
+            subprocess.run(["sudo", "-n", "rm", "-f", "/var/lib/dpkg/updates/0001"])
+
 
 if __name__ == "__main__":
     unittest.main()

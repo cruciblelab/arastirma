@@ -1,6 +1,8 @@
 """Arayüz (GTK 4 + libadwaita; Ubuntu 22.04'teki libadwaita 1.1'de olan parçalarla).
 
 Akış: dosya → okunuyor → özet (sürüm, yayıncı, değişiklikler, tek ana düğme) → kuruluyor → bitti/olmadı.
+Kaldırma: kurulu uygulamalar → seç → özet (başka ne gidecek) → kaldırılıyor → bitti/olmadı.
+Olmayınca apt'nin çıktısı anlaşılır bir açıklamaya çevrilir (hatalar.py); onarılabiliyorsa "Onar" düğmesi.
 Riskli durumlarda (farklı yayıncı, paket kaldırma, eski sürüme dönme) ana düğme ancak kullanıcı ilgili
 kutuyu işaretleyince açılır: karar kullanıcıda, ama bilerek verilir.
 """
@@ -14,7 +16,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import APP_ID, __version__, apt, calisan, imza, paket, yayinci  # noqa: E402
+from . import APP_ID, __version__, apt, calisan, hatalar, iliski, imza, paket, yayinci  # noqa: E402
 
 VERDICT = {
     paket.KUR: ("Yeni kurulum", "Bu bilgisayarda kurulu değil."),
@@ -71,6 +73,9 @@ class Window(Adw.ApplicationWindow):
         self.open_btn = Gtk.Button(icon_name="document-open-symbolic", tooltip_text="Başka bir paket aç")
         self.open_btn.connect("clicked", lambda *_: self.choose())
         header.pack_start(self.open_btn)
+        self.apps_btn = Gtk.Button(icon_name="view-list-symbolic", tooltip_text="Kurulu uygulamalar (kaldırmak için)")
+        self.apps_btn.connect("clicked", lambda *_: self.show_apps())
+        header.pack_start(self.apps_btn)
         menu = Gio.Menu()
         menu.append("Hakkında", "app.about")
         header.pack_end(Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, tooltip_text="Menü"))
@@ -84,10 +89,38 @@ class Window(Adw.ApplicationWindow):
                                description="Bir .deb dosyasına sağ tıklayıp “Birlikte aç → Paket Güncelleyici”yi "
                                            "seç ya da buradan seç. Kurulu sürümle karşılaştırılır, yayıncının "
                                            "imzası denetlenir; kurmadan önce ne değişeceği gösterilir.")
-        b = Gtk.Button(label="Dosya seç", halign=Gtk.Align.CENTER, css_classes=["pill", "suggested-action"])
+        eb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, halign=Gtk.Align.CENTER)
+        b = Gtk.Button(label="Dosya seç", css_classes=["pill", "suggested-action"])
         b.connect("clicked", lambda *_: self.choose())
-        empty.set_child(b)
+        eb.append(b)
+        b = Gtk.Button(label="Kurulu uygulamalar", css_classes=["pill"],
+                       tooltip_text="Kaldırmak için: paketle kurulmuş uygulamalar, dosyadan kurulanlar üstte")
+        b.connect("clicked", lambda *_: self.show_apps())
+        eb.append(b)
+        # Çift tıklayınca .deb'ler bununla açılsın: yalnızca kullanıcı isterse (varsayılanı değiştirir).
+        self.default_btn = Gtk.Button(label="Çift tıklayınca .deb dosyaları bununla açılsın", css_classes=["flat"])
+        self.default_btn.connect("clicked", lambda *_: self._make_default())
+        self.default_btn.set_visible(iliski.app_info() is not None and not iliski.is_default())
+        eb.append(self.default_btn)
+        empty.set_child(eb)
         self.stack.add_named(empty, "bos")
+
+        # Kurulu uygulamalar: arama + liste (yüklenirken dönen gösterge).
+        apps = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.search = Gtk.SearchEntry(placeholder_text="Uygulama ara", margin_top=12, margin_start=18,
+                                      margin_end=18, margin_bottom=6)
+        self.search.connect("search-changed", lambda *_: self.app_list.invalidate_filter())
+        apps.append(self.search)
+        self.apps_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        self.app_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, css_classes=["boxed-list"],
+                                    margin_top=6, margin_bottom=18, valign=Gtk.Align.START)
+        self.app_list.set_filter_func(self._app_filter)
+        self.apps_scroll.set_child(Adw.Clamp(maximum_size=640, child=self.app_list, margin_start=12, margin_end=12))
+        apps.append(self.apps_scroll)
+        self.stack.add_named(apps, "liste")
+        self.mode = "kur"  # ana düğme: "kur" ya da "kaldir"
+        self.target = None  # kaldırılacak uygulama (apt.Uygulama)
+        self.output: list[str] = []  # son işin apt çıktısı (Ayrıntılar ve açıklama için)
 
         loading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, valign=Gtk.Align.CENTER)
         loading.append(Gtk.Spinner(spinning=True, width_request=32, height_request=32))
@@ -102,7 +135,7 @@ class Window(Adw.ApplicationWindow):
         bar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=12, margin_bottom=12,
                       margin_start=18, margin_end=18)
         self.primary = Gtk.Button(halign=Gtk.Align.CENTER, css_classes=["pill", "suggested-action"])
-        self.primary.connect("clicked", lambda *_: self.install())
+        self.primary.connect("clicked", lambda *_: self.install() if self.mode == "kur" else self.remove())
         self.blocker = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["caption", "dim-label"])
         bar.append(self.primary)
         bar.append(self.blocker)
@@ -120,8 +153,16 @@ class Window(Adw.ApplicationWindow):
         self.stack.add_named(self.progress_page, "kuruluyor")
 
         self.result_page = Adw.StatusPage()
+        rbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
         self.result_buttons = Gtk.Box(spacing=12, halign=Gtk.Align.CENTER)
-        self.result_page.set_child(self.result_buttons)
+        rbox.append(self.result_buttons)
+        # Ham apt çıktısı: açıklamanın yerine değil, istenirse diye (yayıncıya iletmek için seçilebilir).
+        self.result_detail = Gtk.Expander(label="Ayrıntılar (apt çıktısı)")
+        self.result_detail_text = Gtk.Label(xalign=0, wrap=True, selectable=True, css_classes=["monospace", "caption"],
+                                            margin_top=6)
+        self.result_detail.set_child(self.result_detail_text)
+        rbox.append(Adw.Clamp(maximum_size=520, child=self.result_detail))
+        self.result_page.set_child(rbox)
         self.stack.add_named(self.result_page, "sonuc")
 
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
@@ -181,6 +222,8 @@ class Window(Adw.ApplicationWindow):
                 old_card = yayinci.installed(pkg.package, imza.owned_by) if pkg.installed else None
                 sim = (apt.simulate(copy, apt.flags_for(pkg.verdict, True))
                        if pkg.verdict != paket.UYUMSUZ else apt.Deneme())
+                if pkg.verdict != paket.UYUMSUZ and apt.dpkg_interrupted():
+                    sim.errors.insert(0, apt.INTERRUPTED)
                 # Varsayılan öncelik: dönen bekleme göstergesinin çizimleri sonucu geciktirmesin.
                 GLib.idle_add(self.show_package, path, copy, pkg, sig, sim, card, old_card,
                               priority=GLib.PRIORITY_DEFAULT)
@@ -238,6 +281,14 @@ class Window(Adw.ApplicationWindow):
             g.add(row("Paketi hazırlayan", pkg.maintainer + "  (pakette yazan; imza değil)", "avatar-default-symbolic"))
         if pkg.homepage:
             g.add(row("Ana sayfa", pkg.homepage, "web-browser-symbolic"))
+        if pkg.installed:
+            r = row("Kurulu sürümü kaldır", f"{pkg.name} {pkg.installed} bu bilgisayardan kaldırılır (önce ne "
+                    "olacağı gösterilir).", "user-trash-symbolic")
+            b = Gtk.Button(label="Kaldır", valign=Gtk.Align.CENTER, css_classes=["flat"])
+            b.connect("clicked", lambda *_: self.prepare_remove(apt.Uygulama(
+                pkg.package, pkg.installed, pkg.name, pkg.icon_name, (pkg.desktop_ids or [""])[0], False)))
+            r.add_suffix(b)
+            g.add(r)
         if pkg.description:
             exp = Adw.ExpanderRow(title="Açıklama")
             lbl = Gtk.Label(label=pkg.description, wrap=True, xalign=0, selectable=True, margin_top=8,
@@ -246,6 +297,7 @@ class Window(Adw.ApplicationWindow):
             g.add(exp)
         page.add(g)
 
+        self.mode = "kur"
         self.primary.set_label(self._primary_label(pkg))
         self.primary.set_css_classes(["pill", "destructive-action" if pkg.verdict == paket.ESKI or sig.needs_confirmation
                                       else "suggested-action"])
@@ -398,7 +450,7 @@ class Window(Adw.ApplicationWindow):
         g = Adw.PreferencesGroup(title="Kurulunca", description="apt'nin denemesi; henüz hiçbir şey değişmedi.")
         extra = sim.extra(pkg.package)
         if sim.errors:
-            g.add(row("Kurulamıyor", "\n".join(sim.errors[:6]), "dialog-error-symbolic", ["error"]))
+            g.add(self._explain_row(hatalar.explain(sim.errors, None, "kurulum")))
             return g
         if extra:
             names = ", ".join(n for n, _, _ in extra[:12]) + (f" ve {len(extra) - 12} paket daha"
@@ -421,6 +473,14 @@ class Window(Adw.ApplicationWindow):
     def _update_primary(self):
         pkg, sim = self.pkg, self.sim
         reason = ""
+        if self.mode == "kaldir":
+            if sim.errors:
+                reason = "apt bu paketi kaldıramayacağını söylüyor (yukarıda)."
+            elif not all(c.get_active() for c in self.checks):
+                reason = "Devam etmek için yukarıdaki kutuyu işaretle."
+            self.primary.set_sensitive(not reason)
+            self.blocker.set_label(reason or "Kaldırmak için bilgisayarın şifresi sorulur.")
+            return
         if pkg.verdict == paket.UYUMSUZ:
             reason = f"Paket “{pkg.arch}” için; bu bilgisayar {', '.join(sorted(paket.architectures() - {'all'}))}."
         elif sim.errors:
@@ -438,19 +498,26 @@ class Window(Adw.ApplicationWindow):
         cmd = apt.install_command(self.copy, apt.flags_for(pkg.verdict, allow_remove))
         # Kurulumdan önce açık olan uygulamanın bağlantısı: sonra değişirse kendini yeniden başlatmış demektir.
         self._owners_before = {d: calisan.owner(calisan.bus_name(d)) for d in pkg.desktop_ids}
+        self._run(cmd, f"{pkg.name} kuruluyor", "kurulum", self._installed)
+
+    def _run(self, cmd, title, op, on_exit):
+        """apt/dpkg'yi yönetici olarak çalıştırır; ilerleme, kilit beklemesi; bitince on_exit(çıkış kodu)."""
         self.busy = True
         self.open_btn.set_sensitive(False)
-        self.progress_page.set_title(f"{pkg.name} kuruluyor")
+        self.apps_btn.set_sensitive(False)
+        self.progress_page.set_title(title)
         self.progress_page.set_description("")
         self.progress.set_fraction(0)
         self.progress_text.set_label("Şifre bekleniyor…")
         self.stack.set_visible_child_name("kuruluyor")
         self._pulse = GLib.timeout_add(150, self._pulse_tick)
         self._waiting = False
+        self._op, self._on_done = op, on_exit
+        self.output = []
         try:
             proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
         except GLib.Error as e:
-            self._finished(False, e.message)
+            self._failed(hatalar.Aciklama("Başlatılamadı", e.message))
             return
         self.parser = apt.Ayristirici()
         self.errors = []
@@ -491,13 +558,19 @@ class Window(Adw.ApplicationWindow):
             self.progress_text.set_label(o.text)
         elif o.kind == "hata":
             self.errors.append(o.text)
+        # Açıklama ve Ayrıntılar için: hatalar "E: " ile, ilerleme satırları atlanarak (çok uzun olmasın).
+        if o.kind != "ilerleme":
+            self.output.append(("E: " + o.text) if o.kind == "hata" and not o.text.startswith("E: ") else o.text)
+            del self.output[:-300]
 
     def _on_exit(self, proc, res):
         try:
             proc.wait_finish(res)
         except GLib.Error:
             pass
-        code = proc.get_exit_status()
+        self._on_done(proc.get_exit_status())
+
+    def _installed(self, code):
         if code == 0 and paket.installed_version(self.pkg.package) == self.pkg.version:
             if self.sig.state in (imza.ILK, imza.FARKLI) and self.pkg.keyring:
                 try:
@@ -506,19 +579,69 @@ class Window(Adw.ApplicationWindow):
                     pass
             self._finished(True)
         else:
-            text = apt.EXIT_TEXT.get(code) or ("\n".join(self.errors[-4:]) or f"apt {code} koduyla bitti.")
-            self._finished(False, text)
+            self._failed(hatalar.explain(self.output, code, "kurulum"))
 
-    def _finished(self, ok, text=""):
+    def _end_job(self):
         GLib.source_remove(self._pulse) if getattr(self, "_pulse", None) else None
         self._pulse = None
         self.busy = False
         self.open_btn.set_sensitive(True)
+        self.apps_btn.set_sensitive(True)
         child = self.result_buttons.get_first_child()
         while child:
             nxt = child.get_next_sibling()
             self.result_buttons.remove(child)
             child = nxt
+        self.result_detail.set_visible(False)
+        self.result_detail.set_expanded(False)
+
+    def _result_button(self, label, cb, suggested=False):
+        b = Gtk.Button(label=label, css_classes=["pill", "suggested-action"] if suggested else ["pill"])
+        b.connect("clicked", lambda *_: cb())
+        self.result_buttons.append(b)
+        return b
+
+    def _failed(self, ac: hatalar.Aciklama):
+        """Olmadı: anlaşılır açıklama, onarılabiliyorsa onarım düğmesi, tekrar dene, ham çıktı."""
+        self._end_job()
+        self.last_error = ac
+        self.result_page.set_icon_name("dialog-error-symbolic")
+        self.result_page.set_title(GLib.markup_escape_text(ac.title))
+        self.result_page.set_description(GLib.markup_escape_text(ac.text))
+        if ac.fix:
+            self._result_button(ac.fix_label, lambda: self.repair(ac.fix), suggested=True)
+        self._result_button("Tekrar dene", self._retry, suggested=not ac.fix)
+        self._result_button("Kapat", self.close)
+        if ac.detail:
+            self.result_detail_text.set_label(ac.detail)
+            self.result_detail.set_visible(True)
+        self.stack.set_visible_child_name("sonuc")
+
+    def _retry(self):
+        if self.mode == "kaldir" and self.target:
+            self.prepare_remove(self.target)
+        elif self.pkg:
+            self.load(self.pkg.path)
+        else:
+            self.stack.set_visible_child_name("bos")
+
+    def repair(self, kind):
+        """Paket sistemini onar: yarım kalan kurulumu tamamla ya da bozuk bağımlılıkları düzelt."""
+        def done(code):
+            if code != 0:
+                self._failed(hatalar.explain(self.output, code, "onarım"))
+                return
+            self._end_job()
+            self.result_page.set_icon_name("emblem-ok-symbolic")
+            self.result_page.set_title("Paket sistemi onarıldı")
+            self.result_page.set_description("Şimdi yeniden deneyebilirsin.")
+            self._result_button("Tekrar dene", self._retry, suggested=True)
+            self._result_button("Kapat", self.close)
+            self.stack.set_visible_child_name("sonuc")
+        self._run(apt.repair_command(kind), "Paket sistemi onarılıyor", "onarım", done)
+
+    def _finished(self, ok):
+        self._end_job()
         pkg = self.pkg
         if ok:
             self.result_page.set_icon_name("emblem-ok-symbolic")
@@ -527,13 +650,6 @@ class Window(Adw.ApplicationWindow):
             app_id = next((d for d in pkg.desktop_ids if desktop_app(d)), None)
             if app_id:
                 self._result_for_app(app_id)
-        else:
-            self.result_page.set_icon_name("dialog-error-symbolic")
-            self.result_page.set_title("Kurulmadı")
-            self.result_page.set_description(GLib.markup_escape_text(text))
-            b = Gtk.Button(label="Tekrar dene", css_classes=["pill", "suggested-action"])
-            b.connect("clicked", lambda *_: self.load(self.pkg.path))
-            self.result_buttons.append(b)
         b = Gtk.Button(label="Kapat", css_classes=["pill"])
         b.connect("clicked", lambda *_: self.close())
         self.result_buttons.append(b)
@@ -609,7 +725,154 @@ class Window(Adw.ApplicationWindow):
             info.launch([], None)
         self.close()
 
+    # ---- kurulu uygulamalar ve kaldırma -----------------------------------------------
+
+    def _make_default(self):
+        if iliski.make_default():
+            self.default_btn.set_visible(False)
+            self.toast(".deb dosyaları artık çift tıklayınca Paket Güncelleyici ile açılır")
+        else:
+            self.toast("Varsayılan yapılamadı")
+
+    def show_apps(self):
+        if self.busy:
+            return
+        self.title.set_subtitle("Kurulu uygulamalar")
+        self._clear(self.app_list)
+        spin = Gtk.Box(spacing=10, halign=Gtk.Align.CENTER, margin_top=18, margin_bottom=18)
+        spin.append(Gtk.Spinner(spinning=True))
+        spin.append(Gtk.Label(label="Uygulamalar okunuyor…", css_classes=["dim-label"]))
+        self.app_list.append(spin)
+        self.stack.set_visible_child_name("liste")
+
+        def work():
+            try:
+                apps = apt.installed_apps()
+            except Exception as e:  # noqa: BLE001 — kullanıcıya gösterilir
+                GLib.idle_add(self.show_error, "Uygulamalar okunamadı", str(e), priority=GLib.PRIORITY_DEFAULT)
+                return
+            GLib.idle_add(self._fill_apps, apps, priority=GLib.PRIORITY_DEFAULT)
+        threading.Thread(target=work, daemon=True).start()
+
+    @staticmethod
+    def _clear(box):
+        child = box.get_first_child()
+        while child:
+            nxt = child.get_next_sibling()
+            box.remove(child)
+            child = nxt
+
+    def _fill_apps(self, apps):
+        self._clear(self.app_list)
+        self.apps = apps
+        for a in apps:
+            sub = f"{a.package} · {a.version}" + (" · bir .deb dosyasından kuruldu" if a.local else "")
+            r = Adw.ActionRow(title=GLib.markup_escape_text(a.name), subtitle=GLib.markup_escape_text(sub))
+            r.paket_ara = f"{a.name} {a.package}".casefold()
+            theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
+            r.add_prefix(Gtk.Image(icon_name=a.icon if a.icon and theme.has_icon(a.icon) else
+                                   "application-x-executable-symbolic", pixel_size=32))
+            b = Gtk.Button(label="Kaldır", valign=Gtk.Align.CENTER, css_classes=["flat"])
+            b.connect("clicked", lambda _b, a=a: self.prepare_remove(a))
+            r.add_suffix(b)
+            self.app_list.append(r)
+        if not apps:
+            self.app_list.append(Gtk.Label(label="Paketle kurulmuş masaüstü uygulaması bulunamadı.",
+                                           css_classes=["dim-label"], margin_top=18, margin_bottom=18))
+        return False
+
+    def _app_filter(self, r):
+        q = self.search.get_text().strip().casefold()
+        return not q or q in getattr(r.get_child(), "paket_ara", q) or q in getattr(r, "paket_ara", "")
+
+    def prepare_remove(self, a):
+        """Kaldırmadan önce deneme: başka hangi paketler gidecek (yetki istemez)."""
+        if self.busy:
+            return
+        self.mode, self.target = "kaldir", a
+        self.title.set_subtitle(a.name)
+        self.stack.set_visible_child_name("okunuyor")
+
+        def work():
+            sim = apt.simulate_remove(a.package)
+            if apt.dpkg_interrupted():
+                sim.errors.insert(0, apt.INTERRUPTED)
+            GLib.idle_add(self.show_remove, a, sim, priority=GLib.PRIORITY_DEFAULT)
+        threading.Thread(target=work, daemon=True).start()
+
+    def show_remove(self, a, sim):
+        self.mode, self.target, self.sim = "kaldir", a, sim
+        self.checks = []
+        page = Adw.PreferencesPage()
+        head = Adw.PreferencesGroup()
+        top = Gtk.Box(spacing=16, margin_bottom=6)
+        theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
+        top.append(Gtk.Image(icon_name=a.icon if a.icon and theme.has_icon(a.icon) else "package-x-generic",
+                             pixel_size=64))
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER, hexpand=True)
+        texts.append(Gtk.Label(label=a.name, xalign=0, wrap=True, css_classes=["title-1"]))
+        texts.append(Gtk.Label(label=f"Paket: {a.package} · {a.version}", xalign=0, css_classes=["caption", "dim-label"],
+                               ellipsize=Pango.EllipsizeMode.END))
+        top.append(texts)
+        head.add(top)
+        page.add(head)
+
+        g = Adw.PreferencesGroup(title="Kaldırılınca", description="apt'nin denemesi; henüz hiçbir şey değişmedi.")
+        if sim.errors:
+            g.add(self._explain_row(hatalar.explain(sim.errors, None, "kaldırma")))
+        else:
+            others = [p for p in sim.remove if p != a.package]
+            g.add(row(f"{a.name} kaldırılacak", "Programın dosyaları silinir. Ev klasöründeki kişisel ayarların ve "
+                      "belgelerin silinmez.", "user-trash-symbolic"))
+            if others:
+                g.add(row(f"Ayrıca {len(others)} paket kaldırılacak", ", ".join(others[:20]) +
+                          (f" ve {len(others) - 20} paket daha" if len(others) > 20 else "") +
+                          "\nBunlar bu uygulamaya bağlı olanlar.", "dialog-warning-symbolic", ["warning"]))
+                meta = [p for p in others if p.endswith("-desktop") or p.endswith("-desktop-minimal")]
+                if meta:
+                    g.add(row("Bilgi: " + ", ".join(meta), "Bu bir “paket listesi” paketidir; kaldırılması "
+                              "masaüstünü bozmaz, yalnızca ileride sürüm yükseltirken bu uygulamanın yeniden "
+                              "kurulmamasına yol açar.", "dialog-information-symbolic", ["dim-label"]))
+                g.add(self._check("Bunların da kaldırılmasını onaylıyorum"))
+            self.purge_check = Gtk.CheckButton(label="Sistem genelindeki ayarlarını da sil (/etc altındakiler)",
+                                               margin_top=6, margin_bottom=6, margin_start=12)
+            g.add(self.purge_check)
+        page.add(g)
+        self.primary.set_label(f"{a.name} uygulamasını kaldır")
+        self.primary.set_css_classes(["pill", "destructive-action"])
+        self.detail_scroll.set_child(page)
+        self._update_primary()
+        self.stack.set_visible_child_name("ozet")
+        return False
+
+    def _explain_row(self, ac: hatalar.Aciklama):
+        r = row(ac.title, ac.text, "dialog-error-symbolic", ["error"])
+        if ac.fix:
+            b = Gtk.Button(label=ac.fix_label, valign=Gtk.Align.CENTER, css_classes=["suggested-action"])
+            b.connect("clicked", lambda *_: self.repair(ac.fix))
+            r.add_suffix(b)
+        return r
+
+    def remove(self):
+        a = self.target
+        purge = bool(getattr(self, "purge_check", None) and self.purge_check.get_active())
+
+        def done(code):
+            if code == 0 and paket.installed_version(a.package) is None:
+                self._end_job()
+                self.result_page.set_icon_name("emblem-ok-symbolic")
+                self.result_page.set_title(f"{a.name} kaldırıldı")
+                self.result_page.set_description("Ev klasöründeki kişisel ayarları (ör. ~/.config) duruyor; "
+                                                 "istersen elle silebilirsin.")
+                self._result_button("Kurulu uygulamalar", self.show_apps, suggested=True)
+                self._result_button("Kapat", self.close)
+                self.stack.set_visible_child_name("sonuc")
+            else:
+                self._failed(hatalar.explain(self.output, code, "kaldırma"))
+        self._run(apt.remove_command(a.package, purge), f"{a.name} kaldırılıyor", "kaldırma", done)
+
     def show_error(self, title, text):
+        self.result_detail.set_visible(False)
         self.result_page.set_icon_name("dialog-error-symbolic")
         self.result_page.set_title(title)
         self.result_page.set_description(GLib.markup_escape_text(text))
@@ -637,6 +900,13 @@ class App(Adw.Application):
         w = Window(self)
         w.present()
         return w
+
+    def do_startup(self):
+        Adw.Application.do_startup(self)
+        try:
+            iliski.ensure_listed()  # sağ tık → "Başka uygulamayla aç" listesinde görünsün
+        except Exception:  # noqa: BLE001 — ilişki eklenemese de uygulama açılsın
+            pass
 
     def do_activate(self):
         self._window()

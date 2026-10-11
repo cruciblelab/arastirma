@@ -153,3 +153,129 @@ def holder_text(holder: str | None) -> str:
 
 EXIT_TEXT = {126: "Şifre penceresi kapatıldı; hiçbir şey değişmedi.",
              127: "Yönetici izni verilmedi; hiçbir şey değişmedi."}
+
+
+# ---- kaldırma ve onarım -----------------------------------------------------------------------
+
+_PKG = re.compile(r"^[a-z0-9][a-z0-9+.-]+(:[a-z0-9-]+)?$")
+
+
+def valid_package(name: str) -> bool:
+    """Komut satırına giden paket adı: yalnızca Debian'ın izin verdiği karakterler (seçenek sanılmasın)."""
+    return bool(_PKG.match(name or ""))
+
+
+def _elevate() -> list[str]:
+    # Yalnızca testler için (CI'da şifre penceresi yok): "sudo -n".
+    elevate = shlex.split(os.environ.get("PAKET_GUNCELLEYICI_YETKI", "pkexec"))
+    return elevate if elevate in (["pkexec"], ["sudo", "-n"]) else ["pkexec"]
+
+
+_APT_OPTS = ["-o", f"DPkg::Lock::Timeout={LOCK_WAIT_SECONDS}", "-o", "APT::Status-Fd=1", "-o", "Dpkg::Use-Pty=0"]
+
+
+INTERRUPTED = ("E: dpkg was interrupted, you must manually run 'dpkg --configure -a' to correct the problem.")
+
+
+def dpkg_interrupted(updates_dir: str = "/var/lib/dpkg/updates") -> bool:
+    """Yarıda kalmış bir dpkg işi var mı (yetki istemeden). apt'nin denemesi bunu görmüyor, ancak gerçek
+    kurulumda "dpkg was interrupted" diye duruyor: önceden görüp kullanıcıya onarımı baştan sunmak için."""
+    try:
+        if any(n.isdigit() for n in os.listdir(updates_dir)):
+            return True
+    except OSError:
+        pass
+    try:
+        res = subprocess.run(["dpkg", "--audit"], capture_output=True, text=True, timeout=30,
+                             env=dict(os.environ, LC_ALL="C.UTF-8"))
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return bool(res.stdout.strip())
+
+
+def simulate_remove(package: str, purge: bool = False) -> Deneme:
+    """Kaldırınca başka ne gider: yetki istemeden deneme."""
+    if not valid_package(package):
+        return Deneme(errors=["Geçersiz paket adı."])
+    res = subprocess.run(["apt-get", "-s", "-q", "purge" if purge else "remove", package], capture_output=True,
+                         text=True, env=dict(os.environ, LC_ALL="C.UTF-8"), timeout=120)
+    d = parse_simulation(res.stdout + "\n" + res.stderr)
+    if res.returncode != 0 and not d.errors:
+        out = (res.stderr or res.stdout).strip().splitlines()
+        d.errors.append(out[-1] if out else "apt bu paketi kaldıramayacağını söyledi.")
+    return d
+
+
+def remove_command(package: str, purge: bool = False) -> list[str]:
+    if not valid_package(package):
+        raise ValueError("geçersiz paket adı")
+    return [*_elevate(), "/usr/bin/apt-get", "purge" if purge else "remove", "-y", "-q", *_APT_OPTS, package]
+
+
+def repair_command(kind: str) -> list[str]:
+    """Onarım (hatalar.Aciklama.fix): yarım kalan işi tamamla ya da bozuk bağımlılıkları düzelt."""
+    if kind == "yarim":
+        return [*_elevate(), "/usr/bin/dpkg", "--configure", "-a"]
+    if kind == "bagimlilik":
+        return [*_elevate(), "/usr/bin/apt-get", "-f", "install", "-y", "-q", *_APT_OPTS,
+                "-o", "Dpkg::Options::=--force-confdef", "-o", "Dpkg::Options::=--force-confold"]
+    raise ValueError(kind)
+
+
+# ---- kurulu uygulamalar -----------------------------------------------------------------------
+
+@dataclass
+class Uygulama:
+    package: str
+    version: str
+    name: str
+    icon: str | None
+    desktop_id: str
+    local: bool  # bir .deb dosyasından kuruldu (hiçbir paket kaynağında yok)
+
+
+def parse_installed(apt_list: str) -> dict[str, tuple[str, bool]]:
+    """`apt list --installed` → {paket: (sürüm, yerel mi)}."""
+    out = {}
+    for line in apt_list.splitlines():
+        m = re.match(r"^([^/\s]+)/(\S+) (\S+) (\S+) \[([^\]]*)\]", line)
+        if m:
+            out[m.group(1)] = (m.group(3), "local" in m.group(5).split(","))
+    return out
+
+
+def parse_owners(dpkg_s: str) -> dict[str, str]:
+    """`dpkg-query -S dosya...` → {dosya: paket} (ilk sahip; "diversion" satırları atlanır)."""
+    out = {}
+    for line in dpkg_s.splitlines():
+        if line.startswith("diversion ") or ": " not in line:
+            continue
+        pkgs, path = line.split(": ", 1)
+        out.setdefault(path.strip(), pkgs.split(",")[0].strip().split(":")[0])
+    return out
+
+
+def installed_apps(app_dir: str = "/usr/share/applications") -> list[Uygulama]:
+    """Masaüstü menüsünde görünen, paketle kurulmuş uygulamalar; önce dosyadan kurulanlar, sonra ada göre."""
+    from . import paket
+    env = dict(os.environ, LC_ALL="C.UTF-8")
+    installed = parse_installed(subprocess.run(["apt", "list", "--installed"], capture_output=True, text=True,
+                                               env=env, timeout=60).stdout)
+    files = sorted(str(p) for p in __import__("pathlib").Path(app_dir).glob("*.desktop"))
+    owners = parse_owners(subprocess.run(["dpkg-query", "-S", *files], capture_output=True, text=True,
+                                         env=env, timeout=60).stdout) if files else {}
+    apps: dict[str, Uygulama] = {}
+    for path in files:
+        pkg = owners.get(path)
+        if not pkg or pkg not in installed or pkg in apps:
+            continue
+        try:
+            with open(path, "rb") as f:
+                name, icon = paket._desktop(f.read())
+        except OSError:
+            continue
+        if name is None:  # NoDisplay ya da bozuk
+            continue
+        version, local = installed[pkg]
+        apps[pkg] = Uygulama(pkg, version, name, icon, os.path.basename(path), local)
+    return sorted(apps.values(), key=lambda a: (not a.local, a.name.casefold()))
