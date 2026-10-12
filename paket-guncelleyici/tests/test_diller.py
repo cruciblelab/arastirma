@@ -149,7 +149,7 @@ class WindowLanguageTest(unittest.TestCase):
             dil.setup("en")
             w = Window(app)
             self.assertEqual(w.title.get_title(), "Package Updater")
-            self.assertEqual(w.force_btn.get_label(), "Force it to stop…")
+            self.assertEqual(w.force_btn.get_label(), "Stop it and install…")
             w.destroy()
             dil.setup("tr")
             w = Window(app)

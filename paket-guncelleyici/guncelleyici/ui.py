@@ -17,7 +17,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import APP_ID, __version__, apt, calisan, dil, durdur, hatalar, iliski, imza, paket, veriler, yayinci  # noqa: E402,E501
+from . import APP_ID, __version__, apt, calisan, dil, durdur, hatalar, iliski, imza, paket, surec, veriler, yayinci  # noqa: E402,E501
 from .dil import N_, _t, _tn  # noqa: E402
 
 
@@ -168,7 +168,7 @@ class Window(Adw.ApplicationWindow):
         self.force_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, visible=False, margin_top=6)
         self.force_text = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["caption"],
                                     visible=False)
-        self.force_btn = Gtk.Button(label=_t("Durmaya zorla…"), halign=Gtk.Align.CENTER, css_classes=["pill"])
+        self.force_btn = Gtk.Button(label=_t("Durdur ve kur…"), halign=Gtk.Align.CENTER, css_classes=["pill"])
         self.force_btn.connect("clicked", lambda *_a: self._force_ask())
         self.force_confirm = Gtk.Box(spacing=12, halign=Gtk.Align.CENTER, visible=False)
         b = Gtk.Button(label=_t("Vazgeç"), css_classes=["pill"])
@@ -990,13 +990,12 @@ class Window(Adw.ApplicationWindow):
             theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
             r.add_prefix(Gtk.Image(icon_name=a.icon if a.icon and theme.has_icon(a.icon) else
                                    "application-x-executable-symbolic", pixel_size=32))
-            b = Gtk.Button(label=_t("Veriler"), valign=Gtk.Align.CENTER, css_classes=["flat"],
-                           tooltip_text=_t("Önbelleğini ya da ayarlarını temizle (uygulama kalır)"))
-            b.connect("clicked", lambda _b, a=a: self.show_data(a))
-            r.add_suffix(b)
-            b = Gtk.Button(label=_t("Kaldır"), valign=Gtk.Align.CENTER, css_classes=["flat"])
-            b.connect("clicked", lambda _b, a=a: self.prepare_remove(a))
-            r.add_suffix(b)
+            # ⋮ (Android'deki uygulama bilgisi gibi): Aç, Durmaya zorla, Verileri temizle, Kaldır.
+            mb = Gtk.MenuButton(icon_name="view-more-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
+                                tooltip_text=_t("Diğer"))
+            mb.set_create_popup_func(lambda b, a=a: b.set_menu_model(self._app_menu(a)))
+            r.add_suffix(mb)
+            r.menu_button = mb
             self.app_list.append(r)
         cache = veriler.apt_cache_size()
         if cache > 0:  # en üstte: indirilmiş paket dosyaları (apt-get clean)
@@ -1012,6 +1011,91 @@ class Window(Adw.ApplicationWindow):
             self.app_list.append(Gtk.Label(label=_t("Paketle kurulmuş masaüstü uygulaması bulunamadı."),
                                            css_classes=["dim-label"], margin_top=18, margin_bottom=18))
         return False
+
+    # ---- uygulama menüsü (⋮) -------------------------------------------------------------
+
+    def _app_actions(self):
+        if getattr(self, "_menu_actions", None):
+            return
+        self._menu_actions = True
+        for name, cb in (("uyg-ac", lambda: self._launch_app(self._menu_app)),
+                         ("uyg-durdur", lambda: self.ask_force_stop(self._menu_app)),
+                         ("uyg-veri", lambda: self.show_data(self._menu_app)),
+                         ("uyg-kaldir", lambda: self.prepare_remove(self._menu_app))):
+            act = Gio.SimpleAction.new(name, None)
+            act.connect("activate", lambda *_a, cb=cb: cb())
+            self.add_action(act)
+
+    def _app_menu(self, a):
+        """Menü her açılışta yeniden kurulur: "Durmaya zorla" yalnızca uygulama şu an çalışıyorsa seçilebilir."""
+        self._app_actions()
+        self._menu_app = a
+        m = Gio.Menu()
+        if desktop_app(a.desktop_id):
+            m.append(_t("Aç"), "win.uyg-ac")
+        running = a.package != "paket-guncelleyici" and bool(self._processes(a))
+        m.append(_t("Durmaya zorla"), "win.uyg-durdur" if running else "win.uyg-yok")  # yok: soluk görünür
+        m.append(_t("Verileri temizle…"), "win.uyg-veri")
+        m.append(_t("Kaldır…"), "win.uyg-kaldir")
+        return m
+
+    @staticmethod
+    def _processes(a):
+        return surec.find(a.package, veriler.exec_name(os.path.join("/usr/share/applications", a.desktop_id)))
+
+    def _launch_app(self, a):
+        info = desktop_app(a.desktop_id)
+        if info:
+            info.launch([], None)
+
+    def ask_force_stop(self, a, then=None):
+        """Android'deki gibi: önce sorar (kaydedilmemiş iş kaybolabilir), sonra kapanmasını ister, olmazsa zorlar."""
+        def go():
+            pids = self._processes(a)
+            if not pids:
+                self.toast(_t("{name} zaten çalışmıyor").format(name=a.name))
+                if then:
+                    then()
+                return
+
+            def work():
+                left = surec.stop(pids)
+                GLib.idle_add(done, left, priority=GLib.PRIORITY_DEFAULT)
+
+            def done(left):
+                self.toast(_t("{name} durduruldu").format(name=a.name) if not left else
+                           _t("{name} durdurulamadı").format(name=a.name))
+                if then:
+                    then()
+                return False
+            threading.Thread(target=work, daemon=True).start()
+        self.confirm(_t("{name} durmaya zorlansın mı?").format(name=a.name),
+                     _t("Uygulama hemen kapanır; kaydedilmemiş işler kaybolabilir. Kapanmazsa birkaç saniye sonra "
+                        "zorla kapatılır."), _t("Durmaya zorla"), go)
+
+    def confirm(self, title, body, ok_label, on_ok):
+        """Onay sorusu (libadwaita 1.2+'da Adw.MessageDialog, Ubuntu 22.04'te GTK'nınki)."""
+        if hasattr(Adw, "MessageDialog"):
+            d = Adw.MessageDialog(transient_for=self, modal=True, heading=title, body=body)
+            d.add_response("cancel", _t("Vazgeç"))
+            d.add_response("ok", ok_label)
+            d.set_response_appearance("ok", Adw.ResponseAppearance.DESTRUCTIVE)
+            d.set_close_response("cancel")
+            d.connect("response", lambda _d, r: on_ok() if r == "ok" else None)
+        else:
+            d = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                  text=title, secondary_text=body)
+            d.add_button(_t("Vazgeç"), Gtk.ResponseType.CANCEL)
+            b = d.add_button(ok_label, Gtk.ResponseType.OK)
+            b.add_css_class("destructive-action")
+
+            def resp(dd, r):
+                dd.destroy()
+                if r == Gtk.ResponseType.OK:
+                    on_ok()
+            d.connect("response", resp)
+        self._dialog = d
+        d.present()
 
     def _app_filter(self, r):
         # Satırın arama metni (ad + paket adı). Eskiden metni olmayan satır "eşleşiyor" sayılıyordu ve her satır
@@ -1152,9 +1236,13 @@ class Window(Adw.ApplicationWindow):
         page.add(head)
         if is_running:
             g = Adw.PreferencesGroup()
-            g.add(row(_t("Uygulama şu an açık"),
-                      _t("Önce kapat: açıkken temizlenen ayarlar kapanırken yeniden yazılabilir."),
-                      "dialog-warning-symbolic", ["warning"]))
+            r = row(_t("Uygulama şu an açık"),
+                    _t("Önce kapat: açıkken temizlenen ayarlar kapanırken yeniden yazılabilir."),
+                    "dialog-warning-symbolic", ["warning"])
+            b = Gtk.Button(label=_t("Durmaya zorla"), valign=Gtk.Align.CENTER, css_classes=["flat"])
+            b.connect("clicked", lambda *_a: self.ask_force_stop(a, then=lambda: self.show_data(a)))
+            r.add_suffix(b)
+            g.add(r)
             page.add(g)
         g = Adw.PreferencesGroup(
             title=_t("Klasörler"),

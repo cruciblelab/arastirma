@@ -108,8 +108,8 @@ def scenario(win, name):
 
 
 app = App()
-steps = ["bos", "guncelleme", "ilk-kez", "farkli-yayinci", "eski-imzasiz", "kilit", "durmaya-zorla", "bitti",
-         "uygulamalar", "kaldir", "veriler", "hata-yarim", "en-bos", "en-guncelleme", "en-durmaya-zorla"]
+steps = ["bos", "guncelleme", "ilk-kez", "farkli-yayinci", "eski-imzasiz", "kilit", "durdur-ve-kur", "bitti",
+         "uygulamalar", "kaldir", "veriler", "hata-yarim", "en-bos", "en-guncelleme", "en-durdur-ve-kur"]
 state = {"i": 0, "win": None}
 
 
@@ -154,7 +154,7 @@ def tick():
         win._event(apt.parse_line("Waiting for cache lock: Could not get lock /var/lib/dpkg/lock-frontend. "
                                   "It is held by process 1073 (unattended-upgr)... 95s"))
         win.progress.pulse()
-    elif name == "durmaya-zorla":
+    elif name == "durdur-ve-kur":
         if win.stack.get_visible_child_name() != "kuruluyor":  # İngilizce adımda kilit sahnesi yeniden kurulur
             scenario(win, "guncelleme")
             win.stack.set_visible_child_name("kuruluyor")

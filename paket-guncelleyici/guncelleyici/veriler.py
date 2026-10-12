@@ -10,8 +10,6 @@ bu yüzden hiçbir şey kalıcı silinmez, çöp kutusuna taşınır; çöp kutu
 
 import os
 import shlex
-import shutil
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -111,10 +109,8 @@ def find(package: str, desktop_id: str, name: str, home: Path | None = None,
 
 def running(package: str, desktop_id: str, desktop_dir: str = "/usr/share/applications") -> bool:
     """Uygulama şu an açık mı (açıkken ayarlarını silmek yarım kalır: kapanırken yeniden yazabilir)."""
-    exe = exec_name(os.path.join(desktop_dir, desktop_id))
-    if not exe or not shutil.which("pgrep"):
-        return False
-    return subprocess.run(["pgrep", "-x", exe[:15]], capture_output=True).returncode == 0
+    from . import surec
+    return bool(surec.find(package, exec_name(os.path.join(desktop_dir, desktop_id))))
 
 
 def trash(paths: list[Path]) -> tuple[list[Path], list[str]]:

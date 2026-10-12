@@ -15,8 +15,11 @@
   <developer id="lab.crucible"><name>Crucible ekibi</name></developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.1" date="2026-10-12">
+      <description><p>Kurulu uygulamaların yanında ⋮ menüsü (Android'deki gibi): Aç, Durmaya zorla (önce sorar; yalnızca bu kullanıcının o uygulamaya ait süreçleri), Verileri temizle, Kaldır. Sırada beklerken kilidi tutanı durdurma düğmesinin adı “Durdur ve kur” oldu.</p></description>
+    </release>
     <release version="0.4.0" date="2026-10-12">
-      <description><p>Dil desteği: İngilizce eklendi (sistem dili ya da Menü → Dil); başka diller tek bir .po dosyasıyla eklenebilir (guncelleyici/diller/README.md). Sırada beklerken “Durmaya zorla”: paket kilidini tutan işlemin (ör. otomatik güncelleme) ne yaptığı söylenir ve istenirse durdurulur; çekirdek ya da önyükleyici kurulurken izin verilmez, sonrasında yarım kalan iş kendiliğinden tamamlanır.</p></description>
+      <description><p>Dil desteği: İngilizce eklendi (sistem dili ya da Menü → Dil); başka diller tek bir .po dosyasıyla eklenebilir (guncelleyici/diller/README.md). Sırada beklerken “Durdur ve kur” (0.4.0'da adı “Durmaya zorla”): paket kilidini tutan işlemin (ör. otomatik güncelleme) ne yaptığı söylenir ve istenirse durdurulur; çekirdek ya da önyükleyici kurulurken izin verilmez, sonrasında yarım kalan iş kendiliğinden tamamlanır.</p></description>
     </release>
     <release version="0.3.1" date="2026-10-12">
       <description><p>Başlıkta Geri düğmesi (Alt+Sol): uygulamanın verileri, kaldırma ve sonuç sayfalarından listeye döner. Kurulu uygulamalarda arama artık listeyi süzüyor (önceden hiçbir satırı gizlemiyordu); tek eşleşmede Enter verilerini açar.</p></description>

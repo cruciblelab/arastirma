@@ -259,7 +259,7 @@ msgstr "The package is for another processor architecture."
 msgid ","
 msgstr "."
 
-#: guncelleyici/ui.py:60 guncelleyici/ui.py:75 guncelleyici/ui.py:1281
+#: guncelleyici/ui.py:60 guncelleyici/ui.py:75 guncelleyici/ui.py:1369
 msgid "Paket Güncelleyici"
 msgstr "Package Updater"
 
@@ -320,10 +320,10 @@ msgid "Paket okunuyor, imza denetleniyor…"
 msgstr "Reading the package, checking the signature…"
 
 #: guncelleyici/ui.py:171
-msgid "Durmaya zorla…"
-msgstr "Force it to stop…"
+msgid "Durdur ve kur…"
+msgstr "Stop it and install…"
 
-#: guncelleyici/ui.py:174
+#: guncelleyici/ui.py:174 guncelleyici/ui.py:1080 guncelleyici/ui.py:1088
 msgid "Vazgeç"
 msgstr "Cancel"
 
@@ -343,7 +343,7 @@ msgstr "Installation in progress; you can close when it's done"
 msgid "Paket dosyası seç"
 msgstr "Choose a package file"
 
-#: guncelleyici/ui.py:226 guncelleyici/ui.py:915
+#: guncelleyici/ui.py:226 guncelleyici/ui.py:915 guncelleyici/ui.py:1035
 msgid "Aç"
 msgstr "Open"
 
@@ -355,7 +355,7 @@ msgstr "Debian packages (.deb)"
 msgid "Paket okunamadı"
 msgstr "Could not read the package"
 
-#: guncelleyici/ui.py:289 guncelleyici/ui.py:1048
+#: guncelleyici/ui.py:289 guncelleyici/ui.py:1132
 msgid "Paket: {name}"
 msgstr "Package: {name}"
 
@@ -407,7 +407,7 @@ msgstr "Remove the installed version"
 msgid "{name} {version} bu bilgisayardan kaldırılır (önce ne olacağı gösterilir)."
 msgstr "{name} {version} is removed from this computer (you'll see what happens first)."
 
-#: guncelleyici/ui.py:329 guncelleyici/ui.py:997
+#: guncelleyici/ui.py:329
 msgid "Kaldır"
 msgstr "Remove"
 
@@ -583,11 +583,11 @@ msgstr "(The verification address from the installed version was used.)"
 msgid "Kurulunca"
 msgstr "When installed"
 
-#: guncelleyici/ui.py:500 guncelleyici/ui.py:1056
+#: guncelleyici/ui.py:500 guncelleyici/ui.py:1140
 msgid "apt'nin denemesi; henüz hiçbir şey değişmedi."
 msgstr "apt's dry run; nothing has changed yet."
 
-#: guncelleyici/ui.py:508 guncelleyici/ui.py:1068
+#: guncelleyici/ui.py:508 guncelleyici/ui.py:1152
 msgid "ve {n} paket daha"
 msgid_plural "ve {n} paket daha"
 msgstr[0] "and {n} more package"
@@ -845,7 +845,7 @@ msgstr ".deb files now open with Package Updater on double-click"
 msgid "Varsayılan yapılamadı"
 msgstr "Couldn't make it the default"
 
-#: guncelleyici/ui.py:958 guncelleyici/ui.py:109 guncelleyici/ui.py:1206
+#: guncelleyici/ui.py:958 guncelleyici/ui.py:109 guncelleyici/ui.py:1294
 msgid "Kurulu uygulamalar"
 msgstr "Installed apps"
 
@@ -861,167 +861,195 @@ msgstr "Couldn't read the apps"
 msgid "bir .deb dosyasından kuruldu"
 msgstr "installed from a .deb file"
 
-#: guncelleyici/ui.py:993
-msgid "Veriler"
-msgstr "Data"
+#: guncelleyici/ui.py:995
+msgid "Diğer"
+msgstr "More"
 
-#: guncelleyici/ui.py:994
-msgid "Önbelleğini ya da ayarlarını temizle (uygulama kalır)"
-msgstr "Clean its cache or settings (the app stays)"
-
-#: guncelleyici/ui.py:1003
+#: guncelleyici/ui.py:1002
 msgid "Paket önbelleği (apt)"
 msgstr "Package cache (apt)"
 
-#: guncelleyici/ui.py:1004
+#: guncelleyici/ui.py:1003
 msgid "İndirilip saklanan paket dosyaları · {size}. Kurulu programlara dokunmaz."
 msgstr "Downloaded package files kept on disk · {size}. Installed programs aren't touched."
 
-#: guncelleyici/ui.py:1007
+#: guncelleyici/ui.py:1006
 msgid "Temizle"
 msgstr "Clean"
 
-#: guncelleyici/ui.py:1012
+#: guncelleyici/ui.py:1011
 msgid "Paketle kurulmuş masaüstü uygulaması bulunamadı."
 msgstr "No desktop apps installed from packages were found."
 
-#: guncelleyici/ui.py:1055
+#: guncelleyici/ui.py:1037 guncelleyici/ui.py:1074 guncelleyici/ui.py:1242
+msgid "Durmaya zorla"
+msgstr "Force stop"
+
+#: guncelleyici/ui.py:1038
+msgid "Verileri temizle…"
+msgstr "Clear data…"
+
+#: guncelleyici/ui.py:1039
+msgid "Kaldır…"
+msgstr "Uninstall…"
+
+#: guncelleyici/ui.py:1056
+msgid "{name} zaten çalışmıyor"
+msgstr "{name} isn't running"
+
+#: guncelleyici/ui.py:1066
+msgid "{name} durduruldu"
+msgstr "{name} was stopped"
+
+#: guncelleyici/ui.py:1067
+msgid "{name} durdurulamadı"
+msgstr "{name} couldn't be stopped"
+
+#: guncelleyici/ui.py:1072
+msgid "{name} durmaya zorlansın mı?"
+msgstr "Force stop {name}?"
+
+#: guncelleyici/ui.py:1073
+msgid "Uygulama hemen kapanır; kaydedilmemiş işler kaybolabilir. Kapanmazsa birkaç saniye sonra zorla kapatılır."
+msgstr "The app closes right away; unsaved work may be lost. If it doesn't close, it's forced to after a few seconds."
+
+#: guncelleyici/ui.py:1139
 msgid "Kaldırılınca"
 msgstr "When removed"
 
-#: guncelleyici/ui.py:1061
+#: guncelleyici/ui.py:1145
 msgid "{name} kaldırılacak"
 msgstr "{name} will be removed"
 
-#: guncelleyici/ui.py:1062
+#: guncelleyici/ui.py:1146
 msgid "Programın dosyaları silinir. Ev klasöründeki kişisel ayarların ve belgelerin silinmez."
 msgstr "The program's files are deleted. Your personal settings and documents in your home folder are not."
 
-#: guncelleyici/ui.py:1066
+#: guncelleyici/ui.py:1150
 msgid "Ayrıca {n} paket kaldırılacak"
 msgid_plural "Ayrıca {n} paket kaldırılacak"
 msgstr[0] "{n} more package will be removed"
 msgstr[1] "{n} more packages will be removed"
 
-#: guncelleyici/ui.py:1069
+#: guncelleyici/ui.py:1153
 msgid "Bunlar bu uygulamaya bağlı olanlar."
 msgstr "These depend on this app."
 
-#: guncelleyici/ui.py:1072
+#: guncelleyici/ui.py:1156
 msgid "Bilgi: {names}"
 msgstr "Note: {names}"
 
-#: guncelleyici/ui.py:1073
+#: guncelleyici/ui.py:1157
 msgid "Bu bir “paket listesi” paketidir; kaldırılması masaüstünü bozmaz, yalnızca ileride sürüm yükseltirken bu uygulamanın yeniden kurulmamasına yol açar."
 msgstr "This is a “package list” package; removing it doesn't break the desktop, it only means this app won't be reinstalled during a future release upgrade."
 
-#: guncelleyici/ui.py:1076
+#: guncelleyici/ui.py:1160
 msgid "Bunların da kaldırılmasını onaylıyorum"
 msgstr "I approve removing these too"
 
-#: guncelleyici/ui.py:1077
+#: guncelleyici/ui.py:1161
 msgid "Sistem genelindeki ayarlarını da sil (/etc altındakiler)"
 msgstr "Also delete its system-wide settings (those under /etc)"
 
-#: guncelleyici/ui.py:1081
+#: guncelleyici/ui.py:1165
 msgid "{name} uygulamasını kaldır"
 msgstr "Remove {name}"
 
-#: guncelleyici/ui.py:1104
+#: guncelleyici/ui.py:1188
 msgid "{name} kaldırıldı"
 msgstr "{name} removed"
 
-#: guncelleyici/ui.py:1108
+#: guncelleyici/ui.py:1192
 msgid "Ev klasöründe verileri kaldı ({size}): ayarlar, önbellek. İstersen onları da temizle."
 msgstr "Its data is still in your home folder ({size}): settings, cache. Clean it too if you like."
 
-#: guncelleyici/ui.py:1110
+#: guncelleyici/ui.py:1194
 msgid "Kalan verileri göster"
 msgstr "Show leftover data"
 
-#: guncelleyici/ui.py:1118
+#: guncelleyici/ui.py:1202
 msgid "{name} kaldırılıyor"
 msgstr "Removing {name}"
 
-#: guncelleyici/ui.py:1147
+#: guncelleyici/ui.py:1231
 msgid "Ev klasöründeki verileri · toplam {size}"
 msgstr "Its data in your home folder · {size} total"
 
-#: guncelleyici/ui.py:1155
+#: guncelleyici/ui.py:1239
 msgid "Uygulama şu an açık"
 msgstr "The app is open right now"
 
-#: guncelleyici/ui.py:1156
+#: guncelleyici/ui.py:1240
 msgid "Önce kapat: açıkken temizlenen ayarlar kapanırken yeniden yazılabilir."
 msgstr "Close it first: settings cleaned while it's open may be written back when it closes."
 
-#: guncelleyici/ui.py:1160
+#: guncelleyici/ui.py:1248
 msgid "Klasörler"
 msgstr "Folders"
 
-#: guncelleyici/ui.py:1161
+#: guncelleyici/ui.py:1249
 msgid "Adı bu uygulamayla tam eşleşen klasörler. Önbelleği temizlemek güvenlidir (uygulama yeniden oluşturur); ayarları temizlemek uygulamayı ilk kurulduğu hâline döndürür."
 msgstr "Folders whose name matches this app exactly. Cleaning the cache is safe (the app recreates it); cleaning settings returns the app to its freshly installed state."
 
-#: guncelleyici/ui.py:1174
+#: guncelleyici/ui.py:1262
 msgid "Bulunamadı"
 msgstr "Nothing found"
 
-#: guncelleyici/ui.py:1174
+#: guncelleyici/ui.py:1262
 msgid "Ev klasöründe bu uygulamanın adını taşıyan bir veri klasörü yok. Bazı uygulamalar verisini başka adla tutar; bunlar burada görünmez."
 msgstr "There's no data folder named after this app in your home folder. Some apps keep their data under another name; those don't show up here."
 
-#: guncelleyici/ui.py:1191
+#: guncelleyici/ui.py:1279
 msgid "{n} klasör taşınamadı (dokunulmadı): {first}"
 msgid_plural "{n} klasör taşınamadı (dokunulmadı): {first}"
 msgstr[0] "{n} folder couldn't be moved (left alone): {first}"
 msgstr[1] "{n} folders couldn't be moved (left alone): {first}"
 
-#: guncelleyici/ui.py:1194
+#: guncelleyici/ui.py:1282
 msgid "{size} çöp kutusuna taşındı"
 msgstr "{size} moved to the trash"
 
-#: guncelleyici/ui.py:1204
+#: guncelleyici/ui.py:1292
 msgid "Paket önbelleği temizlendi"
 msgstr "Package cache cleaned"
 
-#: guncelleyici/ui.py:1205
+#: guncelleyici/ui.py:1293
 msgid "{size} boşaldı."
 msgstr "{size} freed."
 
-#: guncelleyici/ui.py:1209
+#: guncelleyici/ui.py:1297
 msgid "Paket önbelleği temizleniyor"
 msgstr "Cleaning the package cache"
 
-#: guncelleyici/ui.py:1221
+#: guncelleyici/ui.py:1309
 msgid "Başka dosya seç"
 msgstr "Choose another file"
 
-#: guncelleyici/ui.py:1271
+#: guncelleyici/ui.py:1359
 msgid "Dil, bu iş bitip pencere yeniden açılınca değişir"
 msgstr "The language changes once this job is done and the window is reopened"
 
-#: guncelleyici/ui.py:1283
+#: guncelleyici/ui.py:1371
 msgid ".deb dosyasını kurulu sürümle karşılaştırır, yayıncının imzasını denetler ve kurar."
 msgstr "Compares a .deb file with the installed version, checks the publisher's signature and installs it."
 
-#: guncelleyici/ui.py:1285
+#: guncelleyici/ui.py:1373
 msgid "Crucible ekibi"
 msgstr "The Crucible team"
 
-#: guncelleyici/ui.py:1286
+#: guncelleyici/ui.py:1374
 msgid "translator-credits"
 msgstr "The Crucible team"
 
-#: guncelleyici/veriler.py:21
+#: guncelleyici/veriler.py:19
 msgid "Önbellek"
 msgstr "Cache"
 
-#: guncelleyici/veriler.py:21
+#: guncelleyici/veriler.py:19
 msgid "Ayarlar"
 msgstr "Settings"
 
-#: guncelleyici/veriler.py:21
+#: guncelleyici/veriler.py:19
 msgid "Kayıtlı veriler"
 msgstr "Saved data"
 
