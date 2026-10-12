@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.10.1" date="2026-10-12">
+      <description><p>Teşhis: arayüz birkaç saniyeden uzun yanıt vermezse o anki durum kendiliğinden günlüğe yazılır; "talk-to-android teshis" komutu açık pencereleri ve iş parçacıklarını istendiği anda yazar. Ana pencere öne gelince ona bağlı açık soru pencereleri de öne gelir. Güncelleme sırasında yarı yazılmış paket yüzünden yeniden başlamanın atlanması düzeltildi.</p></description>
+    </release>
     <release version="0.10.0" date="2026-10-12">
       <description><p>Her telefon tek satırda: bağlantı, USB'de takılı olması ve eksik izinler aynı yerde; eşleşmiş telefonlar katlanmış tek satır. Bağlı telefon yapı parmak iziyle USB'deki telefonla eşleşir (ikinci kez "Bağlan" çıkmaz). Mini oynatıcı: ⋮ menüsü (üstte tut, tepecik, boyut, müzik başlayınca aç); Wayland'de tek tıkla üstte tutma (XWayland); ekranın üstüne sürükleyince tam ekran yerine tepecik; çalarken dalga. Telefonun ekranı: Akıcı / Hızlı tepki / Hafif ön ayarları ve ses seçeneği.</p></description>
     </release>

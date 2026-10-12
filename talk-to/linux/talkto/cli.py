@@ -7,6 +7,7 @@
     talk-to-android cal [--durdur]        telefonu çaldır (bul)
     talk-to-android medya oynat|duraklat|sonraki|onceki
     talk-to-android ekran                 telefonun ekranını bilgisayarda aç (scrcpy)
+    talk-to-android teshis                uygulama takıldıysa: o anki durumu günlüğe yaz (gönder diye)
 """
 
 import argparse
@@ -17,7 +18,7 @@ from pathlib import Path
 
 from .ipc import socket_path
 
-COMMANDS = {"durum", "gonder", "pano", "bildirim", "cal", "medya", "ekran", "yardim"}
+COMMANDS = {"durum", "gonder", "pano", "bildirim", "cal", "medya", "ekran", "teshis", "yardim"}
 MEDIA = {"oynat": "play", "duraklat": "pause", "oynat-duraklat": "play_pause",
          "sonraki": "next", "onceki": "previous"}
 KIND = {"usb": "USB", "wifi": "Wi-Fi", "bluetooth": "Bluetooth"}
@@ -50,6 +51,7 @@ def _parser() -> argparse.ArgumentParser:
     sub = ap.add_subparsers(dest="komut", required=True)
     sub.add_parser("durum", help="bağlantı durumu ve bağlı telefonlar")
     sub.add_parser("yardim", help="bu yardım")
+    sub.add_parser("teshis", help="uygulama takıldıysa o anki durumu günlüğe yaz")
     p = sub.add_parser("gonder", help="dosyaları telefona gönder")
     p.add_argument("dosyalar", nargs="+")
     p = sub.add_parser("pano", help="metni telefonun panosuna kopyala")
@@ -84,6 +86,11 @@ def main(argv: list[str]) -> int:
         for s in r["sessions"]:
             bat = f" · %{s['battery']['level']} pil" if s.get("battery") else ""
             print(f"• {s['name']} ({KIND.get(s['kind'], s['kind'])}, profil: {s['profile_name']}){bat}")
+        return 0
+
+    if a.komut == "teshis":
+        r = request({"cmd": "diagnose"}, timeout=10)
+        print(f"Rapor yazıldı: {r['path']} (ve aynı klasördeki cokme.txt). İkisini gönder.")
         return 0
 
     req: dict = {"device": a.cihaz}

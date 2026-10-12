@@ -14,6 +14,9 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from .. import APP_ID, __version__  # noqa: E402
+# Güncelleme denetimi dpkg dosyaları değiştirirken çalışır: o an diskten içe aktarmak yarım pakete
+# denk gelip ImportError verebiliyordu (yeniden başlama hiç olmuyordu). Baştan yüklenir.
+from .. import gunluk, surum_izleyici  # noqa: E402
 from ..config import Config  # noqa: E402
 from ..hub import Hub, HubThread  # noqa: E402
 from ..ipc import socket_path  # noqa: E402
@@ -70,6 +73,12 @@ class App(Adw.Application):
 
         self.config = Config()
         self.notifier = Notifier()
+        # Donma bekçisi ve terminalden teşhis (talk-to-android teshis → SIGUSR1).
+        self.bekci = gunluk.Bekci()
+        GLib.timeout_add(500, self.bekci.beat)
+        self.bekci.start()
+        import signal
+        GLib.unix_signal_add(GLib.PRIORITY_HIGH, signal.SIGUSR1, self._diagnose)
         self.phone_players = PhonePlayers(
             lambda did, action, value: self.call("media_control", did, action, value))
         self.device_names: dict[str, str] = {}
@@ -111,9 +120,13 @@ class App(Adw.Application):
         self._update_timer = GLib.timeout_add_seconds(delay, self._check_update)
 
     def _check_update(self):
-        from .. import surum_izleyici
         self._update_timer = None
-        new = surum_izleyici.version_in(self._version_file)
+        try:
+            new = surum_izleyici.version_in(self._version_file)
+        except Exception:  # noqa: BLE001 — paket yarı yazılmışken: biraz sonra yeniden bakılır
+            log.exception("sürüm dosyası okunamadı; yeniden denenecek")
+            self._schedule_update_check(10)
+            return False
         if not new or new == __version__:
             return False
         busy = self.window and any(t["state"] in ("active", "waiting") for t in self.window.transfers.values())
@@ -126,7 +139,6 @@ class App(Adw.Application):
         return False
 
     def restart_for_update(self, new_version):
-        from .. import surum_izleyici
         args = surum_izleyici.restart_argv(sys.argv, bool(self.window and self.window.get_visible()))
         os.environ["TALKTO_GUNCELLENDI"] = new_version  # bildirimi yeni süreç gösterir
         if self.bt:
@@ -135,6 +147,30 @@ class App(Adw.Application):
         logging.shutdown()
         # Aynı süreç yeni sürümün koduyla değişir (D-Bus adı ve soketler exec ile bırakılır).
         os.execv(sys.executable, [sys.executable, "-m", "talkto", *args])
+
+    def windows_report(self) -> str:
+        """Açık pencereler: takılan arayüzde görünmeyen bir modal pencere girdiyi tutuyor olabilir."""
+        lines = []
+        for w in Gtk.Window.list_toplevels():
+            parent = w.get_transient_for()
+            lines.append(f"{type(w).__name__} “{w.get_title() or ''}” görünür={w.get_visible()} "
+                         f"eşlenmiş={w.get_mapped()} modal={w.get_modal()} etkin={w.is_active()} "
+                         f"sahibi={type(parent).__name__ if parent else '-'}"
+                         f"{'(görünmez)' if parent and not parent.get_visible() else ''} "
+                         f"ekran={w.get_display().get_name()}")
+        return "\n".join(lines)
+
+    def _diagnose(self, *_):
+        log.warning("pencereler:\n%s", self.windows_report())
+        return True
+
+    def _surface_modals(self):
+        """Ana pencere öne gelince ona bağlı açık modal pencereler de gelsin: arkada kalan bir soru penceresi
+        ana pencereyi tıklanamaz bırakıyordu (ne olduğu görünmeden)."""
+        for w in Gtk.Window.list_toplevels():
+            if w is not self.window and w.get_modal() and w.get_visible() and w.get_transient_for() is self.window:
+                log.info("ana pencereye bağlı açık pencere öne alınıyor: %s", w.get_title() or type(w).__name__)
+                w.present()
 
     def do_activate(self):
         if not self.window:
@@ -152,6 +188,7 @@ class App(Adw.Application):
                 self.open_setup()
             return
         self.window.present()
+        self._surface_modals()
 
     def open_setup(self):
         """Kurulum yardımcısı (ilk açılışta kendiliğinden, sonra menüden)."""
@@ -190,6 +227,7 @@ class App(Adw.Application):
             display = ustte.x11_display() if self.config["mini_on_top"] else None
             self._style_display(display)
             self.mini = MiniPlayer(self, display)
+            log.info("mini oynatıcı açıldı (%s)", type(self.mini.get_display()).__name__)
         self._refresh_mini()
         self.mini.present()
 
@@ -532,6 +570,7 @@ class App(Adw.Application):
             if self.setup_window:
                 self.setup_window.refresh()
         elif event == "ask":
+            log.info("soru: %s (%s)", d.get("kind"), d.get("name") or d.get("device"))
             self._ask(d)
         elif event == "ask_closed":
             # Süre doldu ya da telefon vazgeçti (kullanıcı cevapladıysa pencere zaten kapanmıştı).
@@ -550,6 +589,7 @@ class App(Adw.Application):
         elif event == "call_result":
             self._call_result(d)
         elif event == "call_ended":
+            log.info("arama bitti (%s)", d["device_id"][:8])
             self.notifier.close(f"call|{d['device_id']}|{d['key']}")
         elif event == "notification_removed":
             self.notifier.close(f"{d['device_id']}|{d['key']}")

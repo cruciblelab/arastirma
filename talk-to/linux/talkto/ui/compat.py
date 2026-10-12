@@ -140,7 +140,7 @@ class _FallbackDialog(Adw.Window):
     __gsignals__ = {"response": (GObject.SignalFlags.RUN_FIRST, None, (str,))}
 
     def __init__(self, parent, heading, body):
-        super().__init__(modal=True, transient_for=parent, resizable=False, default_width=440)
+        super().__init__(modal=True, transient_for=parent, resizable=False, default_width=440, title=heading)
         self._done = False
         self._close = None
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=24, margin_bottom=20,
@@ -236,6 +236,10 @@ class Dialog:
         self.d.connect("response", lambda _d, r: cb(r))
 
     def present(self):
+        import logging
+        logging.getLogger("talkto.arayuz").info(
+            "soru penceresi: %s (sahibi görünür=%s)", self.d.get_heading() if self.kind != "own" else
+            self.d.get_title() or "", self.parent.get_visible() if self.parent else "-")
         self.d.present(self.parent) if self.kind == "alert" else self.d.present()
 
     def close(self):

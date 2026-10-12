@@ -95,6 +95,16 @@ class IpcServer:
     async def handle(self, req: dict) -> dict:
         cmd = req.get("cmd")
         hub = self.hub
+        if cmd == "diagnose":
+            # Bağlantı iş parçacığında çalışır: arayüz donmuş olsa da yığınlar yazılır. Pencere durumu için
+            # arayüze sinyal gider (ana döngü çalışıyorsa o da yazar).
+            import os
+            import signal
+            from . import gunluk
+            from .config import cache_dir
+            gunluk.report("terminalden teşhis istendi")
+            os.kill(os.getpid(), signal.SIGUSR1)
+            return {"ok": True, "path": str(cache_dir() / "gunluk.txt")}
         if cmd == "status":
             st = hub.status()
             return {"ok": True, "name": st["name"], "wireless": st["wireless"], "usb": st["usb"],

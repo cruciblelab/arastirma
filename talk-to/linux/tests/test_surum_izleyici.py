@@ -17,7 +17,32 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from talkto import surum_izleyici  # noqa: E402
+from talkto import gunluk, surum_izleyici  # noqa: E402
+
+
+class BekciTest(unittest.TestCase):
+    """Donma bekçisi: ana döngü sınırdan uzun dönmezse bir kez bildirir, dönünce düzeldiğini yazar."""
+
+    def test_stall_reported_once_and_recovery(self):
+        now = [100.0]
+        stalls, recovers = [], []
+        b = gunluk.Bekci(limit=6, clock=lambda: now[0], on_stall=stalls.append, on_recover=recovers.append)
+        now[0] = 105
+        b.check()
+        self.assertEqual(stalls, [])
+        now[0] = 107
+        b.check()
+        now[0] = 120
+        b.check()  # aynı takılma ikinci kez bildirilmez
+        self.assertEqual(stalls, [7])
+        b.beat()
+        self.assertEqual(recovers, [20])
+        now[0] = 130
+        b.check()
+        self.assertEqual(stalls, [7, 10])
+
+    def test_stacks_lists_threads(self):
+        self.assertIn("MainThread", gunluk.stacks())
 
 
 class SurumTest(unittest.TestCase):
@@ -96,6 +121,19 @@ class YenidenBaslamaTest(unittest.TestCase):
             time.sleep(1)
             self.assertIsNone(p.poll(), "yeniden başlarken kapandı")
             self.assertIn(b"--arka-planda", Path(f"/proc/{p.pid}/cmdline").read_bytes().split(b"\0"))
+            # Yeniden başlamış süreçte pencere açılır (ikinci başlatma ilkini uyandırır) ve terminalden
+            # teşhis istenince açık pencereler ile iş parçacıkları günlüğe yazılır.
+            subprocess.run([sys.executable, "-m", "talkto"], env=env, cwd=tmp, timeout=20,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(1)
+            r = subprocess.run([sys.executable, "-m", "talkto", "teshis"], env=env, cwd=tmp, timeout=20,
+                               capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertTrue(wait(lambda: logged("pencereler:") and logged("terminalden teşhis istendi"), 10),
+                            "teşhis yazılmadı")
+            text = log.read_text(errors="replace")
+            self.assertRegex(text, r"Window “Talk To Android” görünür=True")
+            self.assertIn("donma-bekcisi", text)
         finally:
             p.terminate()
             try:
