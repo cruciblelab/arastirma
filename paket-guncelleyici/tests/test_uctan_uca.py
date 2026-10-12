@@ -109,6 +109,43 @@ class EndToEndTest(unittest.TestCase):
         self.assertEqual(paket.installed_version("deneme-uygulama"), "2.1")
         win.destroy()
 
+    def test_3b_force_stop_lock_holder(self):
+        """Sırada beklerken "Durmaya zorla": kilidi tutan otomatik güncelleme (gibi) durdurulur, kurulum sürer.
+        Tutucu gerçek unattended-upgrades gibi SIGTERM'de kibarca çıkar; adı da onunki (prctl)."""
+        from guncelleyici import durdur
+        win = self.open(build_deb(self.d, version="2.2", key=self.public, secret=self.secret))
+        holder = subprocess.Popen(["sudo", "-n", "python3", "-c",
+                                   "import ctypes,fcntl,signal,sys,time;"
+                                   "ctypes.CDLL(None).prctl(15,b'unattended-upgr',0,0,0);"
+                                   "f=open('/var/lib/dpkg/lock-frontend','w');fcntl.lockf(f,fcntl.LOCK_EX);"
+                                   "signal.signal(signal.SIGTERM,lambda *a:sys.exit(0));"
+                                   "print('tutuldu',flush=True);time.sleep(600)"],
+                                  stdout=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual(holder.stdout.readline().strip(), "tutuldu")
+            # Kilidi tutmayan bir süreç yetkiyle bile durdurulmaz (yardımcı kendisi denetler).
+            other = subprocess.Popen(["sleep", "60"])
+            r = subprocess.run(["sudo", "-n", "/usr/bin/python3", "-I", durdur.__file__, str(other.pid)],
+                               capture_output=True, text=True)
+            other.kill()
+            other.wait()
+            self.assertEqual(r.returncode, 3, r.stdout + r.stderr)
+            win.primary.emit("clicked")
+            wait(lambda: "Sırada" in win.progress_text.get_label(), 60)
+            wait(lambda: win.force_box.get_visible(), 10)
+            win._force_ask()
+            self.assertTrue(win.force_go.get_visible(), win.force_text.get_label())  # indirmiyor/kurmuyor: güvenli
+            self.assertIn("güvenli", win.force_text.get_label())
+            win._force_run()
+            wait(lambda: win.stack.get_visible_child_name() == "sonuc", 180)
+            self.assertEqual(holder.wait(30), 0)  # SIGTERM ile kibarca çıktı
+            self.assertIn("kuruldu", win.result_page.get_title())
+            self.assertEqual(paket.installed_version("deneme-uygulama"), "2.2")
+        finally:
+            if holder.poll() is None:
+                subprocess.run(["sudo", "-n", "kill", str(holder.pid)])
+        win.destroy()
+
     def test_4_downgrade_needs_consent(self):
         win = self.open(build_deb(self.d, version="1.5", key=self.public, secret=self.secret))
         self.assertEqual(win.pkg.verdict, paket.ESKI)

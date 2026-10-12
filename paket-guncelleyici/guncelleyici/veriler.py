@@ -15,8 +15,14 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from .dil import N_, _t
+
 ROOTS = (("onbellek", ".cache"), ("ayar", ".config"), ("veri", ".local/share"), ("veri", ".local/state"))
-KIND_NAMES = {"onbellek": "Önbellek", "ayar": "Ayarlar", "veri": "Kayıtlı veriler"}
+KIND_NAMES = {"onbellek": N_("Önbellek"), "ayar": N_("Ayarlar"), "veri": N_("Kayıtlı veriler")}
+
+
+def kind_name(kind: str) -> str:
+    return _t(KIND_NAMES[kind])
 # Birden çok uygulamanın ya da masaüstünün ortak klasörleri: adı tutsa bile önerilmez.
 SHARED = {
     "gtk-2.0", "gtk-3.0", "gtk-4.0", "autostart", "applications", "icons", "fonts", "fontconfig", "mime", "menus",
@@ -36,7 +42,7 @@ class Klasor:
 
     @property
     def label(self) -> str:
-        return KIND_NAMES[self.kind]
+        return kind_name(self.kind)
 
 
 def size_of(path: Path) -> int:

@@ -1,0 +1,1062 @@
+# Package Updater (Paket Güncelleyici) — English translation.
+# Source language is Turkish; the “English:” note above each entry gives the meaning.
+# To pick up new strings: python3 paket/ceviri.py guncelle — see guncelleyici/diller/README.md
+msgid ""
+msgstr ""
+"Project-Id-Version: paket-guncelleyici\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"X-Language-Name: English\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: guncelleyici/apt.py:60
+msgid "apt bu paketi kuramayacağını söyledi."
+msgstr "apt said it cannot install this package."
+
+#: guncelleyici/apt.py:151
+msgid "Ubuntu'nun otomatik güncellemesi"
+msgstr "Ubuntu's automatic update"
+
+#: guncelleyici/apt.py:151
+msgid "Uygulama Merkezi / Yazılım"
+msgstr "App Center / Software"
+
+#: guncelleyici/apt.py:152
+msgid "başka bir apt komutu"
+msgstr "another apt command"
+
+#: guncelleyici/apt.py:153
+msgid "başka bir paket kurulumu"
+msgstr "another package installation"
+
+#: guncelleyici/apt.py:153
+msgid "Yazılım Güncelleştirici"
+msgstr "Software Updater"
+
+#: guncelleyici/apt.py:154
+msgid "başka bir paket işlemi"
+msgstr "another package operation"
+
+#: guncelleyici/apt.py:198
+msgid "Geçersiz paket adı."
+msgstr "Invalid package name."
+
+#: guncelleyici/apt.py:204
+msgid "apt bu paketi kaldıramayacağını söyledi."
+msgstr "apt said it cannot remove this package."
+
+#: guncelleyici/arsiv.py:20
+msgid "Bu bir .deb paketi değil."
+msgstr "This is not a .deb package."
+
+#: guncelleyici/arsiv.py:25
+msgid "Paket dosyası bozuk."
+msgstr "The package file is damaged."
+
+#: guncelleyici/arsiv.py:38
+msgid "Paket dosyası eksik ya da bozuk."
+msgstr "The package file is incomplete or damaged."
+
+#: guncelleyici/arsiv.py:56
+msgid "Paketin içi okunamadı: {error}"
+msgstr "Could not read the package contents: {error}"
+
+#: guncelleyici/hatalar.py:27
+msgid "Yarım kalan işi tamamla"
+msgstr "Finish the interrupted work"
+
+#: guncelleyici/hatalar.py:27
+msgid "Bağımlılıkları onar"
+msgstr "Repair dependencies"
+
+#: guncelleyici/hatalar.py:43
+msgid "Şifre penceresi kapatıldı"
+msgstr "The password window was closed"
+
+#: guncelleyici/hatalar.py:43
+msgid "Hiçbir şey değişmedi. Yeniden denemek için düğmeye tekrar bas."
+msgstr "Nothing was changed. Press the button again to retry."
+
+#: guncelleyici/hatalar.py:45
+msgid "Yönetici izni verilmedi"
+msgstr "Administrator permission was not granted"
+
+#: guncelleyici/hatalar.py:45
+msgid "Şifre doğrulanamadı ya da bu kullanıcının yönetici yetkisi yok; hiçbir şey değişmedi."
+msgstr "The password could not be verified or this user is not an administrator; nothing was changed."
+
+#: guncelleyici/hatalar.py:48
+msgid "Önceki bir kurulum yarıda kalmış"
+msgstr "A previous installation was interrupted"
+
+#: guncelleyici/hatalar.py:49
+msgid "Bir kurulum ya da güncelleme kesilmiş (bilgisayar kapanmış, pencere kapatılmış…). Paket sistemi bu düzelmeden başka bir şey kurmaz ya da kaldırmaz. Aşağıdaki düğme yarım kalan işi tamamlar; sonra yeniden dene."
+msgstr "An installation or update was cut off (the computer shut down, a window was closed…). The package system won't install or remove anything until this is fixed. The button below finishes the interrupted work; then try again."
+
+#: guncelleyici/hatalar.py:55
+msgid "Dosya çakışması"
+msgstr "File conflict"
+
+#: guncelleyici/hatalar.py:56
+msgid "Bu paket {path} dosyasını kurmak istiyor ama o dosya zaten kurulu “{other}” paketine ait. İki paket aynı şeyi kuruyor olabilir (aynı uygulamanın başka bir sürümü ya da adı değişmiş hâli). Önce “{other}” paketini kaldırıp yeniden dene."
+msgstr "This package wants to install {path}, but that file belongs to the installed package “{other}”. The two packages may install the same thing (another edition of the same app, or a renamed one). Remove “{other}” first, then try again."
+
+#: guncelleyici/hatalar.py:61
+msgid "Sistemin temel bir paketi"
+msgstr "An essential system package"
+
+#: guncelleyici/hatalar.py:62
+msgid "Bu paket bilgisayarın çalışması için gerekli; apt güvenlik için kaldırmayı reddetti. Kaldırılmamalı."
+msgstr "This package is required for the computer to work; apt refused to remove it for safety. It should not be removed."
+
+#: guncelleyici/hatalar.py:65
+msgid "Zaten kurulu değil"
+msgstr "Not installed"
+
+#: guncelleyici/hatalar.py:65
+msgid "Bu paket şu an kurulu değil; kaldırılacak bir şey yok."
+msgstr "This package is not installed; there is nothing to remove."
+
+#: guncelleyici/hatalar.py:70
+msgid "Gerekli bir paket bulunamadı"
+msgstr "A required package was not found"
+
+#: guncelleyici/hatalar.py:71
+msgid "Bu paket “{dep}” paketini istiyor ama bu bilgisayarın paket kaynaklarında uygun sürümü yok. Paket başka bir Ubuntu/Debian sürümü için hazırlanmış olabilir ya da paket listeleri eski: Yazılım Güncelleştirici'yi çalıştırıp yeniden dene. Olmazsa paketin bu Ubuntu sürümüne uygun hâlini yayıncıdan iste."
+msgstr "This package needs “{dep}”, but this computer's package sources have no suitable version of it. The package may have been built for another Ubuntu/Debian release, or the package lists are out of date: run Software Updater and try again. If that doesn't help, ask the publisher for a build for this Ubuntu release."
+
+#: guncelleyici/hatalar.py:77
+msgid "Paket sisteminde bozuk bağımlılıklar var"
+msgstr "The package system has broken dependencies"
+
+#: guncelleyici/hatalar.py:78
+msgid "Daha önceki bir kurulumdan kalan eksik ya da çakışan paketler var; apt bunlar düzelmeden yeni bir şey yapmıyor. Aşağıdaki düğme eksikleri kurar ya da tamamlar (apt-get -f install); sonra yeniden dene."
+msgstr "An earlier installation left missing or conflicting packages; apt won't do anything new until they are fixed. The button below installs or completes what's missing (apt-get -f install); then try again."
+
+#: guncelleyici/hatalar.py:82
+msgid "Diskte yer kalmadı"
+msgstr "The disk is full"
+
+#: guncelleyici/hatalar.py:83
+msgid "İşlem için yeterli boş yer yok. Gereksiz dosyaları sil ya da terminalde “sudo apt clean” ile apt'nin indirdiği eski paketleri temizle, sonra yeniden dene."
+msgstr "There isn't enough free space. Delete files you don't need, or clean the old packages apt downloaded with “sudo apt clean” in a terminal, then try again."
+
+#: guncelleyici/hatalar.py:87
+msgid "Paketin kendi betiği hata verdi"
+msgstr "The package's own script failed"
+
+#: guncelleyici/hatalar.py:88
+msgid "Paketin kaldırma sırasında çalışan betiği hata verdi: bu, paketi hazırlayanın sorunu."
+msgstr "The script the package runs during removal failed: this is a problem with the package itself."
+
+#: guncelleyici/hatalar.py:90
+msgid "Paketin kurulum sırasında çalışan betiği hata verdi: bu, paketi hazırlayanın sorunu."
+msgstr "The script the package runs during installation failed: this is a problem with the package itself."
+
+#: guncelleyici/hatalar.py:91
+msgid "Aşağıdaki ayrıntıları yayıncıya ilet. Paket sistemi yarım kalmış olabilir; düğme tamamlamayı dener."
+msgstr "Send the details below to the publisher. The package system may be left half-done; the button tries to finish it."
+
+#: guncelleyici/hatalar.py:95
+msgid "İnternete ulaşılamadı"
+msgstr "Could not reach the internet"
+
+#: guncelleyici/hatalar.py:96
+msgid "Paketin istediği ek paketler indirilemedi. İnternet bağlantısını kontrol edip yeniden dene."
+msgstr "The extra packages this package needs could not be downloaded. Check the internet connection and try again."
+
+#: guncelleyici/hatalar.py:98 guncelleyici/ui.py:30
+msgid "Bu bilgisayara uygun değil"
+msgstr "Not suitable for this computer"
+
+#: guncelleyici/hatalar.py:99
+msgid "Paket {arch} işlemciler için, bu bilgisayar {mine}. Yayıncıdan doğru sürümü indir."
+msgstr "The package is for {arch} processors; this computer is {mine}. Download the right build from the publisher."
+
+#: guncelleyici/hatalar.py:102
+msgid "Paket bulunamadı"
+msgstr "Package not found"
+
+#: guncelleyici/hatalar.py:102
+msgid "apt bu adla bir paket bilmiyor."
+msgstr "apt doesn't know a package with this name."
+
+#: guncelleyici/hatalar.py:104
+msgid "Paket sistemi meşgul kaldı"
+msgstr "The package system stayed busy"
+
+#: guncelleyici/hatalar.py:105
+msgid "Başka bir paket işlemi kilidi uzun süre bırakmadı (otomatik güncelleme ya da açık bir Yazılım penceresi). Biraz sonra yeniden dene."
+msgstr "Another package operation held the lock for a long time (automatic updates or an open Software window). Try again a bit later."
+
+#: guncelleyici/hatalar.py:110
+msgid "Olmadı"
+msgstr "Failed"
+
+#: guncelleyici/hatalar.py:110
+msgid "Kurulmadı"
+msgstr "Not installed"
+
+#: guncelleyici/hatalar.py:110
+msgid "Kaldırılmadı"
+msgstr "Not removed"
+
+#: guncelleyici/hatalar.py:111
+msgid "apt {code} koduyla bitti."
+msgstr "apt finished with code {code}."
+
+#: guncelleyici/hatalar.py:112
+msgid "(çıkış kodu {code})"
+msgstr "(exit code {code})"
+
+#: guncelleyici/paket.py:117
+msgid "Bu dosya bir .deb paketi olarak okunamadı."
+msgstr "This file could not be read as a .deb package."
+
+#: guncelleyici/paket.py:120
+msgid "Paketin adı ya da sürümü yok."
+msgstr "The package has no name or version."
+
+#: guncelleyici/ui.py:26
+msgid "Yeni kurulum"
+msgstr "New installation"
+
+#: guncelleyici/ui.py:26
+msgid "Bu bilgisayarda kurulu değil."
+msgstr "Not installed on this computer."
+
+#: guncelleyici/ui.py:27
+msgid "Güncelleme"
+msgstr "Update"
+
+#: guncelleyici/ui.py:27
+msgid "Daha yeni bir sürüm."
+msgstr "A newer version."
+
+#: guncelleyici/ui.py:28
+msgid "Aynı sürüm"
+msgstr "Same version"
+
+#: guncelleyici/ui.py:28
+msgid "Bu sürüm zaten kurulu; yeniden kurulabilir."
+msgstr "This version is already installed; it can be reinstalled."
+
+#: guncelleyici/ui.py:29
+msgid "Eski sürüm"
+msgstr "Older version"
+
+#: guncelleyici/ui.py:29
+msgid "Kurulu olandan daha eski. Geri dönmek ayarları bozabilir."
+msgstr "Older than the installed one. Going back may break settings."
+
+#: guncelleyici/ui.py:30
+msgid "Paket başka bir işlemci mimarisi için."
+msgstr "The package is for another processor architecture."
+
+#: guncelleyici/ui.py:37
+msgid ","
+msgstr "."
+
+#: guncelleyici/ui.py:60 guncelleyici/ui.py:75 guncelleyici/ui.py:1281
+msgid "Paket Güncelleyici"
+msgstr "Package Updater"
+
+#: guncelleyici/ui.py:77
+msgid "Başka bir paket aç"
+msgstr "Open another package"
+
+#: guncelleyici/ui.py:81
+msgid "Geri (Alt+Sol)"
+msgstr "Back (Alt+Left)"
+
+#: guncelleyici/ui.py:84
+msgid "Kurulu uygulamalar (kaldırmak ya da verilerini temizlemek için)"
+msgstr "Installed apps (to remove them or clean their data)"
+
+#: guncelleyici/ui.py:89
+msgid "Sistem dili"
+msgstr "System language"
+
+#: guncelleyici/ui.py:92
+msgid "Dil"
+msgstr "Language"
+
+#: guncelleyici/ui.py:93
+msgid "Hakkında"
+msgstr "About"
+
+#: guncelleyici/ui.py:94
+msgid "Menü"
+msgstr "Menu"
+
+#: guncelleyici/ui.py:101
+msgid "Bir paket dosyası aç"
+msgstr "Open a package file"
+
+#: guncelleyici/ui.py:102
+msgid "Bir .deb dosyasına sağ tıklayıp “Birlikte aç → Paket Güncelleyici”yi seç ya da buradan seç. Kurulu sürümle karşılaştırılır, yayıncının imzası denetlenir; kurmadan önce ne değişeceği gösterilir."
+msgstr "Right-click a .deb file and choose “Open With → Package Updater”, or pick one here. It is compared with the installed version and the publisher's signature is checked; you see what will change before installing."
+
+#: guncelleyici/ui.py:106
+msgid "Dosya seç"
+msgstr "Choose file"
+
+#: guncelleyici/ui.py:110
+msgid "Kaldırmak ya da verilerini temizlemek için: paketle kurulmuş uygulamalar, dosyadan kurulanlar üstte"
+msgstr "To remove them or clean their data: apps installed from packages, those installed from a file first"
+
+#: guncelleyici/ui.py:115
+msgid "Çift tıklayınca .deb dosyaları bununla açılsın"
+msgstr "Open .deb files with this on double-click"
+
+#: guncelleyici/ui.py:124
+msgid "Uygulama ara"
+msgstr "Search apps"
+
+#: guncelleyici/ui.py:142
+msgid "Paket okunuyor, imza denetleniyor…"
+msgstr "Reading the package, checking the signature…"
+
+#: guncelleyici/ui.py:171
+msgid "Durmaya zorla…"
+msgstr "Force it to stop…"
+
+#: guncelleyici/ui.py:174
+msgid "Vazgeç"
+msgstr "Cancel"
+
+#: guncelleyici/ui.py:177 guncelleyici/ui.py:679
+msgid "Durdur"
+msgstr "Stop"
+
+#: guncelleyici/ui.py:192
+msgid "Ayrıntılar (apt çıktısı)"
+msgstr "Details (apt output)"
+
+#: guncelleyici/ui.py:218
+msgid "Kurulum sürüyor; bitince kapanabilir"
+msgstr "Installation in progress; you can close when it's done"
+
+#: guncelleyici/ui.py:225
+msgid "Paket dosyası seç"
+msgstr "Choose a package file"
+
+#: guncelleyici/ui.py:226 guncelleyici/ui.py:915
+msgid "Aç"
+msgstr "Open"
+
+#: guncelleyici/ui.py:227
+msgid "Debian paketleri (.deb)"
+msgstr "Debian packages (.deb)"
+
+#: guncelleyici/ui.py:269
+msgid "Paket okunamadı"
+msgstr "Could not read the package"
+
+#: guncelleyici/ui.py:289 guncelleyici/ui.py:1048
+msgid "Paket: {name}"
+msgstr "Package: {name}"
+
+#: guncelleyici/ui.py:297
+msgid "Sürüm"
+msgstr "Version"
+
+#: guncelleyici/ui.py:298
+msgid "Kurulu {old}  →  bu dosya {new}"
+msgstr "Installed {old}  →  this file {new}"
+
+#: guncelleyici/ui.py:299
+msgid "Bu dosya {new}"
+msgstr "This file {new}"
+
+#: guncelleyici/ui.py:307
+msgid "Eski sürüme dönmek istiyorum"
+msgstr "I want to go back to the older version"
+
+#: guncelleyici/ui.py:317
+msgid "Ayrıntılar"
+msgstr "Details"
+
+#: guncelleyici/ui.py:318
+msgid "Dosya"
+msgstr "File"
+
+#: guncelleyici/ui.py:319
+msgid "Boyut"
+msgstr "Size"
+
+#: guncelleyici/ui.py:321
+msgid "Paketi hazırlayan"
+msgstr "Packaged by"
+
+#: guncelleyici/ui.py:321
+msgid "(pakette yazan; imza değil)"
+msgstr "(as written in the package; not a signature)"
+
+#: guncelleyici/ui.py:324
+msgid "Ana sayfa"
+msgstr "Home page"
+
+#: guncelleyici/ui.py:326
+msgid "Kurulu sürümü kaldır"
+msgstr "Remove the installed version"
+
+#: guncelleyici/ui.py:327
+msgid "{name} {version} bu bilgisayardan kaldırılır (önce ne olacağı gösterilir)."
+msgstr "{name} {version} is removed from this computer (you'll see what happens first)."
+
+#: guncelleyici/ui.py:329 guncelleyici/ui.py:997
+msgid "Kaldır"
+msgstr "Remove"
+
+#: guncelleyici/ui.py:335
+msgid "Açıklama"
+msgstr "Description"
+
+#: guncelleyici/ui.py:373
+msgid "Yayıncı"
+msgstr "Publisher"
+
+#: guncelleyici/ui.py:376
+msgid "İmza kurulu sürümün anahtarıyla tutuyor. Paket, kurulu sürümü yayımlayan kişiden geliyor."
+msgstr "The signature matches the installed version's key. The package comes from whoever published the installed version."
+
+#: guncelleyici/ui.py:378
+msgid "İmza daha önce onayladığın anahtarla tutuyor. Paket, kurulu sürümü yayımlayan kişiden geliyor."
+msgstr "The signature matches a key you approved before. The package comes from whoever published the installed version."
+
+#: guncelleyici/ui.py:380
+msgid "Aynı yayıncı"
+msgstr "Same publisher"
+
+#: guncelleyici/ui.py:382
+msgid "İmzalı, yayıncı ilk kez görülüyor"
+msgstr "Signed; publisher seen for the first time"
+
+#: guncelleyici/ui.py:383
+msgid "Bu yayıncıdan daha önce imzalı paket kurulmamış. Parmak izini yayıncının sitesinde yazanla karşılaştır (yayıncı bir doğrulama adresi verdiyse bu aşağıda kendiliğinden yapılır). Kurarsan bu anahtar kaydedilir; sonraki sürümler bununla denetlenir."
+msgstr "No signed package from this publisher has been installed before. Compare the fingerprint with the one on the publisher's website (if the publisher gave a verification address, this is done automatically below). If you install, this key is remembered and later versions are checked against it."
+
+#: guncelleyici/ui.py:388
+msgid "Farklı yayıncı"
+msgstr "Different publisher"
+
+#: guncelleyici/ui.py:389
+msgid "İmza geçerli ama kurulu sürümü yayımlayan anahtar değil. Başka biri hazırlamış olabilir: yayıncı anahtarını değiştirdiğini duyurmadıysa kurma."
+msgstr "The signature is valid but it's not the key that published the installed version. Someone else may have made it: don't install unless the publisher announced a key change."
+
+#: guncelleyici/ui.py:391
+msgid "Yayıncının değiştiğini biliyorum, yine de kur"
+msgstr "I know the publisher changed; install anyway"
+
+#: guncelleyici/ui.py:393
+msgid "İmza tutmuyor"
+msgstr "Signature doesn't match"
+
+#: guncelleyici/ui.py:394
+msgid "Paket imzalı ama imza içerikle uyuşmuyor: dosya bozulmuş ya da değiştirilmiş olabilir. Paketi yayıncının sitesinden yeniden indir."
+msgstr "The package is signed but the signature doesn't match its contents: the file may be damaged or altered. Download it again from the publisher's website."
+
+#: guncelleyici/ui.py:396
+msgid "Riskini biliyorum, yine de kur"
+msgstr "I know the risk; install anyway"
+
+#: guncelleyici/ui.py:399
+msgid "İmzasız (önceki sürüm imzalıydı)"
+msgstr "Unsigned (the previous version was signed)"
+
+#: guncelleyici/ui.py:400
+msgid "Kurulu sürüm imzalıydı, bu dosya değil. Yayıncı imzalamayı bırakmadıysa bu dosya başka birinden gelmiş olabilir."
+msgstr "The installed version was signed; this file isn't. Unless the publisher stopped signing, this file may come from someone else."
+
+#: guncelleyici/ui.py:402
+msgid "İmzasız olduğunu biliyorum, yine de kur"
+msgstr "I know it's unsigned; install anyway"
+
+#: guncelleyici/ui.py:404
+msgid "İmzasız"
+msgstr "Unsigned"
+
+#: guncelleyici/ui.py:405
+msgid "Yayıncı bu paketi imzalamamış; kimden geldiği denetlenemiyor. Güvendiğin bir yerden indirdiysen kurabilirsin (çoğu .deb imzasızdır)."
+msgstr "The publisher didn't sign this package; its origin can't be checked. If you downloaded it from a place you trust, you can install it (most .deb files are unsigned)."
+
+#: guncelleyici/ui.py:409
+msgid "Parmak izi"
+msgstr "Fingerprint"
+
+#: guncelleyici/ui.py:417
+msgid "Yayıncı bilgisi"
+msgstr "Publisher information"
+
+#: guncelleyici/ui.py:418
+msgid "Pakette yayıncının kendi yazdığı bilgi. Gerçekten ona ait olduğunu aşağıdaki site doğrulaması gösterir."
+msgstr "Information the publisher wrote into the package. The website check below shows whether it really belongs to them."
+
+#: guncelleyici/ui.py:420
+msgid "Kurum: {value}"
+msgstr "Organization: {value}"
+
+#: guncelleyici/ui.py:421
+msgid "Yetkili: {value}"
+msgstr "Contact person: {value}"
+
+#: guncelleyici/ui.py:422
+msgid "Web: {value}"
+msgstr "Web: {value}"
+
+#: guncelleyici/ui.py:423
+msgid "İletişim: {value}"
+msgstr "Contact: {value}"
+
+#: guncelleyici/ui.py:426
+msgid "Siteyi aç"
+msgstr "Open website"
+
+#: guncelleyici/ui.py:433
+msgid "Yayıncı bilgisi değişmiş"
+msgstr "Publisher information changed"
+
+#: guncelleyici/ui.py:434
+msgid "Kurulu sürümde {fields} farklıydı: önce “{old}”"
+msgstr "The installed version had a different {fields}: previously “{old}”"
+
+#: guncelleyici/ui.py:438
+msgid "Site doğrulaması yapılamaz"
+msgstr "Website check not possible"
+
+#: guncelleyici/ui.py:439
+msgid "Paketin geçerli bir imzası yok; yukarıdaki bilgi kimin yazdığı bilinmeyen bir beyan."
+msgstr "The package has no valid signature; the information above is a claim by an unknown author."
+
+#: guncelleyici/ui.py:446
+msgid "Doğrulama adresi yok"
+msgstr "No verification address"
+
+#: guncelleyici/ui.py:447
+msgid "Yayıncı, parmak izini yayımladığı bir adres vermemiş; bilgi doğrulanamıyor."
+msgstr "The publisher didn't give an address where the fingerprint is published; the information can't be verified."
+
+#: guncelleyici/ui.py:451
+msgid "Site doğrulanıyor…"
+msgstr "Checking the website…"
+
+#: guncelleyici/ui.py:470
+msgid "Site doğruladı"
+msgstr "Website confirmed"
+
+#: guncelleyici/ui.py:471
+msgid "{site} bu imzanın parmak izini yayımlıyor: anahtar, bu sitenin sahibine ait."
+msgstr "{site} publishes this signature's fingerprint: the key belongs to the owner of this website."
+
+#: guncelleyici/ui.py:474
+msgid "Site doğruladı, ama başka bir adreste"
+msgstr "Confirmed, but at another address"
+
+#: guncelleyici/ui.py:475
+msgid "{site} bu parmak izini yayımlıyor; ancak bu adres yayıncının web sitesiyle aynı yerde değil. Bu yalnızca o adresi yönetenin anahtarı onayladığını gösterir."
+msgstr "{site} publishes this fingerprint, but that address isn't on the publisher's website. It only shows that whoever runs that address approved the key."
+
+#: guncelleyici/ui.py:480
+msgid "Site bu anahtarı listelemiyor"
+msgstr "The website doesn't list this key"
+
+#: guncelleyici/ui.py:481
+msgid "{site} açıldı ama bu imzanın parmak izi orada yok. Yayıncı anahtarını değiştirmiş ve siteyi güncellememiş olabilir; ya da paket başkasından."
+msgstr "{site} opened, but this signature's fingerprint isn't there. The publisher may have changed keys without updating the website, or the package comes from someone else."
+
+#: guncelleyici/ui.py:486
+msgid "Site doğrulanamadı"
+msgstr "Website couldn't be checked"
+
+#: guncelleyici/ui.py:487
+msgid "{site} adresine ulaşılamadı ({reason}). İnternet yoksa normal; yukarıdaki imza denetimi bundan bağımsız."
+msgstr "Couldn't reach {site} ({reason}). That's normal without internet; the signature check above doesn't depend on it."
+
+#: guncelleyici/ui.py:491
+msgid "(Kurulu sürümün verdiği doğrulama adresi kullanıldı.)"
+msgstr "(The verification address from the installed version was used.)"
+
+#: guncelleyici/ui.py:500
+msgid "Kurulunca"
+msgstr "When installed"
+
+#: guncelleyici/ui.py:500 guncelleyici/ui.py:1056
+msgid "apt'nin denemesi; henüz hiçbir şey değişmedi."
+msgstr "apt's dry run; nothing has changed yet."
+
+#: guncelleyici/ui.py:508 guncelleyici/ui.py:1068
+msgid "ve {n} paket daha"
+msgid_plural "ve {n} paket daha"
+msgstr[0] "and {n} more package"
+msgstr[1] "and {n} more packages"
+
+#: guncelleyici/ui.py:509
+msgid "Ayrıca {n} paket kurulacak ya da güncellenecek"
+msgid_plural "Ayrıca {n} paket kurulacak ya da güncellenecek"
+msgstr[0] "{n} more package will be installed or updated"
+msgstr[1] "{n} more packages will be installed or updated"
+
+#: guncelleyici/ui.py:512
+msgid "{n} paket kaldırılacak"
+msgid_plural "{n} paket kaldırılacak"
+msgstr[0] "{n} package will be removed"
+msgstr[1] "{n} packages will be removed"
+
+#: guncelleyici/ui.py:514
+msgid "Bu paketlerin kaldırılmasını onaylıyorum"
+msgstr "I approve removing these packages"
+
+#: guncelleyici/ui.py:516
+msgid "Yalnızca bu paket"
+msgstr "Only this package"
+
+#: guncelleyici/ui.py:516
+msgid "Başka paket kurulmayacak ya da kaldırılmayacak."
+msgstr "No other package will be installed or removed."
+
+#: guncelleyici/ui.py:522
+msgid "Kur"
+msgstr "Install"
+
+#: guncelleyici/ui.py:522
+msgid "{version} sürümüne güncelle"
+msgstr "Update to {version}"
+
+#: guncelleyici/ui.py:523
+msgid "Yeniden kur"
+msgstr "Reinstall"
+
+#: guncelleyici/ui.py:524
+msgid "{version} sürümüne geri dön"
+msgstr "Go back to {version}"
+
+#: guncelleyici/ui.py:525
+msgid "Kurulamaz"
+msgstr "Can't be installed"
+
+#: guncelleyici/ui.py:533
+msgid "Seçilenleri temizle ({size})"
+msgstr "Clean selected ({size})"
+
+#: guncelleyici/ui.py:534
+msgid "Seçilenleri temizle"
+msgstr "Clean selected"
+
+#: guncelleyici/ui.py:536
+msgid "Çöp kutusuna taşınır: geri almak için Dosyalar → Çöp → Geri yükle. Şifre gerekmez."
+msgstr "Moved to the trash: to undo, use Files → Trash → Restore. No password needed."
+
+#: guncelleyici/ui.py:537
+msgid "Temizlenecek klasörü işaretle."
+msgstr "Tick the folders to clean."
+
+#: guncelleyici/ui.py:541
+msgid "apt bu paketi kaldıramayacağını söylüyor (yukarıda)."
+msgstr "apt says it can't remove this package (see above)."
+
+#: guncelleyici/ui.py:543 guncelleyici/ui.py:553
+msgid "Devam etmek için yukarıdaki kutuyu işaretle."
+msgstr "Tick the box above to continue."
+
+#: guncelleyici/ui.py:545
+msgid "Kaldırmak için bilgisayarın şifresi sorulur."
+msgstr "The computer's password is asked to remove it."
+
+#: guncelleyici/ui.py:548
+msgid "Paket “{arch}” için; bu bilgisayar {mine}."
+msgstr "The package is for “{arch}”; this computer is {mine}."
+
+#: guncelleyici/ui.py:551
+msgid "apt bu paketi kuramayacağını söylüyor (yukarıda)."
+msgstr "apt says it can't install this package (see above)."
+
+#: guncelleyici/ui.py:555
+msgid "Kurulum için bilgisayarın şifresi sorulur."
+msgstr "The computer's password is asked to install it."
+
+#: guncelleyici/ui.py:565
+msgid "{name} kuruluyor"
+msgstr "Installing {name}"
+
+#: guncelleyici/ui.py:575 guncelleyici/ui.py:696
+msgid "Şifre bekleniyor…"
+msgstr "Waiting for the password…"
+
+#: guncelleyici/ui.py:585
+msgid "Başlatılamadı"
+msgstr "Couldn't start"
+
+#: guncelleyici/ui.py:619
+msgid "Sırada: {who} şu an paket kilidini tutuyor (süreç {pid})."
+msgstr "Queued: {who} is holding the package lock right now (process {pid})."
+
+#: guncelleyici/ui.py:620
+msgid "Sırada: {who} şu an paket kilidini tutuyor."
+msgstr "Queued: {who} is holding the package lock right now."
+
+#: guncelleyici/ui.py:621
+msgid "O bitince kurulum kendiliğinden başlar; bir şey yapmana gerek yok."
+msgstr "The installation starts by itself when it's done; you don't need to do anything."
+
+#: guncelleyici/ui.py:640
+msgid "Durması istendi; o anki paketi bitirmesi bekleniyor…"
+msgstr "Asked to stop; waiting for it to finish the current package…"
+
+#: guncelleyici/ui.py:641
+msgid "Kendiliğinden durmadı; zorla durduruluyor…"
+msgstr "It didn't stop by itself; stopping it forcibly…"
+
+#: guncelleyici/ui.py:642
+msgid "Yarıda kalan paketin bitmesi bekleniyor…"
+msgstr "Waiting for the half-done package to finish…"
+
+#: guncelleyici/ui.py:643
+msgid "Yarım kalan iş tamamlanıyor…"
+msgstr "Finishing the interrupted work…"
+
+#: guncelleyici/ui.py:644
+msgid "Durduruldu. Kurulum başlıyor…"
+msgstr "Stopped. The installation is starting…"
+
+#: guncelleyici/ui.py:665
+msgid "Şu an çekirdek ya da önyükleyici kuruluyor. Bunu yarıda kesmek bilgisayarın açılmamasına yol açabilir; durdurulmaz. Bitmesini bekle: kurulum sonra kendiliğinden başlar."
+msgstr "The kernel or boot loader is being installed right now. Interrupting that can leave the computer unable to boot, so it won't be stopped. Wait for it to finish: the installation then starts by itself."
+
+#: guncelleyici/ui.py:670
+msgid "{who} şu an paket kuruyor ({names})."
+msgstr "{who} is installing packages right now ({names})."
+
+#: guncelleyici/ui.py:671
+msgid "{who} şu an paket kuruyor."
+msgstr "{who} is installing packages right now."
+
+#: guncelleyici/ui.py:672
+msgid "Durdurursan o paket yarım kalabilir; ardından yarım kalan iş kendiliğinden tamamlanır (dpkg --configure -a). Kalan güncellemeler sonra yeniden yapılabilir. Beklemek en güvenlisi."
+msgstr "If you stop it, that package may be left half-installed; the interrupted work is then finished automatically (dpkg --configure -a). The remaining updates can be done again later. Waiting is the safest choice."
+
+#: guncelleyici/ui.py:675
+msgid "Yine de durdur"
+msgstr "Stop anyway"
+
+#: guncelleyici/ui.py:677
+msgid "{who} henüz paket kurmuyor (indiriyor ya da hazırlanıyor); durdurmak güvenli. Yarım kalan güncellemesi sonra yeniden yapılabilir."
+msgstr "{who} isn't installing packages yet (it's downloading or preparing); stopping it is safe. Its unfinished update can be done again later."
+
+#: guncelleyici/ui.py:681
+msgid "Bilgisayarın şifresi sorulur."
+msgstr "The computer's password is asked."
+
+#: guncelleyici/ui.py:737
+msgid "Şifre penceresi kapatıldı; hiçbir şey durdurulmadı."
+msgstr "The password window was closed; nothing was stopped."
+
+#: guncelleyici/ui.py:738
+msgid "Yönetici izni verilmedi; hiçbir şey durdurulmadı."
+msgstr "Administrator permission was not granted; nothing was stopped."
+
+#: guncelleyici/ui.py:739
+msgid "Kilidi artık başka bir işlem tutuyor ya da bu bir paket aracı değil; dokunulmadı."
+msgstr "Another process holds the lock now, or this isn't a package tool; it was left alone."
+
+#: guncelleyici/ui.py:740
+msgid "Şu an çekirdek ya da önyükleyici kuruluyor; durdurulmadı. Bitmesini bekle."
+msgstr "The kernel or boot loader is being installed right now; it wasn't stopped. Wait for it to finish."
+
+#: guncelleyici/ui.py:741
+msgid "İşlem durmadı."
+msgstr "The process didn't stop."
+
+#: guncelleyici/ui.py:741
+msgid "Durdurulamadı (çıkış kodu {code})."
+msgstr "Couldn't stop it (exit code {code})."
+
+#: guncelleyici/ui.py:827 guncelleyici/ui.py:854
+msgid "Tekrar dene"
+msgstr "Try again"
+
+#: guncelleyici/ui.py:828 guncelleyici/ui.py:855 guncelleyici/ui.py:869
+msgid "Kapat"
+msgstr "Close"
+
+#: guncelleyici/ui.py:852
+msgid "Paket sistemi onarıldı"
+msgstr "The package system was repaired"
+
+#: guncelleyici/ui.py:853
+msgid "Şimdi yeniden deneyebilirsin."
+msgstr "You can try again now."
+
+#: guncelleyici/ui.py:857
+msgid "Paket sistemi onarılıyor"
+msgstr "Repairing the package system"
+
+#: guncelleyici/ui.py:864
+msgid "{name} {version} kuruldu"
+msgstr "{name} {version} installed"
+
+#: guncelleyici/ui.py:881
+msgid "{name} açık; yeni sürümle yeniden başlaması bekleniyor…"
+msgstr "{name} is open; waiting for it to restart with the new version…"
+
+#: guncelleyici/ui.py:887
+msgid "{name} yeni sürümle yeniden başladı."
+msgstr "{name} restarted with the new version."
+
+#: guncelleyici/ui.py:904
+msgid "{name} kendiliğinden yeniden başlamadı (açık olan eski sürüm bunu bilmiyor olabilir)."
+msgstr "{name} didn't restart by itself (the old version that's running may not know how)."
+
+#: guncelleyici/ui.py:906
+msgid "Yeni sürüm için yeniden başlat (kaydedilmemiş işin varsa önce kaydet)."
+msgstr "Restart it for the new version (save any unsaved work first)."
+
+#: guncelleyici/ui.py:912 guncelleyici/ui.py:905
+msgid "{name} şu an açık ve hâlâ eski sürüm çalışıyor."
+msgstr "{name} is open and still running the old version."
+
+#: guncelleyici/ui.py:913
+msgid "Yeni sürüm, uygulamayı kapatıp yeniden açınca devreye girer."
+msgstr "The new version takes effect when you close and reopen the app."
+
+#: guncelleyici/ui.py:922
+msgid "Kapatılıyor…"
+msgstr "Closing…"
+
+#: guncelleyici/ui.py:924
+msgid "Uygulama kapatılamadı; kendin kapatıp yeniden aç"
+msgstr "Couldn't close the app; close and reopen it yourself"
+
+#: guncelleyici/ui.py:933 guncelleyici/ui.py:907
+msgid "Yeniden başlat"
+msgstr "Restart"
+
+#: guncelleyici/ui.py:935
+msgid "Uygulama kapanmadı (bir şey soruyor olabilir); kapatıp yeniden aç"
+msgstr "The app didn't close (it may be asking something); close and reopen it"
+
+#: guncelleyici/ui.py:951
+msgid ".deb dosyaları artık çift tıklayınca Paket Güncelleyici ile açılır"
+msgstr ".deb files now open with Package Updater on double-click"
+
+#: guncelleyici/ui.py:953
+msgid "Varsayılan yapılamadı"
+msgstr "Couldn't make it the default"
+
+#: guncelleyici/ui.py:958 guncelleyici/ui.py:109 guncelleyici/ui.py:1206
+msgid "Kurulu uygulamalar"
+msgstr "Installed apps"
+
+#: guncelleyici/ui.py:962
+msgid "Uygulamalar okunuyor…"
+msgstr "Reading apps…"
+
+#: guncelleyici/ui.py:970
+msgid "Uygulamalar okunamadı"
+msgstr "Couldn't read the apps"
+
+#: guncelleyici/ui.py:987
+msgid "bir .deb dosyasından kuruldu"
+msgstr "installed from a .deb file"
+
+#: guncelleyici/ui.py:993
+msgid "Veriler"
+msgstr "Data"
+
+#: guncelleyici/ui.py:994
+msgid "Önbelleğini ya da ayarlarını temizle (uygulama kalır)"
+msgstr "Clean its cache or settings (the app stays)"
+
+#: guncelleyici/ui.py:1003
+msgid "Paket önbelleği (apt)"
+msgstr "Package cache (apt)"
+
+#: guncelleyici/ui.py:1004
+msgid "İndirilip saklanan paket dosyaları · {size}. Kurulu programlara dokunmaz."
+msgstr "Downloaded package files kept on disk · {size}. Installed programs aren't touched."
+
+#: guncelleyici/ui.py:1007
+msgid "Temizle"
+msgstr "Clean"
+
+#: guncelleyici/ui.py:1012
+msgid "Paketle kurulmuş masaüstü uygulaması bulunamadı."
+msgstr "No desktop apps installed from packages were found."
+
+#: guncelleyici/ui.py:1055
+msgid "Kaldırılınca"
+msgstr "When removed"
+
+#: guncelleyici/ui.py:1061
+msgid "{name} kaldırılacak"
+msgstr "{name} will be removed"
+
+#: guncelleyici/ui.py:1062
+msgid "Programın dosyaları silinir. Ev klasöründeki kişisel ayarların ve belgelerin silinmez."
+msgstr "The program's files are deleted. Your personal settings and documents in your home folder are not."
+
+#: guncelleyici/ui.py:1066
+msgid "Ayrıca {n} paket kaldırılacak"
+msgid_plural "Ayrıca {n} paket kaldırılacak"
+msgstr[0] "{n} more package will be removed"
+msgstr[1] "{n} more packages will be removed"
+
+#: guncelleyici/ui.py:1069
+msgid "Bunlar bu uygulamaya bağlı olanlar."
+msgstr "These depend on this app."
+
+#: guncelleyici/ui.py:1072
+msgid "Bilgi: {names}"
+msgstr "Note: {names}"
+
+#: guncelleyici/ui.py:1073
+msgid "Bu bir “paket listesi” paketidir; kaldırılması masaüstünü bozmaz, yalnızca ileride sürüm yükseltirken bu uygulamanın yeniden kurulmamasına yol açar."
+msgstr "This is a “package list” package; removing it doesn't break the desktop, it only means this app won't be reinstalled during a future release upgrade."
+
+#: guncelleyici/ui.py:1076
+msgid "Bunların da kaldırılmasını onaylıyorum"
+msgstr "I approve removing these too"
+
+#: guncelleyici/ui.py:1077
+msgid "Sistem genelindeki ayarlarını da sil (/etc altındakiler)"
+msgstr "Also delete its system-wide settings (those under /etc)"
+
+#: guncelleyici/ui.py:1081
+msgid "{name} uygulamasını kaldır"
+msgstr "Remove {name}"
+
+#: guncelleyici/ui.py:1104
+msgid "{name} kaldırıldı"
+msgstr "{name} removed"
+
+#: guncelleyici/ui.py:1108
+msgid "Ev klasöründe verileri kaldı ({size}): ayarlar, önbellek. İstersen onları da temizle."
+msgstr "Its data is still in your home folder ({size}): settings, cache. Clean it too if you like."
+
+#: guncelleyici/ui.py:1110
+msgid "Kalan verileri göster"
+msgstr "Show leftover data"
+
+#: guncelleyici/ui.py:1118
+msgid "{name} kaldırılıyor"
+msgstr "Removing {name}"
+
+#: guncelleyici/ui.py:1147
+msgid "Ev klasöründeki verileri · toplam {size}"
+msgstr "Its data in your home folder · {size} total"
+
+#: guncelleyici/ui.py:1155
+msgid "Uygulama şu an açık"
+msgstr "The app is open right now"
+
+#: guncelleyici/ui.py:1156
+msgid "Önce kapat: açıkken temizlenen ayarlar kapanırken yeniden yazılabilir."
+msgstr "Close it first: settings cleaned while it's open may be written back when it closes."
+
+#: guncelleyici/ui.py:1160
+msgid "Klasörler"
+msgstr "Folders"
+
+#: guncelleyici/ui.py:1161
+msgid "Adı bu uygulamayla tam eşleşen klasörler. Önbelleği temizlemek güvenlidir (uygulama yeniden oluşturur); ayarları temizlemek uygulamayı ilk kurulduğu hâline döndürür."
+msgstr "Folders whose name matches this app exactly. Cleaning the cache is safe (the app recreates it); cleaning settings returns the app to its freshly installed state."
+
+#: guncelleyici/ui.py:1174
+msgid "Bulunamadı"
+msgstr "Nothing found"
+
+#: guncelleyici/ui.py:1174
+msgid "Ev klasöründe bu uygulamanın adını taşıyan bir veri klasörü yok. Bazı uygulamalar verisini başka adla tutar; bunlar burada görünmez."
+msgstr "There's no data folder named after this app in your home folder. Some apps keep their data under another name; those don't show up here."
+
+#: guncelleyici/ui.py:1191
+msgid "{n} klasör taşınamadı (dokunulmadı): {first}"
+msgid_plural "{n} klasör taşınamadı (dokunulmadı): {first}"
+msgstr[0] "{n} folder couldn't be moved (left alone): {first}"
+msgstr[1] "{n} folders couldn't be moved (left alone): {first}"
+
+#: guncelleyici/ui.py:1194
+msgid "{size} çöp kutusuna taşındı"
+msgstr "{size} moved to the trash"
+
+#: guncelleyici/ui.py:1204
+msgid "Paket önbelleği temizlendi"
+msgstr "Package cache cleaned"
+
+#: guncelleyici/ui.py:1205
+msgid "{size} boşaldı."
+msgstr "{size} freed."
+
+#: guncelleyici/ui.py:1209
+msgid "Paket önbelleği temizleniyor"
+msgstr "Cleaning the package cache"
+
+#: guncelleyici/ui.py:1221
+msgid "Başka dosya seç"
+msgstr "Choose another file"
+
+#: guncelleyici/ui.py:1271
+msgid "Dil, bu iş bitip pencere yeniden açılınca değişir"
+msgstr "The language changes once this job is done and the window is reopened"
+
+#: guncelleyici/ui.py:1283
+msgid ".deb dosyasını kurulu sürümle karşılaştırır, yayıncının imzasını denetler ve kurar."
+msgstr "Compares a .deb file with the installed version, checks the publisher's signature and installs it."
+
+#: guncelleyici/ui.py:1285
+msgid "Crucible ekibi"
+msgstr "The Crucible team"
+
+#: guncelleyici/ui.py:1286
+msgid "translator-credits"
+msgstr "The Crucible team"
+
+#: guncelleyici/veriler.py:21
+msgid "Önbellek"
+msgstr "Cache"
+
+#: guncelleyici/veriler.py:21
+msgid "Ayarlar"
+msgstr "Settings"
+
+#: guncelleyici/veriler.py:21
+msgid "Kayıtlı veriler"
+msgstr "Saved data"
+
+#: guncelleyici/yayinci.py:108
+msgid "ad"
+msgstr "name"
+
+#: guncelleyici/yayinci.py:108
+msgid "web sitesi"
+msgstr "website"
+
+#: guncelleyici/yayinci.py:108
+msgid "doğrulama adresi"
+msgstr "verification address"
+
+#: guncelleyici/yayinci.py:150
+msgid "güvenli olmayan adrese yönlendirdi"
+msgstr "redirected to an insecure address"
+
+#: guncelleyici/yayinci.py:159
+msgid "adres https değil"
+msgstr "the address isn't https"
+
+#: guncelleyici/yayinci.py:167
+msgid "sayfa bulunamadı ({code})"
+msgstr "page not found ({code})"
+
+#: guncelleyici/yayinci.py:167
+msgid "site {code} döndü"
+msgstr "the site returned {code}"
+
+#: guncelleyici/yayinci.py:172
+msgid "zaman aşımı"
+msgstr "timed out"
+
+#: guncelleyici/yayinci.py:175
+msgid "sayfa çok büyük"
+msgstr "the page is too large"

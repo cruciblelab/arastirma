@@ -23,6 +23,7 @@ _APP = []
 def shared_app():
     """Testlerin tek uygulaması: aynı süreçte aynı kimlikle ikinci kayıt oturum veriyolunda reddedilir."""
     if not _APP:
+        os.environ["PAKET_GUNCELLEYICI_DIL"] = "tr"  # testler Türkçe yazıları denetler (sistem dili ne olursa olsun)
         from guncelleyici.ui import App
         app = App()
         app.register(None)

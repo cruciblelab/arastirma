@@ -1,0 +1,1060 @@
+# Paket Güncelleyici çeviri şablonu (python3 paket/ceviri.py sablon ile üretilir).
+msgid ""
+msgstr ""
+"Project-Id-Version: paket-guncelleyici\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: \n"
+"X-Language-Name: \n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: guncelleyici/apt.py:60
+msgid "apt bu paketi kuramayacağını söyledi."
+msgstr ""
+
+#: guncelleyici/apt.py:151
+msgid "Ubuntu'nun otomatik güncellemesi"
+msgstr ""
+
+#: guncelleyici/apt.py:151
+msgid "Uygulama Merkezi / Yazılım"
+msgstr ""
+
+#: guncelleyici/apt.py:152
+msgid "başka bir apt komutu"
+msgstr ""
+
+#: guncelleyici/apt.py:153
+msgid "başka bir paket kurulumu"
+msgstr ""
+
+#: guncelleyici/apt.py:153
+msgid "Yazılım Güncelleştirici"
+msgstr ""
+
+#: guncelleyici/apt.py:154
+msgid "başka bir paket işlemi"
+msgstr ""
+
+#: guncelleyici/apt.py:198
+msgid "Geçersiz paket adı."
+msgstr ""
+
+#: guncelleyici/apt.py:204
+msgid "apt bu paketi kaldıramayacağını söyledi."
+msgstr ""
+
+#: guncelleyici/arsiv.py:20
+msgid "Bu bir .deb paketi değil."
+msgstr ""
+
+#: guncelleyici/arsiv.py:25
+msgid "Paket dosyası bozuk."
+msgstr ""
+
+#: guncelleyici/arsiv.py:38
+msgid "Paket dosyası eksik ya da bozuk."
+msgstr ""
+
+#: guncelleyici/arsiv.py:56
+msgid "Paketin içi okunamadı: {error}"
+msgstr ""
+
+#: guncelleyici/hatalar.py:27
+msgid "Yarım kalan işi tamamla"
+msgstr ""
+
+#: guncelleyici/hatalar.py:27
+msgid "Bağımlılıkları onar"
+msgstr ""
+
+#: guncelleyici/hatalar.py:43
+msgid "Şifre penceresi kapatıldı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:43
+msgid "Hiçbir şey değişmedi. Yeniden denemek için düğmeye tekrar bas."
+msgstr ""
+
+#: guncelleyici/hatalar.py:45
+msgid "Yönetici izni verilmedi"
+msgstr ""
+
+#: guncelleyici/hatalar.py:45
+msgid "Şifre doğrulanamadı ya da bu kullanıcının yönetici yetkisi yok; hiçbir şey değişmedi."
+msgstr ""
+
+#: guncelleyici/hatalar.py:48
+msgid "Önceki bir kurulum yarıda kalmış"
+msgstr ""
+
+#: guncelleyici/hatalar.py:49
+msgid "Bir kurulum ya da güncelleme kesilmiş (bilgisayar kapanmış, pencere kapatılmış…). Paket sistemi bu düzelmeden başka bir şey kurmaz ya da kaldırmaz. Aşağıdaki düğme yarım kalan işi tamamlar; sonra yeniden dene."
+msgstr ""
+
+#: guncelleyici/hatalar.py:55
+msgid "Dosya çakışması"
+msgstr ""
+
+#: guncelleyici/hatalar.py:56
+msgid "Bu paket {path} dosyasını kurmak istiyor ama o dosya zaten kurulu “{other}” paketine ait. İki paket aynı şeyi kuruyor olabilir (aynı uygulamanın başka bir sürümü ya da adı değişmiş hâli). Önce “{other}” paketini kaldırıp yeniden dene."
+msgstr ""
+
+#: guncelleyici/hatalar.py:61
+msgid "Sistemin temel bir paketi"
+msgstr ""
+
+#: guncelleyici/hatalar.py:62
+msgid "Bu paket bilgisayarın çalışması için gerekli; apt güvenlik için kaldırmayı reddetti. Kaldırılmamalı."
+msgstr ""
+
+#: guncelleyici/hatalar.py:65
+msgid "Zaten kurulu değil"
+msgstr ""
+
+#: guncelleyici/hatalar.py:65
+msgid "Bu paket şu an kurulu değil; kaldırılacak bir şey yok."
+msgstr ""
+
+#: guncelleyici/hatalar.py:70
+msgid "Gerekli bir paket bulunamadı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:71
+msgid "Bu paket “{dep}” paketini istiyor ama bu bilgisayarın paket kaynaklarında uygun sürümü yok. Paket başka bir Ubuntu/Debian sürümü için hazırlanmış olabilir ya da paket listeleri eski: Yazılım Güncelleştirici'yi çalıştırıp yeniden dene. Olmazsa paketin bu Ubuntu sürümüne uygun hâlini yayıncıdan iste."
+msgstr ""
+
+#: guncelleyici/hatalar.py:77
+msgid "Paket sisteminde bozuk bağımlılıklar var"
+msgstr ""
+
+#: guncelleyici/hatalar.py:78
+msgid "Daha önceki bir kurulumdan kalan eksik ya da çakışan paketler var; apt bunlar düzelmeden yeni bir şey yapmıyor. Aşağıdaki düğme eksikleri kurar ya da tamamlar (apt-get -f install); sonra yeniden dene."
+msgstr ""
+
+#: guncelleyici/hatalar.py:82
+msgid "Diskte yer kalmadı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:83
+msgid "İşlem için yeterli boş yer yok. Gereksiz dosyaları sil ya da terminalde “sudo apt clean” ile apt'nin indirdiği eski paketleri temizle, sonra yeniden dene."
+msgstr ""
+
+#: guncelleyici/hatalar.py:87
+msgid "Paketin kendi betiği hata verdi"
+msgstr ""
+
+#: guncelleyici/hatalar.py:88
+msgid "Paketin kaldırma sırasında çalışan betiği hata verdi: bu, paketi hazırlayanın sorunu."
+msgstr ""
+
+#: guncelleyici/hatalar.py:90
+msgid "Paketin kurulum sırasında çalışan betiği hata verdi: bu, paketi hazırlayanın sorunu."
+msgstr ""
+
+#: guncelleyici/hatalar.py:91
+msgid "Aşağıdaki ayrıntıları yayıncıya ilet. Paket sistemi yarım kalmış olabilir; düğme tamamlamayı dener."
+msgstr ""
+
+#: guncelleyici/hatalar.py:95
+msgid "İnternete ulaşılamadı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:96
+msgid "Paketin istediği ek paketler indirilemedi. İnternet bağlantısını kontrol edip yeniden dene."
+msgstr ""
+
+#: guncelleyici/hatalar.py:98 guncelleyici/ui.py:30
+msgid "Bu bilgisayara uygun değil"
+msgstr ""
+
+#: guncelleyici/hatalar.py:99
+msgid "Paket {arch} işlemciler için, bu bilgisayar {mine}. Yayıncıdan doğru sürümü indir."
+msgstr ""
+
+#: guncelleyici/hatalar.py:102
+msgid "Paket bulunamadı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:102
+msgid "apt bu adla bir paket bilmiyor."
+msgstr ""
+
+#: guncelleyici/hatalar.py:104
+msgid "Paket sistemi meşgul kaldı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:105
+msgid "Başka bir paket işlemi kilidi uzun süre bırakmadı (otomatik güncelleme ya da açık bir Yazılım penceresi). Biraz sonra yeniden dene."
+msgstr ""
+
+#: guncelleyici/hatalar.py:110
+msgid "Olmadı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:110
+msgid "Kurulmadı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:110
+msgid "Kaldırılmadı"
+msgstr ""
+
+#: guncelleyici/hatalar.py:111
+msgid "apt {code} koduyla bitti."
+msgstr ""
+
+#: guncelleyici/hatalar.py:112
+msgid "(çıkış kodu {code})"
+msgstr ""
+
+#: guncelleyici/paket.py:117
+msgid "Bu dosya bir .deb paketi olarak okunamadı."
+msgstr ""
+
+#: guncelleyici/paket.py:120
+msgid "Paketin adı ya da sürümü yok."
+msgstr ""
+
+#: guncelleyici/ui.py:26
+msgid "Yeni kurulum"
+msgstr ""
+
+#: guncelleyici/ui.py:26
+msgid "Bu bilgisayarda kurulu değil."
+msgstr ""
+
+#: guncelleyici/ui.py:27
+msgid "Güncelleme"
+msgstr ""
+
+#: guncelleyici/ui.py:27
+msgid "Daha yeni bir sürüm."
+msgstr ""
+
+#: guncelleyici/ui.py:28
+msgid "Aynı sürüm"
+msgstr ""
+
+#: guncelleyici/ui.py:28
+msgid "Bu sürüm zaten kurulu; yeniden kurulabilir."
+msgstr ""
+
+#: guncelleyici/ui.py:29
+msgid "Eski sürüm"
+msgstr ""
+
+#: guncelleyici/ui.py:29
+msgid "Kurulu olandan daha eski. Geri dönmek ayarları bozabilir."
+msgstr ""
+
+#: guncelleyici/ui.py:30
+msgid "Paket başka bir işlemci mimarisi için."
+msgstr ""
+
+#: guncelleyici/ui.py:37
+msgid ","
+msgstr ""
+
+#: guncelleyici/ui.py:60 guncelleyici/ui.py:75 guncelleyici/ui.py:1281
+msgid "Paket Güncelleyici"
+msgstr ""
+
+#: guncelleyici/ui.py:77
+msgid "Başka bir paket aç"
+msgstr ""
+
+#: guncelleyici/ui.py:81
+msgid "Geri (Alt+Sol)"
+msgstr ""
+
+#: guncelleyici/ui.py:84
+msgid "Kurulu uygulamalar (kaldırmak ya da verilerini temizlemek için)"
+msgstr ""
+
+#: guncelleyici/ui.py:89
+msgid "Sistem dili"
+msgstr ""
+
+#: guncelleyici/ui.py:92
+msgid "Dil"
+msgstr ""
+
+#: guncelleyici/ui.py:93
+msgid "Hakkında"
+msgstr ""
+
+#: guncelleyici/ui.py:94
+msgid "Menü"
+msgstr ""
+
+#: guncelleyici/ui.py:101
+msgid "Bir paket dosyası aç"
+msgstr ""
+
+#: guncelleyici/ui.py:102
+msgid "Bir .deb dosyasına sağ tıklayıp “Birlikte aç → Paket Güncelleyici”yi seç ya da buradan seç. Kurulu sürümle karşılaştırılır, yayıncının imzası denetlenir; kurmadan önce ne değişeceği gösterilir."
+msgstr ""
+
+#: guncelleyici/ui.py:106
+msgid "Dosya seç"
+msgstr ""
+
+#: guncelleyici/ui.py:110
+msgid "Kaldırmak ya da verilerini temizlemek için: paketle kurulmuş uygulamalar, dosyadan kurulanlar üstte"
+msgstr ""
+
+#: guncelleyici/ui.py:115
+msgid "Çift tıklayınca .deb dosyaları bununla açılsın"
+msgstr ""
+
+#: guncelleyici/ui.py:124
+msgid "Uygulama ara"
+msgstr ""
+
+#: guncelleyici/ui.py:142
+msgid "Paket okunuyor, imza denetleniyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:171
+msgid "Durmaya zorla…"
+msgstr ""
+
+#: guncelleyici/ui.py:174
+msgid "Vazgeç"
+msgstr ""
+
+#: guncelleyici/ui.py:177 guncelleyici/ui.py:679
+msgid "Durdur"
+msgstr ""
+
+#: guncelleyici/ui.py:192
+msgid "Ayrıntılar (apt çıktısı)"
+msgstr ""
+
+#: guncelleyici/ui.py:218
+msgid "Kurulum sürüyor; bitince kapanabilir"
+msgstr ""
+
+#: guncelleyici/ui.py:225
+msgid "Paket dosyası seç"
+msgstr ""
+
+#: guncelleyici/ui.py:226 guncelleyici/ui.py:915
+msgid "Aç"
+msgstr ""
+
+#: guncelleyici/ui.py:227
+msgid "Debian paketleri (.deb)"
+msgstr ""
+
+#: guncelleyici/ui.py:269
+msgid "Paket okunamadı"
+msgstr ""
+
+#: guncelleyici/ui.py:289 guncelleyici/ui.py:1048
+msgid "Paket: {name}"
+msgstr ""
+
+#: guncelleyici/ui.py:297
+msgid "Sürüm"
+msgstr ""
+
+#: guncelleyici/ui.py:298
+msgid "Kurulu {old}  →  bu dosya {new}"
+msgstr ""
+
+#: guncelleyici/ui.py:299
+msgid "Bu dosya {new}"
+msgstr ""
+
+#: guncelleyici/ui.py:307
+msgid "Eski sürüme dönmek istiyorum"
+msgstr ""
+
+#: guncelleyici/ui.py:317
+msgid "Ayrıntılar"
+msgstr ""
+
+#: guncelleyici/ui.py:318
+msgid "Dosya"
+msgstr ""
+
+#: guncelleyici/ui.py:319
+msgid "Boyut"
+msgstr ""
+
+#: guncelleyici/ui.py:321
+msgid "Paketi hazırlayan"
+msgstr ""
+
+#: guncelleyici/ui.py:321
+msgid "(pakette yazan; imza değil)"
+msgstr ""
+
+#: guncelleyici/ui.py:324
+msgid "Ana sayfa"
+msgstr ""
+
+#: guncelleyici/ui.py:326
+msgid "Kurulu sürümü kaldır"
+msgstr ""
+
+#: guncelleyici/ui.py:327
+msgid "{name} {version} bu bilgisayardan kaldırılır (önce ne olacağı gösterilir)."
+msgstr ""
+
+#: guncelleyici/ui.py:329 guncelleyici/ui.py:997
+msgid "Kaldır"
+msgstr ""
+
+#: guncelleyici/ui.py:335
+msgid "Açıklama"
+msgstr ""
+
+#: guncelleyici/ui.py:373
+msgid "Yayıncı"
+msgstr ""
+
+#: guncelleyici/ui.py:376
+msgid "İmza kurulu sürümün anahtarıyla tutuyor. Paket, kurulu sürümü yayımlayan kişiden geliyor."
+msgstr ""
+
+#: guncelleyici/ui.py:378
+msgid "İmza daha önce onayladığın anahtarla tutuyor. Paket, kurulu sürümü yayımlayan kişiden geliyor."
+msgstr ""
+
+#: guncelleyici/ui.py:380
+msgid "Aynı yayıncı"
+msgstr ""
+
+#: guncelleyici/ui.py:382
+msgid "İmzalı, yayıncı ilk kez görülüyor"
+msgstr ""
+
+#: guncelleyici/ui.py:383
+msgid "Bu yayıncıdan daha önce imzalı paket kurulmamış. Parmak izini yayıncının sitesinde yazanla karşılaştır (yayıncı bir doğrulama adresi verdiyse bu aşağıda kendiliğinden yapılır). Kurarsan bu anahtar kaydedilir; sonraki sürümler bununla denetlenir."
+msgstr ""
+
+#: guncelleyici/ui.py:388
+msgid "Farklı yayıncı"
+msgstr ""
+
+#: guncelleyici/ui.py:389
+msgid "İmza geçerli ama kurulu sürümü yayımlayan anahtar değil. Başka biri hazırlamış olabilir: yayıncı anahtarını değiştirdiğini duyurmadıysa kurma."
+msgstr ""
+
+#: guncelleyici/ui.py:391
+msgid "Yayıncının değiştiğini biliyorum, yine de kur"
+msgstr ""
+
+#: guncelleyici/ui.py:393
+msgid "İmza tutmuyor"
+msgstr ""
+
+#: guncelleyici/ui.py:394
+msgid "Paket imzalı ama imza içerikle uyuşmuyor: dosya bozulmuş ya da değiştirilmiş olabilir. Paketi yayıncının sitesinden yeniden indir."
+msgstr ""
+
+#: guncelleyici/ui.py:396
+msgid "Riskini biliyorum, yine de kur"
+msgstr ""
+
+#: guncelleyici/ui.py:399
+msgid "İmzasız (önceki sürüm imzalıydı)"
+msgstr ""
+
+#: guncelleyici/ui.py:400
+msgid "Kurulu sürüm imzalıydı, bu dosya değil. Yayıncı imzalamayı bırakmadıysa bu dosya başka birinden gelmiş olabilir."
+msgstr ""
+
+#: guncelleyici/ui.py:402
+msgid "İmzasız olduğunu biliyorum, yine de kur"
+msgstr ""
+
+#: guncelleyici/ui.py:404
+msgid "İmzasız"
+msgstr ""
+
+#: guncelleyici/ui.py:405
+msgid "Yayıncı bu paketi imzalamamış; kimden geldiği denetlenemiyor. Güvendiğin bir yerden indirdiysen kurabilirsin (çoğu .deb imzasızdır)."
+msgstr ""
+
+#: guncelleyici/ui.py:409
+msgid "Parmak izi"
+msgstr ""
+
+#: guncelleyici/ui.py:417
+msgid "Yayıncı bilgisi"
+msgstr ""
+
+#: guncelleyici/ui.py:418
+msgid "Pakette yayıncının kendi yazdığı bilgi. Gerçekten ona ait olduğunu aşağıdaki site doğrulaması gösterir."
+msgstr ""
+
+#: guncelleyici/ui.py:420
+msgid "Kurum: {value}"
+msgstr ""
+
+#: guncelleyici/ui.py:421
+msgid "Yetkili: {value}"
+msgstr ""
+
+#: guncelleyici/ui.py:422
+msgid "Web: {value}"
+msgstr ""
+
+#: guncelleyici/ui.py:423
+msgid "İletişim: {value}"
+msgstr ""
+
+#: guncelleyici/ui.py:426
+msgid "Siteyi aç"
+msgstr ""
+
+#: guncelleyici/ui.py:433
+msgid "Yayıncı bilgisi değişmiş"
+msgstr ""
+
+#: guncelleyici/ui.py:434
+msgid "Kurulu sürümde {fields} farklıydı: önce “{old}”"
+msgstr ""
+
+#: guncelleyici/ui.py:438
+msgid "Site doğrulaması yapılamaz"
+msgstr ""
+
+#: guncelleyici/ui.py:439
+msgid "Paketin geçerli bir imzası yok; yukarıdaki bilgi kimin yazdığı bilinmeyen bir beyan."
+msgstr ""
+
+#: guncelleyici/ui.py:446
+msgid "Doğrulama adresi yok"
+msgstr ""
+
+#: guncelleyici/ui.py:447
+msgid "Yayıncı, parmak izini yayımladığı bir adres vermemiş; bilgi doğrulanamıyor."
+msgstr ""
+
+#: guncelleyici/ui.py:451
+msgid "Site doğrulanıyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:470
+msgid "Site doğruladı"
+msgstr ""
+
+#: guncelleyici/ui.py:471
+msgid "{site} bu imzanın parmak izini yayımlıyor: anahtar, bu sitenin sahibine ait."
+msgstr ""
+
+#: guncelleyici/ui.py:474
+msgid "Site doğruladı, ama başka bir adreste"
+msgstr ""
+
+#: guncelleyici/ui.py:475
+msgid "{site} bu parmak izini yayımlıyor; ancak bu adres yayıncının web sitesiyle aynı yerde değil. Bu yalnızca o adresi yönetenin anahtarı onayladığını gösterir."
+msgstr ""
+
+#: guncelleyici/ui.py:480
+msgid "Site bu anahtarı listelemiyor"
+msgstr ""
+
+#: guncelleyici/ui.py:481
+msgid "{site} açıldı ama bu imzanın parmak izi orada yok. Yayıncı anahtarını değiştirmiş ve siteyi güncellememiş olabilir; ya da paket başkasından."
+msgstr ""
+
+#: guncelleyici/ui.py:486
+msgid "Site doğrulanamadı"
+msgstr ""
+
+#: guncelleyici/ui.py:487
+msgid "{site} adresine ulaşılamadı ({reason}). İnternet yoksa normal; yukarıdaki imza denetimi bundan bağımsız."
+msgstr ""
+
+#: guncelleyici/ui.py:491
+msgid "(Kurulu sürümün verdiği doğrulama adresi kullanıldı.)"
+msgstr ""
+
+#: guncelleyici/ui.py:500
+msgid "Kurulunca"
+msgstr ""
+
+#: guncelleyici/ui.py:500 guncelleyici/ui.py:1056
+msgid "apt'nin denemesi; henüz hiçbir şey değişmedi."
+msgstr ""
+
+#: guncelleyici/ui.py:508 guncelleyici/ui.py:1068
+msgid "ve {n} paket daha"
+msgid_plural "ve {n} paket daha"
+msgstr[0] ""
+msgstr[1] ""
+
+#: guncelleyici/ui.py:509
+msgid "Ayrıca {n} paket kurulacak ya da güncellenecek"
+msgid_plural "Ayrıca {n} paket kurulacak ya da güncellenecek"
+msgstr[0] ""
+msgstr[1] ""
+
+#: guncelleyici/ui.py:512
+msgid "{n} paket kaldırılacak"
+msgid_plural "{n} paket kaldırılacak"
+msgstr[0] ""
+msgstr[1] ""
+
+#: guncelleyici/ui.py:514
+msgid "Bu paketlerin kaldırılmasını onaylıyorum"
+msgstr ""
+
+#: guncelleyici/ui.py:516
+msgid "Yalnızca bu paket"
+msgstr ""
+
+#: guncelleyici/ui.py:516
+msgid "Başka paket kurulmayacak ya da kaldırılmayacak."
+msgstr ""
+
+#: guncelleyici/ui.py:522
+msgid "Kur"
+msgstr ""
+
+#: guncelleyici/ui.py:522
+msgid "{version} sürümüne güncelle"
+msgstr ""
+
+#: guncelleyici/ui.py:523
+msgid "Yeniden kur"
+msgstr ""
+
+#: guncelleyici/ui.py:524
+msgid "{version} sürümüne geri dön"
+msgstr ""
+
+#: guncelleyici/ui.py:525
+msgid "Kurulamaz"
+msgstr ""
+
+#: guncelleyici/ui.py:533
+msgid "Seçilenleri temizle ({size})"
+msgstr ""
+
+#: guncelleyici/ui.py:534
+msgid "Seçilenleri temizle"
+msgstr ""
+
+#: guncelleyici/ui.py:536
+msgid "Çöp kutusuna taşınır: geri almak için Dosyalar → Çöp → Geri yükle. Şifre gerekmez."
+msgstr ""
+
+#: guncelleyici/ui.py:537
+msgid "Temizlenecek klasörü işaretle."
+msgstr ""
+
+#: guncelleyici/ui.py:541
+msgid "apt bu paketi kaldıramayacağını söylüyor (yukarıda)."
+msgstr ""
+
+#: guncelleyici/ui.py:543 guncelleyici/ui.py:553
+msgid "Devam etmek için yukarıdaki kutuyu işaretle."
+msgstr ""
+
+#: guncelleyici/ui.py:545
+msgid "Kaldırmak için bilgisayarın şifresi sorulur."
+msgstr ""
+
+#: guncelleyici/ui.py:548
+msgid "Paket “{arch}” için; bu bilgisayar {mine}."
+msgstr ""
+
+#: guncelleyici/ui.py:551
+msgid "apt bu paketi kuramayacağını söylüyor (yukarıda)."
+msgstr ""
+
+#: guncelleyici/ui.py:555
+msgid "Kurulum için bilgisayarın şifresi sorulur."
+msgstr ""
+
+#: guncelleyici/ui.py:565
+msgid "{name} kuruluyor"
+msgstr ""
+
+#: guncelleyici/ui.py:575 guncelleyici/ui.py:696
+msgid "Şifre bekleniyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:585
+msgid "Başlatılamadı"
+msgstr ""
+
+#: guncelleyici/ui.py:619
+msgid "Sırada: {who} şu an paket kilidini tutuyor (süreç {pid})."
+msgstr ""
+
+#: guncelleyici/ui.py:620
+msgid "Sırada: {who} şu an paket kilidini tutuyor."
+msgstr ""
+
+#: guncelleyici/ui.py:621
+msgid "O bitince kurulum kendiliğinden başlar; bir şey yapmana gerek yok."
+msgstr ""
+
+#: guncelleyici/ui.py:640
+msgid "Durması istendi; o anki paketi bitirmesi bekleniyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:641
+msgid "Kendiliğinden durmadı; zorla durduruluyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:642
+msgid "Yarıda kalan paketin bitmesi bekleniyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:643
+msgid "Yarım kalan iş tamamlanıyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:644
+msgid "Durduruldu. Kurulum başlıyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:665
+msgid "Şu an çekirdek ya da önyükleyici kuruluyor. Bunu yarıda kesmek bilgisayarın açılmamasına yol açabilir; durdurulmaz. Bitmesini bekle: kurulum sonra kendiliğinden başlar."
+msgstr ""
+
+#: guncelleyici/ui.py:670
+msgid "{who} şu an paket kuruyor ({names})."
+msgstr ""
+
+#: guncelleyici/ui.py:671
+msgid "{who} şu an paket kuruyor."
+msgstr ""
+
+#: guncelleyici/ui.py:672
+msgid "Durdurursan o paket yarım kalabilir; ardından yarım kalan iş kendiliğinden tamamlanır (dpkg --configure -a). Kalan güncellemeler sonra yeniden yapılabilir. Beklemek en güvenlisi."
+msgstr ""
+
+#: guncelleyici/ui.py:675
+msgid "Yine de durdur"
+msgstr ""
+
+#: guncelleyici/ui.py:677
+msgid "{who} henüz paket kurmuyor (indiriyor ya da hazırlanıyor); durdurmak güvenli. Yarım kalan güncellemesi sonra yeniden yapılabilir."
+msgstr ""
+
+#: guncelleyici/ui.py:681
+msgid "Bilgisayarın şifresi sorulur."
+msgstr ""
+
+#: guncelleyici/ui.py:737
+msgid "Şifre penceresi kapatıldı; hiçbir şey durdurulmadı."
+msgstr ""
+
+#: guncelleyici/ui.py:738
+msgid "Yönetici izni verilmedi; hiçbir şey durdurulmadı."
+msgstr ""
+
+#: guncelleyici/ui.py:739
+msgid "Kilidi artık başka bir işlem tutuyor ya da bu bir paket aracı değil; dokunulmadı."
+msgstr ""
+
+#: guncelleyici/ui.py:740
+msgid "Şu an çekirdek ya da önyükleyici kuruluyor; durdurulmadı. Bitmesini bekle."
+msgstr ""
+
+#: guncelleyici/ui.py:741
+msgid "İşlem durmadı."
+msgstr ""
+
+#: guncelleyici/ui.py:741
+msgid "Durdurulamadı (çıkış kodu {code})."
+msgstr ""
+
+#: guncelleyici/ui.py:827 guncelleyici/ui.py:854
+msgid "Tekrar dene"
+msgstr ""
+
+#: guncelleyici/ui.py:828 guncelleyici/ui.py:855 guncelleyici/ui.py:869
+msgid "Kapat"
+msgstr ""
+
+#: guncelleyici/ui.py:852
+msgid "Paket sistemi onarıldı"
+msgstr ""
+
+#: guncelleyici/ui.py:853
+msgid "Şimdi yeniden deneyebilirsin."
+msgstr ""
+
+#: guncelleyici/ui.py:857
+msgid "Paket sistemi onarılıyor"
+msgstr ""
+
+#: guncelleyici/ui.py:864
+msgid "{name} {version} kuruldu"
+msgstr ""
+
+#: guncelleyici/ui.py:881
+msgid "{name} açık; yeni sürümle yeniden başlaması bekleniyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:887
+msgid "{name} yeni sürümle yeniden başladı."
+msgstr ""
+
+#: guncelleyici/ui.py:904
+msgid "{name} kendiliğinden yeniden başlamadı (açık olan eski sürüm bunu bilmiyor olabilir)."
+msgstr ""
+
+#: guncelleyici/ui.py:906
+msgid "Yeni sürüm için yeniden başlat (kaydedilmemiş işin varsa önce kaydet)."
+msgstr ""
+
+#: guncelleyici/ui.py:912 guncelleyici/ui.py:905
+msgid "{name} şu an açık ve hâlâ eski sürüm çalışıyor."
+msgstr ""
+
+#: guncelleyici/ui.py:913
+msgid "Yeni sürüm, uygulamayı kapatıp yeniden açınca devreye girer."
+msgstr ""
+
+#: guncelleyici/ui.py:922
+msgid "Kapatılıyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:924
+msgid "Uygulama kapatılamadı; kendin kapatıp yeniden aç"
+msgstr ""
+
+#: guncelleyici/ui.py:933 guncelleyici/ui.py:907
+msgid "Yeniden başlat"
+msgstr ""
+
+#: guncelleyici/ui.py:935
+msgid "Uygulama kapanmadı (bir şey soruyor olabilir); kapatıp yeniden aç"
+msgstr ""
+
+#: guncelleyici/ui.py:951
+msgid ".deb dosyaları artık çift tıklayınca Paket Güncelleyici ile açılır"
+msgstr ""
+
+#: guncelleyici/ui.py:953
+msgid "Varsayılan yapılamadı"
+msgstr ""
+
+#: guncelleyici/ui.py:958 guncelleyici/ui.py:109 guncelleyici/ui.py:1206
+msgid "Kurulu uygulamalar"
+msgstr ""
+
+#: guncelleyici/ui.py:962
+msgid "Uygulamalar okunuyor…"
+msgstr ""
+
+#: guncelleyici/ui.py:970
+msgid "Uygulamalar okunamadı"
+msgstr ""
+
+#: guncelleyici/ui.py:987
+msgid "bir .deb dosyasından kuruldu"
+msgstr ""
+
+#: guncelleyici/ui.py:993
+msgid "Veriler"
+msgstr ""
+
+#: guncelleyici/ui.py:994
+msgid "Önbelleğini ya da ayarlarını temizle (uygulama kalır)"
+msgstr ""
+
+#: guncelleyici/ui.py:1003
+msgid "Paket önbelleği (apt)"
+msgstr ""
+
+#: guncelleyici/ui.py:1004
+msgid "İndirilip saklanan paket dosyaları · {size}. Kurulu programlara dokunmaz."
+msgstr ""
+
+#: guncelleyici/ui.py:1007
+msgid "Temizle"
+msgstr ""
+
+#: guncelleyici/ui.py:1012
+msgid "Paketle kurulmuş masaüstü uygulaması bulunamadı."
+msgstr ""
+
+#: guncelleyici/ui.py:1055
+msgid "Kaldırılınca"
+msgstr ""
+
+#: guncelleyici/ui.py:1061
+msgid "{name} kaldırılacak"
+msgstr ""
+
+#: guncelleyici/ui.py:1062
+msgid "Programın dosyaları silinir. Ev klasöründeki kişisel ayarların ve belgelerin silinmez."
+msgstr ""
+
+#: guncelleyici/ui.py:1066
+msgid "Ayrıca {n} paket kaldırılacak"
+msgid_plural "Ayrıca {n} paket kaldırılacak"
+msgstr[0] ""
+msgstr[1] ""
+
+#: guncelleyici/ui.py:1069
+msgid "Bunlar bu uygulamaya bağlı olanlar."
+msgstr ""
+
+#: guncelleyici/ui.py:1072
+msgid "Bilgi: {names}"
+msgstr ""
+
+#: guncelleyici/ui.py:1073
+msgid "Bu bir “paket listesi” paketidir; kaldırılması masaüstünü bozmaz, yalnızca ileride sürüm yükseltirken bu uygulamanın yeniden kurulmamasına yol açar."
+msgstr ""
+
+#: guncelleyici/ui.py:1076
+msgid "Bunların da kaldırılmasını onaylıyorum"
+msgstr ""
+
+#: guncelleyici/ui.py:1077
+msgid "Sistem genelindeki ayarlarını da sil (/etc altındakiler)"
+msgstr ""
+
+#: guncelleyici/ui.py:1081
+msgid "{name} uygulamasını kaldır"
+msgstr ""
+
+#: guncelleyici/ui.py:1104
+msgid "{name} kaldırıldı"
+msgstr ""
+
+#: guncelleyici/ui.py:1108
+msgid "Ev klasöründe verileri kaldı ({size}): ayarlar, önbellek. İstersen onları da temizle."
+msgstr ""
+
+#: guncelleyici/ui.py:1110
+msgid "Kalan verileri göster"
+msgstr ""
+
+#: guncelleyici/ui.py:1118
+msgid "{name} kaldırılıyor"
+msgstr ""
+
+#: guncelleyici/ui.py:1147
+msgid "Ev klasöründeki verileri · toplam {size}"
+msgstr ""
+
+#: guncelleyici/ui.py:1155
+msgid "Uygulama şu an açık"
+msgstr ""
+
+#: guncelleyici/ui.py:1156
+msgid "Önce kapat: açıkken temizlenen ayarlar kapanırken yeniden yazılabilir."
+msgstr ""
+
+#: guncelleyici/ui.py:1160
+msgid "Klasörler"
+msgstr ""
+
+#: guncelleyici/ui.py:1161
+msgid "Adı bu uygulamayla tam eşleşen klasörler. Önbelleği temizlemek güvenlidir (uygulama yeniden oluşturur); ayarları temizlemek uygulamayı ilk kurulduğu hâline döndürür."
+msgstr ""
+
+#: guncelleyici/ui.py:1174
+msgid "Bulunamadı"
+msgstr ""
+
+#: guncelleyici/ui.py:1174
+msgid "Ev klasöründe bu uygulamanın adını taşıyan bir veri klasörü yok. Bazı uygulamalar verisini başka adla tutar; bunlar burada görünmez."
+msgstr ""
+
+#: guncelleyici/ui.py:1191
+msgid "{n} klasör taşınamadı (dokunulmadı): {first}"
+msgid_plural "{n} klasör taşınamadı (dokunulmadı): {first}"
+msgstr[0] ""
+msgstr[1] ""
+
+#: guncelleyici/ui.py:1194
+msgid "{size} çöp kutusuna taşındı"
+msgstr ""
+
+#: guncelleyici/ui.py:1204
+msgid "Paket önbelleği temizlendi"
+msgstr ""
+
+#: guncelleyici/ui.py:1205
+msgid "{size} boşaldı."
+msgstr ""
+
+#: guncelleyici/ui.py:1209
+msgid "Paket önbelleği temizleniyor"
+msgstr ""
+
+#: guncelleyici/ui.py:1221
+msgid "Başka dosya seç"
+msgstr ""
+
+#: guncelleyici/ui.py:1271
+msgid "Dil, bu iş bitip pencere yeniden açılınca değişir"
+msgstr ""
+
+#: guncelleyici/ui.py:1283
+msgid ".deb dosyasını kurulu sürümle karşılaştırır, yayıncının imzasını denetler ve kurar."
+msgstr ""
+
+#: guncelleyici/ui.py:1285
+msgid "Crucible ekibi"
+msgstr ""
+
+#: guncelleyici/ui.py:1286
+msgid "translator-credits"
+msgstr ""
+
+#: guncelleyici/veriler.py:21
+msgid "Önbellek"
+msgstr ""
+
+#: guncelleyici/veriler.py:21
+msgid "Ayarlar"
+msgstr ""
+
+#: guncelleyici/veriler.py:21
+msgid "Kayıtlı veriler"
+msgstr ""
+
+#: guncelleyici/yayinci.py:108
+msgid "ad"
+msgstr ""
+
+#: guncelleyici/yayinci.py:108
+msgid "web sitesi"
+msgstr ""
+
+#: guncelleyici/yayinci.py:108
+msgid "doğrulama adresi"
+msgstr ""
+
+#: guncelleyici/yayinci.py:150
+msgid "güvenli olmayan adrese yönlendirdi"
+msgstr ""
+
+#: guncelleyici/yayinci.py:159
+msgid "adres https değil"
+msgstr ""
+
+#: guncelleyici/yayinci.py:167
+msgid "sayfa bulunamadı ({code})"
+msgstr ""
+
+#: guncelleyici/yayinci.py:167
+msgid "site {code} döndü"
+msgstr ""
+
+#: guncelleyici/yayinci.py:172
+msgid "zaman aşımı"
+msgstr ""
+
+#: guncelleyici/yayinci.py:175
+msgid "sayfa çok büyük"
+msgstr ""

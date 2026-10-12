@@ -4,7 +4,9 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>CC-BY-NC-4.0</project_license>
   <name>Paket Güncelleyici</name>
+  <name xml:lang="en">Package Updater</name>
   <summary>.deb dosyasını kurulu sürümle karşılaştırıp imzasını denetleyerek kurar</summary>
+  <summary xml:lang="en">Installs a .deb file after comparing it with the installed version and checking its signature</summary>
   <description>
     <p>Ubuntu'nun Uygulama Merkezi yerel .deb dosyasında sürümleri karşılaştırmıyor; o adla paket kuruluysa yalnızca kaldırmayı gösteriyor. Paket Güncelleyici dosyayı kurulu sürümle karşılaştırır (yeni kurulum, güncelleme, aynı sürüm, eski sürüm), yayıncının imzasını kurulu sürümün anahtarıyla denetler, kurmadan önce başka hangi paketlerin kurulacağını ya da kaldırılacağını gösterir ve Ubuntu'nun otomatik güncellemesi sürerken sıraya girip bekler.</p>
   </description>
@@ -13,6 +15,9 @@
   <developer id="lab.crucible"><name>Crucible ekibi</name></developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.0" date="2026-10-12">
+      <description><p>Dil desteği: İngilizce eklendi (sistem dili ya da Menü → Dil); başka diller tek bir .po dosyasıyla eklenebilir (guncelleyici/diller/README.md). Sırada beklerken “Durmaya zorla”: paket kilidini tutan işlemin (ör. otomatik güncelleme) ne yaptığı söylenir ve istenirse durdurulur; çekirdek ya da önyükleyici kurulurken izin verilmez, sonrasında yarım kalan iş kendiliğinden tamamlanır.</p></description>
+    </release>
     <release version="0.3.1" date="2026-10-12">
       <description><p>Başlıkta Geri düğmesi (Alt+Sol): uygulamanın verileri, kaldırma ve sonuç sayfalarından listeye döner. Kurulu uygulamalarda arama artık listeyi süzüyor (önceden hiçbir satırı gizlemiyordu); tek eşleşmede Enter verilerini açar.</p></description>
     </release>

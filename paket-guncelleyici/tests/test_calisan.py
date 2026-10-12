@@ -125,7 +125,8 @@ class CalisanTest(unittest.TestCase):
     def test_result_page_restart(self):
         import tempfile
         res = subprocess.run(["dbus-run-session", "--", sys.executable, "-c", WINDOW, str(ROOT), APP,
-                              tempfile.mkdtemp()], capture_output=True, text=True, timeout=120)
+                              tempfile.mkdtemp()], capture_output=True, text=True, timeout=120,
+                             env=dict(os.environ, PAKET_GUNCELLEYICI_DIL="tr"))  # Türkçe yazıları denetler
         self.assertIn("tamam", res.stdout, res.stdout[-1000:] + res.stderr[-3000:])
 
     def test_names(self):

@@ -11,6 +11,7 @@ from configparser import ConfigParser
 from dataclasses import dataclass, field
 
 from . import arsiv
+from .dil import _t
 
 # Karar: dosya ile kurulu sürüm arasındaki ilişki
 KUR, GUNCELLE, AYNI, ESKI, UYUMSUZ = "kur", "guncelle", "ayni", "eski", "uyumsuz"
@@ -113,10 +114,10 @@ def read(path: str) -> Paket:
     path = os.path.abspath(path)
     res = _run("dpkg-deb", "-f", path)
     if res.returncode != 0:
-        raise ValueError("Bu dosya bir .deb paketi olarak okunamadı.")
+        raise ValueError(_t("Bu dosya bir .deb paketi olarak okunamadı."))
     c = control(res.stdout)
     if not c.get("Package") or not c.get("Version"):
-        raise ValueError("Paketin adı ya da sürümü yok.")
+        raise ValueError(_t("Paketin adı ya da sürümü yok."))
     summary, _, rest = c.get("Description", "").partition("\n")
     p = Paket(path=path, package=c["Package"], version=c["Version"], arch=c.get("Architecture", "all"),
               summary=summary.strip(), description="\n".join(

@@ -25,6 +25,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from .dil import _t
+
 ALANLAR = ("yayinci", "kurum", "yetkili", "web", "iletisim", "dogrulama")
 EN_COK_KART = 16 * 1024
 EN_COK_SAYFA = 64 * 1024
@@ -103,7 +105,7 @@ def changed(old: Kart | None, new: Kart | None) -> list[str]:
     """Kurulu sürümden bu yana değişen önemli alanlar (yayıncı değişimi işareti)."""
     if not old or not new:
         return []
-    names = {"yayinci": "ad", "web": "web sitesi", "dogrulama": "doğrulama adresi"}
+    names = {"yayinci": _t("ad"), "web": _t("web sitesi"), "dogrulama": _t("doğrulama adresi")}
     return [names[k] for k in names if getattr(old, k) != getattr(new, k)]
 
 
@@ -145,7 +147,7 @@ def lists(text: str, fingerprint: str) -> bool:
 class _OnlyHttps(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         if not _https(newurl):
-            raise urllib.error.URLError("güvenli olmayan adrese yönlendirdi")
+            raise urllib.error.URLError(_t("güvenli olmayan adrese yönlendirdi"))
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -154,7 +156,7 @@ def verify(url: str, fingerprint: str, web: str = "", timeout: float = 8,
     """Doğrulama sayfasını indirir (yalnızca https, en çok 64 KB) ve parmak izini arar."""
     result = Dogrulama(ULASILAMADI, url, same_site=same_site(web, url))
     if not _https(url):
-        result.detail = "adres https değil"
+        result.detail = _t("adres https değil")
         return result
     opener = urllib.request.build_opener(_OnlyHttps, urllib.request.HTTPSHandler(context=context))
     req = urllib.request.Request(url, headers={"User-Agent": "paket-guncelleyici"})
@@ -162,14 +164,15 @@ def verify(url: str, fingerprint: str, web: str = "", timeout: float = 8,
         with opener.open(req, timeout=timeout) as res:
             body = res.read(EN_COK_SAYFA + 1)
     except urllib.error.HTTPError as e:
-        result.detail = f"sayfa bulunamadı ({e.code})" if e.code == 404 else f"site {e.code} döndü"
+        result.detail = (_t("sayfa bulunamadı ({code})") if e.code == 404 else _t("site {code} döndü")).format(
+            code=e.code)
         return result
     except (urllib.error.URLError, OSError, ValueError) as e:
         reason = getattr(e, "reason", e)
-        result.detail = "zaman aşımı" if "timed out" in str(reason) else str(reason)
+        result.detail = _t("zaman aşımı") if "timed out" in str(reason) else str(reason)
         return result
     if len(body) > EN_COK_SAYFA:
-        result.detail = "sayfa çok büyük"
+        result.detail = _t("sayfa çok büyük")
         return result
     result.state = DOGRULANDI if lists(body.decode("utf-8", "replace"), fingerprint) else LISTEDE_YOK
     return result

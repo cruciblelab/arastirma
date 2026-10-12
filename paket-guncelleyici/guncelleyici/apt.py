@@ -13,6 +13,9 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
+from pathlib import Path
+
+from .dil import _t
 
 LOCK_WAIT_SECONDS = 2 * 60 * 60
 
@@ -54,7 +57,7 @@ def simulate(path: str, flags: list[str]) -> Deneme:
     d = parse_simulation(res.stdout + "\n" + res.stderr)
     if res.returncode != 0 and not d.errors:
         d.errors.append((res.stderr or res.stdout).strip().splitlines()[-1] if (res.stderr or res.stdout).strip()
-                        else "apt bu paketi kuramayacağını söyledi.")
+                        else _t("apt bu paketi kuramayacağını söyledi."))
     return d
 
 
@@ -145,14 +148,10 @@ class Ayristirici:
 
 
 def holder_text(holder: str | None) -> str:
-    names = {"unattended-upgr": "Ubuntu'nun otomatik güncellemesi", "packagekitd": "Uygulama Merkezi / Yazılım",
-             "apt": "başka bir apt komutu", "apt-get": "başka bir apt komutu", "dpkg": "başka bir paket kurulumu",
-             "aptd": "Yazılım Güncelleştirici", "snapd": "snap"}
-    return names.get(holder or "", holder or "başka bir paket işlemi")
-
-
-EXIT_TEXT = {126: "Şifre penceresi kapatıldı; hiçbir şey değişmedi.",
-             127: "Yönetici izni verilmedi; hiçbir şey değişmedi."}
+    names = {"unattended-upgr": _t("Ubuntu'nun otomatik güncellemesi"), "packagekitd": _t("Uygulama Merkezi / Yazılım"),
+             "apt": _t("başka bir apt komutu"), "apt-get": _t("başka bir apt komutu"),
+             "dpkg": _t("başka bir paket kurulumu"), "aptd": _t("Yazılım Güncelleştirici"), "snapd": "snap"}
+    return names.get(holder or "", holder or _t("başka bir paket işlemi"))
 
 
 # ---- kaldırma ve onarım -----------------------------------------------------------------------
@@ -196,13 +195,13 @@ def dpkg_interrupted(updates_dir: str = "/var/lib/dpkg/updates") -> bool:
 def simulate_remove(package: str, purge: bool = False) -> Deneme:
     """Kaldırınca başka ne gider: yetki istemeden deneme."""
     if not valid_package(package):
-        return Deneme(errors=["Geçersiz paket adı."])
+        return Deneme(errors=[_t("Geçersiz paket adı.")])
     res = subprocess.run(["apt-get", "-s", "-q", "purge" if purge else "remove", package], capture_output=True,
                          text=True, env=dict(os.environ, LC_ALL="C.UTF-8"), timeout=120)
     d = parse_simulation(res.stdout + "\n" + res.stderr)
     if res.returncode != 0 and not d.errors:
         out = (res.stderr or res.stdout).strip().splitlines()
-        d.errors.append(out[-1] if out else "apt bu paketi kaldıramayacağını söyledi.")
+        d.errors.append(out[-1] if out else _t("apt bu paketi kaldıramayacağını söyledi."))
     return d
 
 
@@ -215,6 +214,11 @@ def remove_command(package: str, purge: bool = False) -> list[str]:
 def clean_command() -> list[str]:
     """apt'nin indirip sakladığı paket dosyalarını siler (kurulu programlara dokunmaz)."""
     return [*_elevate(), "/usr/bin/apt-get", "clean"]
+
+
+def force_stop_command(pid: int) -> list[str]:
+    """Kilidi tutan paket işlemini durdurur (durdur.py, yönetici olarak; neyi durduracağını kendisi denetler)."""
+    return [*_elevate(), "/usr/bin/python3", "-I", str(Path(__file__).with_name("durdur.py")), str(int(pid))]
 
 
 def repair_command(kind: str) -> list[str]:

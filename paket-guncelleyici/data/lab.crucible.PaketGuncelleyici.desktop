@@ -1,8 +1,11 @@
 [Desktop Entry]
 Type=Application
 Name=Paket Güncelleyici
+Name[en]=Package Updater
 GenericName=Paket kurucu
+GenericName[en]=Package installer
 Comment=.deb dosyasını kurulu sürümle karşılaştırır, yayıncının imzasını denetler ve kurar
+Comment[en]=Compares a .deb file with the installed version, checks the publisher's signature and installs it
 Exec=paket-guncelleyici %F
 Icon=lab.crucible.PaketGuncelleyici
 Terminal=false
