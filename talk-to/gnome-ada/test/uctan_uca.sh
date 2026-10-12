@@ -56,6 +56,7 @@ assert abs(b["bakis"] - b["normal"]) <= 2, "ince şeridin üstüne gelince norma
 assert b["ayrilinca"] < 14, "fare ayrılınca ince şeride dönmeli"
 assert b["tiklayinca"] > b["normal"] + 20, "ince şeritten görünen adaya tek tıklama büyütmeli"
 assert b["ada-acik"] > 0 and b["ada-kapali"] > 0, "görüşmede hoparlör/sessiz simgeli düğme yok"
+assert b["ada-uyari"] > 0, "cevaplanamayan aramada adada “telefondan cevapla” yazmıyor"
 assert b["ozellestir"] > b["buyuk"], "Özelleştir'e basınca ada daha da büyümeli"
 assert b["ada-tasan"] > 0, "Taşan dalgalar kipinde çalarken su görünmeli"
 assert b["ozel_kapandi"] <= b["normal"] + 2, "Bitti'den sonra ada normal boyda olmalı"

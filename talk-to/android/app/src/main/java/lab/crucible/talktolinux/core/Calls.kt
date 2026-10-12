@@ -6,11 +6,16 @@ import android.app.ActivityOptions
 import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.PixelFormat
 import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.telecom.TelecomManager
+import android.util.Log
+import android.view.View
+import android.view.WindowManager
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -80,15 +85,21 @@ object Calls {
             ?: return null to "düğme bulunamadı (arama bitmiş ya da bildirim değişmiş olabilir)"
         val title = a.title?.toString()
         val answer = isAnswer(title)
-        val error = runCatching {
-            if (Build.VERSION.SDK_INT >= 34) {
-                // "Cevapla" çoğu uygulamada arama ekranını açar: arka plandan açmaya izin verdiğimizi söyle.
-                val opts = ActivityOptions.makeBasic().setPendingIntentBackgroundActivityStartMode(
-                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
-                a.actionIntent.send(ctx, 0, null, null, null, null, opts.toBundle())
-            } else a.actionIntent.send()
-            null
-        }.getOrElse { e -> "${e.javaClass.simpleName}: ${e.message ?: "telefon düğmeyi çalıştıramadı"}" }
+        if (answer && Settings.canDrawOverlays(ctx)) {
+            // "Cevapla" çoğu uygulamada arama ekranını açar; Android arka plandaki uygulamanın ekran açmasını
+            // sessizce engelliyor. Ekranda görünür (görünmez küçüklükte) bir penceremiz varken engel yok:
+            // bir anlığına açılır, düğmeye basılır, kapanır. Sonuç bilgisayara arama durumundan anlaşılır.
+            main.post {
+                val dot = showDot(ctx)
+                main.postDelayed({
+                    send(ctx, a)?.let { Log.w(TAG, "Cevapla: $it") }
+                    if (canAnswer(ctx)) main.postDelayed({ acceptRinging(ctx) }, 700)
+                    main.postDelayed({ hideDot(ctx, dot) }, 2500)
+                }, 150)
+            }
+            return title to null
+        }
+        val error = send(ctx, a)
         // Bazı telefonlarda (HyperOS) arama uygulamasının "Cevapla"sı başka uygulamadan basılınca sessizce
         // çalışmıyor: hâlâ çalıyorsa Android'in resmi yoluyla cevaplanır (izin verildiyse). Zaten cevaplandıysa
         // çalan arama kalmamıştır, bir şey olmaz.
@@ -100,6 +111,32 @@ object Calls {
     }
 
     private val main by lazy { Handler(Looper.getMainLooper()) }
+    private const val TAG = "TalkToCalls"
+
+    /** Uygulamanın kendi düğmesine basar; hata varsa açıklaması. */
+    private fun send(ctx: Context, a: Notification.Action): String? = runCatching {
+        if (Build.VERSION.SDK_INT >= 34) {
+            // "Cevapla" çoğu uygulamada arama ekranını açar: arka plandan açmaya izin verdiğimizi söyle.
+            val opts = ActivityOptions.makeBasic().setPendingIntentBackgroundActivityStartMode(
+                ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
+            a.actionIntent.send(ctx, 0, null, null, null, null, opts.toBundle())
+        } else a.actionIntent.send()
+        null
+    }.getOrElse { e -> "${e.javaClass.simpleName}: ${e.message ?: "telefon düğmeyi çalıştıramadı"}" }
+
+    /** 1×1, saydam, dokunulmaz pencere ("diğer uygulamaların üzerinde göster" izniyle). */
+    private fun showDot(ctx: Context): View? = runCatching {
+        val v = View(ctx.applicationContext)
+        val lp = WindowManager.LayoutParams(1, 1, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            PixelFormat.TRANSLUCENT)
+        ctx.getSystemService(WindowManager::class.java).addView(v, lp)
+        v
+    }.onFailure { Log.w(TAG, "nokta açılamadı", it) }.getOrNull()
+
+    private fun hideDot(ctx: Context, v: View?) {
+        if (v != null) runCatching { ctx.getSystemService(WindowManager::class.java).removeView(v) }
+    }
 
     /** "Cevapla / Yanıtla / Answer / Accept" gibi düğmeler. */
     fun isAnswer(title: String?): Boolean =

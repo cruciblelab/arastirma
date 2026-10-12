@@ -26,6 +26,8 @@ from pathlib import Path
 
 from gi.repository import Gio, GLib
 
+from .. import arama
+
 log = logging.getLogger("talkto.ada")
 
 UUID = "talkto-ada@crucible.lab"
@@ -180,9 +182,11 @@ class AdaService:
             since = self.call.get("since") if self.call and self.call.get("key") == d["key"] else None
             if d["state"] != "ringing" and not since:
                 since = time.time()
+            hint = self.call.get("hint") if self.call and not new else None
             self.call = {"device_id": d["device_id"], "key": d["key"], "app": d.get("app"),
                          "caller": d.get("caller"), "state": d["state"], "since": since,
                          "actions": [{"i": a["i"], "title": a["title"]} for a in d.get("actions", [])[:3]]}
+            self._hint(hint)
             self.changed("call" if new else None)
         elif event == "call_ended":
             if self.call and self.call.get("key") == d.get("key"):
@@ -213,6 +217,17 @@ class AdaService:
         self._grace_id = 0
         self.changed()
         return False
+
+    def answer_failed(self, did, key):
+        """Bilgisayardan basılan "Cevapla" işe yaramadı: ada bunu söyler, düğmeyi kaldırır."""
+        if self.call and self.call["device_id"] == did and self.call["key"] == key and self.call["state"] == "ringing":
+            self._hint(arama.FAILED)
+            self.changed("call")
+
+    def _hint(self, hint):
+        self.call["hint"] = hint
+        if hint:
+            self.call["actions"] = [a for a in self.call["actions"] if not arama.is_answer(a["title"])]
 
     def on_track(self):
         self.changed("track")

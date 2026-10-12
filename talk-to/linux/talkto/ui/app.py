@@ -21,7 +21,7 @@ from ..config import Config  # noqa: E402
 from ..hub import Hub, HubThread  # noqa: E402
 from ..ipc import socket_path  # noqa: E402
 from ..nowplaying import NowPlaying  # noqa: E402
-from .. import mirror  # noqa: E402
+from .. import arama, mirror  # noqa: E402
 from ..usb import CONFLICT  # noqa: E402
 from . import compat, progress, system  # noqa: E402
 from .screenshot import take_screenshot  # noqa: E402
@@ -53,6 +53,7 @@ class App(Adw.Application):
         self.art_paths: dict[str, str] = {}
         self._popup_timers: dict[str, int] = {}
         self._usb_told: set[str] = set()  # hata ayıklaması kapalı takılı telefon için bildirim (bir kez)
+        self._ringing: dict[tuple, dict] = {}  # (cihaz, anahtar) → çalan aramanın son bilgisi
 
     # ---- yaşam döngüsü --------------------------------------------------------
 
@@ -443,7 +444,24 @@ class App(Adw.Application):
         if method == "media_control" and len(args) > 1 and args[1] in ("next", "previous"):
             self.now.expect_change(args[0])  # yeni şarkı gelene kadar "yükleniyor"
             self._loading_changed()
+        if method == "call_action":
+            self._watch_answer(*args)
         self.hub.submit(getattr(self.hub, method)(*args))
+
+    def _watch_answer(self, did, key, index):
+        """Bilgisayardan "Cevapla"ya basıldı: arama birkaç saniye sonra hâlâ çalıyorsa telefon cevaplayamamıştır."""
+        d = self._ringing.get((did, key))
+        if d and any(a["i"] == index and arama.is_answer(a["title"]) for a in d["actions"]):
+            GLib.timeout_add(arama.WAIT_MS, self._answer_check, did, key)
+
+    def _answer_check(self, did, key):
+        d = self._ringing.get((did, key))
+        if d and not d.get("answer_failed"):
+            log.info("arama bilgisayardan cevaplanamadı (%s)", did[:8])
+            self._call(dict(d, answer_failed=True))
+            if self.ada:
+                self.ada.answer_failed(did, key)
+        return False
 
     def _loading_changed(self):
         """Şarkılar arası "yükleniyor" durumu başladı ya da bitebilir: mini oynatıcı ve ada güncellensin; sürdükçe
@@ -642,7 +660,8 @@ class App(Adw.Application):
 
     def _ask_replace(self, serial):
         d = compat.Dialog(self.window, "Telefondaki uygulama kaldırılıp yeniden kurulsun mu?",
-                          CONFLICT + " Kurulumdan sonra telefonda bildirim erişimini yeniden vermen gerekir.")
+                          CONFLICT + " Kurulumdan sonra izinler bilgisayardan yeniden verilir; telefon engellerse bildirim "
+                          "erişimini telefonda elle açman gerekir.")
         d.add_response("cancel", "Vazgeç")
         d.add_response("replace", "Kaldır ve kur")
         d.set_appearance("replace", compat.DESTRUCTIVE)
@@ -707,6 +726,7 @@ class App(Adw.Application):
             self._call_result(d)
         elif event == "call_ended":
             log.info("arama bitti (%s)", d["device_id"][:8])
+            self._ringing.pop((d["device_id"], d["key"]), None)
             self.notifier.close(f"call|{d['device_id']}|{d['key']}")
         elif event == "notification_removed":
             self.notifier.close(f"{d['device_id']}|{d['key']}")
@@ -891,14 +911,23 @@ class App(Adw.Application):
         did, key = d["device_id"], d["key"]
         ringing = d["state"] == "ringing"
         who = d["caller"] or "Bilinmeyen"
+        failed = False
+        if ringing:
+            failed = d.get("answer_failed") or (self._ringing.get((did, key)) or {}).get("answer_failed", False)
+            self._ringing[(did, key)] = dict(d, answer_failed=failed)
+        else:
+            self._ringing.pop((did, key), None)
         actions = {}
         for a in d["actions"][:3]:
+            if failed and arama.is_answer(a["title"]):
+                continue  # işe yaramadığı görüldü: yerine "telefondan cevapla" yazar
             actions[f"a{a['i']}"] = (a["title"], lambda i=a["i"]: self.call("call_action", did, key, i))
         if not ringing and len(actions) <= 1:  # bildirim en çok 3 düğme: ses ancak ikisi birden sığarsa
             for k, label, up in (("ses_azalt", "Ses −", False), ("ses_artir", "Ses +", True)):
                 actions[k] = (label, lambda up=up: self.call("call_volume", did, up))
         self.notifier.show(f"{d['app']} {'araması' if ringing else 'görüşmesi'}: {who}",
-                           " · ".join(x for x in (d["text"], d["device"]) if x), key=f"call|{did}|{key}",
+                           " · ".join(x for x in (arama.FAILED if failed else d["text"], d["device"]) if x),
+                           key=f"call|{did}|{key}",
                            app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"), actions=actions,
                            urgent=ringing, resident=not ringing)
 

@@ -893,7 +893,8 @@ class Ada {
             this.compact.add_child(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 14,
                 style_class: 'ada-yesil'}));
             this.compact.add_child(this._label(call.caller || 'Arama', 'ada-baslik'));
-            this.compact.add_child(call.state === 'ringing' ? this._label('arıyor', 'ada-soluk')
+            this.compact.add_child(call.hint ? this._label('telefondan cevapla', 'ada-uyari')
+                : call.state === 'ringing' ? this._label('arıyor', 'ada-soluk')
                 : this._liveLabel(() => mmss(Date.now() / 1000 - (call.since || Date.now() / 1000)), 'ada-soluk'));
             return;
         }
@@ -967,6 +968,8 @@ class Ada {
         const texts = new St.BoxLayout({vertical: true, x_expand: true});
         texts.add_child(this._label(call.caller || 'Bilinmeyen', 'ada-baslik ada-iri'));
         texts.add_child(this._label(`${call.app}${ringing ? ' araması' : ' görüşmesi'}`, 'ada-soluk'));
+        if (call.hint)  // bilgisayardan basılan "Cevapla"yı telefon yok saydı: dürüstçe söyle
+            texts.add_child(this._label(call.hint, 'ada-uyari'));
         this.page.add_child(this._row(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 24,
             style_class: 'ada-yesil'}), texts));
         const btns = this._row();

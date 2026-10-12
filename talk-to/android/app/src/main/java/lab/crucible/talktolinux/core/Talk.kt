@@ -305,7 +305,7 @@ object Talk {
                 cancelled -> fail("Vazgeçildi", auto = false)
                 // Kendiliğinden deneme (bilgisayar kapalı ya da başka ağdayız): her seferinde uyarı çıkmasın.
                 e is IOException && target.knownOnly -> state.value = State.Idle
-                e is IOException -> fail("${target.name}: bağlanılamadı (${e.message ?: e.javaClass.simpleName})")
+                e is IOException -> fail("${target.name}: bağlanılamadı — ${whyNot(e, target)}")
                 else -> fail("Beklenmeyen hata: ${e.message}")
             }
         } finally {
@@ -315,6 +315,27 @@ object Talk {
 
     @Volatile private var approvalTarget: Target? = null
     @Volatile private var byeReceived = false
+
+    /** Bağlanamamanın nedeni, yapılabilecek şeyle (kullanıcı "olmuyor"un nedenini bilsin). */
+    internal fun whyNot(e: IOException, target: Target): String {
+        val m = e.message.orEmpty()
+        if (target.kind != "wifi") return m.ifEmpty { e.javaClass.simpleName }
+        return when {
+            e is java.net.SocketTimeoutException || "ETIMEDOUT" in m ->
+                "bilgisayardan yanıt gelmedi. Aynı Wi-Fi'de olsanız da modem cihazların birbirini görmesini " +
+                    "engelliyor olabilir (misafir ağı, “AP izolasyonu”) ya da bilgisayarın güvenlik duvarı " +
+                    "${target.port} portunu kapatıyor."
+            e is java.net.ConnectException && ("ECONNREFUSED" in m || "refused" in m) ->
+                "bilgisayar bu adreste dinlemiyor: Talk To Android açık mı, Tercihler'de Wi-Fi açık mı, port " +
+                    "${target.port} mi?"
+            e is java.net.NoRouteToHostException || "EHOSTUNREACH" in m || "ENETUNREACH" in m ->
+                "bu adrese ulaşılamıyor: telefon Wi-Fi'ye bağlı mı, adres bilgisayardaki Talk To Android'de " +
+                    "yazanla aynı mı?"
+            e is java.net.UnknownHostException -> "adres anlaşılamadı (${target.host})"
+            e is javax.net.ssl.SSLException -> "güvenli bağlantı kurulamadı (${m.ifEmpty { "TLS" }})"
+            else -> m.ifEmpty { e.javaClass.simpleName }
+        }
+    }
 
     private fun fpChanged(name: String) = "$name bilgisayarının güvenlik kodu değişmiş. Talk To Android yeniden " +
         "kurulduysa bilgisayarı listeden unutup tekrar eşleştir; kurulmadıysa bağlanma."

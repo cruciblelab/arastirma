@@ -100,6 +100,9 @@ steps = [
     lambda: app.on_event("call", call),
     lambda: cek("Shot", f"{OUT}/4-arama.png"),
     lambda: click("ada-yesil-dugme"),  # Yanıtla
+    # Telefon "Yanıtla"yı yok saydı (HyperOS): birkaç saniye sonra hâlâ çalıyor → ada "telefondan cevapla" der
+    lambda: app._answer_check("p", "k1"),
+    lambda: (cek("Shot", f"{OUT}/4a-telefondan-cevapla.png"), olc_cls("ada-uyari")),
     # Sürerken: hoparlör (açık: düğmesi "kapat" diyor) ve sessiz düğmeleri yazı değil simge
     lambda: app.on_event("call", dict(call, state="ongoing", actions=[
         {"i": 0, "title": "Kapat"}, {"i": 1, "title": "Hoparlörü kapat"}, {"i": 2, "title": "Sessiz"}])),

@@ -5,6 +5,9 @@
     <!-- Aramayı bilgisayardan cevaplamak: bazı telefonlarda (HyperOS) arama uygulamasının "Cevapla" düğmesi
          başka uygulamadan basılınca çalışmıyor; Android'in resmi yolu (TelecomManager.acceptRingingCall). -->
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+    <!-- "Cevapla" arama ekranını açar; Android arka plandan ekran açmayı engelliyor. Bu izinle telefon
+         basarken bir anlığına görünmez bir nokta gösterir ve engele takılmaz. Bilgisayar USB'den verir. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <application>
 
         <service

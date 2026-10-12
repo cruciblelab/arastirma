@@ -263,6 +263,8 @@ class Hub:
                 kind = "usb"
             else:
                 log.info("127.0.0.1'den başka kullanıcının (uid %s) bağlantısı: USB sayılmadı", uid)
+        if kind == "wifi":
+            log.info("ağdan bağlantı geldi: %s", ip)  # TLS sonrası; hiç yoksa telefon ulaşamıyor (ağ/duvar)
         await Session(self, reader, writer, kind, ip).run()
 
     # ---- onay ve deneme sınırı -------------------------------------------
@@ -551,7 +553,13 @@ class Hub:
         return await self.usb.connect_phone(serial)
 
     async def install_phone_app(self, serial: str, replace: bool = False) -> tuple[bool, str]:
-        return await self.usb.install_app(serial, replace)
+        """Kurar ya da günceller; ardından izinler kendiliğinden verilir (yeni sürüm yeni izin isteyebilir,
+        kullanıcının "Bilgisayar ayarlasın"a yeniden basmasını beklemeye gerek yok)."""
+        ok, text = await self.usb.install_app(serial, replace)
+        if not ok:
+            return ok, text
+        set_ok, summary = await self.phone_setup(serial)
+        return True, text if set_ok else f"{text} {summary}"
 
     async def phone_setup(self, serial: str) -> tuple[bool, str]:
         """Talk To Linux'un telefondaki izinlerini USB'den verir; bağlı oturuma sonucu da yollar."""

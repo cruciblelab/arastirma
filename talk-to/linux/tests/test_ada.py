@@ -133,6 +133,22 @@ class StateTest(unittest.TestCase):
         self.ada.on_event("call_ended", {"device_id": "p", "key": "k1"})
         self.assertIsNone(self.ada.state()["call"])
 
+    def test_answer_failed_hint(self):
+        """Bilgisayardan basılan "Cevapla"yı telefon yok saydı: ada bunu söyler, işe yaramayan düğmeyi kaldırır;
+        telefon aramayı aynı durumda yeniden bildirse de uyarı kalır, cevaplanınca kalkar."""
+        self.ada.on_event("status", {"sessions": [SESS]})
+        self.ada.on_event("call", CALL)
+        self.ada.answer_failed("p", "baska")  # başka arama: dokunulmaz
+        self.assertIsNone(self.ada.state()["call"].get("hint"))
+        self.ada.answer_failed("p", "k1")
+        call = self.ada.state()["call"]
+        self.assertEqual(call["hint"], "Bilgisayardan cevaplanamadı · telefondan cevapla")
+        self.assertEqual([a["title"] for a in call["actions"]], ["Reddet"])
+        self.ada.on_event("call", CALL)
+        self.assertEqual(self.ada.state()["call"]["hint"], "Bilgisayardan cevaplanamadı · telefondan cevapla")
+        self.ada.on_event("call", dict(CALL, state="active", actions=[{"i": 0, "title": "Kapat"}]))
+        self.assertIsNone(self.ada.state()["call"]["hint"])
+
     def test_call_cleared_when_phone_leaves(self):
         self.ada.on_event("status", {"sessions": [SESS]})
         self.ada.on_event("call", CALL)
@@ -299,6 +315,57 @@ class StateTest(unittest.TestCase):
         self.assertEqual(title, "Süre doldu")
         self.assertTrue(kw["urgent"])
         self.assertEqual(self.ada.state()["event"]["kind"], "timer")
+
+
+class AnswerFallbackTest(unittest.TestCase):
+    """Bilgisayardaki bildirim: "Yanıtla"ya basıldıktan birkaç saniye sonra arama hâlâ çalıyorsa bildirim
+    "telefondan cevapla" der ve Yanıtla düğmesini kaldırır; cevaplandıysa bir şey olmaz."""
+
+    def host(self):
+        from talkto.ui.app import App
+
+        class Host:
+            _call = App._call
+            _watch_answer = App._watch_answer
+            _answer_check = App._answer_check
+
+        h = Host()
+        h._ringing = {}
+        h.notifier = FakeNotifier()
+        h.ada = None
+        h.call = lambda *a: None
+        return h
+
+    def run_loop(self, ms):
+        loop = GLib.MainLoop()
+        GLib.timeout_add(ms, loop.quit)
+        loop.run()
+
+    def test_still_ringing_says_answer_on_phone(self):
+        h = self.host()
+        d = dict(CALL, device="POCO", text="")
+        with mock.patch("talkto.arama.WAIT_MS", 50):
+            h._call(d)
+            h._watch_answer("p", "k1", 0)  # Reddet: beklenmez
+            h._watch_answer("p", "k1", 1)  # Yanıtla
+            self.run_loop(200)
+        self.assertEqual(len(h.notifier.shown), 2)
+        (title, body), kw = h.notifier.shown[-1]
+        self.assertIn("telefondan cevapla", body)
+        self.assertEqual([t for t, _ in kw["actions"].values()], ["Reddet"])
+        h._call(d)  # telefon aynı aramayı yeniden bildirdi: uyarı kalır
+        self.assertIn("telefondan cevapla", h.notifier.shown[-1][0][1])
+
+    def test_answered_in_time_stays_quiet(self):
+        h = self.host()
+        d = dict(CALL, device="POCO", text="")
+        with mock.patch("talkto.arama.WAIT_MS", 50):
+            h._call(d)
+            h._watch_answer("p", "k1", 1)
+            h._call(dict(d, state="active", actions=[{"i": 0, "title": "Kapat"}]))  # cevaplandı
+            self.run_loop(200)
+        self.assertNotIn("telefondan cevapla", h.notifier.shown[-1][0][1])
+        self.assertEqual(len(h.notifier.shown), 2)
 
 
 class DBusTest(unittest.TestCase):

@@ -1039,6 +1039,65 @@ exit 0"""
         # HyperOS'ta "Cevapla" bilgisayardan basılınca çalışmıyordu: aramayı cevaplama izni de verilir.
         self.assertIn("pm grant lab.crucible.talktolinux android.permission.ANSWER_PHONE_CALLS", calls)
 
+    async def test_answer_needs_are_granted_silently(self):
+        """Aramayı cevaplamak için: üstte gösterme izni (her telefonda) ve Xiaomi'nin "arka planda açılır pencereler"i
+        (yalnızca Xiaomi'de) telefonda yeni bir ayar satırı olmadan buradan verilir."""
+        ops = Path(self.tmp.name) / "ops"
+        ops.mkdir()
+        appops = (f'  *"appops get"*) op=$(echo "$*" | awk \'{{print $NF}}\'); [ -f {ops}/$op ] && echo "$op: allow" '
+                  f'|| echo "$op: default" ;;\n'
+                  f'  *"appops set"*) op=$(echo "$*" | awk \'{{print $(NF-1)}}\'); touch {ops}/$op ;;')
+        self.phone(first=appops)
+        await self.hub.usb._poll()
+        ok, text = await self.hub.phone_setup("ABC123")
+        self.assertTrue(ok, text)
+        calls = "\n".join(self.calls())
+        self.assertIn("appops set lab.crucible.talktolinux SYSTEM_ALERT_WINDOW allow", calls)
+        self.assertNotIn(" 10021 ", calls)  # Pixel: Xiaomi'ye özgü izne dokunulmaz
+        # Xiaomi: kendi izni de verilir; ikinci seferde "zaten açık" (yeniden verilmez).
+        self.phone(first=appops + '\n  *"getprop ro.product.manufacturer"*) echo Xiaomi ;;')
+        ok, text = await self.hub.phone_setup("ABC123")
+        self.assertTrue(ok, text)
+        self.assertIn("appops set lab.crucible.talktolinux 10021 allow", "\n".join(self.calls()))
+        self.log.unlink()
+        items = await __import__("talkto.phone_setup", fromlist=["x"]).setup_phone("ABC123")
+        self.assertEqual({i["key"]: i["message"] for i in items if i["key"] in ("overlay", "xiaomi_popup")},
+                         {"overlay": "zaten açık", "xiaomi_popup": "zaten açık"})
+        self.assertNotIn("appops set lab.crucible.talktolinux SYSTEM_ALERT_WINDOW", "\n".join(self.calls()))
+
+    async def test_answer_permission_failure_is_told(self):
+        """Bir izin verilemezse sessiz kalınmaz: hangisi ve sonucu (aramayı telefondan cevaplamak) söylenir."""
+        self.phone(first='  *"getprop ro.product.manufacturer"*) echo Xiaomi ;;\n'
+                         '  *"appops set"*"10021"*) echo "java.lang.SecurityException: uid 2000 not allowed"; exit 255 ;;\n'
+                         '  *"appops get"*"10021"*) echo "MIUIOP(10021): default" ;;')
+        await self.hub.usb._poll()
+        ok, text = await self.hub.phone_setup("ABC123")
+        self.assertFalse(ok)
+        self.assertIn("Arka planda açılır pencereler (Xiaomi)", text)
+        self.assertIn("telefondan cevaplarsın", text)
+        self.assertNotIn("üstte gösterme", text)  # o verildi
+
+    async def test_install_then_permissions(self):
+        """Telefon uygulaması USB'den kurulunca / güncellenince izinler kendiliğinden verilir (yeni sürümün yeni
+        izinleri için kullanıcının "Bilgisayar ayarlasın"a yeniden basması gerekmez)."""
+        apk = Path(self.tmp.name) / "t.apk"
+        apk.write_bytes(b"PK")
+        os.environ["TALKTO_APK"] = str(apk)
+        self.phone(first='  *"install -r"*) echo Success ;;')
+        await self.hub.usb._poll()
+        ok, text = await self.hub.install_phone_app("ABC123")
+        self.assertTrue(ok, text)
+        calls = "\n".join(self.calls())
+        self.assertLess(calls.index("install -r"), calls.index("pm grant lab.crucible.talktolinux "
+                                                                "android.permission.ANSWER_PHONE_CALLS"))
+        self.assertNotIn("olmadı", text)
+        # İzin verilemezse kurulum yine başarılı, ama ne olmadığı söylenir.
+        self.phone(first='  *"install -r"*) echo Success ;;',
+                   grant='echo "java.lang.SecurityException: GRANT_RUNTIME_PERMISSIONS"; exit 255')
+        ok, text = await self.hub.install_phone_app("ABC123")
+        self.assertTrue(ok)
+        self.assertIn("Bazı adımlar olmadı", text)
+
     async def test_listener_setting_written_late(self):
         """Android ayarı allow_listener'dan biraz sonra yazıyor: hemen "olmadı" denmemeli."""
         st = Path(self.tmp.name) / "durum"

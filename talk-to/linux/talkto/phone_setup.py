@@ -98,14 +98,7 @@ async def setup_phone(serial: str) -> list[dict]:
         items.append(_item("battery", "Pil kısıtlaması kaldırıldı", ok, "" if ok else _explain(out)))
 
     if full:
-        # Bazı telefonlarda (HyperOS) arama uygulamasının "Cevapla"sı bilgisayardan basılınca çalışmıyor; bu izinle
-        # telefon aramayı Android'in kendi yoluyla cevaplar (yalnızca bilgisayarda "Cevapla"ya basılınca).
-        if granted["ANSWER_PHONE_CALLS"]:
-            items.append(_item("answer", "Aramayı bilgisayardan cevaplama izni", True, "zaten açık"))
-        else:
-            rc, out = await _sh(serial, "pm", "grant", PHONE_PACKAGE, "android.permission.ANSWER_PHONE_CALLS")
-            items.append(_item("answer", "Aramayı bilgisayardan cevaplama izni", True if rc == 0 else None,
-                               "" if rc == 0 else "verilemedi; telefonda İzinler ve yetkiler'den verilebilir"))
+        items += await _answer_items(serial, granted["ANSWER_PHONE_CALLS"])
 
     if sdk >= 31:
         if granted["BLUETOOTH_CONNECT"]:
@@ -116,6 +109,60 @@ async def setup_phone(serial: str) -> list[dict]:
             items.append(_item("bluetooth", "Bluetooth izni", True if rc == 0 else None,
                                "" if rc == 0 else "verilemedi; Bluetooth kullanırsan telefon gerektiğinde sorar"))
     return items
+
+
+ANSWER_HINT = "olmazsa aramayı telefondan cevaplarsın"
+
+
+async def _answer_items(serial: str, answer_granted: bool) -> list[dict]:
+    """Aramayı bilgisayardan cevaplamak için gerekenler. Telefonda yeni bir ayar satırı yok: hepsi buradan
+    sessizce verilir, verilemeyen olursa nedeniyle söylenir (ok False).
+
+    - ANSWER_PHONE_CALLS: Android'in resmi yolu (TelecomManager.acceptRingingCall), SIM aramaları için.
+    - "Diğer uygulamaların üzerinde göster": arama uygulamasının "Cevapla"sı çoğunlukla arama ekranını açar;
+      Android arka plandaki uygulamanın ekran açmasını engelliyor, bu izinle telefon basarken görünmez bir
+      nokta açıp engele takılmaz (WhatsApp, Instagram aramaları).
+    - Xiaomi/HyperOS: ayrıca "Arka planda açılır pencereler" izni (kendi izin numarası 10021).
+    """
+    items = []
+    if answer_granted:
+        items.append(_item("answer", "Aramayı bilgisayardan cevaplama izni", True, "zaten açık"))
+    else:
+        rc, out = await _sh(serial, "pm", "grant", PHONE_PACKAGE, "android.permission.ANSWER_PHONE_CALLS")
+        items.append(_item("answer", "Aramayı bilgisayardan cevaplama izni", rc == 0, "" if rc == 0 else (
+            f"telefon bilgisayarın vermesine izin vermedi; {ANSWER_HINT}" if _explain(out) == LOCKED else
+            f"verilemedi ({_explain(out)}); {ANSWER_HINT}")))
+
+    ok, why = await _appop(serial, "SYSTEM_ALERT_WINDOW")
+    items.append(_item("overlay", "Arama ekranını açabilme (üstte gösterme izni)", ok,
+                       "zaten açık" if why == "zaten" else "" if ok else f"verilemedi ({why}); {ANSWER_HINT}"))
+
+    _, maker = await _sh(serial, "getprop", "ro.product.manufacturer")
+    if maker.strip().lower() in ("xiaomi", "redmi", "poco"):
+        ok, why = await _appop(serial, "10021")
+        items.append(_item("xiaomi_popup", "Arka planda açılır pencereler (Xiaomi)", ok,
+                           "zaten açık" if why == "zaten" else "" if ok else
+                           f"verilemedi ({why}); telefonda Ayarlar → Uygulamalar → Talk To Linux → Diğer izinler'den "
+                           f"açılabilir, {ANSWER_HINT}"))
+    return items
+
+
+async def _appop(serial: str, op: str) -> tuple[bool, str]:
+    """appops ile izin verir: (oldu mu, "zaten" ya da hata nedeni)."""
+    _, now = await _sh(serial, "appops", "get", PHONE_PACKAGE, op)
+    if _allowed(now):
+        return True, "zaten"
+    rc, out = await _sh(serial, "appops", "set", PHONE_PACKAGE, op, "allow")
+    if rc != 0 or "Error" in out or "Exception" in out or "Unknown" in out:
+        return False, "telefon izin vermedi" if _explain(out) == LOCKED else _explain(out)
+    _, now = await _sh(serial, "appops", "get", PHONE_PACKAGE, op)
+    if _allowed(now) or not now.strip() or "No operations" in now:  # bazı telefonlar okumayı göstermiyor
+        return True, ""
+    return False, "telefon izni geri aldı"
+
+
+def _allowed(out: str) -> bool:
+    return bool(re.search(r":\s*allow\b", out))
 
 
 def _listener_on(enabled: str) -> bool:
