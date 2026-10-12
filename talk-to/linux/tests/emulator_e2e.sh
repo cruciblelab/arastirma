@@ -53,14 +53,28 @@ try:
     root = ET.parse(sys.argv[1]).getroot()
 except Exception:
     sys.exit(1)
-for n in root.iter("node"):
-    if sys.argv[2] in (n.get("text"), n.get("content-desc")):
+nodes = list(root.iter("node"))
+# Emülatörün kendi "… isn't responding" penceresi (ör. Pixel Launcher) her şeyin üstünü kapatabiliyor:
+# önce onu "Wait" ile kapat (bizim uygulama değil; uygulamamızınki çıkarsa test yine düşer).
+if any("isn't responding" in (n.get("text") or "") and "Talk To" not in (n.get("text") or "") for n in nodes):
+    want, prefix = "Wait", "ANR "
+else:
+    want, prefix = sys.argv[2], ""
+for n in nodes:
+    if want in (n.get("text"), n.get("content-desc")):
         x1, y1, x2, y2 = map(int, re.findall(r"\d+", n.get("bounds")))
-        print((x1 + x2) // 2, (y1 + y2) // 2)
+        print(prefix + f"{(x1 + x2) // 2} {(y1 + y2) // 2}")
         sys.exit(0)
 sys.exit(1)
 EOF
 )
+        if [ "${xy#ANR }" != "$xy" ]; then
+            # shellcheck disable=SC2086
+            adb shell input tap ${xy#ANR }
+            log "sistemin “yanıt vermiyor” penceresi kapatıldı (Wait)"
+            sleep 1
+            continue
+        fi
         if [ -n "$xy" ]; then
             # shellcheck disable=SC2086
             adb shell input tap $xy
