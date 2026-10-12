@@ -44,6 +44,10 @@ THEMES = {
                                  "text": "#fff4e6"}),
     "orman": ("Orman", {"bg1": "#0b2b1c", "bg2": "#154734", "wave1": "#52b788", "wave2": "#b7e4c7", "text": "#eefaf2"}),
 }
+MODES = {
+    "sakin": ("Sakin", "Dalga yalnızca adanın içinde."),
+    "tasan": ("Taşan dalgalar", "Çalarken su adadan taşar (süs, gerçek ses değil)."),
+}
 NOTIF_KEEP = 3600  # bildirim sayfasında son bir saatin bildirimleri
 MEDIA_GRACE = 3.0  # şarkı değişirken telefon bir anlığına "çalmıyor" diyebilir: ada o arada boşa düşmesin
 
@@ -143,6 +147,10 @@ class AdaService:
         return {
             "enabled": bool(cfg["ada_enabled"]),
             "theme": THEMES.get(cfg["ada_theme"], THEMES["deniz"])[1],
+            "theme_id": cfg["ada_theme"] if cfg["ada_theme"] in THEMES else "deniz",
+            "themes": [dict(colors, id=k, name=name) for k, (name, colors) in THEMES.items()],
+            "mode": cfg["ada_mode"] if cfg["ada_mode"] in MODES else "sakin",
+            "modes": [{"id": k, "name": name, "hint": hint} for k, (name, hint) in MODES.items()],
             "phone": phone["name"] if phone else None,
             "battery": (phone.get("battery") or {}).get("level") if phone else None,
             "media": m,
@@ -220,6 +228,15 @@ class AdaService:
             self.cancel_timer()
         elif what == "open":
             self.app.present()
+        elif what == "set":  # adadaki özelleştirme: yalnızca bilinen ayarlar ve değerler
+            key, value = a.get("key"), a.get("value")
+            allowed = {"ada_theme": THEMES, "ada_mode": MODES}
+            if key in allowed and isinstance(value, str) and value in allowed[key]:
+                self.app.config.set(key, value)
+                self.changed()
+                w = getattr(self.app, "window", None)
+                if w is not None and hasattr(w, "sync_ada_rows"):
+                    w.sync_ada_rows()
 
     # ---- zamanlayıcı ------------------------------------------------------------------------
 

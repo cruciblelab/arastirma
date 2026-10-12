@@ -49,7 +49,7 @@ async def setup_phone(serial: str) -> list[dict]:
     rc, out = await _sh(serial, "dumpsys", "package", PHONE_PACKAGE)
     full = "service.NotificationListener" in out  # hafif sürümde bildirim dinleyicisi yok
     granted = {k: bool(re.search(rf"android\.permission\.{k}: granted=true", out))
-               for k in ("POST_NOTIFICATIONS", "BLUETOOTH_CONNECT")}
+               for k in ("POST_NOTIFICATIONS", "BLUETOOTH_CONNECT", "ANSWER_PHONE_CALLS")}
 
     # Telefonda elle verilmiş olanlara dokunulmaz ("zaten açık"): bazı telefonlar (Xiaomi) adb'nin izin
     # vermesini engelliyor, verilmiş izni yeniden vermeye çalışıp "olmadı" demek yanıltıcıydı.
@@ -96,6 +96,16 @@ async def setup_phone(serial: str) -> list[dict]:
         _, now = await _sh(serial, "dumpsys", "deviceidle", "whitelist")
         ok = PHONE_PACKAGE in now
         items.append(_item("battery", "Pil kısıtlaması kaldırıldı", ok, "" if ok else _explain(out)))
+
+    if full:
+        # Bazı telefonlarda (HyperOS) arama uygulamasının "Cevapla"sı bilgisayardan basılınca çalışmıyor; bu izinle
+        # telefon aramayı Android'in kendi yoluyla cevaplar (yalnızca bilgisayarda "Cevapla"ya basılınca).
+        if granted["ANSWER_PHONE_CALLS"]:
+            items.append(_item("answer", "Aramayı bilgisayardan cevaplama izni", True, "zaten açık"))
+        else:
+            rc, out = await _sh(serial, "pm", "grant", PHONE_PACKAGE, "android.permission.ANSWER_PHONE_CALLS")
+            items.append(_item("answer", "Aramayı bilgisayardan cevaplama izni", True if rc == 0 else None,
+                               "" if rc == 0 else "verilemedi; telefonda İzinler ve yetkiler'den verilebilir"))
 
     if sdk >= 31:
         if granted["BLUETOOTH_CONNECT"]:

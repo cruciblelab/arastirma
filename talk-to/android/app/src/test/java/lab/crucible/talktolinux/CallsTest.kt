@@ -26,6 +26,12 @@ class CallsTest {
     }
 
     @Test
+    fun answerButtons() {
+        for (t in listOf("Cevapla", "Yanıtla", "Answer", "ACCEPT", "Kabul et")) assertTrue(t, Calls.isAnswer(t))
+        for (t in listOf("Reddet", "Decline", "Hoparlörü kapat", "Kapat", null)) assertFalse("$t", Calls.isAnswer(t))
+    }
+
+    @Test
     fun ringingOrOngoing() {
         assertEquals("ringing", Calls.state(1, false))  // CallStyle: gelen
         assertEquals("ongoing", Calls.state(2, true))   // CallStyle: süren (tam ekran olsa da)

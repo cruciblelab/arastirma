@@ -6,6 +6,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 // Test sürücüsü: D-Bus'ta test.Cek (/test/Cek): Shot(yol), Click(x, y), Drag(x1, y1, x2, y2), Move(x, y), Scroll(x, y, dy),
 // Find(sınıf) → (x, y, w, h): o stil sınıfındaki ilk görünür öğenin ekrandaki yeri (yoksa w = -1).
+// Win(başlık) → (x, y, w, h): o başlıklı pencerenin ekrandaki yeri (gölgesiz çerçeve; yoksa w = -1).
 // Genel bakışı kapatır.
 const XML = `<node><interface name="test.Cek">
 <method name="Shot"><arg type="s" direction="in"/></method>
@@ -13,12 +14,15 @@ const XML = `<node><interface name="test.Cek">
 <method name="Drag"><arg type="d" direction="in"/><arg type="d" direction="in"/><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
 <method name="Move"><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
 <method name="Scroll"><arg type="d" direction="in"/><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
+<method name="Win"><arg type="s" direction="in"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/></method>
 <method name="Find"><arg type="s" direction="in"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/></method>
 </interface></node>`;
 export default class Cek extends Extension {
     enable() {
         // Yazılımla çizen (ekran kartsız) makinede GNOME canlandırmaları kapatır; testte açık olsun.
         global.force_animations = true;
+        // Test makinesindeki sistem bildirimleri ("Screen Lock disabled"…) ekranın üstünde tıklanacak yerleri örtüyor.
+        Main.messageTray.bannerBlocked = true;
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => { Main.overview.hide(); return GLib.SOURCE_REMOVE; });
         this._dev = Clutter.get_default_backend().get_default_seat().create_virtual_device(
             Clutter.InputDeviceType.POINTER_DEVICE);
@@ -60,6 +64,16 @@ export default class Cek extends Extension {
         this._dev.notify_absolute_motion(this._t(), x, y);
         this._dev.notify_discrete_scroll(this._t(), dy < 0 ? Clutter.ScrollDirection.UP : Clutter.ScrollDirection.DOWN,
             Clutter.ScrollSource.WHEEL);
+    }
+    Win(title) {
+        for (const a of global.get_window_actors()) {
+            const w = a.get_meta_window();
+            if (w && w.get_title() === title) {
+                const r = w.get_frame_rect();
+                return [r.x, r.y, r.width, r.height];
+            }
+        }
+        return [0, 0, -1, -1];
     }
     Find(cls) {
         const walk = a => {

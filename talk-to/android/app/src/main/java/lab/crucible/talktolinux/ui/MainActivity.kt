@@ -35,6 +35,12 @@ class MainActivity : ComponentActivity() {
         notifFromUser = false
         UiTick.bump()
     }
+    private val askAnswer = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!granted && !shouldShowRequestPermissionRationale(Manifest.permission.ANSWER_PHONE_CALLS)) {
+            Checks.open(this, Checks.appDetails(this))  // kalıcı reddedildiyse: uygulama ayarlarından
+        }
+        UiTick.bump()
+    }
     private val askBluetooth = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         // Kalıcı reddedildiyse pencere çıkmaz; düğme bir şey yapmıyor gibi görünmesin.
         if (!granted && Build.VERSION.SDK_INT >= 31 &&
@@ -72,6 +78,7 @@ class MainActivity : ComponentActivity() {
                             } else Checks.open(this, Checks.appNotificationSettings(this))
                         },
                         bluetooth = ::askBluetoothPermission,
+                        answerCalls = { askAnswer.launch(Manifest.permission.ANSWER_PHONE_CALLS) },
                     ),
                 )
             }

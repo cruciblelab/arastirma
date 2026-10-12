@@ -1032,6 +1032,8 @@ exit 0"""
         self.assertIn("cmd notification allow_listener lab.crucible.talktolinux/lab.crucible.talktolinux"
                       ".service.NotificationListener", calls)
         self.assertIn("dumpsys deviceidle whitelist +lab.crucible.talktolinux", calls)
+        # HyperOS'ta "Cevapla" bilgisayardan basılınca çalışmıyordu: aramayı cevaplama izni de verilir.
+        self.assertIn("pm grant lab.crucible.talktolinux android.permission.ANSWER_PHONE_CALLS", calls)
 
     async def test_listener_setting_written_late(self):
         """Android ayarı allow_listener'dan biraz sonra yazıyor: hemen "olmadı" denmemeli."""
@@ -1062,7 +1064,8 @@ exit 0"""
         Path(f"{st}.pil").touch()
         self.phone(grant='echo "java.lang.SecurityException: GRANT_RUNTIME_PERMISSIONS"; exit 255',
                    dump='echo "    android.permission.POST_NOTIFICATIONS: granted=true, flags=[ USER_SET ]"; '
-                        'echo "    android.permission.BLUETOOTH_CONNECT: granted=true"')
+                        'echo "    android.permission.BLUETOOTH_CONNECT: granted=true"; '
+                        'echo "    android.permission.ANSWER_PHONE_CALLS: granted=true"')
         await self.hub.usb._poll()
         d = self.hub.usb.devices["ABC123"]
         self.assertEqual(d["perms"], {"post": True, "listener": True, "battery": True})

@@ -67,6 +67,7 @@ import lab.crucible.talktolinux.core.Talk
 class PermActions(
     val notifications: () -> Unit = {},
     val bluetooth: () -> Unit = {},
+    val answerCalls: () -> Unit = {},
 )
 
 /** Ayarlardan dönülünce (onResume) ve "Kontrol et"e basılınca denetimler yeniden okunsun. */
@@ -231,6 +232,11 @@ private fun notificationItems(perms: PermActions): List<Item> {
             "Erişim açıkken Android'in dinleyiciyi başlatmış olması gerekir. Başlamadıysa erişimi kapatıp aç " +
                 "ya da telefonu yeniden başlat.",
             { Checks.listener() }, "Yeniden başlat", { Talk.ensureListener(); UiTick.bump() }) else null,
+        Item("Aramaları bilgisayardan cevaplama",
+            "Bazı telefonlarda (ör. Xiaomi/HyperOS) arama uygulamasının “Cevapla” düğmesi bilgisayardan basılınca " +
+                "çalışmıyor; bu izinle arama Android'in kendi yoluyla cevaplanır. Talk To aramaları kendiliğinden " +
+                "cevaplamaz, yalnızca bilgisayarda “Cevapla”ya basınca.",
+            { lab.crucible.talktolinux.core.Calls.canAnswer(ctx) }, "İzin ver", perms.answerCalls, optional = true),
     )
 }
 

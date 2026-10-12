@@ -30,6 +30,24 @@ def cek(m, *a):  # eşzamansız: kabuk X11 penceresinin çizilmesini beklerken b
     bus.call("test.Cek", "/test/Cek", "test.Cek", m, GLib.Variant(sig, a), None, 0, 10000, None, None)
 
 
+win = {}
+
+
+def ask_window():
+    """Mini oynatıcının ekrandaki yeri kabuğa sorulur (kabuk pencereyi her seferinde başka yere koyabiliyor)."""
+    def done(c, r):
+        win["rect"] = c.call_finish(r).unpack()
+    bus.call("test.Cek", "/test/Cek", "test.Cek", "Win", GLib.Variant("(s)", ("Telefonda çalan",)), None, 0, 10000,
+             None, done)
+
+
+def on_screen(widget):
+    from gi.repository import Graphene
+    ok, p = widget.compute_point(app.mini, Graphene.Point().init(widget.get_width() / 2, widget.get_height() / 2))
+    x, y, w, h = win["rect"]
+    return x + p.x, y + p.y
+
+
 def menu_open():
     b = app.mini.menu_button.get_popover()
     return bool(b and b.get_visible())
@@ -39,12 +57,7 @@ seen = {}
 
 
 def menu_xy():
-    """⋮ düğmesinin ekrandaki yeri. Kabuk ilk pencereyi sol üste, üst çubuğun (32 px) hemen altına yerleştirir."""
-    from gi.repository import Graphene
-    m = app.mini
-    b = m.menu_button
-    ok, p = b.compute_point(m, Graphene.Point().init(b.get_width() / 2, b.get_height() / 2))
-    seen["xy"] = (p.x, p.y + 32)
+    seen["xy"] = on_screen(app.mini.menu_button)
     return seen["xy"]
 
 
@@ -61,18 +74,26 @@ def close_xy():
                 return r
             w = w.get_next_sibling()
         return None
-    b = walk(m.get_first_child())
-    ok, p = b.compute_point(m, Graphene.Point().init(b.get_width() / 2, b.get_height() / 2))
-    return p.x, p.y + 32
+    return on_screen(walk(m.get_first_child()))
+
+
+def outside():
+    """Mini oynatıcının dışında kalan bir nokta (ekranın alt yarısı; mini oynatıcı üstte, küçük)."""
+    x, y, w, h = win["rect"]
+    return 640.0, float(max(600, y + h + 60))
 
 
 steps = [
     lambda: app.open_mini_player(),
-    lambda: seen.update(display=type(app.mini.get_display()).__name__),
+    lambda: (seen.update(display=type(app.mini.get_display()).__name__), ask_window()),
+    # Üstte tutulurken: kullanıcı başka bir penceredeyken mini oynatıcının ⋮'sine tıklar (mini odakta değil).
+    # (Wayland'de mini oynatıcı üstte durmaz; tıklanan ana pencere onu örter, bu adım orada anlamsız.)
+    lambda: ONTOP and cek("Click", *outside()),
+    lambda: seen.update(mini_focused_before=ustte.is_focused(app.mini)),
     lambda: cek("Click", *map(float, menu_xy())),
     lambda: None,
     lambda: (seen.update(open_after_click=menu_open()), cek("Shot", f"{OUT}/mini-menu-acik.png")),
-    lambda: cek("Click", 900.0, 600.0),  # ana pencerenin boş bir yeri
+    lambda: cek("Click", *outside()),  # mini oynatıcının dışında, ana pencerenin boş bir yeri
     lambda: None,
     lambda: (seen.update(closed_after_outside=not menu_open()), cek("Shot", f"{OUT}/mini-menu-disari.png")),
     lambda: cek("Click", *map(float, close_xy())),  # X: mini oynatıcı kapanmalı

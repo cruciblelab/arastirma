@@ -137,7 +137,8 @@ wait_for "bildirim dinleyicisi bağlı" 'phone().get("listener") is True' 40
 wait_for "bilgisayar ayarlamayı bitirdi" 'any(d.get("setting_up") for u in of("usb") for d in u.get("devices", [])) and not any(d.get("setting_up") for d in of("usb")[-1].get("devices", []))' 30
 adb shell dumpsys deviceidle whitelist | grep -q $PKG || fail "pil kısıtlaması kaldırılmadı"
 adb shell dumpsys package $PKG | grep -q "POST_NOTIFICATIONS: granted=true" || fail "bildirim izni verilmedi"
-log "tamam: pil kısıtlaması ve bildirim izni de verildi"
+adb shell dumpsys package $PKG | grep -q "ANSWER_PHONE_CALLS: granted=true" || fail "aramayı cevaplama izni verilmedi"
+log "tamam: pil kısıtlaması, bildirim ve aramayı cevaplama izni de verildi"
 sleep 2
 shot 02-ana-sayfa
 

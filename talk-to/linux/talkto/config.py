@@ -63,6 +63,7 @@ class Config:
         "mini_size": "orta",  # kucuk / orta / buyuk
         "ada_enabled": True,  # üst ada (GNOME eklentisi kuruluysa) görünsün
         "ada_theme": "deniz",  # talkto.ui.ada.THEMES
+        "ada_mode": "sakin",  # talkto.ui.ada.MODES: sakin | tasan (taşan dalgalar)
         "mirror_preset": "akici",  # telefonun ekranı: akici / hizli / hafif (talkto.mirror.PRESETS)
         "mirror_audio": True,  # telefonun sesi ekran açıkken bilgisayardan çalsın (Android 11+)
         "track_popup": True,  # şarkı değişince masaüstü bildirimi

@@ -1,10 +1,16 @@
 package lab.crucible.talktolinux.core
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.ActivityOptions
 import android.app.Notification
 import android.content.Context
+import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.telecom.TelecomManager
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -73,7 +79,8 @@ object Calls {
         val a = actions[key]?.getOrNull(index)
             ?: return null to "düğme bulunamadı (arama bitmiş ya da bildirim değişmiş olabilir)"
         val title = a.title?.toString()
-        return title to runCatching {
+        val answer = isAnswer(title)
+        val error = runCatching {
             if (Build.VERSION.SDK_INT >= 34) {
                 // "Cevapla" çoğu uygulamada arama ekranını açar: arka plandan açmaya izin verdiğimizi söyle.
                 val opts = ActivityOptions.makeBasic().setPendingIntentBackgroundActivityStartMode(
@@ -82,6 +89,29 @@ object Calls {
             } else a.actionIntent.send()
             null
         }.getOrElse { e -> "${e.javaClass.simpleName}: ${e.message ?: "telefon düğmeyi çalıştıramadı"}" }
+        // Bazı telefonlarda (HyperOS) arama uygulamasının "Cevapla"sı başka uygulamadan basılınca sessizce
+        // çalışmıyor: hâlâ çalıyorsa Android'in resmi yoluyla cevaplanır (izin verildiyse). Zaten cevaplandıysa
+        // çalan arama kalmamıştır, bir şey olmaz.
+        if (answer && canAnswer(ctx)) {
+            if (error != null) acceptRinging(ctx) else main.postDelayed({ acceptRinging(ctx) }, 700)
+            return title to null
+        }
+        return title to error
+    }
+
+    private val main by lazy { Handler(Looper.getMainLooper()) }
+
+    /** "Cevapla / Yanıtla / Answer / Accept" gibi düğmeler. */
+    fun isAnswer(title: String?): Boolean =
+        title != null && Regex("cevapla|yanıtla|yanitla|answer|accept|kabul", RegexOption.IGNORE_CASE).containsMatchIn(title)
+
+    fun canAnswer(ctx: Context): Boolean =
+        ctx.checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED
+
+    @SuppressLint("MissingPermission")  // canAnswer denetliyor
+    @Suppress("DEPRECATION")  // API 29'da InCallService önerilir; başka uygulamanın aramasını cevaplamanın tek yolu bu
+    private fun acceptRinging(ctx: Context) {
+        runCatching { ctx.getSystemService(TelecomManager::class.java)?.acceptRingingCall() }
     }
 
     /** Görüşme sesi (WhatsApp ve Instagram aramaları da bu ses akışını kullanır).

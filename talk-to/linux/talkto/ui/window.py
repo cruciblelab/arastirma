@@ -335,8 +335,29 @@ class Window(Adw.ApplicationWindow):
         self.ada_theme.set_selected(keys.index(cur) if cur in keys else 0)
         self.ada_theme.connect("notify::selected", lambda r, _: self._set("ada_theme", keys[r.get_selected()]))
         g.add(self.ada_theme)
+        modes = list(ada.MODES)
+        self.ada_mode = Adw.ComboRow(title="Kip", subtitle="Taşan dalgalar: çalarken su adanın altından taşar (süs)",
+                                     model=Gtk.StringList.new([ada.MODES[k][0] for k in modes]))
+        cur = self.app.config["ada_mode"]
+        self.ada_mode.set_selected(modes.index(cur) if cur in modes else 0)
+        self.ada_mode.connect("notify::selected", lambda r, _: self._set("ada_mode", modes[r.get_selected()]))
+        g.add(self.ada_mode)
         self._update_ada_rows()
         return g
+
+    def sync_ada_rows(self):
+        """Tema/kip adadan değiştirildi: tercihlerdeki seçimler de güncellensin (yeniden kaydetmeden)."""
+        from . import ada
+        if getattr(self, "ada_theme", None) is None:
+            return
+        self._updating = True
+        try:
+            for row, key, table in ((self.ada_theme, "ada_theme", ada.THEMES), (self.ada_mode, "ada_mode", ada.MODES)):
+                keys = list(table)
+                if self.app.config[key] in keys:
+                    row.set_selected(keys.index(self.app.config[key]))
+        finally:
+            self._updating = False
 
     def _update_ada_rows(self):
         from . import ada
@@ -350,7 +371,7 @@ class Window(Adw.ApplicationWindow):
         self.ada_row.set_subtitle(text)
         self.ada_btn.set_label("Kur" if state == "absent" else "Kaldır")
         self.ada_btn.set_css_classes(["suggested-action"] if state == "absent" else [])
-        for r in (self.sw_ada, self.ada_theme):
+        for r in (self.sw_ada, self.ada_theme, self.ada_mode):
             r.set_sensitive(state != "absent")
 
     def _ada_toggle(self):

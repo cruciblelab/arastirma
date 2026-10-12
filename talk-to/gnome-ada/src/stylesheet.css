@@ -34,3 +34,17 @@
 .ada-yesil-dugme { background-color: #26a269; color: white; }
 .ada-yesil-dugme:hover { background-color: #2ec27e; }
 .ada-yesil { color: #57e389; }
+
+/* Arama: hoparlör / sessiz düğmeleri (açıkken parlak) */
+.ada-acik { background-color: rgba(255, 255, 255, 0.85); color: #0a2342; }
+.ada-acik:hover { background-color: rgba(255, 255, 255, 0.95); }
+.ada-kapali { opacity: 0.75; }
+/* Diğer → Özelleştir */
+.ada.ada-ozel { min-width: 400px; }
+.ada-ozellestir { padding: 6px 18px; }
+.ada-tema-kutu { spacing: 3px; }
+.ada-tema { border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.15); transition-duration: 150ms; }
+.ada-tema:hover { border-color: rgba(255, 255, 255, 0.5); }
+.ada-tema-secili { border: 2px solid white; }
+.ada-tema-ad { font-size: 8pt; opacity: 0.8; }
+.ada-ipucu { font-size: 8pt; }

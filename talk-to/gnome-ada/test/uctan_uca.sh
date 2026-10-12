@@ -48,6 +48,14 @@ assert b["ince"] < 14, "ikinci yukarı kaydırma ince şerit yapmalı"
 assert abs(b["bakis"] - b["normal"]) <= 2, "ince şeridin üstüne gelince normal hâl görünmeli"
 assert b["ayrilinca"] < 14, "fare ayrılınca ince şeride dönmeli"
 assert abs(b["tiklayinca"] - b["normal"]) <= 2, "tıklayınca normale dönmeli (fare ayrılınca da)"
+assert b["ada-acik"] > 0 and b["ada-kapali"] > 0, "görüşmede hoparlör/sessiz simgeli düğme yok"
+assert b["ozellestir"] > b["buyuk"], "Özelleştir'e basınca ada daha da büyümeli"
+assert b["ada-tasan"] > 0, "Taşan dalgalar kipinde çalarken su görünmeli"
+assert b["ozel_kapandi"] <= b["normal"] + 2, "✕ ile kapanınca ada küçülmeli"
 PYEOF
-for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
+python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert (d['theme_id'], d['mode']) == ('gece', 'tasan'), d" \
+    "$OUT/durum2.json" || fail "adadan seçilen tema/kip Talk To'ya yazılmadı"
+[ "$(grep -c "('call_action', 'p', 'k1', 1)" "$OUT/eylemler.txt")" -ge 2 ] || fail "hoparlör düğmesi ulaşmadı"
+for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 4b-gorusme 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal \
+         10-ozellestir 11-tasan 12-kapandi; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
 echo "ÜST ADA UÇTAN UCA TESTİ GEÇTİ"

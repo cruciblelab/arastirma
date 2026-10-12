@@ -186,6 +186,25 @@ class StateTest(unittest.TestCase):
         self.assertTrue(self.ada._emit_id)  # eklentiye "değişti" gidecek (olay değil: ada büyümez)
         self.assertEqual(self.ada.seq, seq)
 
+    def test_customize_from_island(self):
+        st = self.ada.state()
+        self.assertEqual((st["theme_id"], st["mode"]), ("deniz", "sakin"))
+        self.assertEqual([t["id"] for t in st["themes"]], list(ada.THEMES))
+        self.assertTrue(all({"bg1", "bg2", "wave1", "name"} <= set(t) for t in st["themes"]))
+        self.assertEqual([m["id"] for m in st["modes"]], ["sakin", "tasan"])
+        self.ada.action({"do": "set", "key": "ada_theme", "value": "gece"})
+        self.ada.action({"do": "set", "key": "ada_mode", "value": "tasan"})
+        st = self.ada.state()
+        self.assertEqual((st["theme_id"], st["mode"]), ("gece", "tasan"))
+        self.assertEqual(st["theme"], ada.THEMES["gece"][1])
+        # Yalnızca bilinen ayarlar ve değerler: ada başka bir ayarı değiştiremez.
+        for bad in ({"key": "ada_theme", "value": "yok"}, {"key": "port", "value": 1},
+                    {"key": "ada_mode", "value": ["tasan"]}, {"key": "run_in_background", "value": False}):
+            self.ada.action(dict(bad, do="set"))
+        st = self.ada.state()
+        self.assertEqual((st["theme_id"], st["mode"]), ("gece", "tasan"))
+        self.assertTrue(self.app.config["run_in_background"])
+
     def test_showing_after_extension_connects(self):
         self.assertFalse(self.ada.showing())
         inv = type("Inv", (), {"return_value": lambda self, v: None})()

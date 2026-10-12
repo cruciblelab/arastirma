@@ -2,6 +2,9 @@
 <!-- Yalnızca "tam" sürüm: bildirim erişimi (bildirimleri bilgisayara iletmek ve telefondaki medyayı
      bilgisayardan kontrol etmek için). "hafif" sürümde bu servis yoktur. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Aramayı bilgisayardan cevaplamak: bazı telefonlarda (HyperOS) arama uygulamasının "Cevapla" düğmesi
+         başka uygulamadan basılınca çalışmıyor; Android'in resmi yolu (TelecomManager.acceptRingingCall). -->
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
     <application>
 
         <service

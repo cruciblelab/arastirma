@@ -53,6 +53,11 @@ def olc(name):
     boy[name] = find("ada")
     open(f"{OUT}/boyutlar.json", "w").write(json.dumps(boy))
 
+def olc_cls(cls):
+    x, y, w, h = cek("Find", cls)
+    boy[cls] = [x, y, w, h]
+    open(f"{OUT}/boyutlar.json", "w").write(json.dumps(boy))
+
 def song(title, playing=True):
     return {"active": True, "player": "Spotify", "title": title, "artist": "Sezen Aksu", "playing": playing,
             "position_ms": 1000, "duration_ms": 200000, "volume": 50, "can_seek": True, "art_id": "k1",
@@ -82,6 +87,11 @@ steps = [
     lambda: app.on_event("call", call),
     lambda: cek("Shot", f"{OUT}/4-arama.png"),
     lambda: click("ada-yesil-dugme"),  # Yanıtla
+    # Sürerken: hoparlör (açık: düğmesi "kapat" diyor) ve sessiz düğmeleri yazı değil simge
+    lambda: app.on_event("call", dict(call, state="ongoing", actions=[
+        {"i": 0, "title": "Kapat"}, {"i": 1, "title": "Hoparlörü kapat"}, {"i": 2, "title": "Sessiz"}])),
+    lambda: (cek("Shot", f"{OUT}/4b-gorusme.png"), olc_cls("ada-acik"), olc_cls("ada-kapali"),
+             click("ada-acik")),  # hoparlöre bas
     lambda: app.on_event("call_ended", {"device_id": "p", "key": "k1"}),
     lambda: drag_left(),
     lambda: drag_left(),
@@ -103,6 +113,20 @@ steps = [
     lambda: click("ada"),  # tıkla: normale döner
     lambda: cek("Move", 640.0, 600.0),
     lambda: (olc("tiklayinca"), cek("Shot", f"{OUT}/9-normal.png")),
+    # Diğer → Özelleştir: ada büyür; tema (Gece) ve kip (Taşan dalgalar) seçilir, ✕ ile kapanır.
+    lambda: click("ada"),
+    lambda: drag_left(),
+    lambda: drag_left(),  # son sayfa: Diğer (fazlası son sayfada kalır)
+    lambda: click("ada-ozellestir"),
+    lambda: (olc("ozellestir"), cek("Shot", f"{OUT}/10-ozellestir.png")),
+    lambda: click("ada-tema-gece"),
+    lambda: click("ada-kip-tasan"),
+    lambda: (cek("Shot", f"{OUT}/11-tasan.png"), olc_cls("ada-tasan"),
+             open(f"{OUT}/durum2.json", "w").write(json.dumps(app.ada.state(), ensure_ascii=False))),
+    lambda: click("ada-kapat-ozel"),
+    lambda: cek("Move", 640.0, 600.0),
+    *[lambda: None] * 5,
+    lambda: (olc("ozel_kapandi"), cek("Shot", f"{OUT}/12-kapandi.png")),
     lambda: app.quit(),
 ]
 i = [0]

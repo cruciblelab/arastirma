@@ -31,6 +31,8 @@ const AdaProxy = Gio.DBusProxy.makeProxyWrapper(IFACE);
 
 const DRAG_PAGE = 40;      // bu kadar piksel yana çekince sayfa değişir
 const DRAG_UP = 24;        // bu kadar yukarı çekince küçülür
+const SPILL_PAD = 26;      // taşan su adanın iki yanından bu kadar dışarı taşar
+const SPILL_H = 60;
 const SCROLL_COOLDOWN_MS = 350; // dokunmatik yüzeyin tek kaydırması birden çok kademe atlamasın
 const PEEK_LEAVE_MS = 450;      // ince şeritten fare ayrılınca normal hâlin kalma süresi
 const SHOW_EVENT_MS = 5000; // şarkı/bildirim olunca büyük kalma süresi
@@ -44,11 +46,81 @@ function rgba(hex, alpha) {
     return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, alpha];
 }
 
+// Aramadaki aç/kapa düğmeleri (hoparlör, sessiz): yazı yerine simge. Düğmenin yazısı yapılacak işi söyler
+// ("Hoparlörü kapat" = şu an açık); durum anlaşılmazsa kapalı sayılır.
+function callToggle(title) {
+    const t = (title || '').toLocaleLowerCase('tr');
+    if (/hoparl|speaker/.test(t))
+        return {icon: 'audio-speakers-symbolic', on: /kapat|off|devre dışı/.test(t)};
+    if (/sessiz|mute|mikrofon|microphone/.test(t)) {
+        const muted = /unmute|sesi aç|sessizden|sessizliği kaldır|mikrofonu aç/.test(t);
+        return {icon: muted ? 'microphone-sensitivity-muted-symbolic' : 'audio-input-microphone-symbolic', on: muted};
+    }
+    return null;
+}
+
 function mmss(sec) {
     sec = Math.max(0, Math.round(sec));
     const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60;
     const pad = v => String(v).padStart(2, '0');
     return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+// "Taşan dalgalar" kipi: adanın altından taşan su. Çalarken çalkalanır, ara ara damlar; gerçek sesten gelmez
+// (telefon ses verisi göndermiyor), süstür. Fareyi engellemez (girdi bölgesine katılmaz).
+class Spill {
+    constructor(ada) {
+        this.ada = ada;
+        this.actor = new St.DrawingArea({reactive: false, visible: false, style_class: 'ada-tasan'});
+        this.actor.connect('repaint', area => this._paint(area));
+    }
+
+    _paint(area) {
+        const cr = area.get_context();
+        const [w, h] = area.get_surface_size();
+        const t = Date.now() / 1000;
+        const th = this.ada.theme;
+        const energy = Math.max(0, Math.min(1, (this.ada.amp - 0.05) / 0.17));
+        // Süs "vurgu": birkaç yavaş sinüsün bileşimi; çalarken çalkalanır, duraklayınca durulur.
+        const beat = 0.55 + 0.45 * Math.pow(Math.abs(Math.sin(t * 2.3)), 3) * (0.6 + 0.4 * Math.sin(t * 0.7));
+        const pad = SPILL_PAD;
+        const bell = x => {
+            const u = Math.max(0, Math.min(1, (x - pad * 0.4) / (w - pad * 0.8)));
+            return Math.pow(Math.sin(Math.PI * u), 1.3);
+        };
+        const layers = [[th.wave2, 0.5, 1.0, 0.0, 1.0], [th.wave1, 0.85, 1.5, 1.9, 0.72]];
+        for (const [color, alpha, speed, shift, scale] of layers) {
+            const max = h * scale * (0.2 + 0.65 * energy * beat);
+            cr.moveTo(0, 0);
+            for (let x = 0; x <= w; x += 3) {
+                const ripple = 0.75 + 0.25 * Math.sin(x / w * Math.PI * 6 + t * 3 * speed + shift);
+                cr.lineTo(x, max * bell(x) * ripple);
+            }
+            cr.lineTo(w, 0);
+            cr.closePath();
+            const g = new Cairo.LinearGradient(0, 0, 0, Math.max(1, max));
+            const [r, gg, b] = rgba(color, 1);
+            g.addColorStopRGBA(0, r, gg, b, alpha);
+            g.addColorStopRGBA(1, r, gg, b, alpha * 0.25);
+            cr.setSource(g);
+            cr.fill();
+        }
+        if (energy > 0.3) {  // taşan sudan düşen birkaç damla
+            const [r, gg, b] = rgba(th.wave2, 1);
+            for (let i = 0; i < 3; i++) {
+                const p = (t * (0.55 + i * 0.17) + i * 0.37) % 1;
+                const x = pad + (w - 2 * pad) * (0.2 + 0.3 * i) + Math.sin(t + i) * 6;
+                cr.arc(x, h * 0.35 + p * h * 0.65, 1.6 + energy, 0, 2 * Math.PI);
+                cr.setSourceRGBA(r, gg, b, 0.7 * (1 - p) * energy);
+                cr.fill();
+            }
+        }
+        cr.$dispose();
+    }
+
+    repaint() {
+        this.actor.queue_repaint();
+    }
 }
 
 // Deniz: iki katlı dalga; çalarken akar, duraklayınca neredeyse durgun.
@@ -105,6 +177,7 @@ class Ada {
         this.phase = 0;
         this.amp = 0.05;
         this.expanded = false;
+        this.custom = false;  // "Diğer → Özelleştir": ada büyüyüp tema ve kip seçimini gösterir
         this.thin = false;   // ince şerit (yukarı kaydırıldı)
         this.peek = false;   // ince şeritteyken fare üstünde: normal hâl görünür
         this._scrollAt = 0;
@@ -126,9 +199,13 @@ class Ada {
         this.box.add_child(this.page);
 
         Main.layoutManager.addTopChrome(this.box, {affectsInputRegion: true, trackFullscreen: true});
+        this.spill = new Spill(this);
+        this.waves.push(this.spill);
+        Main.layoutManager.addTopChrome(this.spill.actor, {affectsInputRegion: false, trackFullscreen: true});
         this._sigs = [
             [this.box, this.box.connect('notify::width', () => this._place())],
             [this.box, this.box.connect('notify::height', () => this._place())],
+            [this.box, this.box.connect('notify::scale-x', () => this._place())],
             [Main.layoutManager, Main.layoutManager.connect('monitors-changed', () => this._place())],
             [this.box, this.box.connect('button-press-event', (a, e) => this._press(e))],
             [this.box, this.box.connect('motion-event', (a, e) => this._motion(e))],
@@ -152,6 +229,8 @@ class Ada {
         this._proxy = null;
         for (const [obj, id] of this._sigs)
             obj.disconnect(id);
+        Main.layoutManager.removeChrome(this.spill.actor);
+        this.spill.actor.destroy();
         Main.layoutManager.removeChrome(this.box);
         this.box.destroy();
     }
@@ -220,6 +299,7 @@ class Ada {
         if (newTrack)  // yeni şarkı: yazılar hafifçe kayarak belirir (hiç boş görünmeden)
             this._fadeIn(this.compact, -3, 110);
         this._animate((this.playing || this.loading) && this.box.visible);
+        this._spillUpdate();
     }
 
     _onEvent(kind) {
@@ -228,6 +308,11 @@ class Ada {
             return;
         if (this.thin && kind !== 'call')
             return; // ince şeritte yalnızca arama büyütür
+        if (this.custom) {  // özelleştirirken yalnızca arama araya girer
+            if (kind !== 'call')
+                return;
+            this.custom = false;
+        }
         this.pageName = page;
         this._expand(true);
         this._bump();
@@ -243,16 +328,35 @@ class Ada {
             return;
         const top = Main.panel ? Main.panel.height : 0;
         this.box.set_position(Math.round(m.x + (m.width - this.box.width) / 2), m.y + top);
+        const s = this.spill.actor;
+        s.set_size(Math.round(this.box.width * this.box.scale_x) + 2 * SPILL_PAD, SPILL_H);
+        s.set_position(Math.round(m.x + (m.width - s.width) / 2),
+            m.y + top + Math.round(this.box.height * this.box.scale_y) - 3);
+    }
+
+    // Taşan su: "Taşan dalgalar" kipinde, ada görünürken ve çalarken (ya da şarkılar arasında).
+    _spillUpdate() {
+        const st = this.state || {};
+        const on = st.mode === 'tasan' && this.box.visible && (this.playing || this.loading || this.amp > 0.06);
+        if (on && !this.spill.actor.visible) {
+            this.spill.actor.opacity = 0;
+            this.spill.actor.show();
+            this.spill.actor.ease({opacity: 255, duration: 400, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        } else if (!on && this.spill.actor.visible) {
+            this.spill.actor.ease({opacity: 0, duration: 400, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => this.spill.actor.hide()});
+        }
     }
 
     _pages() {
         const list = this.state && this.state.call ? ['arama'] : [];
-        return list.concat(['calan', 'bildirim', 'zamanlayici']);
+        return list.concat(['calan', 'bildirim', 'zamanlayici', 'diger']);
     }
 
     _setClass() {
         const thin = this.thin && !this.peek && !this.expanded;
-        for (const [cls, on] of [['ada-buyuk', this.expanded], ['ada-ince', thin]]) {
+        for (const [cls, on] of [['ada-buyuk', this.expanded], ['ada-ince', thin],
+            ['ada-ozel', this.custom && this.expanded]]) {
             if (on)
                 this.box.add_style_class_name(cls);
             else
@@ -263,6 +367,8 @@ class Ada {
     _expand(on) {
         this._morph(() => {
             this.expanded = on;
+            if (!on)
+                this.custom = false;
             this.page.visible = on;
             this._setClass();
             if (on) {
@@ -280,7 +386,7 @@ class Ada {
         this._timers.collapse = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
             delete this._timers.collapse;
             const callActive = this.state && this.state.call;
-            if (!this.box.hover && !(callActive && this.pageName === 'arama'))
+            if (!this.box.hover && !this.custom && !(callActive && this.pageName === 'arama'))
                 this._expand(false);
             return GLib.SOURCE_REMOVE;
         });
@@ -396,8 +502,10 @@ class Ada {
             this.phase += 0.03 + 0.09 * ((this.amp - 0.05) / 0.17);
             for (const w of this.waves)
                 w.repaint();
+            this._spillUpdate();
             if (!this.waveOn && Math.abs(this.amp - target) < 0.002) {
                 this.amp = target;
+                this._spillUpdate();
                 delete this._timers.wave;
                 return GLib.SOURCE_REMOVE;
             }
@@ -522,6 +630,8 @@ class Ada {
         if (this._dragged && -dy >= DRAG_UP && -dy > Math.abs(dx)) {  // yukarı sürükleme: küçül
             this.page.translation_x = 0;
             this._shrink();
+        } else if (this.custom) {  // özelleştirme panelinde boş yere tıklama/sürükleme bir şey yapmaz
+            this.page.translation_x = 0;
         } else if (this.thin && !this.expanded && !this._dragged) {  // ince şeride tıklama: normale dön
             this._unthin();
         } else if (this._dragged && Math.abs(dx) >= DRAG_PAGE) {
@@ -681,8 +791,12 @@ class Ada {
 
     _buildPage() {
         this._clear(this.page);
+        if (this.custom) {
+            this._customPage();
+            return;
+        }
         const builders = {arama: () => this._callPage(), calan: () => this._musicPage(),
-            bildirim: () => this._notifPage(), zamanlayici: () => this._timerPage()};
+            bildirim: () => this._notifPage(), zamanlayici: () => this._timerPage(), diger: () => this._otherPage()};
         (builders[this.pageName] || builders.calan)();
     }
 
@@ -726,15 +840,87 @@ class Ada {
         const btns = this._row();
         btns.x_align = Clutter.ActorAlign.CENTER;
         for (const a of call.actions || []) {
+            const press = () => this.act({do: 'call', key: call.key, i: a.i});
+            const toggle = callToggle(a.title);
+            if (toggle) {  // hoparlör / sessiz: yazı yerine simge; açıkken parlak
+                btns.add_child(this._button(toggle.icon, press, toggle.on ? 'ada-acik' : 'ada-kapali'));
+                continue;
+            }
             const bad = /reddet|kapat|decline|hang|end|sonlandır/i.test(a.title);
-            btns.add_child(this._textButton(a.title, () => this.act({do: 'call', key: call.key, i: a.i}),
-                bad ? 'ada-kirmizi' : 'ada-yesil-dugme'));
+            btns.add_child(this._textButton(a.title, press, bad ? 'ada-kirmizi' : 'ada-yesil-dugme'));
         }
         if (!ringing) {
             btns.add_child(this._button('audio-volume-low-symbolic', () => this.act({do: 'call_volume', up: false})));
             btns.add_child(this._button('audio-volume-high-symbolic', () => this.act({do: 'call_volume', up: true})));
         }
         this.page.add_child(btns);
+    }
+
+    _otherPage() {
+        this.page.add_child(this._label('Diğer', 'ada-baslik'));
+        const r = this._row(this._textButton('Özelleştir', () => this._setCustom(true), 'ada-ozellestir'));
+        r.x_align = Clutter.ActorAlign.CENTER;
+        this.page.add_child(r);
+    }
+
+    _setCustom(on) {
+        this._morph(() => {
+            this.custom = on;
+            if (on)
+                this.expanded = true;
+            this.page.visible = this.expanded;
+            this._setClass();
+            this._buildPage();
+            this._buildCompact();
+        });
+        this._fadeIn(this.page, on ? -6 : 0);
+        this._cancel('collapse');
+        if (!on && !this.box.hover)
+            this._collapseLater(IDLE_COLLAPSE_MS);
+    }
+
+    // Özelleştirme: tema ve kip; seçim Talk To'ya gider, ayarlara yazılır, ada hemen değişir. ✕ ile kapanır.
+    _customPage() {
+        const st = this.state || {};
+        const head = this._row(this._label('Adayı özelleştir', 'ada-baslik'));
+        const spacer = new St.Widget({x_expand: true});
+        head.add_child(spacer);
+        head.add_child(this._button('window-close-symbolic', () => this._setCustom(false), 'ada-kapat-ozel'));
+        this.page.add_child(head);
+
+        this.page.add_child(this._label('Tema', 'ada-soluk'));
+        const themes = this._row();
+        themes.x_align = Clutter.ActorAlign.CENTER;
+        for (const t of st.themes || []) {
+            const box = new St.BoxLayout({vertical: true, style_class: 'ada-tema-kutu'});
+            const swatch = new St.Button({style_class: `ada-tema ada-tema-${t.id} ${t.id === st.theme_id ? 'ada-tema-secili' : ''}`,
+                can_focus: true, width: 46, height: 30});
+            swatch.set_style(`background-gradient-direction: vertical; background-color: ${t.bg1};` +
+                `background-gradient-start: ${t.bg1}; background-gradient-end: ${t.bg2};` +
+                `border-bottom: 5px solid ${t.wave1};`);
+            swatch.connect('clicked', () => this.act({do: 'set', key: 'ada_theme', value: t.id}));
+            box.add_child(swatch);
+            const name = this._label(t.name, 'ada-tema-ad');
+            name.x_align = Clutter.ActorAlign.CENTER;
+            box.add_child(name);
+            themes.add_child(box);
+        }
+        this.page.add_child(themes);
+
+        this.page.add_child(this._label('Kip', 'ada-soluk'));
+        const modes = this._row();
+        modes.x_align = Clutter.ActorAlign.CENTER;
+        for (const m of st.modes || []) {
+            modes.add_child(this._textButton(m.name, () => this.act({do: 'set', key: 'ada_mode', value: m.id}),
+                `ada-kip-${m.id} ${m.id === st.mode ? 'ada-secili' : ''}`));
+        }
+        this.page.add_child(modes);
+        const mode = (st.modes || []).find(m => m.id === st.mode);
+        if (mode && mode.hint) {
+            const hint = this._label(mode.hint, 'ada-soluk ada-ipucu');
+            hint.x_align = Clutter.ActorAlign.CENTER;
+            this.page.add_child(hint);
+        }
     }
 
     _notifPage() {
