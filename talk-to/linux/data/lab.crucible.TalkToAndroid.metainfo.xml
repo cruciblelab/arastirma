@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.17.0" date="2026-10-12">
+      <description><p>Yeniden başlayınca kendiliğinden bağlanma: telefon açılınca (ya da telefon uygulaması güncellenince) uygulamayı açmadan kayıtlı bilgisayara bağlanır; Xiaomi/HyperOS'ta gereken “Otomatik başlatma” izni bilgisayardan verilir. Bilgisayarda “Oturum açılınca başlat” bir kez kendiliğinden açılır (Tercihler'den kapatılabilir, kapatılırsa öyle kalır).</p></description>
+    </release>
     <release version="0.16.1" date="2026-10-12">
       <description><p>Takılı ama şarj yetmiyorsa da uyarır: telefon bilgisayarın USB'sine takılı, “şarj oluyor” diyor ama pil düşüyorsa (en yüksekten 2 puan), %15 / %10 / %5 uyarıları “takılı ama şarj yetmiyor · duvar şarjına tak” diye sürer. Pil uyarısındaki yanıp sönen simge, canlandırmalar kapalıyken eklentiyi kilitleyebiliyordu: düzeltildi.</p></description>
     </release>

@@ -77,6 +77,7 @@ class App(Adw.Application):
         self.set_accels_for_action("window.close", ["<Control>w"])
 
         self.config = Config()
+        self._default_autostart()
         GLib.timeout_add_seconds(2, self._check_wiped)
         self._setup_offered = False  # kurulum yardımcısı bu çalışmada kendiliğinden bir kez açılır
         self.notifier = Notifier()
@@ -932,6 +933,20 @@ class App(Adw.Application):
                            key=f"call|{did}|{key}",
                            app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"), actions=actions,
                            urgent=ringing, resident=not ringing)
+
+    def _default_autostart(self):
+        """Oturum açılınca arka planda başlasın: bilgisayar yeniden başlayınca telefon kendiliğinden bağlansın. Bir
+        kez açılır; kullanıcı Tercihler'den kapatırsa öyle kalır. (Testlerin ayar klasörü ayrıyken gerçek oturumun
+        otomatik başlatmasına dokunulmaz.)"""
+        if self.config["autostart_default_done"] or os.environ.get("TALKTO_CONFIG_DIR"):
+            return
+        self.config.set("autostart_default_done", True)
+        if not system.autostart_enabled():
+            try:
+                system.set_autostart(True)
+                log.info("oturum açılınca başlatma açıldı")
+            except OSError as e:
+                log.warning("otomatik başlatma açılamadı: %s", e)
 
     def _check_battery(self, sessions):
         """Telefonun pili bir eşiğe indiyse uyar: üst ada ekrandaysa ada belirir, değilse masaüstü bildirimi.

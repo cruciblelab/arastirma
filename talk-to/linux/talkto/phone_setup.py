@@ -100,6 +100,16 @@ async def setup_phone(serial: str) -> list[dict]:
     if full:
         items += await _answer_items(serial, granted["ANSWER_PHONE_CALLS"])
 
+    # Xiaomi/HyperOS: "Otomatik başlatma" kapalıyken telefon açılınca uygulamaya haber verilmez; telefon yeniden
+    # başlayınca bilgisayara kendiliğinden bağlanamaz.
+    _, maker = await _sh(serial, "getprop", "ro.product.manufacturer")
+    if maker.strip().lower() in XIAOMI:
+        ok, why = await _appop(serial, "10008")
+        items.append(_item("xiaomi_autostart", "Otomatik başlatma (Xiaomi)", ok,
+                           "zaten açık" if why == "zaten" else "" if ok else
+                           f"verilemedi ({why}); telefonda Ayarlar → Uygulamalar → Talk To Linux → Otomatik başlatma'yı "
+                           "aç, yoksa telefon yeniden başlayınca bağlanmak için uygulamayı açman gerekir"))
+
     if sdk >= 31:
         if granted["BLUETOOTH_CONNECT"]:
             items.append(_item("bluetooth", "Bluetooth izni", True, "zaten açık"))
@@ -112,6 +122,7 @@ async def setup_phone(serial: str) -> list[dict]:
 
 
 ANSWER_HINT = "olmazsa aramayı telefondan cevaplarsın"
+XIAOMI = ("xiaomi", "redmi", "poco")
 
 
 async def _answer_items(serial: str, answer_granted: bool) -> list[dict]:
@@ -138,7 +149,7 @@ async def _answer_items(serial: str, answer_granted: bool) -> list[dict]:
                        "zaten açık" if why == "zaten" else "" if ok else f"verilemedi ({why}); {ANSWER_HINT}"))
 
     _, maker = await _sh(serial, "getprop", "ro.product.manufacturer")
-    if maker.strip().lower() in ("xiaomi", "redmi", "poco"):
+    if maker.strip().lower() in XIAOMI:
         ok, why = await _appop(serial, "10021")
         items.append(_item("xiaomi_popup", "Arka planda açılır pencereler (Xiaomi)", ok,
                            "zaten açık" if why == "zaten" else "" if ok else

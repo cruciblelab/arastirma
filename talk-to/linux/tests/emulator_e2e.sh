@@ -194,9 +194,11 @@ count() { python3 -c 'import json,sys; print(sum(1 for l in open(sys.argv[1]) if
 C0=$(count connected)
 A0=$(count ask)
 adb install -r "$APK"
-sleep 2
+# Uygulama açılmaz: güncellenince telefonun verdiği haber (MY_PACKAGE_REPLACED) servisi başlatır, kendiliğinden
+# bağlanır (telefon açılınca da aynı yol).
+wait_for "kendiliğinden yeniden bağlandı (onaysız, uygulama açılmadan)" \
+    "len(of('connected')) > $C0 and len(of('ask')) == $A0" 60
 adb shell am start -W -n $PKG/.ui.MainActivity > /dev/null
-wait_for "kendiliğinden yeniden bağlandı (onaysız)" "len(of('connected')) > $C0 and len(of('ask')) == $A0" 45
 wait_for "güncellemeden sonra da dinleyici bağlı" \
     'phone().get("listener") is True and len([e for e in ev if e["event"] == "status"]) > 0' 40
 adb shell "cmd notification post -S bigtext -t 'Guncelleme sonrasi' e2e2 'Hala geliyor mu'"
@@ -242,5 +244,19 @@ wait_for "hoparlör düğmesine basıldı (hata yok)" \
     'any(r["kind"] == "action" and "peaker" in (r["title"] or "") and not r["error"] for r in of("call_result"))' 15
 press "hang up|kapat|end"
 wait_for "bilgisayardan kapatıldı" "len(of('call_ended')) > $E0" 20
+
+log "7) telefon yeniden başlamış gibi: uygulama kapalıyken açılış haberi gelir, kendiliğinden bağlanır"
+C2=$(count connected)
+adb shell input keyevent KEYCODE_HOME
+adb shell am force-stop $PKG
+sleep 3
+# Açılış haberini (BOOT_COMPLETED) yalnızca sistem gönderebilir: emülatörde adb root ile.
+adb root > /dev/null 2>&1 || true
+adb wait-for-device
+sleep 3
+[ "$(adb shell id -u | tr -d '\r')" = "0" ] || fail "adb root olmadı (açılış haberi gönderilemez)"
+adb shell am broadcast -a android.intent.action.BOOT_COMPLETED -f 0x20 -n $PKG/.service.BootReceiver
+wait_for "açılıştan sonra uygulama açılmadan bağlandı" "len(of('connected')) > $C2" 90
+shot 06-acilistan-sonra
 
 log "EMÜLATÖR TESTİ GEÇTİ"

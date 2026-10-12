@@ -1053,16 +1053,20 @@ exit 0"""
         self.assertTrue(ok, text)
         calls = "\n".join(self.calls())
         self.assertIn("appops set lab.crucible.talktolinux SYSTEM_ALERT_WINDOW allow", calls)
-        self.assertNotIn(" 10021 ", calls)  # Pixel: Xiaomi'ye özgü izne dokunulmaz
+        self.assertNotIn(" 10021 ", calls)  # Pixel: Xiaomi'ye özgü izinlere dokunulmaz
+        self.assertNotIn(" 10008 ", calls)
         # Xiaomi: kendi izni de verilir; ikinci seferde "zaten açık" (yeniden verilmez).
         self.phone(first=appops + '\n  *"getprop ro.product.manufacturer"*) echo Xiaomi ;;')
         ok, text = await self.hub.phone_setup("ABC123")
         self.assertTrue(ok, text)
         self.assertIn("appops set lab.crucible.talktolinux 10021 allow", "\n".join(self.calls()))
+        # Xiaomi'de otomatik başlatma da (telefon yeniden başlayınca kendiliğinden bağlansın).
+        self.assertIn("appops set lab.crucible.talktolinux 10008 allow", "\n".join(self.calls()))
         self.log.unlink()
         items = await __import__("talkto.phone_setup", fromlist=["x"]).setup_phone("ABC123")
-        self.assertEqual({i["key"]: i["message"] for i in items if i["key"] in ("overlay", "xiaomi_popup")},
-                         {"overlay": "zaten açık", "xiaomi_popup": "zaten açık"})
+        self.assertEqual({i["key"]: i["message"] for i in items if i["key"] in ("overlay", "xiaomi_popup",
+                                                                                "xiaomi_autostart")},
+                         {"overlay": "zaten açık", "xiaomi_popup": "zaten açık", "xiaomi_autostart": "zaten açık"})
         self.assertNotIn("appops set lab.crucible.talktolinux SYSTEM_ALERT_WINDOW", "\n".join(self.calls()))
 
     async def test_answer_permission_failure_is_told(self):

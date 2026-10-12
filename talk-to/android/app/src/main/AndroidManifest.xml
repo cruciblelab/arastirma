@@ -13,6 +13,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Bilgisayar telefonda bir şey yapınca kısa titreşim (bilgisayardaki "Telefonda titreşim" açıksa). -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Telefon açılınca kayıtlı bilgisayara kendiliğinden bağlanmak (uygulamayı açmak gerekmesin). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Bluetooth: yalnızca eşleşmiş bilgisayara bağlanmak için (tarama yapılmaz). -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
@@ -77,6 +79,15 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
         <service
             android:name=".service.TalkService"
             android:exported="false"

@@ -36,6 +36,43 @@ class WipedConfigTest(unittest.TestCase):
         self.assertFalse(cfg.wiped())
 
 
+class DefaultAutostartTest(unittest.TestCase):
+    """Bilgisayar yeniden başlayınca telefon kendiliğinden bağlansın: "oturum açılınca başlat" bir kez açılır,
+    kullanıcı kapatırsa yeniden açılmaz."""
+
+    def test_once(self):
+        try:
+            from talkto.ui import system
+            from talkto.ui.app import App
+        except (ImportError, ValueError) as e:
+            self.skipTest(f"GTK yok: {e}")
+        tmp = Path(tempfile.mkdtemp())
+        old = dict(os.environ)
+        try:
+            os.environ["XDG_CONFIG_HOME"] = str(tmp / "xdg")
+            os.environ.pop("TALKTO_CONFIG_DIR", None)
+
+            class Host:
+                _default_autostart = App._default_autostart
+            h = Host()
+            h.config = Config(tmp / "cfg")
+            h._default_autostart()
+            self.assertTrue(system.autostart_enabled())
+            self.assertIn("--arka-planda", (tmp / "xdg/autostart").joinpath(
+                next(p.name for p in (tmp / "xdg/autostart").iterdir())).read_text())
+            system.set_autostart(False)  # kullanıcı kapattı
+            h._default_autostart()
+            self.assertFalse(system.autostart_enabled())
+            os.environ["TALKTO_CONFIG_DIR"] = str(tmp / "test")  # testler gerçek oturuma dokunmaz
+            h2 = Host()
+            h2.config = Config(tmp / "cfg2")
+            h2._default_autostart()
+            self.assertFalse(system.autostart_enabled())
+        finally:
+            os.environ.clear()
+            os.environ.update(old)
+
+
 try:
     import gi
     gi.require_version("Gtk", "4.0")

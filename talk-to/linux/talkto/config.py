@@ -54,6 +54,7 @@ class Config:
         "default_profile": "benim",
         "setup_done": False,  # ilk açılıştaki kurulum yardımcısı bitirildi ya da atlandı
         "firewall_port": None,  # kurulum yardımcısından ufw izni eklenen port
+        "autostart_default_done": False,  # "oturum açılınca başlat" bir kez kendiliğinden açıldı (sonra kullanıcının)
         # Basit mod (talkto.features): yalnızca bildirimler, çalan müzik ve telefonu bul görünür.
         "simple_mode": True,
         "extras": [],  # basit modda yine de görünsün diye eklenen özellikler
