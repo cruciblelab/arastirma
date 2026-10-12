@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.15.2" date="2026-10-12">
+      <description><p>Üst ada, Taşan dalgalar: su artık adanın üst kenarından taşıp iki yanından şelale gibi aşağı dökülüyor, altta toplanıp çalkalanıyor; akıntıların düştüğü yerlerde kabarıp damlıyor.</p></description>
+    </release>
     <release version="0.15.1" date="2026-10-12">
       <description><p>Aramayı bilgisayardan cevaplama: telefon uygulaması USB'den kurulunca ya da güncellenince izinler kendiliğinden verilir (aramayı cevaplama, üstte gösterme, Xiaomi'de arka planda açılır pencereler); verilemeyen olursa söylenir. “Cevapla”ya basıldıktan sonra arama hâlâ çalıyorsa bildirim ve ada “telefondan cevapla” der. Telefon Wi-Fi'den bağlanamazsa nedenini söyler (yanıt yok / dinlemiyor / adrese ulaşılamıyor).</p></description>
     </release>

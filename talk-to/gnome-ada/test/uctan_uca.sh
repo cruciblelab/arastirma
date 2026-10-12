@@ -59,6 +59,7 @@ assert b["ada-acik"] > 0 and b["ada-kapali"] > 0, "görüşmede hoparlör/sessiz
 assert b["ada-uyari"] > 0, "cevaplanamayan aramada adada “telefondan cevapla” yazmıyor"
 assert b["ozellestir"] > b["buyuk"], "Özelleştir'e basınca ada daha da büyümeli"
 assert b["ada-tasan"] > 0, "Taşan dalgalar kipinde çalarken su görünmeli"
+assert b["ada-tasan"] > 60 + 20, "su adanın yanlarından da dökülmeli (çizim adanın üst kenarından başlar)"
 assert b["ozel_kapandi"] <= b["normal"] + 2, "Bitti'den sonra ada normal boyda olmalı"
 assert abs(b["kilitsiz"] - b["normal"]) <= 6, "Konumu değiştir: ada normal boya iner"
 x, y, w, h = json.load(open(sys.argv[1]))["konum"]

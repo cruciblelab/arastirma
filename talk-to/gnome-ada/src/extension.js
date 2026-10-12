@@ -75,6 +75,9 @@ class Spill {
         this.actor.connect('repaint', area => this._paint(area));
     }
 
+    // Su adanın üst kenarından taşar, iki yanından şelale gibi aşağı dökülür, altta toplanıp çalkalanır
+    // (ortası kabarık, akıntıların düştüğü iki yanda da kabarır) ve damlalar düşer. Çizim adanın üstüne değil
+    // çevresine yapılır; tıklamaları almaz.
     _paint(area) {
         const cr = area.get_context();
         const [w, h] = area.get_surface_size();
@@ -84,34 +87,82 @@ class Spill {
         // Süs "vurgu": birkaç yavaş sinüsün bileşimi; çalarken çalkalanır, duraklayınca durulur.
         const beat = 0.55 + 0.45 * Math.pow(Math.abs(Math.sin(t * 2.3)), 3) * (0.6 + 0.4 * Math.sin(t * 0.7));
         const pad = SPILL_PAD;
-        const bell = x => {
-            const u = Math.max(0, Math.min(1, (x - pad * 0.4) / (w - pad * 0.8)));
+        const left = pad, right = w - pad;
+        const bh = Math.max(6, Math.min(h - 12, this.bh || 30));  // adanın yüksekliği (bu çizimde)
+        const [r1, g1, b1] = rgba(th.wave1, 1);
+        const [r2, g2, b2] = rgba(th.wave2, 1);
+
+        // 1) Yanlardan dökülen su: üstte ince, aşağı indikçe kalınlaşır, hafifçe dalgalanır.
+        const sw = 1.5 + 5 * energy * beat;
+        // Adanın alt köşeleri yuvarlak: su köşeyi sararak altına iner.
+        const R = Math.min(18, bh / 2);
+        const hug = y => y <= bh - R ? 0 : R - Math.sqrt(Math.max(0, R * R - Math.pow(y - (bh - R), 2)));
+        for (const side of [-1, 1]) {
+            const x0 = side < 0 ? left : right;
+            const ys = [];
+            for (let y = 0; y < bh; y += 3)
+                ys.push(y);
+            ys.push(bh);
+            cr.moveTo(x0, 0);
+            for (const y of ys) {
+                const wob = Math.sin(y / 6 + t * 7 + side) * (0.4 + 0.8 * energy);
+                cr.lineTo(x0 + side * (Math.max(0.5, sw * (0.45 + 0.55 * y / bh) + wob) - hug(y)), y);
+            }
+            for (const y of ys.reverse())
+                cr.lineTo(x0 - side * hug(y), y);
+            cr.closePath();
+            const g = new Cairo.LinearGradient(0, 0, 0, bh);
+            g.addColorStopRGBA(0, r1, g1, b1, 0.9);
+            g.addColorStopRGBA(1, r2, g2, b2, 0.75);
+            cr.setSource(g);
+            cr.fill();
+            // Şelalenin akan parıltıları: aşağı kayan kısa açık çizgiler.
+            for (let i = 0; i < 3; i++) {
+                const p = (t * (1.1 + 0.35 * i) + i * 0.33) % 1;
+                const y = p * bh;
+                cr.moveTo(x0 + side * sw * 0.45, y);
+                cr.lineTo(x0 + side * sw * 0.45, Math.min(bh, y + 5 + 4 * energy));
+                cr.setLineWidth(1);
+                cr.setSourceRGBA(1, 1, 1, 0.45 * energy * (1 - p * 0.6));
+                cr.stroke();
+            }
+        }
+
+        // 2) Altta toplanan su: ortası kabarık, akıntıların düştüğü iki yanda da kabarır.
+        const base = bh - 3;
+        const room = h - base;
+        const mid = x => {
+            const u = Math.max(0, Math.min(1, (x - left) / Math.max(1, right - left)));
             return Math.pow(Math.sin(Math.PI * u), 1.3);
         };
+        const splash = x => Math.exp(-Math.pow((x - left) / 11, 2)) + Math.exp(-Math.pow((x - right) / 11, 2));
         const layers = [[th.wave2, 0.5, 1.0, 0.0, 1.0], [th.wave1, 0.85, 1.5, 1.9, 0.72]];
         for (const [color, alpha, speed, shift, scale] of layers) {
-            const max = h * scale * (0.2 + 0.65 * energy * beat);
-            cr.moveTo(0, 0);
+            const max = room * scale * (0.2 + 0.65 * energy * beat);
+            cr.moveTo(0, base);
             for (let x = 0; x <= w; x += 3) {
                 const ripple = 0.75 + 0.25 * Math.sin(x / w * Math.PI * 6 + t * 3 * speed + shift);
-                cr.lineTo(x, max * bell(x) * ripple);
+                const prof = Math.max(mid(x), 0.75 * splash(x) * (0.6 + 0.4 * energy));
+                cr.lineTo(x, base + max * prof * ripple);
             }
-            cr.lineTo(w, 0);
+            cr.lineTo(w, base);
             cr.closePath();
-            const g = new Cairo.LinearGradient(0, 0, 0, Math.max(1, max));
+            const g = new Cairo.LinearGradient(0, base, 0, base + Math.max(1, max));
             const [r, gg, b] = rgba(color, 1);
             g.addColorStopRGBA(0, r, gg, b, alpha);
             g.addColorStopRGBA(1, r, gg, b, alpha * 0.25);
             cr.setSource(g);
             cr.fill();
         }
-        if (energy > 0.3) {  // taşan sudan düşen birkaç damla
-            const [r, gg, b] = rgba(th.wave2, 1);
-            for (let i = 0; i < 3; i++) {
-                const p = (t * (0.55 + i * 0.17) + i * 0.37) % 1;
-                const x = pad + (w - 2 * pad) * (0.2 + 0.3 * i) + Math.sin(t + i) * 6;
-                cr.arc(x, h * 0.35 + p * h * 0.65, 1.6 + energy, 0, 2 * Math.PI);
-                cr.setSourceRGBA(r, gg, b, 0.7 * (1 - p) * energy);
+
+        // 3) Damlalar: ortadan ve iki şelalenin dibinden düşer (çalarken).
+        if (energy > 0.3) {
+            for (let i = 0; i < 5; i++) {
+                const p = (t * (0.55 + i * 0.15) + i * 0.29) % 1;
+                const x = i < 3 ? left + (right - left) * (0.2 + 0.3 * i) + Math.sin(t + i) * 6
+                    : (i === 3 ? left : right) + (i === 3 ? -1 : 1) * (3 + p * 6);
+                cr.arc(x, base + room * 0.3 + p * room * 0.7, 1.5 + energy, 0, 2 * Math.PI);
+                cr.setSourceRGBA(r2, g2, b2, 0.7 * (1 - p) * energy);
                 cr.fill();
             }
         }
@@ -347,10 +398,12 @@ class Ada {
         const off = Math.max(-room, Math.min(room, this.offset));
         const cx = m.x + m.width / 2 + off;
         this.box.set_position(Math.round(cx - this.box.width / 2), m.y + top);
+        // Taşan su adanın üst kenarından başlar (yanlardan dökülür) ve altına SPILL_H kadar iner.
         const s = this.spill.actor;
-        s.set_size(Math.round(this.box.width * this.box.scale_x) + 2 * SPILL_PAD, SPILL_H);
-        s.set_position(Math.round(cx - s.width / 2),
-            m.y + top + Math.round(this.box.height * this.box.scale_y) - 3);
+        const bh = Math.round(this.box.height * this.box.scale_y);
+        this.spill.bh = bh;
+        s.set_size(Math.round(this.box.width * this.box.scale_x) + 2 * SPILL_PAD, bh + SPILL_H);
+        s.set_position(Math.round(cx - s.width / 2), m.y + top);
     }
 
     // Taşan su: "Taşan dalgalar" kipinde, ada görünürken ve çalarken (ya da şarkılar arasında).
