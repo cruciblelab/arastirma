@@ -27,7 +27,7 @@ from . import compat, ustte
 SIZES = {"kucuk": ((340, 64), (300, 34)), "orta": ((440, 96), (340, 40)), "buyuk": ((560, 136), (400, 48))}
 SIZE_NAMES = {"kucuk": "Küçük", "orta": "Orta", "buyuk": "Büyük"}
 ART_WAIT_MS = 4000  # yeni kapak bu kadar gelmezse (kapaksız şarkı) eski kapak kaldırılır
-TRACK_GAP_MS = 2500  # şarkı değişirken telefon bir an "çalmıyor" diyebilir: o arada boşa düşmesin
+TRACK_GAP_MS = 3000  # şarkı değişirken telefon bir an "çalmıyor" diyebilir: o arada boşa düşmesin
 BLUR_CLOSE_MS = 250  # pencere bu kadar odaksız kalırsa açık menüler kapanır
 MENU_WATCH_MS = 300  # XWayland'de menü açıkken odak bu aralıkla pencere yöneticisine sorulur
 
@@ -52,6 +52,10 @@ class Wave(Gtk.Box):
 
     def set_playing(self, on):
         (self.add_css_class if on else self.remove_css_class)("playing")
+
+    def set_loading(self, on):
+        """Şarkılar arası geçiş: çubuklar sırayla hafifçe yanıp söner (çalmıyor gibi görünmesin)."""
+        (self.add_css_class if on else self.remove_css_class)("loading")
 
 
 def build_menu() -> Gio.Menu:
@@ -415,6 +419,15 @@ class MiniPlayer(Adw.Window):
 
     # ---- durum ------------------------------------------------------------------
 
+    def set_loading(self, on):
+        """Sıradaki şarkı bekleniyor (bkz. NowPlaying.loading): dalga "yükleniyor" olur, yazılar hafifçe söner."""
+        on = bool(on) and bool(getattr(self, "state", None))
+        for w in (self.wave, self.c_wave):
+            w.set_loading(on)
+            w.set_visible(w.get_visible() or on)
+        for lbl in (self.title_label, self.c_title):
+            (lbl.add_css_class if on else lbl.remove_css_class)("yukleniyor")
+
     def _art_wait_over(self):
         self._timers.pop("art_wait", None)
         self.app._refresh_mini()
@@ -434,11 +447,7 @@ class MiniPlayer(Adw.Window):
         if not active and getattr(self, "state", None) and not getattr(self, "_gap_done", False):
             # Az önce çalıyordu: hemen "çalmıyor"a düşme, kısa bir süre son şarkı (duraklamış) kalsın.
             self._timers["gap"] = gap or GLib.timeout_add(TRACK_GAP_MS, self._gap_over)
-            self.wave.set_playing(False)
-            self.c_wave.set_playing(False)
-            for b in (self.play, self.c_play):
-                b.set_icon_name("media-playback-start-symbolic")
-            return
+            return  # düğmeler ve yazılar olduğu gibi kalır; "yükleniyor"u set_loading gösterir
         self._gap_done = False
         self.device_id = device_id if active else None
         self.state = dict(state) if active else {}

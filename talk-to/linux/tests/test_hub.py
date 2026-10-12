@@ -315,6 +315,14 @@ class HubTest(_Base):
         await asyncio.sleep(0.2)
         self.assertEqual(self.of("call")[-1]["state"], "ongoing")  # bilinmeyen durum: süren sayılır
         self.assertEqual(self.of("call_ended")[-1]["key"], "0|com.whatsapp|7")
+        # Arama biterken uygulama bildirimi önce düğmesiz günceller, sonra kaldırır; eski telefon uygulaması bunu
+        # "bildirim kalktı" diye gönderiyordu: bilgisayar yine "arama bitti" saymalı (yoksa arama hep sürüyor görünür).
+        await p.send(dict(call, key="0|com.android.dialer|1", state="ongoing", actions=[]))
+        await p.send({"type": "notification_removed", "key": "0|com.android.dialer|1"})
+        await p.send({"type": "notification_removed", "key": "0|com.whatsapp|99"})  # sıradan bildirim
+        await asyncio.sleep(0.2)
+        self.assertEqual(self.of("call_ended")[-1]["key"], "0|com.android.dialer|1")
+        self.assertEqual([e["key"] for e in self.of("notification_removed")], ["0|com.whatsapp|99"])
         # Bildirimleri göstermesi kapalıysa aramalar da gelmez.
         self.hub.config.set("show_notifications", False)
         n = len(self.of("call"))

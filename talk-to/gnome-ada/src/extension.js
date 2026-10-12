@@ -15,6 +15,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Cairo from 'cairo';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 // IMPORTS-BITTI
@@ -75,6 +76,17 @@ class Wave {
             cr.lineTo(w, h);
             cr.closePath();
             cr.setSourceRGBA(...rgba(color, alpha));
+            cr.fill();
+        }
+        if (this.ada.loading) {  // şarkılar arası: suyun üstünde kayan hafif bir parıltı ("yükleniyor")
+            const span = w * 0.35;
+            const x = ((Date.now() / 1100) % 1.6 - 0.3) * w;  // ~1,1 sn'de bir geçer
+            const g = new Cairo.LinearGradient(x - span / 2, 0, x + span / 2, 0);
+            g.addColorStopRGBA(0, 1, 1, 1, 0);
+            g.addColorStopRGBA(0.5, 1, 1, 1, 0.45);
+            g.addColorStopRGBA(1, 1, 1, 1, 0);
+            cr.rectangle(0, 0, w, h);
+            cr.setSource(g);
             cr.fill();
         }
         cr.$dispose();
@@ -184,6 +196,7 @@ class Ada {
         this.state = st;
         this.theme = Object.assign({}, DEFAULT_THEME, st.theme || {});
         this.playing = !!(st.media && st.media.active && st.media.playing);
+        this.loading = !!(st.media && st.media.active && st.media.loading);
         this.box.set_style(`background-gradient-direction: vertical; background-color: ${this.theme.bg1};` +
             `background-gradient-start: ${this.theme.bg1}; background-gradient-end: ${this.theme.bg2};` +
             `color: ${this.theme.text};`);
@@ -206,7 +219,7 @@ class Ada {
         });
         if (newTrack)  // yeni şarkı: yazılar hafifçe kayarak belirir (hiç boş görünmeden)
             this._fadeIn(this.compact, -3, 110);
-        this._animate(this.playing && this.box.visible);
+        this._animate((this.playing || this.loading) && this.box.visible);
     }
 
     _onEvent(kind) {
@@ -378,7 +391,7 @@ class Ada {
         if (this._timers.wave)
             return;
         this._timers.wave = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 40, () => {
-            const target = this.waveOn ? 0.22 : 0.05;
+            const target = this.loading ? 0.1 : this.waveOn ? 0.22 : 0.05;
             this.amp += (target - this.amp) * 0.08;
             this.phase += 0.03 + 0.09 * ((this.amp - 0.05) / 0.17);
             for (const w of this.waves)
@@ -651,6 +664,8 @@ class Ada {
             this.compact.add_child(this._cover(18));
             const title = this._label(media.title, 'ada-baslik');
             title.clutter_text.ellipsize = 3; // Pango.EllipsizeMode.END
+            if (this.loading)  // sıradaki şarkı bekleniyor: yazı hafifçe söner, parıltı dalgada
+                title.opacity = 150;
             this.compact.add_child(title);
             this.compact.add_child(this._wave(44, 14));
             this.compact.add_child(this._button(media.playing ? 'media-playback-pause-symbolic'

@@ -120,18 +120,28 @@ jobs:
     # Eklentideki düğmelere sanal fareyle basılır; Talk To'ya ulaşan eylemler ve ekran görüntüleri denetlenir.
     name: Üst ada (GNOME Shell eklentisi)
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: talk-to/gnome-ada
     steps:
       - uses: actions/checkout@v4
 
+      # GNOME Shell'in paketleri (~150 MB) çalışmalar arasında saklanır: Azure'un Ubuntu yansısı bazen çok yavaş
+      # (bir kez 25 MB'lık paket 7 dakika sürdü, iş zaman aşımına uğradı).
+      - uses: actions/cache@v4
+        with:
+          path: ~/apt-arsiv
+          key: gnome-shell-apt-noble-${{ hashFiles('.github/workflows/talk-to.yml') }}
+          restore-keys: gnome-shell-apt-noble-
+
       - name: Bağımlılıklar
         run: |
+          mkdir -p ~/apt-arsiv/partial
           sudo apt-get update -q
-          # Soru soran paket (ör. ekran yöneticisi seçimi) kurulumu bekletmesin; kurulum 15 dakikayla sınırlı.
-          sudo DEBIAN_FRONTEND=noninteractive timeout 900 apt-get install -y -q -o Dpkg::Options::=--force-confdef gnome-shell gjs python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas dbus libglib2.0-bin
+          # Soru soran paket (ör. ekran yöneticisi seçimi) kurulumu bekletmesin; kurulum 25 dakikayla sınırlı.
+          sudo DEBIAN_FRONTEND=noninteractive timeout 1500 apt-get install -y -q -o Dpkg::Options::=--force-confdef -o Dir::Cache::Archives="$HOME/apt-arsiv" gnome-shell gjs xwayland python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas dbus libglib2.0-bin
+          sudo chown -R "$USER" ~/apt-arsiv  # önbelleğe kaydedilebilsin
 
       - name: Sözdizimi (GNOME 45+ ve 42–44 sürümleri)
         run: |

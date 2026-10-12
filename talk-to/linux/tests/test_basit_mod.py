@@ -93,6 +93,36 @@ class NowPlayingTest(unittest.TestCase):
         ev = n.update("a", song("Gesi Bağları"))
         self.assertTrue(ev["started"] and ev["track"])
 
+    def test_loading_between_tracks(self):
+        """Şarkılar arası "yükleniyor": sonraki istendi (yeni şarkı gelene ya da 4 sn'ye kadar), telefon bir an
+        "çalmıyor" dedi (3 sn), şarkı biterken durakladı. Kullanıcının ortada duraklatması yükleniyor değil."""
+        from talkto import nowplaying
+        t = [100.0]
+        n = NowPlaying()
+        n.clock = lambda: t[0]
+        n.update("a", dict(song("Firuze"), position_ms=60000, duration_ms=200000))
+        self.assertFalse(n.loading("a"))
+        n.expect_change("a")
+        self.assertTrue(n.loading("a"))
+        n.update("a", song("Gesi Bağları"))  # yeni şarkı geldi
+        self.assertFalse(n.loading("a"))
+        n.expect_change("a")
+        t[0] += nowplaying.SKIP_WAIT + 0.1  # gelmedi: süre dolunca biter
+        self.assertFalse(n.loading("a"))
+        n.update("a", {"active": False})  # bir an "çalmıyor"
+        self.assertTrue(n.loading("a"))
+        t[0] += nowplaying.REJOIN + 0.1
+        self.assertFalse(n.loading("a"))  # gerçekten durdu
+        n.update("a", dict(song("Firuze"), position_ms=60000, duration_ms=200000))
+        n.update("a", dict(song("Firuze", playing=False), position_ms=60000, duration_ms=200000))
+        self.assertFalse(n.loading("a"))  # kullanıcı ortada duraklattı
+        n.update("a", dict(song("Firuze"), position_ms=198500, duration_ms=200000))
+        n.update("a", dict(song("Firuze", playing=False), position_ms=199000, duration_ms=200000))
+        self.assertTrue(n.loading("a"))  # bitti, sıradakine geçiyor
+        t[0] += nowplaying.REJOIN + 0.1
+        self.assertFalse(n.loading("a"))
+        self.assertFalse(n.loading(None))
+
     def test_paused_new_track_is_quiet(self):
         n = NowPlaying()
         ev = n.update("a", song("Firuze", playing=False))

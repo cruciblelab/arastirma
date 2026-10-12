@@ -615,6 +615,7 @@ class Session:
         self.phone_info = None  # telefonun sistem bilgileri (telefon_bilgi.clean)
         self.phone: dict = {}  # telefonun bildirdiği durum (bildirim erişimi, dinleyici, sürüm...)
         self.media = {"active": False}
+        self.call_keys: set[str] = set()  # telefonda süren aramaların bildirim anahtarları
         self.media_key = None
         self.media_sent = 0.0
         self.last_art: str | None = None
@@ -967,6 +968,7 @@ class Session:
                        for a in (msg.get("actions") or [])[:5] if isinstance(a, dict) and _s(a.get("title"), 40)]
             log.info("arama (%s): %s, %s, düğmeler %s", self.name, _s(msg.get("app"), 100), msg.get("state"),
                      [a["title"] for a in actions])
+            self.call_keys.add(_s(msg.get("key"), 300))
             hub.emit("call", {"device_id": self.device_id, "device": self.name, "key": _s(msg.get("key"), 300),
                               "package": pkg, "app": _s(msg.get("app"), 100) or pkg,
                               "caller": _s(msg.get("caller"), 200), "text": _s(msg.get("text"), 300),
@@ -987,9 +989,17 @@ class Session:
                 log.info("arama düğmesi (%s): %s → %s", self.name, r["title"], r["error"] or "basıldı")
             hub.emit("call_result", r)
         elif t == "call_ended":
+            self.call_keys.discard(_s(msg.get("key"), 300))
             hub.emit("call_ended", {"device_id": self.device_id, "key": _s(msg.get("key"), 300)})
         elif t == "notification_removed":
-            hub.emit("notification_removed", {"device_id": self.device_id, "key": _s(msg.get("key"), 300)})
+            key = _s(msg.get("key"), 300)
+            if key in self.call_keys:
+                # Eski telefon uygulaması (0.13.0 ve öncesi) arama biterken düğmesiz güncellenen bildirimin
+                # kalkmasını "arama bitti" diye değil "bildirim kalktı" diye gönderiyordu.
+                self.call_keys.discard(key)
+                hub.emit("call_ended", {"device_id": self.device_id, "key": key})
+            else:
+                hub.emit("notification_removed", {"device_id": self.device_id, "key": key})
         elif t == "media_state":
             self.media = self._clean_media(msg) if self.perm("media") else {"active": False}
             hub.emit("media", {"device_id": self.device_id, "state": self.media})

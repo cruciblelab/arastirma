@@ -17,6 +17,15 @@ class CallsTest {
     }
 
     @Test
+    fun endedCallIsReportedEvenAfterButtonlessUpdate() {
+        // Arama biterken uygulama bildirimi önce düğmesiz günceller, sonra kaldırır: yine "arama bitti" sayılır.
+        Calls.remember("0|dialer|1", null)
+        assertTrue(Calls.forget("0|dialer|1"))
+        assertFalse(Calls.forget("0|dialer|1"))  // bir kez
+        assertFalse(Calls.forget("0|whatsapp|99"))  // arama olmayan bildirim
+    }
+
+    @Test
     fun ringingOrOngoing() {
         assertEquals("ringing", Calls.state(1, false))  // CallStyle: gelen
         assertEquals("ongoing", Calls.state(2, true))   // CallStyle: süren (tam ekran olsa da)

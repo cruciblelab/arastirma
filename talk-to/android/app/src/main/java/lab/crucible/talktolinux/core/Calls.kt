@@ -23,6 +23,11 @@ object Calls {
     /** Bilgisayarın basabileceği düğmeler: bildirim anahtarı → uygulamanın düğmeleri. */
     private val actions = ConcurrentHashMap<String, Array<Notification.Action>>()
 
+    /** Arama bildirimleri (düğmesi kalmamış olsa da): kapanınca bilgisayara "arama bitti" denir. Arama
+     *  biterken uygulamalar bildirimi önce düğmesiz günceller; anahtar düğmelerle birlikte unutulursa
+     *  kaldırılınca "arama bitti" gitmiyor, bilgisayarda arama hep sürüyor görünüyordu. */
+    private val calls = ConcurrentHashMap.newKeySet<String>()
+
     /** Arama bildirimi mi: kategori "call" ya da Android 12'nin arama şablonu. */
     fun isCall(category: String?, template: String?): Boolean =
         category == Notification.CATEGORY_CALL || template == CALL_STYLE
@@ -50,11 +55,17 @@ object Calls {
     }
 
     fun remember(key: String, list: Array<Notification.Action>?) {
+        calls.add(key)
         if (list.isNullOrEmpty()) actions.remove(key) else actions[key] = list
         if (actions.size > 20) actions.keys.take(actions.size - 20).forEach { actions.remove(it) }
+        if (calls.size > 20) calls.take(calls.size - 20).forEach { calls.remove(it) }
     }
 
-    fun forget(key: String) = actions.remove(key) != null
+    /** Bildirim kalktı: arama idiyse true (düğmeleri daha önce kalkmış olsa da). */
+    fun forget(key: String): Boolean {
+        actions.remove(key)
+        return calls.remove(key)
+    }
 
     /** Bilgisayar düğmeye bastı: uygulamanın kendi niyeti çalıştırılır (telefonda basmak gibi).
      *  Sonuç: (düğmenin adı, hata ya da null) — bilgisayara bildirilir, günlüğe yazılır. */

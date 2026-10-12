@@ -162,9 +162,21 @@ class StateTest(unittest.TestCase):
         self.assertEqual(self.ada.state()["media"]["title"], "Firuze")
         self.app.now.update("p", {"active": False})
         m = self.ada.state()["media"]
-        self.assertEqual((m["title"], m["playing"]), ("Firuze", False))
-        self.ada._last_media_t -= ada.MEDIA_GRACE + 0.1
+        self.assertEqual((m["title"], m["loading"]), ("Firuze", True))  # boşa değil "yükleniyor"a düşer
+        at, prev = self.app.now.gone["p"]
+        self.app.now.gone["p"] = (at - ada.MEDIA_GRACE - 0.1, prev)  # süre doldu
         self.assertIsNone(self.ada.state()["media"])
+        self.ada.stop()
+
+    def test_loading_flag_while_waiting_for_next_track(self):
+        self.app.now.update("p", {"active": True, "title": "Firuze", "playing": True})
+        self.assertFalse(self.ada.state()["media"]["loading"])
+        self.ada.action({"do": "media", "action": "next"})
+        self.app.now.expect_change("p")  # FakeApp.call bunu yapmaz; gerçek App.call yapar
+        self.assertTrue(self.ada.state()["media"]["loading"])
+        self.app.now.update("p", {"active": False})  # boşlukta da son şarkı + yükleniyor
+        m = self.ada.state()["media"]
+        self.assertEqual((m["title"], m["loading"]), ("Firuze", True))
         self.ada.stop()
 
     def test_cover_arrival_refreshes(self):

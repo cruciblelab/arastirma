@@ -45,7 +45,7 @@ THEMES = {
     "orman": ("Orman", {"bg1": "#0b2b1c", "bg2": "#154734", "wave1": "#52b788", "wave2": "#b7e4c7", "text": "#eefaf2"}),
 }
 NOTIF_KEEP = 3600  # bildirim sayfasında son bir saatin bildirimleri
-MEDIA_GRACE = 2.5  # şarkı değişirken telefon bir anlığına "çalmıyor" diyebilir: ada o arada boşa düşmesin
+MEDIA_GRACE = 3.0  # şarkı değişirken telefon bir anlığına "çalmıyor" diyebilir: ada o arada boşa düşmesin
 
 
 class AdaService:
@@ -57,8 +57,7 @@ class AdaService:
         self.notifs: dict[str, dict] = {}  # uygulama → {"keys": {anahtar: zaman}, "last": metin, "time": zaman}
         self.status: dict = {}
         self.timer = None  # {"ends_at", "total", "phone", "device_id", "source"}
-        self._last_media = None  # son gösterilen çalan ve zamanı (MEDIA_GRACE)
-        self._last_media_t = 0.0
+        self._last_media = None  # son gösterilen çalan (şarkılar arası boşlukta gösterilir)
         self._grace_id = 0
         self.seen = False  # eklenti bu çalışmada Talk To'ya bağlandı (durumu istedi): ada ekranda
         self._emit_id = 0
@@ -127,11 +126,13 @@ class AdaService:
         if did and media.get("active"):
             m = {k: media.get(k) for k in ("title", "artist", "player", "playing", "position_ms", "duration_ms")}
             m.update(active=True, art=art if art and os.path.exists(art) else None, device_id=did)
-            self._last_media, self._last_media_t = m, time.monotonic()
-        elif self._last_media and time.monotonic() - self._last_media_t < MEDIA_GRACE:
-            m = dict(self._last_media, playing=False)  # kısa boşlukta son şarkı kalır; süre dolunca yeniden bakılır
+            self._last_media = m
+        elif self._last_media and self._in_gap(self._last_media["device_id"]):
+            m = dict(self._last_media)  # kısa boşlukta son şarkı kalır ("yükleniyor"); süre dolunca yeniden bakılır
             if not self._grace_id:
                 self._grace_id = GLib.timeout_add(int(MEDIA_GRACE * 1000) + 100, self._grace_over)
+        if m is not None:  # şarkılar arası geçiş: çalmıyor gibi değil, hafif "yükleniyor" görünsün
+            m["loading"] = self.app.now.loading(m.get("device_id"))
         cutoff = time.time() - NOTIF_KEEP
         apps = [{"app": a, "count": len(v["keys"]), "last": v["last"],
                  "icon": v.get("icon") if v.get("icon") and os.path.exists(v["icon"]) else None} for a, v in
@@ -188,6 +189,11 @@ class AdaService:
             for entry in self.notifs.values():
                 entry["keys"].pop(k, None)
             self.changed()
+
+    def _in_gap(self, did) -> bool:
+        """Telefon az önce (MEDIA_GRACE içinde) "çalmıyor" dedi: şarkılar arası boşluk olabilir."""
+        gone = self.app.now.gone.get(did)
+        return bool(gone) and self.app.now.clock() - gone[0] < MEDIA_GRACE
 
     def _grace_over(self):
         self._grace_id = 0

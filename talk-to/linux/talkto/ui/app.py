@@ -329,6 +329,7 @@ class App(Adw.Application):
         did, st = self.now.shown()
         self.mini.show_state(did, self.device_names.get(did, "Telefon"), st,
                              self.art_paths.get(st.get("art_id") or ""))
+        self.mini.set_loading(self.now.loading(did or self.mini.device_id or self.now.last_device))
 
     def _on_media(self, did, state):
         ev = self.now.update(did, state)
@@ -341,6 +342,8 @@ class App(Adw.Application):
             self.open_mini_player()
         if ev["track"] and self.ada:
             self.ada.on_track()
+        if self.now.loading(did):
+            self._loading_changed()
         if ev["track"] and self.config["track_popup"]:
             # Kapak birkaç yüz ms sonra gelir; hızlı atlamada da her parça için bildirim çıkmasın.
             self._cancel_popup(did)
@@ -424,7 +427,29 @@ class App(Adw.Application):
     # ---- hub'a komut ----------------------------------------------------------
 
     def call(self, method, *args):
+        if method == "media_control" and len(args) > 1 and args[1] in ("next", "previous"):
+            self.now.expect_change(args[0])  # yeni şarkı gelene kadar "yükleniyor"
+            self._loading_changed()
         self.hub.submit(getattr(self.hub, method)(*args))
+
+    def _loading_changed(self):
+        """Şarkılar arası "yükleniyor" durumu başladı ya da bitebilir: mini oynatıcı ve ada güncellensin; sürdükçe
+        yarım saniyede bir yeniden bakılır (bitince kendiliğinden kalkar)."""
+        self._refresh_mini()
+        if self.ada:
+            self.ada.changed()
+        if not getattr(self, "_loading_timer", 0):
+            self._loading_timer = GLib.timeout_add(500, self._loading_tick)
+
+    def _loading_tick(self):
+        did = self.now.shown()[0] or (self.mini.device_id if self.mini else None) or self.now.last_device
+        if self.now.loading(did):
+            return True
+        self._loading_timer = 0
+        self._refresh_mini()
+        if self.ada:
+            self.ada.changed()
+        return False
 
     def toast(self, text):
         """Kurulum yardımcısı açıksa sonuç onun üstünde görünsün (ana pencere arkasında kalır)."""
