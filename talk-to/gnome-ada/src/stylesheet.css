@@ -16,6 +16,8 @@
 .ada-iri { font-size: 13pt; }
 .ada-soluk { opacity: 0.72; font-size: 8.5pt; }
 .ada-uyari { color: #f6d32d; font-size: 8.5pt; }
+.ada-pil-az { color: #ff6b6b; }
+.ada-pil { padding: 4px 0; }
 .ada-uygulama { font-weight: bold; font-size: 9pt; min-width: 80px; }
 .ada-uygulama-simge { border-radius: 4px; }
 .ada-sayac { font-size: 22pt; font-weight: 300; font-feature-settings: "tnum"; }

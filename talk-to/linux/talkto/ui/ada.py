@@ -26,7 +26,7 @@ from pathlib import Path
 
 from gi.repository import Gio, GLib
 
-from .. import arama
+from .. import arama, pil
 
 log = logging.getLogger("talkto.ada")
 
@@ -99,6 +99,7 @@ class AdaService:
             self.seen = True
             inv.return_value(GLib.Variant("(s)", (json.dumps(self.state(), ensure_ascii=False),)))
             return
+        self.seen = True  # eklenti bir düğmeye bastıysa ekrandadır
         try:
             self.action(json.loads(params.unpack()[0]))
         except (ValueError, TypeError, KeyError) as e:
@@ -149,7 +150,11 @@ class AdaService:
         timer = None
         if self.timer:
             timer = {k: self.timer[k] for k in ("ends_at", "total", "phone")}
+        low = [x for x in self.status.get("sessions", []) if pil.is_low(x.get("battery"))]
+        low.sort(key=lambda x: x["battery"]["level"])
         return {
+            "low_battery": {"device_id": low[0]["device_id"], "name": low[0].get("name") or "Telefon",
+                            "level": low[0]["battery"]["level"]} if low else None,
             "enabled": bool(cfg["ada_enabled"]),
             "theme": THEMES.get(cfg["ada_theme"], THEMES["deniz"])[1],
             "theme_id": cfg["ada_theme"] if cfg["ada_theme"] in THEMES else "deniz",
@@ -228,6 +233,10 @@ class AdaService:
         self.call["hint"] = hint
         if hint:
             self.call["actions"] = [a for a in self.call["actions"] if not arama.is_answer(a["title"])]
+
+    def battery_alert(self, device_id):
+        """Telefonun pili bir eşiğe indi (%15, %10, %5): ada belirir ve söyler."""
+        self.changed("pil")
 
     def on_track(self):
         self.changed("track")

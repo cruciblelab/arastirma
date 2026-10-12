@@ -21,7 +21,7 @@ from ..config import Config  # noqa: E402
 from ..hub import Hub, HubThread  # noqa: E402
 from ..ipc import socket_path  # noqa: E402
 from ..nowplaying import NowPlaying  # noqa: E402
-from .. import arama, mirror  # noqa: E402
+from .. import arama, mirror, pil  # noqa: E402
 from ..usb import CONFLICT  # noqa: E402
 from . import compat, progress, system  # noqa: E402
 from .screenshot import take_screenshot  # noqa: E402
@@ -54,6 +54,7 @@ class App(Adw.Application):
         self._popup_timers: dict[str, int] = {}
         self._usb_told: set[str] = set()  # hata ayıklaması kapalı takılı telefon için bildirim (bir kez)
         self._ringing: dict[tuple, dict] = {}  # (cihaz, anahtar) → çalan aramanın son bilgisi
+        self.pil = pil.Takip()  # telefonun pili %15 / %10 / %5'e inince uyarı
 
     # ---- yaşam döngüsü --------------------------------------------------------
 
@@ -689,6 +690,7 @@ class App(Adw.Application):
         w = self.window
         if event == "status":
             self.device_names = {x["device_id"]: x["name"] for x in d.get("sessions", [])}
+            self._check_battery(d.get("sessions", []))
             self.phone_players.keep_only(self.device_names)
             for did in [x for x in self.now.states if x not in self.device_names]:
                 self._cancel_popup(did)
@@ -930,6 +932,26 @@ class App(Adw.Application):
                            key=f"call|{did}|{key}",
                            app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"), actions=actions,
                            urgent=ringing, resident=not ringing)
+
+    def _check_battery(self, sessions):
+        """Telefonun pili bir eşiğe indiyse uyar: üst ada ekrandaysa ada belirir, değilse masaüstü bildirimi.
+        Şarja takılınca bildirim kalkar."""
+        self.pil.keep_only({s["device_id"] for s in sessions})
+        for s in sessions:
+            did, b = s["device_id"], s.get("battery")
+            if b and b.get("charging"):
+                self.notifier.close(f"pil|{did}")
+            hit = self.pil.check(did, b)
+            if hit is None:
+                continue
+            level = b["level"]
+            log.info("telefonun pili azaldı: %%%d (%s)", level, did[:8])
+            if self.ada and self.ada.showing():
+                self.ada.battery_alert(did)
+                continue
+            self.notifier.show(f"{s.get('name') or 'Telefon'}: pil %{level}",
+                               "Şarja tak; telefon birazdan kapanabilir." if hit <= 5 else "Şarja tak.",
+                               key=f"pil|{did}", icon="battery-caution-symbolic", urgent=hit <= 5)
 
     def _call_result(self, d):
         """Telefon düğmeye basamadıysa ya da ses değişmediyse nedenini söyle (sessizce çalışmıyor gibi kalmasın)."""

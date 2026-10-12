@@ -159,6 +159,15 @@ steps = [
     lambda: (cek("Banners", True), app.notifier.show("Deneme bildirimi", "Adanın üstünde görünmeli")),
     lambda: cek("Shot", f"{OUT}/14-sistem-bildirimi.png"),
     lambda: cek("Banners", False),
+    # Telefonun pili %9'a indi (şarjda değil): ada belirir, sallanır, kırmızı pil sayfası; şarja takılınca kalkar.
+    lambda: (cek("Move", 640.0, 600.0),
+             app.on_event("status", {**app.hub.status(),
+                                     "sessions": [dict(sess, battery={"level": 9, "charging": False})]})),
+    lambda: None,
+    lambda: (cek("Shot", f"{OUT}/15-pil-az.png"), olc_cls("ada-pil"), kaydet("durum5")),
+    lambda: app.on_event("status", {**app.hub.status(),
+                                    "sessions": [dict(sess, battery={"level": 9, "charging": True})]}),
+    lambda: kaydet("durum6"),
     lambda: app.quit(),
 ]
 i = [0]

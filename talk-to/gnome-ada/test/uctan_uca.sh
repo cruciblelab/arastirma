@@ -62,6 +62,7 @@ assert b["ada-tasan"] > 0, "Taşan dalgalar kipinde çalarken su görünmeli"
 assert 5 < b["ada-tasan"] - b["ozellestir"] <= 30, \
     "su adanın yanlarından inip alt çizgisinde kalmalı (aşağı sarkmamalı): %s" % (b["ada-tasan"] - b["ozellestir"])
 assert b["ozel_kapandi"] <= b["normal"] + 2, "Bitti'den sonra ada normal boyda olmalı"
+assert b["ada-pil"] > 0, "telefonun pili %9'a inince ada pil uyarısını göstermeli"
 assert abs(b["kilitsiz"] - b["normal"]) <= 6, "Konumu değiştir: ada normal boya iner"
 x, y, w, h = json.load(open(sys.argv[1]))["konum"]
 assert 820 <= x + w / 2 <= 860, f"sağa sürüklenen adanın ortası ~840 olmalı: {x + w / 2}"
@@ -69,6 +70,10 @@ PYEOF
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert (d['theme_id'], d['mode']) == ('gece', 'tasan'), d" \
     "$OUT/durum2.json" || fail "adadan seçilen tema/kip Talk To'ya yazılmadı"
 [ "$(grep -c "('call_action', 'p', 'k1', 1)" "$OUT/eylemler.txt")" -ge 2 ] || fail "hoparlör düğmesi ulaşmadı"
+python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_battery']['level'] == 9, d['low_battery']" \
+    "$OUT/durum5.json" || fail "düşük pil adanın durumunda yok"
+python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_battery'] is None, d['low_battery']" \
+    "$OUT/durum6.json" || fail "şarja takılınca düşük pil uyarısı kalkmadı"
 for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 4b-gorusme 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal \
-         10-ozellestir 11-tasan 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
+         10-ozellestir 11-tasan 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
 echo "ÜST ADA UÇTAN UCA TESTİ GEÇTİ"

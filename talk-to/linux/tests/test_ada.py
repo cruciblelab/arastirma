@@ -149,6 +149,26 @@ class StateTest(unittest.TestCase):
         self.ada.on_event("call", dict(CALL, state="active", actions=[{"i": 0, "title": "Kapat"}]))
         self.assertIsNone(self.ada.state()["call"]["hint"])
 
+    def test_action_call_marks_ada_as_showing(self):
+        """İlk GetState boşa gittiyse de (ada nesnesi kaydedilmeden istendi) düğmeye basan ada ekrandadır."""
+        class Inv:
+            def return_value(self, v):
+                pass
+        self.assertFalse(self.ada.seen)
+        self.ada._method(None, None, None, None, "Action", GLib.Variant("(s)", ('{"do": "open"}',)), Inv())
+        self.assertTrue(self.ada.seen)
+
+    def test_low_battery_state_and_event(self):
+        self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 12, "charging": False})]})
+        st = self.ada.state()
+        self.assertEqual(st["low_battery"], {"device_id": "p", "name": "POCO", "level": 12})
+        self.ada.battery_alert("p")
+        self.assertEqual(self.ada.state()["event"]["kind"], "pil")
+        self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 12, "charging": True})]})
+        self.assertIsNone(self.ada.state()["low_battery"])  # şarjda: kırmızı gösterge kalkar
+        self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 40, "charging": False})]})
+        self.assertIsNone(self.ada.state()["low_battery"])
+
     def test_call_cleared_when_phone_leaves(self):
         self.ada.on_event("status", {"sessions": [SESS]})
         self.ada.on_event("call", CALL)

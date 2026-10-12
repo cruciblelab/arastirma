@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.16.0" date="2026-10-12">
+      <description><p>Telefonun pili %15, %10 ve %5'e inince uyarı: üst ada belirip hafifçe sallanır ve kırmızı “Telefonun pili %9 · şarja tak” der; pil düşük kaldıkça küçük adada kırmızı pil görünür, şarja takılınca kalkar. Ada yoksa masaüstü bildirimi (%5'te acil). Ada, Talk To'dan önce açılınca ekranda olduğunu Talk To'ya bildiremiyordu (mini oynatıcı yine açılabiliyordu): düzeltildi.</p></description>
+    </release>
     <release version="0.15.4" date="2026-10-12">
       <description><p>Taşan dalgalar sakinleşti: su yanlardan inip köşeleri sarıyor ve adanın alt çizgisinde ince, dalgalı bir şerit oluyor; aşağı sarkan şelale ve damlalar kaldırıldı (dikkat dağıtıyordu).</p></description>
     </release>

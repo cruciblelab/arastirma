@@ -36,6 +36,7 @@ const SPILL_H = 22;      // alt çizgideki dalgalı şeridin en çok yüksekliğ
 const SCROLL_COOLDOWN_MS = 350; // dokunmatik yüzeyin tek kaydırması birden çok kademe atlamasın
 const PEEK_LEAVE_MS = 450;      // ince şeritten fare ayrılınca normal hâlin kalma süresi
 const SHOW_EVENT_MS = 5000; // şarkı/bildirim olunca büyük kalma süresi
+const BATTERY_EVENT_MS = 10000; // telefonun pili azalınca büyük kalma süresi
 const IDLE_COLLAPSE_MS = 6000;
 const DEFAULT_THEME = {bg1: '#0a2342', bg2: '#12436b', wave1: '#2ec4b6', wave2: '#8de4ff', text: '#eaf6ff',
     dim: '#9cc3dd', accent: '#2ec4b6'};
@@ -298,10 +299,26 @@ class Ada {
             }
             this._proxy = proxy;
             this._sigId = proxy.connectSignal('Changed', (_p, _s, [json]) => this._update(json));
-            proxy.GetStateRemote(([json], err) => {
-                if (!err)
-                    this._update(json);
-            });
+            this._getState(proxy, 0);
+        });
+    }
+
+    // Talk To adını alır almaz ada nesnesini henüz kaydetmemiş olabilir: ilk istek boşa giderse yeniden dene.
+    // (Durumu istemek Talk To'ya "ada ekranda" der; söylenmezse mini oynatıcı ve pil uyarısı yanlış karar verir.)
+    _getState(proxy, tries) {
+        proxy.GetStateRemote(([json], err) => {
+            if (!err) {
+                this._update(json);
+                return;
+            }
+            if (tries < 10 && this._proxy === proxy) {
+                this._timers.state = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500 + tries * 500, () => {
+                    delete this._timers.state;
+                    if (this._proxy === proxy)
+                        this._getState(proxy, tries + 1);
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
         });
     }
 
@@ -358,19 +375,28 @@ class Ada {
     }
 
     _onEvent(kind) {
-        const page = {call: 'arama', track: 'calan', notification: 'bildirim'}[kind];
+        const page = {call: 'arama', track: 'calan', notification: 'bildirim', pil: 'pil'}[kind];
         if (!page)
             return;
-        if (this.thin && kind !== 'call')
-            return; // ince şeritte yalnızca arama büyütür
+        if (this.thin && kind !== 'call' && kind !== 'pil')
+            return; // ince şeritte yalnızca arama ve azalan pil büyütür
+        if (kind === 'pil' && this.state && this.state.call && this.pageName === 'arama')
+            return; // görüşme sayfası açıkken araya girmez (küçükken kırmızı pil yine görünür)
         if (this.custom || this.moving) {  // özelleştirirken / konum değiştirirken yalnızca arama araya girer
             if (kind !== 'call')
                 return;
             this.custom = false;
             this.moving = false;
         }
+        if (kind === 'pil' && this.thin)
+            this._unthin();
         this.pageName = page;
         this._expand(true);
+        if (kind === 'pil') {
+            this._shake();
+            this._collapseLater(BATTERY_EVENT_MS);
+            return;
+        }
         this._bump();
         if (kind !== 'call')
             this._collapseLater(SHOW_EVENT_MS);
@@ -435,6 +461,8 @@ class Ada {
             if (!on)
                 this.custom = false;
             this.page.visible = on;
+            if (!on && this.pageName === 'pil')  // uyarı geçici: sonra açılınca çalan görünür
+                this.pageName = 'calan';
             this._setClass();
             if (on) {
                 this._buildPage();
@@ -615,6 +643,19 @@ class Ada {
         this.box.ease({scale_x: 1.04, scale_y: 1.04, duration: 110, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => this.box.ease({scale_x: 1, scale_y: 1, duration: 260,
                 mode: Clutter.AnimationMode.EASE_OUT_BACK})});
+    }
+
+    // Pil azalınca: ada birkaç kez hafifçe sağa sola sallanır (göz ucuyla fark edilsin).
+    _shake() {
+        const steps = [7, -7, 5, -5, 3, 0];
+        const next = i => {
+            if (i >= steps.length)
+                return;
+            this.box.ease({translation_x: steps[i], duration: 70, mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                onComplete: () => next(i + 1)});
+        };
+        this.box.remove_transition('translation-x');
+        next(0);
     }
 
     _fadeIn(actor, dy = 0, from = 0) {
@@ -900,6 +941,9 @@ class Ada {
             if (call)
                 this.compact.add_child(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 8,
                     style_class: 'ada-yesil'}));
+            if (st.low_battery)  // pil azken şeritte de kırmızı pil
+                this.compact.add_child(new St.Icon({icon_name: 'battery-caution-symbolic', icon_size: 8,
+                    style_class: 'ada-pil-az'}));
             this.compact.add_child(this._wave(64, 6));
             return;
         }
@@ -926,9 +970,10 @@ class Ada {
             }
             if (st.phone && st.battery !== undefined && st.battery !== null) {
                 const lvl = Math.max(0, Math.min(100, Math.round(st.battery / 10) * 10));
+                const low = st.low_battery ? ' ada-pil-az' : '';
                 this.compact.add_child(new St.Icon({icon_name: `battery-level-${lvl}${st.charging
-                    ? '-charging' : ''}-symbolic`, icon_size: 14}));
-                this.compact.add_child(this._label(`%${st.battery}`, 'ada-soluk'));
+                    ? '-charging' : ''}-symbolic`, icon_size: 14, style_class: low.trim()}));
+                this.compact.add_child(this._label(`%${st.battery}`, `ada-soluk${low}`));
             }
             return;
         }
@@ -941,7 +986,15 @@ class Ada {
                 : this._liveLabel(() => mmss(Date.now() / 1000 - (call.since || Date.now() / 1000)), 'ada-soluk'));
             return;
         }
+        const lowTag = () => {  // pil azken küçük adanın sonunda kırmızı pil ve yüzde (şarja takılınca kalkar)
+            if (!st.low_battery)
+                return;
+            this.compact.add_child(new St.Icon({icon_name: 'battery-caution-symbolic', icon_size: 13,
+                style_class: 'ada-pil-az'}));
+            this.compact.add_child(this._label(`%${st.low_battery.level}`, 'ada-pil-az ada-kucuk-metin'));
+        };
         if (st.timer && !media.playing) {
+            lowTag();
             this.compact.add_child(new St.Icon({icon_name: 'alarm-symbolic', icon_size: 14}));
             this.compact.add_child(this._liveLabel(() => mmss(st.timer.ends_at - Date.now() / 1000), 'ada-baslik'));
             return;
@@ -956,6 +1009,7 @@ class Ada {
             this.compact.add_child(this._wave(44, 14));
             this.compact.add_child(this._button(media.playing ? 'media-playback-pause-symbolic'
                 : 'media-playback-start-symbolic', () => this.act({do: 'media', action: 'play_pause'})));
+            lowTag();
             return;
         }
         this.compact.add_child(new St.Icon({icon_name: st.phone ? 'phone-symbolic' : 'phone-disabled-symbolic',
@@ -963,6 +1017,7 @@ class Ada {
         this.compact.add_child(this._label(st.phone ? st.phone + (st.battery !== undefined && st.battery !== null
             ? ` · %${st.battery}` : '') : 'Telefon bağlı değil', 'ada-soluk'));
         this.compact.add_child(this._wave(34, 12));
+        lowTag();
     }
 
     _buildPage() {
@@ -971,7 +1026,7 @@ class Ada {
             this._customPage();
             return;
         }
-        const builders = {arama: () => this._callPage(), calan: () => this._musicPage(),
+        const builders = {arama: () => this._callPage(), calan: () => this._musicPage(), pil: () => this._batteryPage(),
             bildirim: () => this._notifPage(), zamanlayici: () => this._timerPage(), diger: () => this._otherPage()};
         (builders[this.pageName] || builders.calan)();
     }
@@ -1001,6 +1056,32 @@ class Ada {
             this._button('media-skip-forward-symbolic', () => this.act({do: 'media', action: 'next'})));
         ctl.x_align = Clutter.ActorAlign.CENTER;
         this.page.add_child(ctl);
+    }
+
+    // Telefonun pili azaldı (%15, %10, %5): büyük kırmızı pil, yüzde ve ne yapılacağı.
+    _batteryPage() {
+        const low = this.state && this.state.low_battery;
+        if (!low) {  // bu arada şarja takıldı
+            this.pageName = 'calan';
+            this._musicPage();
+            return;
+        }
+        const texts = new St.BoxLayout({vertical: true, x_expand: true, y_align: Clutter.ActorAlign.CENTER});
+        texts.add_child(this._label(`Telefonun pili %${low.level}`, 'ada-baslik ada-iri ada-pil-az'));
+        texts.add_child(this._label(low.level <= 5 ? `${low.name} birazdan kapanabilir · şarja tak`
+            : `${low.name} · şarja tak`, 'ada-soluk'));
+        const icon = new St.Icon({icon_name: low.level <= 5 ? 'battery-empty-symbolic' : 'battery-caution-symbolic',
+            icon_size: 30, style_class: 'ada-pil-az ada-pil-simge'});
+        const r = this._row(icon, texts);
+        r.add_style_class_name('ada-pil');
+        this.page.add_child(r);
+        // Simge yavaşça yanıp söner (sayfa açık kaldıkça).
+        const pulse = () => icon.ease({opacity: icon.opacity > 200 ? 110 : 255, duration: 600,
+            mode: Clutter.AnimationMode.EASE_IN_OUT_SINE, onComplete: () => {
+                if (icon.get_stage())
+                    pulse();
+            }});
+        pulse();
     }
 
     _callPage() {
