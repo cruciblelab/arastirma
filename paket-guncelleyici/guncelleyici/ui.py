@@ -74,6 +74,10 @@ class Window(Adw.ApplicationWindow):
         self.open_btn = Gtk.Button(icon_name="document-open-symbolic", tooltip_text="Başka bir paket aç")
         self.open_btn.connect("clicked", lambda *_: self.choose())
         header.pack_start(self.open_btn)
+        # Geri: uygulamanın verileri / kaldırma özeti / sonuç sayfasından listeye (ya da boş sayfaya) döner.
+        self.back_btn = Gtk.Button(icon_name="go-previous-symbolic", tooltip_text="Geri (Alt+Sol)", visible=False)
+        self.back_btn.connect("clicked", lambda *_: self.go_back())
+        header.pack_start(self.back_btn)
         self.apps_btn = Gtk.Button(icon_name="view-list-symbolic", tooltip_text="Kurulu uygulamalar (kaldırmak ya da verilerini temizlemek için)")
         self.apps_btn.connect("clicked", lambda *_: self.show_apps())
         header.pack_start(self.apps_btn)
@@ -111,6 +115,7 @@ class Window(Adw.ApplicationWindow):
         self.search = Gtk.SearchEntry(placeholder_text="Uygulama ara", margin_top=12, margin_start=18,
                                       margin_end=18, margin_bottom=6)
         self.search.connect("search-changed", lambda *_: self.app_list.invalidate_filter())
+        self.search.connect("activate", lambda *_: self._open_first_match())
         apps.append(self.search)
         self.apps_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
         self.app_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, css_classes=["boxed-list"],
@@ -166,6 +171,12 @@ class Window(Adw.ApplicationWindow):
         rbox.append(Adw.Clamp(maximum_size=520, child=self.result_detail))
         self.result_page.set_child(rbox)
         self.stack.add_named(self.result_page, "sonuc")
+
+        self.stack.connect("notify::visible-child-name", lambda *_: self._update_back())
+        keys = Gtk.ShortcutController()
+        keys.add_shortcut(Gtk.Shortcut(trigger=Gtk.ShortcutTrigger.parse_string("<Alt>Left"),
+                                       action=Gtk.CallbackAction.new(lambda *_: self.go_back() or True)))
+        self.add_controller(keys)
 
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
         drop.connect("drop", self._on_drop)
@@ -236,6 +247,7 @@ class Window(Adw.ApplicationWindow):
     # ---- özet -----------------------------------------------------------------------
 
     def show_package(self, original, copy, pkg, sig, sim, card=None, old_card=None):
+        self._pkg_args = (original, copy, pkg, sig, sim, card, old_card)  # listeden geri dönünce yeniden göstermek için
         self.pkg, self.sig, self.sim, self.copy = pkg, sig, sim, copy
         self.card, self.site = card, None
         self._generation += 1
@@ -591,6 +603,40 @@ class Window(Adw.ApplicationWindow):
         else:
             self._failed(hatalar.explain(self.output, code, "kurulum"))
 
+    def _update_back(self):
+        page = self.stack.get_visible_child_name()
+        self.back_btn.set_visible(not self.busy and page in ("ozet", "sonuc") or
+                                  (page == "liste" and self.pkg is not None and not self.busy))
+
+    def go_back(self):
+        """Sayfadan çık: uygulama sayfalarından listeye (yeniden okunur: kaldırılan gitmiş olsun), listeden ya da
+        paket sayfasından açık pakete / boş sayfaya."""
+        if self.busy:
+            return
+        page = self.stack.get_visible_child_name()
+        if page in ("ozet", "sonuc") and (self.mode in ("veri", "kaldir") or getattr(self, "_op", None) == "temizlik"):
+            self.show_apps()
+        elif page == "liste" and self.pkg is not None:
+            original = self._pkg_args[0]
+            self.title.set_subtitle(os.path.basename(original))
+            self.show_package(*self._pkg_args)
+        elif page in ("ozet", "sonuc", "liste"):
+            self.title.set_subtitle("")
+            self.stack.set_visible_child_name("bos")
+
+    def _open_first_match(self):
+        """Aramada Enter: tek eşleşme varsa onun verilerini aç."""
+        rows = []
+        child = self.app_list.get_first_child()
+        while child:
+            if getattr(child, "paket_ara", None) and child.get_child_visible():
+                rows.append(child)
+            child = child.get_next_sibling()
+        if len(rows) == 1:
+            a = next((a for a in self.apps if f"{a.name} {a.package}".casefold() == rows[0].paket_ara), None)
+            if a:
+                self.show_data(a)
+
     def _end_job(self):
         GLib.source_remove(self._pulse) if getattr(self, "_pulse", None) else None
         self._pulse = None
@@ -808,8 +854,10 @@ class Window(Adw.ApplicationWindow):
         return False
 
     def _app_filter(self, r):
+        # Satırın arama metni (ad + paket adı). Eskiden metni olmayan satır "eşleşiyor" sayılıyordu ve her satır
+        # görünür kalıyordu: arama hiç süzmüyordu.
         q = self.search.get_text().strip().casefold()
-        return not q or q in getattr(r.get_child(), "paket_ara", q) or q in getattr(r, "paket_ara", "")
+        return not q or q in getattr(r, "paket_ara", "")
 
     def prepare_remove(self, a):
         """Kaldırmadan önce deneme: başka hangi paketler gidecek (yetki istemez)."""

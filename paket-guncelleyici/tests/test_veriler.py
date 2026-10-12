@@ -82,6 +82,35 @@ class VerilerPencereTest(unittest.TestCase):
                 mock.patch.object(win, "show_data", lambda a: None):
             win.clean_data()
         self.assertEqual(trashed, [home / ".config/Foo App"])
+        # Geri: veriler sayfasından listeye döner (liste yeniden okunur).
+        win.stack.set_visible_child_name("ozet")
+        self.assertTrue(win.back_btn.get_visible())
+        opened = []
+        with mock.patch.object(win, "show_apps", lambda: opened.append(True)):
+            win.go_back()
+        self.assertEqual(opened, [True])
+        win.destroy()
+
+    def test_search_filters_list(self):
+        """Arama yazınca liste süzülür (eskiden her satır görünür kalıyordu); tek eşleşmede Enter verileri açar."""
+        from yardimci import shared_app
+        from guncelleyici import apt
+        from guncelleyici.ui import Window
+        win = Window(shared_app())
+        win._fill_apps([apt.Uygulama("talk-to-android", "0.11", "Talk To Android", None, "a.desktop", True),
+                        apt.Uygulama("gnome-calculator", "1", "Hesap Makinesi", None, "c.desktop", False)])
+        rows = []
+        child = win.app_list.get_first_child()
+        while child:
+            if getattr(child, "paket_ara", None):
+                rows.append(child)
+            child = child.get_next_sibling()
+        win.search.set_text("hesap")
+        self.assertEqual([win._app_filter(r) for r in rows], [False, True])
+        win.search.set_text("TALK")
+        self.assertEqual([win._app_filter(r) for r in rows], [True, False])
+        win.search.set_text("")
+        self.assertEqual([win._app_filter(r) for r in rows], [True, True])
         win.destroy()
 
 

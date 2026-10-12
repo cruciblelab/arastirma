@@ -1,6 +1,6 @@
 # Paket Güncelleyici
 
-**Durum:** 0.3.0. Kurulu uygulamaların ev klasöründeki verilerini (önbellek, ayarlar) çöp kutusuna taşıyarak temizler ve apt'nin paket önbelleğini boşaltır; 0.2.0 kurulu uygulamaları kaldırır, apt/dpkg hatalarını anlaşılır açıklamaya çevirip onarır, sağ tık listesinde her zaman görünür. Önceki: 0.1.0 gerçek Ubuntu 22.04 masaüstünde Talk To 0.7.0 → 0.7.1 güncellemesinde kullanıldı (sağ tık → Birlikte aç, şifre penceresi, kurulum çalıştı); o denemede açık kalan Talk To'nun eski sürümle sürdüğü görüldü. 0.1.1 bunun için "Yeniden başlat"ı ve yayıncı kartını ekler. Testler sanal ekranda ve gerçek apt kurulumuyla geçiyor.
+**Durum:** 0.3.1 (Geri düğmesi, arama düzeltmesi). Kurulu uygulamaların ev klasöründeki verilerini (önbellek, ayarlar) çöp kutusuna taşıyarak temizler ve apt'nin paket önbelleğini boşaltır; 0.2.0 kurulu uygulamaları kaldırır, apt/dpkg hatalarını anlaşılır açıklamaya çevirip onarır, sağ tık listesinde her zaman görünür. Önceki: 0.1.0 gerçek Ubuntu 22.04 masaüstünde Talk To 0.7.0 → 0.7.1 güncellemesinde kullanıldı (sağ tık → Birlikte aç, şifre penceresi, kurulum çalıştı); o denemede açık kalan Talk To'nun eski sürümle sürdüğü görüldü. 0.1.1 bunun için "Yeniden başlat"ı ve yayıncı kartını ekler. Testler sanal ekranda ve gerçek apt kurulumuyla geçiyor.
 
 | Güncelleme, aynı yayıncı | Yayıncı ilk kez görülüyor | Farklı yayıncı (onay ister) | Ubuntu meşgulken sırada |
 |---|---|---|---|
@@ -38,7 +38,7 @@ Denetlenen ve kurulan dosya aynıdır: dosya önce özel bir geçici klasöre ko
 İlk kurulumu terminalden yap (Uygulama Merkezi eksik bağımlılıkları kendisi indirmiyor):
 
 ```bash
-sudo apt install ./paket-guncelleyici_0.3.0_all.deb
+sudo apt install ./paket-guncelleyici_0.3.1_all.deb
 ```
 
 Sonraki sürümleri Paket Güncelleyici'nin kendisiyle açıp güncelleyebilirsin.
