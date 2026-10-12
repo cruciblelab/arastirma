@@ -39,7 +39,7 @@ class UsbPhonesTest(unittest.TestCase):
         device(self.root, "1-2", "2717", [("06", "01", "01", "MTP")],
                manufacturer="Xiaomi", product="Redmi Note 12", serial="abc123")
         self.assertEqual(usb_phones(str(self.root)),
-                         [{"serial": "abc123", "name": "Xiaomi Redmi Note 12", "adb": False}])
+                         [{"serial": "abc123", "name": "Xiaomi Redmi Note 12", "adb": False, "vendor": "2717"}])
 
     def test_phone_with_adb_interface(self):
         device(self.root, "1-3", "18d1", [("06", "01", "01", "MTP"), ("ff", "42", "01", "ADB Interface")],

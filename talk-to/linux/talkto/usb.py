@@ -81,7 +81,8 @@ def usb_phones(root: str = USB_ROOT) -> list[dict]:
             continue
         if not (adb or mtp or known):
             continue
-        phones.append({"serial": _read(dev / "serial"), "name": name or "Android telefon", "adb": adb})
+        phones.append({"serial": _read(dev / "serial"), "name": name or "Android telefon", "adb": adb,
+                       "vendor": vendor})
     return phones
 
 

@@ -137,6 +137,14 @@ class SetupAssistant(Adw.Window):
 
     # ---- adımlar ------------------------------------------------------------------
 
+    def goto(self, key):
+        """Belirli adıma git (ör. telefon takılınca doğrudan "Telefonu bağla")."""
+        for i, s in enumerate(self.steps):
+            if s.key == key:
+                self.step = i
+                self.refresh()
+                return
+
     def go(self, delta):
         if self.step == len(self.steps) - 1 and delta > 0:
             self.finish()

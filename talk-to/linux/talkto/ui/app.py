@@ -51,6 +51,7 @@ class App(Adw.Application):
         self.now = NowPlaying()
         self.art_paths: dict[str, str] = {}
         self._popup_timers: dict[str, int] = {}
+        self._usb_told: set[str] = set()  # hata ayıklaması kapalı takılı telefon için bildirim (bir kez)
 
     # ---- yaşam döngüsü --------------------------------------------------------
 
@@ -105,6 +106,9 @@ class App(Adw.Application):
             self.notifier.show(f"Talk To Android {updated} sürümüne güncellendi",
                                "Yeni sürümle yeniden başlatıldı; telefon birkaç saniye içinde yeniden bağlanır.",
                                key="guncellendi")
+        if os.environ.pop("TALKTO_SIFIRLANDI", None):
+            self.notifier.show("Talk To Android sıfırlandı",
+                               "Eski ayarlar ve eşleşmeler çöp kutusunda; gerekirse oradan geri alınır.", key="sifirlandi")
         self._update_timer = None
         try:
             self._version_monitor = Gio.File.new_for_path(str(self._version_file)).monitor_file(
@@ -141,12 +145,23 @@ class App(Adw.Application):
     def restart_for_update(self, new_version):
         args = surum_izleyici.restart_argv(sys.argv, bool(self.window and self.window.get_visible()))
         os.environ["TALKTO_GUNCELLENDI"] = new_version  # bildirimi yeni süreç gösterir
+        self._restart(args)
+
+    def _restart(self, args, before=None):
         if self.bt:
             self.bt.stop()
         self.thread.stop()  # bağlantılar ve yerel soket temiz kapansın
+        if before:
+            before()  # ör. sıfırlama: ayarlar hub durduktan sonra taşınır (yoksa yeniden yazardı)
         logging.shutdown()
         # Aynı süreç yeni sürümün koduyla değişir (D-Bus adı ve soketler exec ile bırakılır).
         os.execv(sys.executable, [sys.executable, "-m", "talkto", *args])
+
+    def reset_app(self, identity=False):
+        """Eşleşmeleri, profilleri, komutları ve ayarları sıfırlar (çöp kutusuna), yeniden başlar; kurulum açılır."""
+        from .. import veriler
+        os.environ["TALKTO_SIFIRLANDI"] = "1"
+        self._restart([], before=lambda: veriler.reset(identity))
 
     def windows_report(self) -> str:
         """Açık pencereler: takılan arayüzde görünmeyen bir modal pencere girdiyi tutuyor olabilir."""
@@ -190,14 +205,33 @@ class App(Adw.Application):
         self.window.present()
         self._surface_modals()
 
-    def open_setup(self):
-        """Kurulum yardımcısı (ilk açılışta kendiliğinden, sonra menüden)."""
+    def open_setup(self, step=None):
+        """Kurulum yardımcısı (ilk açılışta kendiliğinden, sonra menüden; telefon takılınca telefon adımında)."""
         from .setup import SetupAssistant
         self.present()
         if self.setup_window is None:
             self.setup_window = SetupAssistant(self, self.window)
             self.setup_window.connect("close-request", lambda *_: setattr(self, "setup_window", None) or False)
+        if step:
+            self.setup_window.goto(step)
         self.setup_window.present()
+
+    def _usb_hint(self, snap):
+        """Telefon takıldı ama USB hata ayıklaması kapalı ve telefon başka yoldan da bağlı değil: bir kez söyle,
+        tıklanınca kurulum yardımcısı markaya göre adımlarla açılır."""
+        if not (snap.get("running") and self.config["usb"]) or self.device_names:
+            return
+        for ph in snap.get("unseen", []):
+            key = ph.get("serial") or ph.get("name") or "?"
+            if ph.get("adb") or key in self._usb_told:
+                continue
+            self._usb_told.add(key)
+            show = lambda: self.open_setup("telefon")  # noqa: E731
+            self.notifier.show(f"{ph.get('name') or 'Telefon'} takıldı",
+                               "USB ile bağlamak için telefonda USB hata ayıklama gerekiyor. Adımları göstermek "
+                               "için tıkla.", key="usb-rehber",
+                               actions={"default": ("Adımları göster", show), "goster": ("Adımları göster", show)})
+            log.info("hata ayıklaması kapalı telefon takıldı: %s", ph.get("name"))
 
     def present(self):
         self.activate()
@@ -565,6 +599,7 @@ class App(Adw.Application):
             if self.setup_window:
                 self.setup_window.refresh()
         elif event == "usb":
+            self._usb_hint(d)
             if w:
                 w.update_usb(d)
             if self.setup_window:
@@ -663,7 +698,12 @@ class App(Adw.Application):
     # ---- diyaloglar -----------------------------------------------------------
 
     def _front(self):
-        """Soru pencerelerinin sahibi: kurulum yardımcısı açıksa o (ana pencere arkasında kalır)."""
+        """Soru pencerelerinin sahibi: kurulum yardımcısı ya da öndeki Tercihler penceresi (soru ana pencereye bağlanırsa
+        onların arkasında kalıp görünmeden ana pencereyi kilitleyebilir), yoksa ana pencere."""
+        prefs = getattr(self.window, "prefs_window", None) if self.window else None
+        for w in (self.setup_window, prefs):
+            if w and w.get_visible() and w.is_active():
+                return w
         return self.setup_window if self.setup_window and self.setup_window.get_visible() else self.window
 
     def _dialog(self, heading, body, extra=None):

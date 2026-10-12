@@ -98,7 +98,7 @@ def fill():
         st["sessions"][0]["problems"] = phone_problems({"flavor": "tam", "notif_access": True, "listener": False},
                                                       {"notifications": True, "media": True})
     st["bt"] = {"available": True, "message": "Hazır. Telefonu önce sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir."}
-    if os.environ.get("USB_HAZIR"):  # telefon USB'de, uygulaması kurulu, henüz bağlı değil ("Bağlan")
+    if os.environ.get("USB_HAZIR") or os.environ.get("USB_KAPALI"):  # telefon USB'de, henüz bağlı değil
         st["sessions"] = []
     if os.environ.get("AYNI_TELEFON"):  # Wi-Fi'den bağlı telefon USB'de de takılı: tek satır
         st["sessions"][0]["adb_serial"] = "38XYZ"
@@ -121,7 +121,8 @@ def fill():
              "perms": {"post": True, "listener": True, "battery": False}}]})
     elif os.environ.get("USB_KAPALI"):  # telefon takılı ama USB hata ayıklama kapalı
         app.on_event("usb", {"adb": True, "running": True, "apk": "/x.apk", "devices": [],
-                             "unseen": [{"serial": "abc", "name": "Xiaomi Redmi Note 12", "adb": False}]})
+                             "unseen": [{"serial": "abc", "name": "Xiaomi Redmi Note 12", "adb": False,
+                                         "vendor": "2717"}]})
     else:
         app.on_event("usb", {"adb": True, "running": True, "apk": "/usr/share/talk-to-android/talk-to-linux.apk",
                              "devices": [{"serial": "38XYZ", "state": "device", "tunnel": True, "model": "Pixel 8", "app": False}]})
@@ -184,6 +185,8 @@ def shoot():
         return True
     if i == n:  # Tercihler penceresi: özellikler (basit mod), sonra bağlantı yolları ve genel ayarlar
         win.open_preferences(0)
+        if len(sys.argv) > 3:  # uzun ekran: Tercihler'in tamamı görünsün
+            win.prefs_window.set_default_size(WIDTH, int(sys.argv[3]))
         win.prefs_window.set_default_size(WIDTH, 900)
         step["i"] += 1
         return True

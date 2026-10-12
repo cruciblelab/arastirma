@@ -283,6 +283,7 @@ class Window(Adw.ApplicationWindow):
                 self.prefs_window.add(p)
         if page is not None:
             self.prefs_window.set_visible_page(self.prefs_pages[page])
+        self._update_data_rows()
         self.prefs_window.present()
 
     # ---- basit mod -------------------------------------------------------------
@@ -481,7 +482,72 @@ class Window(Adw.ApplicationWindow):
         self.sw_autostart.connect("notify::active", lambda r, _: system.set_autostart(r.get_active()))
         g.add(self.sw_autostart)
         page.add(g)
+        page.add(self._build_data_group())  # en altta: sıfırlama gibi geri dönüşü zahmetli işler
         return page
+
+    def _build_data_group(self):
+        """Veriler: önbellek, indirilen scrcpy, sıfırlama (bkz. talkto.veriler)."""
+        from .. import veriler
+        g = Adw.PreferencesGroup(title="Veriler", description="Telefondan alınan dosyalar bunlardan etkilenmez.")
+        b = Gtk.Button(label="Temizle", valign=Gtk.Align.CENTER)
+        self.cache_row = Adw.ActionRow(title="Önbellek")
+        self.cache_row.add_suffix(b)
+
+        def clear(*_):
+            freed = veriler.clear_cache()
+            self._prefs_toast(f"Önbellek temizlendi ({human_size(freed)})")
+            self._update_data_rows()
+        b.connect("clicked", clear)
+        g.add(self.cache_row)
+
+        self.scrcpy_row = Adw.ActionRow(title="İndirilen scrcpy")
+        b = Gtk.Button(label="Sil", valign=Gtk.Align.CENTER)
+
+        def drop(*_):
+            freed = veriler.remove_scrcpy()
+            self._prefs_toast(f"scrcpy silindi ({human_size(freed)}); gerekince yeniden indirilir")
+            self._update_data_rows()
+        b.connect("clicked", drop)
+        self.scrcpy_row.add_suffix(b)
+        g.add(self.scrcpy_row)
+
+        r = Adw.ActionRow(title="Uygulamayı sıfırla",
+                          subtitle="Eşleşmeler, profiller, komutlar ve ayarlar silinir (çöp kutusuna taşınır); "
+                                   "uygulama yeniden başlar ve kurulum yardımcısı açılır.")
+        r.set_subtitle_lines(4)
+        b = Gtk.Button(label="Sıfırla…", valign=Gtk.Align.CENTER, css_classes=["destructive-action"])
+        b.connect("clicked", lambda *_: self._confirm_reset())
+        r.add_suffix(b)
+        g.add(r)
+        self._update_data_rows()
+        return g
+
+    def _prefs_toast(self, text):
+        if self.prefs_window and self.prefs_window.get_visible():
+            self.prefs_window.add_toast(Adw.Toast(title=GLib.markup_escape_text(text), timeout=3))
+        else:
+            self.toast(text)
+
+    def _update_data_rows(self):
+        from .. import veriler
+        self.cache_row.set_subtitle(f"Albüm kapakları, simgeler, eski günlükler · {human_size(veriler.cache_size())}")
+        d = veriler.scrcpy_dir()
+        self.scrcpy_row.set_visible(d.exists())
+        if d.exists():
+            self.scrcpy_row.set_subtitle(f"Telefonun ekranı için; gerekince yeniden indirilir · "
+                                         f"{human_size(veriler.size_of(d))}")
+
+    def _confirm_reset(self):
+        ident = Gtk.CheckButton(valign=Gtk.Align.START)
+        box = Gtk.Box(spacing=8, margin_top=6)
+        box.append(ident)
+        box.append(Gtk.Label(label="Bu bilgisayarın kimliğini de yenile (telefonlarda bu bilgisayarı unutup yeniden "
+                                   "eşleşmek gerekir)", wrap=True, xalign=0, max_width_chars=44))
+        self.app.confirm("Talk To Android sıfırlansın mı?",
+                         "Eşleşmiş telefonlar, profiller, komutlar ve bütün ayarlar silinir; uygulama yeniden başlar "
+                         "ve kurulum yardımcısı açılır. Silinenler çöp kutusuna taşınır, gerekirse oradan geri "
+                         "alınır. Telefondan alınan dosyalar kalır.",
+                         "Sıfırla", lambda: self.app.reset_app(ident.get_active()), destructive=True, extra=box)
 
     def _copy_address(self):
         addrs = self.status.get("addresses") or []
@@ -654,11 +720,11 @@ class Window(Adw.ApplicationWindow):
                 sub = ("USB hata ayıklama açık ama bu bilgisayarın telefona erişim izni yok. Kabloyu çıkarıp tak; "
                        "düzelmezse “android-sdk-platform-tools-common” paketini kur.")
             else:
-                sub = ("Takılı ama USB hata ayıklama kapalı. Telefonda: Ayarlar → Telefon hakkında → "
-                       "“Yapım numarası”na 7 kez dokun; sonra Ayarlar → Sistem → Geliştirici seçenekleri → "
-                       "“USB hata ayıklama”yı aç ve çıkan soruyu onayla. İstemezsen Wi-Fi ya da Bluetooth kullan.")
+                sub = "Takılı ama USB hata ayıklama kapalı. Telefonda:\n" + "\n".join(
+                    f"{i}. {text}" for i, (_t, text) in enumerate(setup_checks.dev_guide(ph), 1)) + \
+                    "\nİstemezsen Wi-Fi ya da Bluetooth kullan."
             r = row(ph["name"], sub)
-            r.set_subtitle_lines(5)
+            r.set_subtitle_lines(12)
             r.add_prefix(Gtk.Image(icon_name="dialog-information-symbolic"))
             rows.append(r)
         if not snap.get("running") or not snap.get("adb"):

@@ -61,8 +61,8 @@ def _usb_phone(usb: dict, optional: bool) -> Item:
     if usb.get("unseen"):
         name = usb["unseen"][0].get("name") or "Telefon"
         return Item(f"{name} takılı ama USB hata ayıklama kapalı",
-                    "Telefonda: Ayarlar → Telefon hakkında → “Yapım numarası”na 7 kez dokun; sonra Geliştirici "
-                    "seçenekleri → “USB hata ayıklama”yı aç. Açınca burası kendiliğinden güncellenir.", False,
+                    "USB ile bağlamak için telefonda aşağıdaki adımlar (menü adları sürüme göre biraz farklı "
+                    "olabilir). Açınca burası kendiliğinden güncellenir. İstemezsen Wi-Fi ile devam et.", False,
                     optional=optional)
     return Item("USB ile: telefon takılı değil", "Telefonu USB kablosuyla tak (telefonla gelen kablo; yalnızca şarj "
                 "eden kablolar veri taşımaz). Takınca burası kendiliğinden güncellenir.", None)
@@ -79,6 +79,56 @@ COLOROS = ("oppo", "realme", "oneplus")
 COLOROS_PERMISSIONS = ("Bilgisayarın verebilmesi için Geliştirici seçenekleri → “İzin izlemeyi devre dışı bırak”ı aç "
                        "(Oppo/Realme/OnePlus) ya da telefonda Talk To Linux → İzinler ve yetkiler'den kendin ver.")
 PERM_NAMES = {"listener": "bildirim erişimi", "battery": "pil kısıtlamasının kaldırılması", "post": "bildirim izni"}
+
+
+# USB üretici kimliği → marka (geliştirici seçeneklerinin yeri markaya göre değişiyor).
+BRANDS = {"2717": "xiaomi", "04e8": "samsung", "22d9": "oppo", "2a70": "oppo", "12d1": "huawei", "339b": "huawei",
+          "18d1": "google", "2d95": "vivo", "0fce": "sony", "22b8": "motorola"}
+_APPROVE = ("Telefondaki soruyu onayla", "Kablo takılıyken telefonda “USB hata ayıklamaya izin verilsin mi?” çıkar: "
+            "“Bu bilgisayara her zaman izin ver”i işaretleyip “İzin ver”e dokun.")
+DEV_GUIDES = {
+    "xiaomi": [("Geliştirici seçeneklerini aç", "Ayarlar → Telefon hakkında → “HyperOS sürümü”ne (eski telefonlarda "
+                "“MIUI sürümü”) art arda 7 kez dokun; “Artık geliştiricisiniz” yazar."),
+               ("USB hata ayıklamayı aç", "Ayarlar → Ek ayarlar → Geliştirici seçenekleri → “USB hata ayıklama”."),
+               ("Xiaomi'nin ek anahtarları (isteğe bağlı)", "Aynı yerde “USB üzerinden yükle” ve “USB hata ayıklama "
+                "(Güvenlik ayarları)”: uygulamayı tek tıkla kurmak ve izinleri bilgisayardan vermek için. Mi hesabı "
+                "ve SIM kart ister."),
+               _APPROVE],
+    "samsung": [("Geliştirici seçeneklerini aç", "Ayarlar → Telefon hakkında → Yazılım bilgileri → “Yapım "
+                 "numarası”na art arda 7 kez dokun."),
+                ("USB hata ayıklamayı aç", "Ayarlar → Geliştirici seçenekleri (en altta) → “USB hata ayıklama”."),
+                _APPROVE],
+    "oppo": [("Geliştirici seçeneklerini aç", "Ayarlar → Telefon hakkında → Sürüm → “Yapım numarası”na art arda 7 "
+              "kez dokun."),
+             ("USB hata ayıklamayı aç", "Ayarlar → Ek ayarlar (ya da Sistem ayarları) → Geliştirici seçenekleri → "
+              "“USB hata ayıklama”; izinleri bilgisayardan vermek için ayrıca “İzin izlemeyi devre dışı bırak”."),
+             _APPROVE],
+    "huawei": [("Geliştirici seçeneklerini aç", "Ayarlar → Telefon hakkında → “Yapım numarası”na art arda 7 kez "
+                "dokun."),
+               ("USB hata ayıklamayı aç", "Ayarlar → Sistem ve güncellemeler → Geliştirici seçenekleri → “USB hata "
+                "ayıklama”."),
+               _APPROVE],
+    "": [("Geliştirici seçeneklerini aç", "Ayarlar → Telefon hakkında → “Yapım numarası”na art arda 7 kez dokun "
+          "(bazı telefonlarda “Yazılım bilgileri” altında)."),
+         ("USB hata ayıklamayı aç", "Ayarlar → Sistem → Geliştirici seçenekleri → “USB hata ayıklama”."),
+         _APPROVE],
+}
+
+
+def brand_of(phone: dict) -> str:
+    b = BRANDS.get((phone.get("vendor") or "").lower(), "")
+    name = (phone.get("name") or "").casefold()
+    if not b:
+        for key, words in (("xiaomi", ("xiaomi", "redmi", "poco")), ("samsung", ("samsung",)),
+                           ("oppo", ("oppo", "realme", "oneplus")), ("huawei", ("huawei", "honor"))):
+            if any(w in name for w in words):
+                return key
+    return b if b in DEV_GUIDES else ""
+
+
+def dev_guide(phone: dict) -> list[tuple[str, str]]:
+    """Takılı ama USB hata ayıklaması kapalı telefon için markaya göre adımlar."""
+    return DEV_GUIDES[brand_of(phone)]
 
 
 def app_outdated(d: dict, usb: dict) -> bool:
@@ -207,6 +257,10 @@ def _phone_step(status: dict, usb: dict, simple: bool) -> Step:
             st.items += _usb_device_items(d, usb, sessions)
     elif not connected:
         st.items.append(_usb_phone(usb, usb_optional))
+        unseen = [p for p in usb.get("unseen", []) if not p.get("adb")]
+        if unseen and not any(d.get("state") in ("unauthorized", "no", "offline") for d in usb.get("devices", [])):
+            for i, (title, text) in enumerate(dev_guide(unseen[0]), 1):
+                st.items.append(Item(f"{i}. {title}", text, None))
         if not usb.get("unseen") and usb.get("usb_devices") and usb.get("devices") == []:
             # Telefon hiç tanınmadıysa bilgisayarın ne gördüğü (kablo mu, telefon mu, mod mu: ayırt etmek için).
             st.items.append(Item("Bu bilgisayarın gördüğü USB aygıtları", ", ".join(usb["usb_devices"][:8]), None))

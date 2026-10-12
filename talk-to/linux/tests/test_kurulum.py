@@ -43,6 +43,23 @@ class SetupChecksTest(unittest.TestCase):
         self.assertFalse(item(self.phone_step({"devices": [{"serial": "s", "state": "unauthorized"}]}),
                               "Telefon onay bekliyor").ok)
 
+    def test_dev_options_guide_by_brand(self):
+        """Takılı ama hata ayıklaması kapalı telefon: markaya göre adım adım (Xiaomi'de HyperOS sürümü, ek anahtarlar)."""
+        tel = self.phone_step({"devices": [], "unseen": [{"serial": "s", "name": "Xiaomi POCO", "vendor": "2717"}]})
+        steps = [i.title for i in tel.items if i.title[:2] in ("1.", "2.", "3.", "4.")]
+        self.assertEqual(steps[0], "1. Geliştirici seçeneklerini aç")
+        self.assertIn("HyperOS sürümü", item(tel, "1.").text)
+        self.assertIn("Ek ayarlar", item(tel, "2.").text)
+        self.assertEqual(len(steps), 4)
+        self.assertEqual(setup_checks.brand_of({"vendor": "04e8"}), "samsung")
+        self.assertEqual(setup_checks.brand_of({"name": "realme RMX3085"}), "oppo")
+        self.assertIn("Yazılım bilgileri", setup_checks.dev_guide({"vendor": "04e8"})[0][1])
+        self.assertEqual(setup_checks.brand_of({"vendor": "abcd", "name": "Bilinmeyen"}), "")
+        # Telefon onay bekliyorsa (adb görüyor) adımlar yerine yalnızca onay satırı.
+        tel = self.phone_step({"devices": [{"serial": "s", "state": "unauthorized"}],
+                               "unseen": [{"serial": "x", "name": "Xiaomi"}]})
+        self.assertFalse(any(i.title.startswith("1.") for i in tel.items))
+
     def test_connect_from_computer(self):
         """USB'deki telefon telefona gitmeden bağlanır: kur → bağlan → bağlı."""
         dev = {"serial": "S1", "state": "device", "model": "2311DRK48G", "name": "POCO X6 Pro", "app": False}

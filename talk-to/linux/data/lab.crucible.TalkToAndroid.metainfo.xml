@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.11.0" date="2026-10-12">
+      <description><p>Telefon takılı ama USB hata ayıklaması kapalıysa markaya göre adım adım yol (Xiaomi/HyperOS, Samsung, Oppo/Realme/OnePlus, Huawei/Honor) ve bunu söyleyen bildirim. Tercihler → Veriler: önbelleği temizle, indirilen scrcpy'yi sil, uygulamayı sıfırla (eşleşmeler ve ayarlar çöp kutusuna taşınır, istenirse bilgisayarın kimliği de yenilenir). Soru pencereleri öndeki pencereye bağlanır.</p></description>
+    </release>
     <release version="0.10.1" date="2026-10-12">
       <description><p>Teşhis: arayüz birkaç saniyeden uzun yanıt vermezse o anki durum kendiliğinden günlüğe yazılır; "talk-to-android teshis" komutu açık pencereleri ve iş parçacıklarını istendiği anda yazar. Ana pencere öne gelince ona bağlı açık soru pencereleri de öne gelir. Güncelleme sırasında yarı yazılmış paket yüzünden yeniden başlamanın atlanması düzeltildi.</p></description>
     </release>
