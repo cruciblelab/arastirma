@@ -149,6 +149,54 @@ def move(window, x: int, y: int) -> bool:
         return False
 
 
+def is_focused(window) -> bool | None:
+    """X11 penceresi pencere yöneticisine göre şu an etkin mi (_NET_ACTIVE_WINDOW); bilinemiyorsa None.
+
+    Wayland oturumunda XWayland penceresinin açık menüsü (ekranı tutan bir X11 açılır penceresi) varken masaüstünün
+    Wayland tarafına tıklanınca GTK pencerenin odağı kaybettiğini fark etmiyor; pencere yöneticisi ise biliyor."""
+    xid = _x11_xid(window)
+    lib = ctypes.util.find_library("X11")
+    if xid is None or lib is None:
+        return None
+    try:
+        x = ctypes.CDLL(lib)
+        x.XOpenDisplay.restype = ctypes.c_void_p
+        x.XOpenDisplay.argtypes = [ctypes.c_char_p]
+        x.XDefaultRootWindow.restype = ctypes.c_ulong
+        x.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+        x.XInternAtom.restype = ctypes.c_ulong
+        x.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+        x.XGetWindowProperty.argtypes = [
+            ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_long, ctypes.c_long, ctypes.c_int,
+            ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_void_p)]
+        x.XFree.argtypes = [ctypes.c_void_p]
+        x.XCloseDisplay.argtypes = [ctypes.c_void_p]
+        d = x.XOpenDisplay(window.get_display().get_name().encode())
+        if not d:
+            return None
+        try:
+            typ, fmt, n, rest, data = ctypes.c_ulong(), ctypes.c_int(), ctypes.c_ulong(), ctypes.c_ulong(), \
+                ctypes.c_void_p()
+            atom = x.XInternAtom(d, b"_NET_ACTIVE_WINDOW", 1)
+            if not atom or x.XGetWindowProperty(d, x.XDefaultRootWindow(d), atom, 0, 1, 0, 33,  # XA_WINDOW
+                                                ctypes.byref(typ), ctypes.byref(fmt), ctypes.byref(n),
+                                                ctypes.byref(rest), ctypes.byref(data)) != 0:
+                return None
+            if not data.value:
+                return None
+            try:
+                active = ctypes.cast(data, ctypes.POINTER(ctypes.c_ulong))[0] if n.value else 0
+            finally:
+                x.XFree(data)
+            return active == xid
+        finally:
+            x.XCloseDisplay(d)
+    except (OSError, AttributeError) as e:
+        log.info("etkin pencere okunamadı: %s", e)
+        return None
+
+
 def top_center(window) -> bool:
     """X11 penceresini bulunduğu ekranın üst ortasına (üst çubuğun hemen altına) yerleştirir."""
     surface = window.get_surface()

@@ -1,25 +1,29 @@
 /* Talk To · Üst ada. Renkleri (arka plan, yazı) Talk To'daki tema verir; burada biçim. */
 .ada {
-    border-radius: 0 0 22px 22px;
-    padding: 4px 14px 7px 14px;
-    min-width: 200px;
+    border-radius: 0 0 18px 18px;
+    padding: 2px 12px 5px 12px;
+    min-width: 150px;
+    font-size: 9.5pt;
 }
-.ada.ada-buyuk { min-width: 400px; padding: 6px 18px 12px 18px; border-radius: 0 0 26px 26px; }
-.ada-compact { spacing: 8px; min-height: 26px; }
-.ada-page { spacing: 8px; padding-top: 8px; }
-.ada-satir { spacing: 12px; }
-.ada-baslik { font-weight: bold; max-width: 230px; }
-.ada-iri { font-size: 15pt; }
-.ada-soluk { opacity: 0.72; font-size: 9pt; }
-.ada-uygulama { font-weight: bold; font-size: 10pt; min-width: 90px; }
-.ada-sayac { font-size: 26pt; font-weight: 300; font-feature-settings: "tnum"; }
+.ada.ada-buyuk { min-width: 340px; padding: 4px 16px 10px 16px; border-radius: 0 0 22px 22px; }
+/* ince şerit: yukarı kaydırılınca yalnızca su */
+.ada.ada-ince { min-width: 0; padding: 0 12px 3px 12px; border-radius: 0 0 9px 9px; }
+.ada-ince .ada-compact { min-height: 6px; spacing: 4px; }
+.ada-compact { spacing: 6px; min-height: 22px; }
+.ada-page { spacing: 6px; padding-top: 6px; }
+.ada-satir { spacing: 10px; }
+.ada-baslik { font-weight: bold; max-width: 200px; }
+.ada-iri { font-size: 13pt; }
+.ada-soluk { opacity: 0.72; font-size: 8.5pt; }
+.ada-uygulama { font-weight: bold; font-size: 9pt; min-width: 80px; }
+.ada-sayac { font-size: 22pt; font-weight: 300; font-feature-settings: "tnum"; }
 .ada-kapak { border-radius: 6px; background-color: rgba(255, 255, 255, 0.12); }
-.ada-dugme { border-radius: 99px; padding: 6px; background-color: rgba(255, 255, 255, 0.08); }
+.ada-dugme { border-radius: 99px; padding: 4px; background-color: rgba(255, 255, 255, 0.08); }
 .ada-dugme:hover { background-color: rgba(255, 255, 255, 0.18); }
-.ada-buyuk-dugme { padding: 10px; background-color: rgba(255, 255, 255, 0.2); }
-.ada-metin { border-radius: 99px; padding: 5px 14px; background-color: rgba(255, 255, 255, 0.1); font-weight: bold; }
+.ada-buyuk-dugme { padding: 8px; background-color: rgba(255, 255, 255, 0.2); }
+.ada-metin { border-radius: 99px; padding: 4px 12px; background-color: rgba(255, 255, 255, 0.1); font-weight: bold; }
 .ada-metin:hover { background-color: rgba(255, 255, 255, 0.2); }
-.ada-sure { padding: 5px 10px; }
+.ada-sure { padding: 4px 9px; }
 .ada-secili { background-color: rgba(255, 255, 255, 0.28); }
 .ada-kirmizi { background-color: #c01c28; color: white; }
 .ada-kirmizi:hover { background-color: #e01b24; }

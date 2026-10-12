@@ -1,7 +1,9 @@
 // Talk To · Üst ada: ekranın üst ortasında, üst çubuktan aşağı sarkan küçük bir "ada".
 //
 // Hep küçük durur (çalan şarkı, dalga); arama, şarkı değişimi ya da bildirim olunca büyür. Basılı tutup yana
-// sürükleyince sayfa değişir: arama ← çalan → bildirimler → zamanlayıcı. Veriyi Talk To Android'den D-Bus ile
+// sürükleyince sayfa değişir: arama ← çalan → bildirimler → zamanlayıcı. Yukarı kaydırınca (tekerlek, dokunmatik
+// yüzey ya da yukarı sürükleme) bir kademe küçülür: büyük → normal → ince şerit. İnce şeridin üstüne gelince normal
+// hâli görünür, tıklayınca normale döner. İnce şeritteyken yalnızca arama adayı büyütür. Veriyi Talk To Android'den D-Bus ile
 // alır (lab.crucible.TalkToAndroid, /lab/crucible/TalkToAndroid/Ada): bu eklenti yalnızca gösterir ve düğmeleri
 // Talk To'ya iletir; telefonla kendisi konuşmaz. Talk To kapalıyken görünmez.
 //
@@ -27,6 +29,9 @@ const IFACE = `<node><interface name="lab.crucible.TalkToAndroid.Ada">
 const AdaProxy = Gio.DBusProxy.makeProxyWrapper(IFACE);
 
 const DRAG_PAGE = 40;      // bu kadar piksel yana çekince sayfa değişir
+const DRAG_UP = 24;        // bu kadar yukarı çekince küçülür
+const SCROLL_COOLDOWN_MS = 350; // dokunmatik yüzeyin tek kaydırması birden çok kademe atlamasın
+const PEEK_LEAVE_MS = 450;      // ince şeritten fare ayrılınca normal hâlin kalma süresi
 const SHOW_EVENT_MS = 5000; // şarkı/bildirim olunca büyük kalma süresi
 const IDLE_COLLAPSE_MS = 6000;
 const DEFAULT_THEME = {bg1: '#0a2342', bg2: '#12436b', wave1: '#2ec4b6', wave2: '#8de4ff', text: '#eaf6ff',
@@ -88,6 +93,10 @@ class Ada {
         this.playing = false;
         this.phase = 0;
         this.expanded = false;
+        this.thin = false;   // ince şerit (yukarı kaydırıldı)
+        this.peek = false;   // ince şeritteyken fare üstünde: normal hâl görünür
+        this._scrollAt = 0;
+        this._scrollSum = 0;
         this.pageIndex = 0;
         this.pageName = 'calan';
         this.lastEvent = 0;
@@ -112,6 +121,7 @@ class Ada {
             [this.box, this.box.connect('motion-event', (a, e) => this._motion(e))],
             [this.box, this.box.connect('button-release-event', (a, e) => this._release(e))],
             [this.box, this.box.connect('notify::hover', () => this._hoverChanged())],
+            [this.box, this.box.connect('scroll-event', (a, e) => this._scroll(e))],
         ];
 
         this._watch = Gio.bus_watch_name(Gio.BusType.SESSION, BUS_NAME, Gio.BusNameWatcherFlags.NONE,
@@ -194,6 +204,8 @@ class Ada {
         const page = {call: 'arama', track: 'calan', notification: 'bildirim'}[kind];
         if (!page)
             return;
+        if (this.thin && kind !== 'call')
+            return; // ince şeritte yalnızca arama büyütür
         this.pageName = page;
         this._expand(true);
         if (kind !== 'call')
@@ -215,11 +227,20 @@ class Ada {
         return list.concat(['calan', 'bildirim', 'zamanlayici']);
     }
 
+    _setClass() {
+        const thin = this.thin && !this.peek && !this.expanded;
+        for (const [cls, on] of [['ada-buyuk', this.expanded], ['ada-ince', thin]]) {
+            if (on)
+                this.box.add_style_class_name(cls);
+            else
+                this.box.remove_style_class_name(cls);
+        }
+    }
+
     _expand(on) {
         this.expanded = on;
         this.page.visible = on;
-        this.box.remove_style_class_name(on ? 'ada-kucuk' : 'ada-buyuk');
-        this.box.add_style_class_name(on ? 'ada-buyuk' : 'ada-kucuk');
+        this._setClass();
         if (on) {
             this._buildPage();
             this.page.opacity = 0;
@@ -253,6 +274,67 @@ class Ada {
             this._cancel('collapse');
         else if (this.expanded)
             this._collapseLater(IDLE_COLLAPSE_MS);
+        if (!this.thin)
+            return;
+        this._cancel('peek');
+        if (this.box.hover) {
+            this._setPeek(true);
+        } else {
+            this._timers.peek = GLib.timeout_add(GLib.PRIORITY_DEFAULT, PEEK_LEAVE_MS, () => {
+                delete this._timers.peek;
+                this._setPeek(false);
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+    }
+
+    _setPeek(on) {
+        if (this.peek === on)
+            return;
+        this.peek = on;
+        this._setClass();
+        this._buildCompact();
+    }
+
+    // Bir kademe küçült (yukarı kaydırma) ya da ince şeritten normale dön (tıklama).
+    _shrink() {
+        if (this.expanded) {
+            this._expand(false);
+        } else if (!this.thin) {
+            this.thin = true;
+            this.peek = false;
+            this._setClass();
+            this._buildCompact();
+        }
+    }
+
+    _unthin() {
+        this._cancel('peek');
+        this.thin = false;
+        this.peek = false;
+        this._setClass();
+        this._buildCompact();
+    }
+
+    _scroll(event) {
+        let up = false;
+        const dir = event.get_scroll_direction();
+        if (dir === Clutter.ScrollDirection.UP) {
+            up = true;
+        } else if (dir === Clutter.ScrollDirection.SMOOTH) {
+            const [, dy] = event.get_scroll_delta();
+            this._scrollSum = dy < 0 ? this._scrollSum + dy : 0;
+            up = this._scrollSum <= -1;
+        }
+        if (!up)
+            return Clutter.EVENT_PROPAGATE;
+        const now = GLib.get_monotonic_time() / 1000;
+        if (now - this._scrollAt > SCROLL_COOLDOWN_MS) {
+            this._scrollAt = now;
+            this._scrollSum = 0;
+            this._shrink();
+        }
+        return Clutter.EVENT_STOP;
     }
 
     // ---- dalga canlandırması -----------------------------------------------------------
@@ -286,7 +368,7 @@ class Ada {
     _press(event) {
         if (event.get_button() !== 1)
             return Clutter.EVENT_PROPAGATE;
-        [this._dragX] = event.get_coords();
+        [this._dragX, this._dragY] = event.get_coords();
         this._dragged = false;
         return Clutter.EVENT_PROPAGATE;
     }
@@ -294,9 +376,9 @@ class Ada {
     _motion(event) {
         if (this._dragX === undefined)
             return Clutter.EVENT_PROPAGATE;
-        const [x] = event.get_coords();
+        const [x, y] = event.get_coords();
         const dx = x - this._dragX;
-        if (Math.abs(dx) > 8)
+        if (Math.abs(dx) > 8 || Math.abs(y - this._dragY) > 8)
             this._dragged = true;
         if (this.expanded && this._dragged)
             this.page.translation_x = Math.max(-80, Math.min(80, dx * 0.6));
@@ -306,10 +388,15 @@ class Ada {
     _release(event) {
         if (this._dragX === undefined)
             return Clutter.EVENT_PROPAGATE;
-        const [x] = event.get_coords();
-        const dx = x - this._dragX;
+        const [x, y] = event.get_coords();
+        const dx = x - this._dragX, dy = y - this._dragY;
         this._dragX = undefined;
-        if (this._dragged && Math.abs(dx) >= DRAG_PAGE) {
+        if (this._dragged && -dy >= DRAG_UP && -dy > Math.abs(dx)) {  // yukarı sürükleme: küçül
+            this.page.translation_x = 0;
+            this._shrink();
+        } else if (this.thin && !this.expanded && !this._dragged) {  // ince şeride tıklama: normale dön
+            this._unthin();
+        } else if (this._dragged && Math.abs(dx) >= DRAG_PAGE) {
             if (!this.expanded)
                 this._expand(true);
             this._turn(dx > 0 ? -1 : 1);
@@ -372,7 +459,7 @@ class Ada {
 
     _button(icon, cb, cls) {
         const b = new St.Button({style_class: `ada-dugme ${cls || ''}`, can_focus: true,
-            child: new St.Icon({icon_name: icon, icon_size: 16})});
+            child: new St.Icon({icon_name: icon, icon_size: 14})});
         b.connect('clicked', () => {
             cb();
             this._cancel('collapse');
@@ -404,8 +491,15 @@ class Ada {
         const st = this.state || {};
         const media = st.media || {};
         const call = st.call;
+        if (this.thin && !this.peek && !this.expanded) {  // ince şerit: yalnızca su (arama sürerken yeşil nokta)
+            if (call)
+                this.compact.add_child(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 8,
+                    style_class: 'ada-yesil'}));
+            this.compact.add_child(this._wave(64, 6));
+            return;
+        }
         if (call) {
-            this.compact.add_child(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 16,
+            this.compact.add_child(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 14,
                 style_class: 'ada-yesil'}));
             this.compact.add_child(this._label(call.caller || 'Arama', 'ada-baslik'));
             this.compact.add_child(call.state === 'ringing' ? this._label('arıyor', 'ada-soluk')
@@ -413,25 +507,25 @@ class Ada {
             return;
         }
         if (st.timer && !media.playing) {
-            this.compact.add_child(new St.Icon({icon_name: 'alarm-symbolic', icon_size: 16}));
+            this.compact.add_child(new St.Icon({icon_name: 'alarm-symbolic', icon_size: 14}));
             this.compact.add_child(this._liveLabel(() => mmss(st.timer.ends_at - Date.now() / 1000), 'ada-baslik'));
             return;
         }
         if (media.active) {
-            this.compact.add_child(this._cover(22));
+            this.compact.add_child(this._cover(18));
             const title = this._label(media.title, 'ada-baslik');
             title.clutter_text.ellipsize = 3; // Pango.EllipsizeMode.END
             this.compact.add_child(title);
-            this.compact.add_child(this._wave(54, 18));
+            this.compact.add_child(this._wave(44, 14));
             this.compact.add_child(this._button(media.playing ? 'media-playback-pause-symbolic'
                 : 'media-playback-start-symbolic', () => this.act({do: 'media', action: 'play_pause'})));
             return;
         }
         this.compact.add_child(new St.Icon({icon_name: st.phone ? 'phone-symbolic' : 'phone-disabled-symbolic',
-            icon_size: 16}));
+            icon_size: 14}));
         this.compact.add_child(this._label(st.phone ? st.phone + (st.battery !== undefined && st.battery !== null
             ? ` · %${st.battery}` : '') : 'Telefon bağlı değil', 'ada-soluk'));
-        this.compact.add_child(this._wave(40, 14));
+        this.compact.add_child(this._wave(34, 12));
     }
 
     _buildPage() {
@@ -457,8 +551,8 @@ class Ada {
         const texts = new St.BoxLayout({vertical: true, x_expand: true, y_align: Clutter.ActorAlign.CENTER});
         texts.add_child(this._label(media.title, 'ada-baslik'));
         texts.add_child(this._label([media.artist, media.player].filter(Boolean).join(' · '), 'ada-soluk'));
-        this.page.add_child(this._row(this._cover(56), texts));
-        this.page.add_child(this._wave(380, 26));
+        this.page.add_child(this._row(this._cover(46), texts));
+        this.page.add_child(this._wave(310, 20));
         const ctl = this._row(
             this._button('media-skip-backward-symbolic', () => this.act({do: 'media', action: 'previous'})),
             this._button(media.playing ? 'media-playback-pause-symbolic' : 'media-playback-start-symbolic',
@@ -476,7 +570,7 @@ class Ada {
         const texts = new St.BoxLayout({vertical: true, x_expand: true});
         texts.add_child(this._label(call.caller || 'Bilinmeyen', 'ada-baslik ada-iri'));
         texts.add_child(this._label(`${call.app}${ringing ? ' araması' : ' görüşmesi'}`, 'ada-soluk'));
-        this.page.add_child(this._row(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 28,
+        this.page.add_child(this._row(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 24,
             style_class: 'ada-yesil'}), texts));
         const btns = this._row();
         btns.x_align = Clutter.ActorAlign.CENTER;

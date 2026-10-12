@@ -141,6 +141,18 @@ jobs:
       - name: Uçtan uca
         run: PY=/usr/bin/python3 timeout 300 test/uctan_uca.sh "$RUNNER_TEMP/ada-test"
 
+      - name: Mini oynatıcının ⋮ menüsü (Wayland ve üstte tutulurken XWayland)
+        # Menü tıklanınca açık kalmalı, başka yere tıklanınca kapanmalı.
+        run: |
+          for top in 1 0; do
+            timeout 200 test/kabukta.sh "$RUNNER_TEMP/ada-test" /usr/bin/python3 test/mini_menu.py ../linux "$RUNNER_TEMP/ada-test" $top
+          done
+          for k in x11 wayland; do
+            cat "$RUNNER_TEMP/ada-test/mini-menu-$k.json"; echo
+            python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['open_after_click'] and d['closed_after_outside'] and not d.get('errors'), d" "$RUNNER_TEMP/ada-test/mini-menu-$k.json"
+          done
+          grep -q X11Display "$RUNNER_TEMP/ada-test/mini-menu-x11.json"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

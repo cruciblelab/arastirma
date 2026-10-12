@@ -74,6 +74,8 @@ class App(Adw.Application):
         self.set_accels_for_action("window.close", ["<Control>w"])
 
         self.config = Config()
+        GLib.timeout_add_seconds(2, self._check_wiped)
+        self._setup_offered = False  # kurulum yardımcısı bu çalışmada kendiliğinden bir kez açılır
         self.notifier = Notifier()
         from . import ada
         self.ada = ada.AdaService(self)  # üst ada (GNOME eklentisi) için D-Bus köprüsü
@@ -110,9 +112,12 @@ class App(Adw.Application):
             self.notifier.show(f"Talk To Android {updated} sürümüne güncellendi",
                                "Yeni sürümle yeniden başlatıldı; telefon birkaç saniye içinde yeniden bağlanır.",
                                key="guncellendi")
-        if os.environ.pop("TALKTO_SIFIRLANDI", None):
+        reset = os.environ.pop("TALKTO_SIFIRLANDI", None)
+        if reset:
             self.notifier.show("Talk To Android sıfırlandı",
-                               "Eski ayarlar ve eşleşmeler çöp kutusunda; gerekirse oradan geri alınır.", key="sifirlandi")
+                               "Ayarlar başka bir uygulamayla temizlendi; Talk To sıfırdan başladı." if reset == "dis"
+                               else "Eski ayarlar ve eşleşmeler çöp kutusunda; gerekirse oradan geri alınır.",
+                               key="sifirlandi")
         self._update_timer = None
         try:
             self._version_monitor = Gio.File.new_for_path(str(self._version_file)).monitor_file(
@@ -203,11 +208,27 @@ class App(Adw.Application):
                 self.start_hidden = False
                 return
             self.window.present()
-            if not self.config["setup_done"]:
-                self.open_setup()
+            self._offer_setup()
             return
         self.window.present()
         self._surface_modals()
+        # Arka planda başladıysa (oturum açılışı, güncelleme sonrası) kurulum ilk görünüşte açılır.
+        self._offer_setup()
+
+    def _offer_setup(self):
+        if not self.config["setup_done"] and not self._setup_offered and self.setup_window is None:
+            self._setup_offered = True
+            self.open_setup()
+
+    def _check_wiped(self):
+        """Ayarlar çalışırken dışarıdan silindiyse (Paket Güncelleyici'de "verileri temizle", elle silme) eski
+        ayarlarla sürmek yerine sıfırdan başlar: kurulum yardımcısı açılır."""
+        if not self.config.wiped():
+            return True
+        log.warning("ayarlar dışarıdan silinmiş: uygulama sıfırdan başlatılıyor")
+        os.environ["TALKTO_SIFIRLANDI"] = "dis"
+        self._restart([])
+        return False
 
     def open_setup(self, step=None):
         """Kurulum yardımcısı (ilk açılışta kendiliğinden, sonra menüden; telefon takılınca telefon adımında)."""

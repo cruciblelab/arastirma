@@ -1,6 +1,7 @@
 """Uçtan uca: gerçek Talk To (sahte telefon olaylarıyla) GNOME Shell 46'nın içinde; üst ada eklentisi.
 Sıra: müzik → şarkı değişir (ada büyür) → oynat'a tıkla → sola sürükle (bildirimler) → arama gelir → Yanıtla'ya
-tıkla → zamanlayıcı sayfası → 1 dk. Ekran görüntüleri ve eylemler OUT klasörüne."""
+tıkla → zamanlayıcı sayfası → 1 dk → yukarı kaydır (normal, sonra ince şerit) → üstüne gel (normal görünür) → ayrıl
+(ince) → tıkla (normal). Düğmelerin yeri kabuğa sorulur (Find). Ekran görüntüleri, eylemler ve boyutlar OUT'a."""
 import json, os, sys, tempfile, time
 sys.path.insert(0, sys.argv[1])
 OUT = sys.argv[2]
@@ -24,8 +25,32 @@ app.call = lambda *a: calls.append(a) or open(f"{OUT}/eylemler.txt", "a").write(
 bus = None
 
 def cek(method, *args):
-    sig = {"Shot": "(s)", "Click": "(dd)", "Drag": "(dddd)"}[method]
-    bus.call_sync("test.Cek", "/test/Cek", "test.Cek", method, GLib.Variant(sig, args), None, 0, 10000, None)
+    sig = {"Shot": "(s)", "Click": "(dd)", "Drag": "(dddd)", "Move": "(dd)", "Scroll": "(ddd)", "Find": "(s)"}[method]
+    r = bus.call_sync("test.Cek", "/test/Cek", "test.Cek", method, GLib.Variant(sig, args), None, 0, 10000, None)
+    return r.unpack() if r else None
+
+def find(cls):
+    x, y, w, h = cek("Find", cls)
+    if w < 0:
+        raise RuntimeError(f"{cls} bulunamadı")
+    return x, y, w, h
+
+def click(cls):
+    x, y, w, h = find(cls)
+    cek("Click", x + w / 2, y + h / 2)
+
+def drag_left():
+    x, y, w, h = find("ada")
+    cek("Drag", x + w * 0.8, y + h * 0.5, x + w * 0.8 - 200, y + h * 0.5)
+
+def ada_center():
+    x, y, w, h = find("ada")
+    return x + w / 2, y + h / 2
+
+boy = {}
+def olc(name):
+    boy[name] = find("ada")
+    open(f"{OUT}/boyutlar.json", "w").write(json.dumps(boy))
 
 def song(title, playing=True):
     return {"active": True, "player": "Spotify", "title": title, "artist": "Sezen Aksu", "playing": playing,
@@ -37,34 +62,46 @@ sess = {"device_id": "p", "name": "POCO X6 Pro", "kind": "wifi", "ip": "1.2.3.4"
 call = {"device_id": "p", "device": "POCO", "key": "k1", "app": "WhatsApp", "caller": "Babam", "text": "Gelen arama",
         "actions": [{"i": 0, "title": "Reddet"}, {"i": 1, "title": "Yanıtla"}], "state": "ringing"}
 X = 640
+phone_again = lambda: app.on_event("status", {**app.hub.status(), "sessions": [sess]})  # noqa: E731
 steps = [
-    lambda: (app.art_paths.__setitem__("k1", ART), app.on_event("status", {**app.hub.status(), "sessions": [sess]}),
+    lambda: (app.art_paths.__setitem__("k1", ART), phone_again(),
              app.on_event("media", {"device_id": "p", "state": song("Firuze")})),
     # Gerçek hub açılışta kendi (telefonsuz) durumunu yayınlar: sahte telefonu ve şarkıyı yeniden ver.
-    lambda: (app.on_event("status", {**app.hub.status(), "sessions": [sess]}),
-             app.on_event("media", {"device_id": "p", "state": song("Firuze")})),
+    lambda: (phone_again(), app.on_event("media", {"device_id": "p", "state": song("Firuze")})),
     *[lambda: None] * 4,  # müzik başlayınca ada büyür; ~5 sn sonra küçülür
-    lambda: cek("Shot", f"{OUT}/1-kucuk.png"),
+    lambda: (cek("Shot", f"{OUT}/1-kucuk.png"), olc("normal")),
     lambda: app.on_event("media", {"device_id": "p", "state": song("Gesi Bağları")}),
-    lambda: cek("Shot", f"{OUT}/2-sarki-degisti.png"),
-    lambda: cek("Click", X, 190.0),  # büyük sayfadaki oynat/duraklat
-    lambda: cek("Drag", X + 120.0, 120.0, X - 80.0, 120.0),  # sola sürükle → bildirimler
+    lambda: (cek("Shot", f"{OUT}/2-sarki-degisti.png"), olc("buyuk")),
+    lambda: click("ada-buyuk-dugme"),  # oynat/duraklat
+    lambda: drag_left(),  # sola sürükle → bildirimler
     lambda: app.on_event("notification", {"device_id": "p", "device": "POCO", "key": "n1", "package": "x",
                                          "app": "WhatsApp", "title": "Ayşe", "text": "Geliyor musun?",
                                          "time": time.time()}),
     lambda: cek("Shot", f"{OUT}/3-bildirim.png"),
     lambda: app.on_event("call", call),
     lambda: cek("Shot", f"{OUT}/4-arama.png"),
-    lambda: cek("Click", X + 44.0, 135.0),  # Yanıtla
+    lambda: click("ada-yesil-dugme"),  # Yanıtla
     lambda: app.on_event("call_ended", {"device_id": "p", "key": "k1"}),
-    lambda: cek("Drag", X + 150.0, 110.0, X - 120.0, 110.0),
-    lambda: cek("Drag", X + 150.0, 110.0, X - 120.0, 110.0),
-    # Gerçek hub kendi durumunu (telefonsuz) yayınlayabilir: telefon bağlı durumu yeniden ver.
-    lambda: (app.on_event("status", {**app.hub.status(), "sessions": [sess]}), cek("Shot", f"{OUT}/5-zamanlayici.png")),
-    lambda: cek("Click", X - 137.0, 115.0),  # 1 dk (telefonda da)
+    lambda: drag_left(),
+    lambda: drag_left(),
+    lambda: (phone_again(), cek("Shot", f"{OUT}/5-zamanlayici.png")),
+    lambda: click("ada-sure"),  # 1 dk (telefonda da)
     lambda: None,
     lambda: (cek("Shot", f"{OUT}/6-sayac.png"),
              open(f"{OUT}/durum.json", "w").write(json.dumps(app.ada.state(), ensure_ascii=False))),
+    # Yukarı kaydırma: büyük → normal → ince şerit.
+    lambda: cek("Scroll", *ada_center(), -1.0),
+    lambda: olc("kaydir1"),
+    lambda: cek("Scroll", *ada_center(), -1.0),
+    lambda: (olc("ince"), cek("Shot", f"{OUT}/7-ince.png")),
+    lambda: cek("Move", 640.0, 600.0),
+    lambda: cek("Move", *ada_center()),  # üstüne gel: normal hâl görünür
+    lambda: (olc("bakis"), cek("Shot", f"{OUT}/8-bakis.png")),
+    lambda: cek("Move", 640.0, 600.0),
+    lambda: olc("ayrilinca"),
+    lambda: click("ada"),  # tıkla: normale döner
+    lambda: cek("Move", 640.0, 600.0),
+    lambda: (olc("tiklayinca"), cek("Shot", f"{OUT}/9-normal.png")),
     lambda: app.quit(),
 ]
 i = [0]

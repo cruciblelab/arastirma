@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.13.1" date="2026-10-12">
+      <description><p>Mini oynatıcının ⋮ menüsü üstte tutulurken açılmıyordu (0.12.0 hatası): düzeltildi, başka yere tıklanınca da kapanıyor. Üst ada daha küçük; yukarı kaydırınca ince şerite iner, üstüne gelince görünür, tıklayınca normale döner. Arka planda başlayan uygulamada kurulum yardımcısı ilk açılışta gelir; ayarlar uygulama çalışırken başka bir uygulamayla temizlenirse Talk To sıfırdan başlar.</p></description>
+    </release>
     <release version="0.13.0" date="2026-10-12">
       <description><p>Üst ada (GNOME): ekranın üst ortasında, üst çubuktan sarkan küçük ada. Çalan şarkı, gelen arama, telefon bildirimleri ve zamanlayıcı; bir şey olunca büyür, basılı tutup sürükleyince sayfa değişir. Zamanlayıcı istenirse telefonda da kurulur. Hazır temalar: Deniz, Gece, Gün batımı, Orman. Tercihler → Özellikler → Üst ada → Kur; ardından bir kez oturumu kapatıp açmak gerekir.</p></description>
     </release>

@@ -26,6 +26,8 @@ from . import compat, ustte
 # boyut: (normal genişlik, kapak), (tepecik genişlik, kapak). Küçükte ses ve ilerleme çubuğu gizlenir.
 SIZES = {"kucuk": ((340, 64), (300, 34)), "orta": ((440, 96), (340, 40)), "buyuk": ((560, 136), (400, 48))}
 SIZE_NAMES = {"kucuk": "Küçük", "orta": "Orta", "buyuk": "Büyük"}
+BLUR_CLOSE_MS = 250  # pencere bu kadar odaksız kalırsa açık menüler kapanır
+MENU_WATCH_MS = 300  # XWayland'de menü açıkken odak bu aralıkla pencere yöneticisine sorulur
 
 
 def _mmss(ms: int) -> str:
@@ -111,8 +113,17 @@ class MiniPlayer(Adw.Window):
         self.connect("notify::fullscreened", self._on_maximized)
         self.connect("map", lambda *_: GLib.timeout_add(150, self._after_map))
         # X11 penceresinde (Wayland'de üstte tutulurken XWayland) açık menü, masaüstünün Wayland tarafına yapılan
-        # tıklamayı göremiyor ve kapanmıyordu: pencere odağı kaybedince menüler kapatılır.
-        self.connect("notify::is-active", lambda *_: self.is_active() or self._close_menus())
+        # tıklamayı göremiyor ve kapanmıyordu: pencere odağı kaybedince menüler kapatılır. Menü açılırken X11'de
+        # pencere bir anlığına odağı kaybedip geri alır; o an menüyü kapatmasın diye kısa bir süre beklenir.
+        self._blur_id = 0
+        self.connect("notify::is-active", self._on_active)
+        # XWayland'de menü açıkken Wayland penceresine tıklanınca GTK odağın gittiğini hiç fark etmiyor; menü
+        # açık kaldıkça pencere yöneticisine sorulur (ustte.is_focused).
+        self._menu_watch = 0
+        for b in (self.menu_button, self.c_menu_button):
+            pop = b.get_popover()
+            if pop is not None:
+                pop.connect("notify::visible", self._on_menu_visible)
         if ustte.is_x11(self.get_display()) and not self.get_display().is_composited():
             self.add_css_class("x11-duz")  # saydamlık yoksa gölge payı ve yuvarlak köşeler siyah çıkar
         self.show_state(None, "", {"active": False})
@@ -310,6 +321,33 @@ class MiniPlayer(Adw.Window):
             gesture.set_state(Gtk.EventSequenceState.CLAIMED)
             self.set_compact(False)
 
+    def _on_active(self, *_):
+        if self._blur_id:
+            GLib.source_remove(self._blur_id)
+            self._blur_id = 0
+        if not self.is_active():
+            self._blur_id = GLib.timeout_add(BLUR_CLOSE_MS, self._blurred)
+
+    def _blurred(self):
+        self._blur_id = 0
+        if not self.is_active():
+            self._close_menus()
+        return False
+
+    def _on_menu_visible(self, pop, _):
+        if pop.get_visible() and not self._menu_watch and ustte.is_x11(self.get_display()):
+            self._menu_watch = GLib.timeout_add(MENU_WATCH_MS, self._watch_menu)
+
+    def _watch_menu(self):
+        if not any(b.get_popover() and b.get_popover().get_visible() for b in (self.menu_button, self.c_menu_button)):
+            self._menu_watch = 0
+            return False
+        if ustte.is_focused(self) is False:
+            self._menu_watch = 0
+            self._close_menus()
+            return False
+        return True
+
     def _close_menus(self):
         for b in (self.menu_button, self.c_menu_button):
             b.popdown()
@@ -362,6 +400,10 @@ class MiniPlayer(Adw.Window):
 
     def _on_close(self, *_):
         GLib.source_remove(self._timer)
+        for attr in ("_blur_id", "_menu_watch"):
+            if getattr(self, attr):
+                GLib.source_remove(getattr(self, attr))
+                setattr(self, attr, 0)
         for t in self._timers.values():
             GLib.source_remove(t)
         self._timers.clear()

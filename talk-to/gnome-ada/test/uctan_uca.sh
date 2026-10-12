@@ -27,7 +27,7 @@ gnome-shell --headless --wayland --no-x11 --virtual-monitor 1280x800 > "$OUT/she
 SH=$!
 for i in $(seq 1 120); do gdbus introspect --session --dest test.Cek --object-path /test/Cek > /dev/null 2>&1 && break; sleep 0.5; done
 sleep 1
-WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland timeout 90 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
+WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland timeout 150 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
     > "$OUT/talkto.log" 2>&1
 kill $SH; wait $SH 2> /dev/null'
 rm -rf "$H"
@@ -38,5 +38,16 @@ grep -q "('call_action', 'p', 'k1', 1)" "$OUT/eylemler.txt" || fail "adadaki Yan
 grep -q "('phone_timer', 'p', 60," "$OUT/eylemler.txt" || fail "zamanlayıcı (1 dk, telefonda da) kurulmadı"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['timer'] and d['timer']['phone'], d" "$OUT/durum.json" \
     || fail "zamanlayıcı durumu yanlış"
-for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 5-zamanlayici 6-sayac; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
+python3 - "$OUT/boyutlar.json" <<'PYEOF' || fail "küçülme/büyüme yanlış (yukarı kaydırma, üstüne gelme, tıklama)"
+import json, sys
+b = {k: v[3] for k, v in json.load(open(sys.argv[1])).items()}  # yükseklikler
+print("ada yükseklikleri:", b)
+assert b["buyuk"] > b["normal"] >= 20, "büyük/normal"
+assert abs(b["kaydir1"] - b["normal"]) <= 2, "ilk yukarı kaydırma büyükten normale indirmeli"
+assert b["ince"] < 14, "ikinci yukarı kaydırma ince şerit yapmalı"
+assert abs(b["bakis"] - b["normal"]) <= 2, "ince şeridin üstüne gelince normal hâl görünmeli"
+assert b["ayrilinca"] < 14, "fare ayrılınca ince şeride dönmeli"
+assert abs(b["tiklayinca"] - b["normal"]) <= 2, "tıklayınca normale dönmeli (fare ayrılınca da)"
+PYEOF
+for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
 echo "ÜST ADA UÇTAN UCA TESTİ GEÇTİ"

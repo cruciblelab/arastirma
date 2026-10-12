@@ -90,7 +90,9 @@ class Config:
         self.path = self.dir / "ayarlar.json"
         self._lock = threading.RLock()
         self.data: dict = {}
+        self._on_disk = False  # ayar dosyası bir kez yazıldı/okundu: sonradan yok olursa dışarıdan silinmiştir
         self.load()
+        self._on_disk = self.path.exists()
 
     def load(self):
         with self._lock:
@@ -127,8 +129,14 @@ class Config:
             if changed:
                 self.save()
 
+    def wiped(self) -> bool:
+        """Ayarlar uygulama çalışırken dışarıdan silindi (ör. Paket Güncelleyici'de "verileri temizle")."""
+        return self._on_disk and not self.path.exists()
+
     def save(self):
         with self._lock:
+            if self.wiped():
+                return  # bellekteki eski ayarları geri yazıp temizliği boşa çıkarmasın; uygulama sıfırdan başlar
             self.dir.mkdir(parents=True, exist_ok=True)
             os.chmod(self.dir, 0o700)
             tmp = self.path.with_suffix(".tmp")
@@ -136,6 +144,7 @@ class Config:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
             os.replace(tmp, self.path)
+            self._on_disk = True
 
     def __getitem__(self, key):
         with self._lock:
