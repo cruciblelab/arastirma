@@ -110,6 +110,11 @@ class MiniPlayer(Adw.Window):
         self.connect("notify::maximized", self._on_maximized)
         self.connect("notify::fullscreened", self._on_maximized)
         self.connect("map", lambda *_: GLib.timeout_add(150, self._after_map))
+        # X11 penceresinde (Wayland'de üstte tutulurken XWayland) açık menü, masaüstünün Wayland tarafına yapılan
+        # tıklamayı göremiyor ve kapanmıyordu: pencere odağı kaybedince menüler kapatılır.
+        self.connect("notify::is-active", lambda *_: self.is_active() or self._close_menus())
+        if ustte.is_x11(self.get_display()) and not self.get_display().is_composited():
+            self.add_css_class("x11-duz")  # saydamlık yoksa gölge payı ve yuvarlak köşeler siyah çıkar
         self.show_state(None, "", {"active": False})
         self._apply_mode()
 
@@ -207,8 +212,9 @@ class MiniPlayer(Adw.Window):
         self.c_next = _small("media-skip-forward-symbolic", "Sonraki")
         self.c_next.connect("clicked", lambda *_: self._cmd("next"))
         root.append(self.c_next)
-        root.append(Gtk.MenuButton(icon_name="view-more-symbolic", menu_model=menu, valign=Gtk.Align.CENTER,
-                                   tooltip_text="Ayarlar", css_classes=["flat", "circular", "mini-tool"]))
+        self.c_menu_button = Gtk.MenuButton(icon_name="view-more-symbolic", menu_model=menu, valign=Gtk.Align.CENTER,
+                                            tooltip_text="Ayarlar", css_classes=["flat", "circular", "mini-tool"])
+        root.append(self.c_menu_button)
         return root
 
     def _actions(self):
@@ -303,6 +309,10 @@ class MiniPlayer(Adw.Window):
         if n_press == 2 and self.compact:
             gesture.set_state(Gtk.EventSequenceState.CLAIMED)
             self.set_compact(False)
+
+    def _close_menus(self):
+        for b in (self.menu_button, self.c_menu_button):
+            b.popdown()
 
     def _after_map(self):
         if self.app.config["mini_on_top"]:

@@ -127,6 +127,7 @@ class WindowTest(unittest.TestCase):
             try:
                 w = app.window
                 seen["simple"] = {n: p.get_visible() for n, p in w.pages.items()}
+                seen["simple_cmd"] = (w.cmd_group.get_visible(), w.cmd_off.get_visible())
                 seen["profiles"] = w.profile_group.get_visible()
                 w.sw_simple.set_active(False)
                 seen["full"] = {n: p.get_visible() for n, p in w.pages.items()}
@@ -134,6 +135,7 @@ class WindowTest(unittest.TestCase):
                 w.sw_simple.set_active(True)
                 w.sw_extras["commands"].set_active(True)
                 seen["extra"] = {n: p.get_visible() for n, p in w.pages.items()}
+                seen["extra_cmd"] = (w.cmd_group.get_visible(), w.cmd_off.get_visible())
                 seen["extras"] = list(app.config["extras"])
                 # Müzik başlayınca sabitlenmiş mini oynatıcı kendiliğinden açılır.
                 # Mini oynatıcı boşken ve çalarken aynı yeri kaplar (Wayland'de boyut zıplaması uygulamayı kapatıyordu).
@@ -251,12 +253,13 @@ class WindowTest(unittest.TestCase):
 
         app.connect("activate", lambda *_: GLib.idle_add(check))
         app.run([])
-        self.assertEqual(seen["simple"], {"telefonlar": True, "medya": True, "dosyalar": False,
-                                          "bildirimler": True, "komutlar": False})
+        self.assertEqual(seen["simple"], {"telefonlar": True, "medya": True, "dosyalar": False, "bildirimler": True})
+        # Bilgisayar komutları Tercihler → Araçlar'da: basit modda gizli, yerine nasıl açılacağı yazar.
+        self.assertEqual(seen["simple_cmd"], (False, True))
+        self.assertEqual(seen["extra_cmd"], (True, False))
         self.assertFalse(seen["profiles"])
         self.assertTrue(all(seen["full"].values()))
         self.assertFalse(seen["saved"])
-        self.assertTrue(seen["extra"]["komutlar"])
         self.assertFalse(seen["extra"]["dosyalar"])
         self.assertEqual(seen["extras"], ["commands"])
         label, info_labels, asked = seen["chip"]

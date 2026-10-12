@@ -229,9 +229,10 @@ class Window(Adw.ApplicationWindow):
         # GNOME HIG: görünüm değiştiricide 3–5 görünüm. Bağlantı yolları ve genel ayarlar Tercihler'de.
         self._sig = {}
         self.f = features.enabled(app.config)
-        self.prefs_pages = [self._build_features(), self._build_preferences()]
+        # Araçlar (bilgisayar komutları, telefon araçları, terminal): ana pencerede sekme değil, Tercihler'de.
+        self.prefs_pages = [self._build_features(), self._build_preferences(), self._build_commands()]
         self.prefs_window = None
-        # Basit modda Dosyalar ve Komutlar sayfaları gizlenir (talkto.features).
+        # Basit modda Dosyalar sayfası gizlenir (talkto.features).
         self.pages = {
             "telefonlar": compat.add_page(self.stack, self._build_phones(), "telefonlar", "Telefonlar",
                                           "phone-symbolic"),
@@ -240,8 +241,6 @@ class Window(Adw.ApplicationWindow):
             "dosyalar": compat.add_page(self.stack, self._build_files(), "dosyalar", "Dosyalar", "folder-symbolic"),
             "bildirimler": compat.add_page(self.stack, self._build_notifications(), "bildirimler", "Bildirimler",
                                            "preferences-system-notifications-symbolic"),
-            "komutlar": compat.add_page(self.stack, self._build_commands(), "komutlar", "Komutlar",
-                                        "utilities-terminal-symbolic"),
         }
 
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
@@ -327,8 +326,10 @@ class Window(Adw.ApplicationWindow):
         self.f = features.enabled(cfg)
         simple = cfg["simple_mode"]
         self.extras_group.set_sensitive(simple)
-        for name, key in (("dosyalar", "files"), ("komutlar", "commands")):
-            self.pages[name].set_visible(key in self.f)
+        self.pages["dosyalar"].set_visible("files" in self.f)
+        for g in self.cmd_groups:
+            g.set_visible("commands" in self.f)
+        self.cmd_off.set_visible("commands" not in self.f)
         self.mirror_group.set_visible("mirror" in self.f)
         if not self.pages.get(self.stack.get_visible_child_name()).get_visible():
             self.stack.set_visible_child_name("telefonlar")
@@ -693,6 +694,7 @@ class Window(Adw.ApplicationWindow):
 
     def update_usb(self, snap):
         self.usb = snap
+        self.araclar.update(snap)
         if self.status:
             self._update_hero()
         if not self._changed("usb_rows", snap, [(s["device_id"], s.get("adb_serial"))
@@ -1386,7 +1388,15 @@ class Window(Adw.ApplicationWindow):
     # ---- Komutlar -------------------------------------------------------------
 
     def _build_commands(self):
-        page = Adw.PreferencesPage()
+        from .araclar import Araclar
+        page = Adw.PreferencesPage(title="Araçlar", icon_name="applications-utilities-symbolic")
+        self.araclar = Araclar(self)
+        page.add(self.araclar.group)
+        self.cmd_off = Adw.PreferencesGroup(
+            title="Bilgisayar komutları",
+            description="Telefondan bu bilgisayarı kilitlemek, ekran görüntüsü almak ve kendi komutlarını çalıştırmak "
+                        "için: Özellikler'de “Bilgisayar komutları”nı aç.")
+        page.add(self.cmd_off)
         g = Adw.PreferencesGroup(
             title="Hazır komutlar",
             description="Telefondaki “Bilgisayar” sekmesinde görünür. Telefon yalnızca listelenenleri çalıştırabilir; "
@@ -1418,6 +1428,7 @@ class Window(Adw.ApplicationWindow):
         page.add(self.cmd_log_group)
         self.cmd_log = []
         self._render_cmd_log()
+        self.cmd_groups = [g, self.cmd_group, self.cmd_log_group]
 
         g = Adw.PreferencesGroup()
         terminal = row("Terminalden kullanım", "Uygulama açıkken bağlı telefona terminalden iş yaptırmak için",

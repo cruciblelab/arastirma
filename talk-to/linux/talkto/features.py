@@ -11,7 +11,7 @@ CORE = ("notifications", "media", "find")
 # anahtar: (başlık, açıklama)
 EXTRAS = {
     "files": ("Dosya ve pano", "Dosyalar sayfası; telefona dosya ve pano gönderme düğmeleri"),
-    "commands": ("Bilgisayar komutları", "Komutlar sayfası: telefondan kilitleme, ekran görüntüsü, özel komutlar"),
+    "commands": ("Bilgisayar komutları", "Telefondan kilitleme, ekran görüntüsü, özel komutlar (Tercihler → Araçlar)"),
     "mirror": ("Telefonun ekranı", "Telefonun ekranını bu bilgisayarda açıp fare ve klavyeyle kullanma (scrcpy)"),
     "profiles": ("Profiller", "Birden çok telefona ayrı izinler (ör. misafir telefonu)"),
 }

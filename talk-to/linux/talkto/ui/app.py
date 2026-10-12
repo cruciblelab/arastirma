@@ -290,6 +290,8 @@ class App(Adw.Application):
         self.open_mini_player()
 
     def set_pinned(self, on):
+        if bool(on) == bool(self.config["mini_player_pinned"]):
+            return  # anahtar ↔ menü eşitlenirken aynı değer geri gelir: döngüye girmesin
         self.config.set("mini_player_pinned", bool(on))
         if self.window:
             self.window.sync_pin()

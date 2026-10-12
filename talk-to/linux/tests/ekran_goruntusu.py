@@ -140,7 +140,7 @@ def fill():
 
 
 FAKE = {}
-pages = ["telefonlar", "medya", "dosyalar", "bildirimler", "komutlar"]
+pages = ["telefonlar", "medya", "dosyalar", "bildirimler"]
 step = {"i": 0}
 
 
@@ -197,13 +197,18 @@ def shoot():
         return True
     if i == n + 2:
         snap(win.prefs_window, f"{i:02d}-tercihler")
+        win.open_preferences(2)
+        step["i"] += 1
+        return True
+    if i == n + 3:
+        snap(win.prefs_window, f"{i:02d}-araclar")
         win.prefs_window.close()
         app.on_event("status", FAKE["st"])
         app.on_event("media", {"device_id": "pixel", "state": FAKE["st"]["sessions"][0]["media"]})
         app.open_mini_player()
         step["i"] += 1
         return True
-    if i == n + 3:
+    if i == n + 4:
         # Mini oynatıcının hâlleri: orta, tepecik, küçük, büyük (her biri bir sonraki turda çizilir).
         m = step.setdefault("m", 0)
         names = ["mini-oynatici", "mini-tepecik", "mini-kucuk", "mini-buyuk"]

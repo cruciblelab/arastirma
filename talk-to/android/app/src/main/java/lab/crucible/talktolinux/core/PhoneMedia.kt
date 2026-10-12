@@ -1,16 +1,22 @@
 package lab.crucible.talktolinux.core
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.database.ContentObserver
 import android.graphics.Bitmap
 import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Base64
 import lab.crucible.talktolinux.net.Auth
 import lab.crucible.talktolinux.service.NotificationListener
@@ -31,6 +37,40 @@ object PhoneMedia {
     private var lastArtId: String? = null
     private var lastArt: Pair<String, String>? = null  // art_id → base64 JPEG
     private var lastBitmap: Bitmap? = null
+    private var lastVolume = -1  // bilgisayara en son gönderilen ses (%)
+
+    // Ses tuşları medya oturumunda bir değişiklik sayılmaz (çalan şarkı aynı): ayrıca dinlenir, yoksa
+    // bilgisayardaki ses çubuğu telefonla eşleşmiyordu. İki kaynak: sistemin ses değişti yayını (çoğu telefonda
+    // anında) ve ayarlara yazılan ses (yayın gelmeyen telefonlar için, yarım saniye kadar gecikmeli).
+    private val volumePush = Runnable { if (controller != null && currentVolume() != lastVolume) push() }
+    private fun volumeChanged() {
+        main.removeCallbacks(volumePush)
+        main.postDelayed(volumePush, 120)
+    }
+    private val volumeObserver = object : ContentObserver(main) {
+        override fun onChange(selfChange: Boolean) = volumeChanged()
+    }
+    private val volumeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(c: Context?, intent: Intent?) {
+            val stream = intent?.getIntExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", -1) ?: -1
+            if (stream == -1 || stream == AudioManager.STREAM_MUSIC) volumeChanged()
+        }
+    }
+
+    private fun currentVolume(): Int {
+        val audio = context?.getSystemService(AudioManager::class.java) ?: return -1
+        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        return audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100 / max.coerceAtLeast(1)
+    }
+
+    private fun watchVolume(ctx: Context) {
+        runCatching { ctx.contentResolver.registerContentObserver(Settings.System.CONTENT_URI, true, volumeObserver) }
+        runCatching {
+            val filter = IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+            if (Build.VERSION.SDK_INT >= 33) ctx.registerReceiver(volumeReceiver, filter, Context.RECEIVER_EXPORTED)
+            else ctx.registerReceiver(volumeReceiver, filter)
+        }
+    }
 
     private val sessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { list -> pick(list ?: emptyList()) }
 
@@ -53,6 +93,7 @@ object PhoneMedia {
         try {
             m.addOnActiveSessionsChangedListener(sessionsListener, comp, main)
             manager = m
+            watchVolume(ctx.applicationContext)
             pick(m.getActiveSessions(comp))
         } catch (_: SecurityException) {
             // Bildirim erişimi yok.
@@ -68,6 +109,11 @@ object PhoneMedia {
     }
 
     fun stop() {
+        context?.let { ctx ->
+            runCatching { ctx.contentResolver.unregisterContentObserver(volumeObserver) }
+            runCatching { ctx.unregisterReceiver(volumeReceiver) }
+        }
+        main.removeCallbacks(volumePush)
         runCatching { manager?.removeOnActiveSessionsChangedListener(sessionsListener) }
         runCatching { controller?.unregisterCallback(callback) }
         controller = null
@@ -116,9 +162,8 @@ object PhoneMedia {
             Talk.send(JSONObject().put("type", "media_art").put("art_id", artId).put("mime", "image/jpeg")
                 .put("data", lastArt!!.second))
         }
-        val audio = ctx.getSystemService(AudioManager::class.java)
-        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        val vol = audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100 / max.coerceAtLeast(1)
+        val vol = currentVolume()
+        lastVolume = vol
         var pos = st?.position ?: 0L
         if (st?.state == PlaybackState.STATE_PLAYING && st.lastPositionUpdateTime > 0) {
             pos += ((android.os.SystemClock.elapsedRealtime() - st.lastPositionUpdateTime) * st.playbackSpeed).toLong()

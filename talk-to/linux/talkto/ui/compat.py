@@ -33,10 +33,28 @@ def esc(text) -> str:
 
 
 class _SwitchRow(Adw.ActionRow):
+    """libadwaita 1.1'de (Ubuntu 22.04) Adw.SwitchRow yok: ActionRow + Gtk.Switch.
+
+    "active" yalnızca değer gerçekten değişince bildirilir. Önceden her atamada bildiriliyordu; anahtarla çift yönlü
+    bağ ve "ayar değişince anahtarı eşitle" kodu birlikte sonsuz döngüye girip uygulamayı donduruyordu
+    ("Müzik başlayınca mini oynatıcıyı aç"a tıklayınca).
+    """
     __gtype_name__ = "TalkToSwitchRow"
-    active = GObject.Property(type=bool, default=False)
+
+    def _get_active(self):
+        return getattr(self, "_active", False)
+
+    def _set_active(self, value):
+        value = bool(value)
+        if value != getattr(self, "_active", False):
+            self._active = value
+            self.notify("active")
+
+    active = GObject.Property(type=bool, default=False, getter=_get_active, setter=_set_active,
+                              flags=GObject.ParamFlags.READWRITE | GObject.ParamFlags.EXPLICIT_NOTIFY)
 
     def __init__(self, title="", subtitle="", active=False, **kw):
+        self._active = False
         super().__init__(title=title, **kw)
         if subtitle:
             self.set_subtitle(subtitle)

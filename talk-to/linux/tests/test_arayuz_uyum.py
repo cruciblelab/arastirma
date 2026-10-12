@@ -92,6 +92,20 @@ class CompatTest(unittest.TestCase):
             ctx.iteration(False)
         self.assertEqual(got, ["reject"])
 
+    def test_switch_row_notifies_only_on_change(self):
+        """22.04'teki yedek anahtar satırı aynı değerde bildirim yapmamalı: yapınca anahtar ↔ ayar eşitlemesi sonsuz
+        döngüye girip uygulamayı donduruyordu ("Müzik başlayınca mini oynatıcıyı aç")."""
+        r = self.c._SwitchRow("Deneme")
+        seen = []
+        r.connect("notify::active", lambda *_: seen.append(r.get_active()))
+        r.set_active(False)
+        r.set_active(True)
+        r.set_active(True)
+        sw = r.get_activatable_widget()
+        sw.set_active(False)  # kullanıcı anahtara bastı (çift yönlü bağ)
+        self.assertEqual(seen, [True, False])
+        self.assertFalse(r.get_active())
+
     def test_window_builds(self):
         """Bütün sayfalarıyla ana pencere bu sürümde kurulabiliyor mu."""
         import tempfile
@@ -113,7 +127,8 @@ class CompatTest(unittest.TestCase):
                                    "app": False}, {"serial": "U", "state": "no", "tunnel": False,
                                                    "model": "U", "app": None}],
                       "unseen": [{"serial": "X", "name": "Xiaomi Redmi", "adb": False}]})
-        self.assertIsNotNone(w.stack.get_child_by_name("komutlar"))
+        self.assertIsNone(w.stack.get_child_by_name("komutlar"))  # Tercihler → Araçlar'a taşındı
+        self.assertEqual([p.get_title() for p in w.prefs_pages], ["Özellikler", "Bağlantı", "Araçlar"])
 
 
 if __name__ == "__main__":

@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.12.0" date="2026-10-12">
+      <description><p>Ubuntu 22.04'te "Müzik başlayınca mini oynatıcıyı aç"a tıklayınca uygulamanın donması düzeltildi (anahtar ile ayar arasında sonsuz döngü). Telefonda ses tuşlarıyla değişen ses mini oynatıcıya yansır. Komutlar sekmesi Tercihler → Araçlar'a taşındı; orada USB'deki telefon için geliştirici araçları: uygulamaları zorla durdur, verilerini sil, devre dışı bırak, kaldır ya da geri yükle; telefonun dosyalarını gez, sil (yalnız /sdcard), bilgisayara al; telefonun kabuğu; sistem kaydı; animasyonlar; kurtarma/önyükleyiciye yeniden başlat. Üstte tutulan mini oynatıcının menüsü odak kaybında kapanır.</p></description>
+    </release>
     <release version="0.11.0" date="2026-10-12">
       <description><p>Telefon takılı ama USB hata ayıklaması kapalıysa markaya göre adım adım yol (Xiaomi/HyperOS, Samsung, Oppo/Realme/OnePlus, Huawei/Honor) ve bunu söyleyen bildirim. Tercihler → Veriler: önbelleği temizle, indirilen scrcpy'yi sil, uygulamayı sıfırla (eşleşmeler ve ayarlar çöp kutusuna taşınır, istenirse bilgisayarın kimliği de yenilenir). Soru pencereleri öndeki pencereye bağlanır.</p></description>
     </release>
