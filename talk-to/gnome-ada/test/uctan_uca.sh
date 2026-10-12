@@ -30,7 +30,7 @@ sleep 1
 WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland timeout 150 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
     > "$OUT/talkto.log" 2>&1
 kill $SH; wait $SH 2> /dev/null'
-rm -rf "$H"
+rm -rf "$H" 2> /dev/null || true
 fail() { echo "HATA: $*"; grep -iE "JS ERROR|talkto-ada" "$OUT/shell.log" | head -20; exit 1; }
 grep -q "JS ERROR" "$OUT/shell.log" && grep -B2 -A8 "JS ERROR" "$OUT/shell.log" | grep -q "talkto-ada" && fail "eklentide JS hatası"
 grep -q "('media_control', 'p', 'play_pause', None)" "$OUT/eylemler.txt" 2> /dev/null || fail "adadaki oynat düğmesi Talk To'ya ulaşmadı"

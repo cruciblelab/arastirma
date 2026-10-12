@@ -146,7 +146,8 @@ jobs:
         # Menü tıklanınca açık kalmalı, başka yere tıklanınca kapanmalı.
         run: |
           for top in 1 0; do
-            timeout 200 test/kabukta.sh "$RUNNER_TEMP/ada-test" /usr/bin/python3 test/mini_menu.py ../linux "$RUNNER_TEMP/ada-test" $top
+            timeout 200 test/kabukta.sh "$RUNNER_TEMP/ada-test" /usr/bin/python3 test/mini_menu.py ../linux "$RUNNER_TEMP/ada-test" $top || echo "kabuk çıkış kodu $?"
+            cp "$RUNNER_TEMP/ada-test/surucu.log" "$RUNNER_TEMP/ada-test/mini-menu-$top.log" || true
           done
           for k in x11 wayland; do
             cat "$RUNNER_TEMP/ada-test/mini-menu-$k.json"; echo

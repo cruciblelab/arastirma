@@ -19,4 +19,5 @@ sleep 1
 export WAYLAND_DISPLAY=wayland-0 DISPLAY=:0; export XAUTHORITY=$(ls $XDG_RUNTIME_DIR/.mutter-Xwaylandauth.* 2>/dev/null | head -1); echo "xauth=$XAUTHORITY" > "$OUT/env.txt"
 timeout 120 "$@" > "$OUT/surucu.log" 2>&1
 kill $SH; wait $SH 2> /dev/null' _ "$@"
-rm -rf "$H"
+# Arka planda kalan süreçler (dconf, dbus) klasöre yazarken silme yarım kalabilir: sonucu sürücünün çıktısı belirler.
+rm -rf "$H" 2> /dev/null || true
