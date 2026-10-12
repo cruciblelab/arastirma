@@ -173,6 +173,13 @@ steps = [
                                     "sessions": [dict(sess, battery={"level": 7, "charging": True})]}),
     lambda: None,
     lambda: (cek("Shot", f"{OUT}/16-sarj-yetmiyor.png"), kaydet("durum7")),
+    # Tekerlek: yukarı → küçülür (ince şeride kadar), aşağı → geri büyür (normal, sonra büyük).
+    lambda: (cek("Move", *ada_center()), cek("Scroll", *ada_center(), -1.0)),
+    lambda: cek("Scroll", *ada_center(), -1.0),
+    lambda: cek("Scroll", *ada_center(), -1.0),
+    lambda: cek("Scroll", *ada_center(), 1.0),
+    lambda: (olc("asagi1"), cek("Scroll", *ada_center(), 1.0)),
+    lambda: (olc("asagi2"), cek("Shot", f"{OUT}/17-tekerlek-asagi.png")),
     lambda: app.quit(),
 ]
 i = [0]

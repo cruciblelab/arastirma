@@ -564,24 +564,37 @@ class Ada {
     _scroll(event) {
         if (this.moving)
             return Clutter.EVENT_STOP;
-        let up = false;
+        // Yukarı: büyük → normal → ince şerit. Aşağı: ince şerit → normal → büyük (tersi).
+        let step = 0;
         const dir = event.get_scroll_direction();
         if (dir === Clutter.ScrollDirection.UP) {
-            up = true;
-        } else if (dir === Clutter.ScrollDirection.SMOOTH) {
+            step = -1;
+        } else if (dir === Clutter.ScrollDirection.DOWN) {
+            step = 1;
+        } else if (dir === Clutter.ScrollDirection.SMOOTH) {  // dokunmatik yüzey: küçük adımlar birikir
             const [, dy] = event.get_scroll_delta();
-            this._scrollSum = dy < 0 ? this._scrollSum + dy : 0;
-            up = this._scrollSum <= -1;
+            this._scrollSum = Math.sign(dy) === Math.sign(this._scrollSum) ? this._scrollSum + dy : dy;
+            step = this._scrollSum <= -1 ? -1 : this._scrollSum >= 1 ? 1 : 0;
         }
-        if (!up)
-            return Clutter.EVENT_PROPAGATE;
+        if (!step)
+            return Clutter.EVENT_STOP;
         const now = GLib.get_monotonic_time() / 1000;
         if (now - this._scrollAt > SCROLL_COOLDOWN_MS) {
             this._scrollAt = now;
             this._scrollSum = 0;
-            this._shrink();
+            if (step < 0)
+                this._shrink();
+            else
+                this._grow();
         }
         return Clutter.EVENT_STOP;
+    }
+
+    _grow() {
+        if (this.thin)
+            this._unthin();
+        else if (!this.expanded)
+            this._expand(true);
     }
 
     // ---- dalga canlandırması -----------------------------------------------------------

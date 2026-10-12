@@ -63,6 +63,8 @@ assert 5 < b["ada-tasan"] - b["ozellestir"] <= 30, \
     "su adanın yanlarından inip alt çizgisinde kalmalı (aşağı sarkmamalı): %s" % (b["ada-tasan"] - b["ozellestir"])
 assert b["ozel_kapandi"] <= b["normal"] + 2, "Bitti'den sonra ada normal boyda olmalı"
 assert b["ada-pil"] > 0, "telefonun pili %9'a inince ada pil uyarısını göstermeli"
+assert abs(b["asagi1"] - b["normal"]) <= 3, "ince şeritte aşağı kaydırınca normal hâle dönmeli: %s" % b["asagi1"]
+assert b["asagi2"] > b["normal"] + 20, "normal hâlde aşağı kaydırınca büyümeli: %s" % b["asagi2"]
 assert abs(b["kilitsiz"] - b["normal"]) <= 6, "Konumu değiştir: ada normal boya iner"
 x, y, w, h = json.load(open(sys.argv[1]))["konum"]
 assert 820 <= x + w / 2 <= 860, f"sağa sürüklenen adanın ortası ~840 olmalı: {x + w / 2}"
