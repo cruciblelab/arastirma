@@ -280,6 +280,16 @@ class WindowTest(unittest.TestCase):
                 app.mini.close()
                 app._track_popup("p")
                 seen["popup"] = shown
+                # Üst ada ekrandayken şarkı değişimini o gösterir: masaüstü bildirimi kurulmaz (Özelleştir'den açılır).
+                app.ada.seen = True
+                app._cancel_popup("p")
+                app.on_event("media", {"device_id": "p", "state": song("Gesi Bağları")})
+                seen["popup_with_ada"] = "p" in app._popup_timers
+                app.config.set("ada_track_popup", True)
+                app.on_event("media", {"device_id": "p", "state": song("Kaybolan Yıllar")})
+                seen["popup_with_ada_on"] = "p" in app._popup_timers
+                app._cancel_popup("p")
+                app.ada.seen = False
                 # Arama: çalarken acil ve uygulamanın düğmeleri; sürerken kalıcı, Kapat + görüşme sesi.
                 calls = []
                 app.notifier.show = lambda title, body="", **kw: calls.append((title, kw))
@@ -337,6 +347,7 @@ class WindowTest(unittest.TestCase):
         self.assertEqual(seen["mini_cfg"], ("buyuk", True))
         self.assertTrue(seen["mini_snap"])
         self.assertEqual(seen["popup_with_mini"], 0)
+        self.assertEqual((seen["popup_with_ada"], seen["popup_with_ada_on"]), (False, True))
         (title, body, kw), = seen["popup"]
         self.assertEqual(title, "Firuze")
         self.assertIn("Sezen Aksu", body)

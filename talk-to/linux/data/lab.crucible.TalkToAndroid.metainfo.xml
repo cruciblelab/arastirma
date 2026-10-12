@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.15.0" date="2026-10-12">
+      <description><p>Üst ada: büyükken üstte saat, tarih ve telefonun pili; GNOME bildirimleri adanın üstünde; ada ekrandayken şarkı bildirimi çıkmaz; ince şeritten tek tıkla büyür; sayfalar fareyi izleyerek kayar; bildirimleri temizle; Özelleştir: şarkı bildirimi, dokunma sesi, telefonda titreşim, Konumu değiştir (kilit), Tüm ayarlar; Sorun bildir (GitHub).</p></description>
+    </release>
     <release version="0.14.0" date="2026-10-12">
       <description><p>Gelen aramayı bilgisayardan cevaplama, “Cevapla” düğmesinin çalışmadığı telefonlarda (HyperOS) Android'in kendi yoluyla (telefon uygulamasında aramayı cevaplama izni). Üst ada: görüşmede hoparlör ve sessiz simgeli düğmeler; Diğer → Özelleştir (tema ve kip); Taşan dalgalar kipi.</p></description>
     </release>

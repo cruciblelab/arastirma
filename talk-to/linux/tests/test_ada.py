@@ -60,6 +60,12 @@ class FakeApp:
     def present(self):
         self.presented += 1
 
+    def report_problem(self):
+        self.calls.append(("report",))
+
+    def open_preferences(self, page=None):
+        self.calls.append(("prefs",))
+
 
 SESS = {"device_id": "p", "name": "POCO", "battery": {"level": 64}}
 CALL = {"device_id": "p", "key": "k1", "app": "WhatsApp", "caller": "Babam", "state": "ringing",
@@ -204,6 +210,39 @@ class StateTest(unittest.TestCase):
         st = self.ada.state()
         self.assertEqual((st["theme_id"], st["mode"]), ("gece", "tasan"))
         self.assertTrue(self.app.config["run_in_background"])
+
+    def test_quick_settings_offset_and_actions(self):
+        self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 64, "charging": True})]})
+        st = self.ada.state()
+        self.assertEqual(st["prefs"], {"ada_track_popup": False, "ada_click_sound": False, "phone_vibrate": False})
+        self.assertEqual((st["offset"], st["charging"]), (0, True))
+        self.ada.action({"do": "set", "key": "ada_click_sound", "value": True})
+        self.ada.action({"do": "set", "key": "phone_vibrate", "value": True})  # telefona da gider
+        self.ada.action({"do": "set", "key": "ada_offset", "value": 180})
+        for bad in ({"key": "ada_click_sound", "value": "evet"}, {"key": "ada_offset", "value": 10 ** 6},
+                    {"key": "ada_offset", "value": True}, {"key": "ada_offset", "value": 1.5}):
+            self.ada.action(dict(bad, do="set"))
+        st = self.ada.state()
+        self.assertEqual(st["prefs"], {"ada_track_popup": False, "ada_click_sound": True, "phone_vibrate": True})
+        self.assertEqual(st["offset"], 180)
+        self.assertIn(("set_option", "phone_vibrate", True), self.app.calls)
+        self.assertNotIn(("set_option", "ada_click_sound", True), self.app.calls)
+        self.ada.on_event("notification", {"device_id": "p", "key": "1", "app": "WhatsApp", "text": "a"})
+        self.ada.action({"do": "notif_clear"})
+        self.assertEqual(self.ada.state()["notifications"], [])
+        self.ada.action({"do": "report"})
+        self.ada.action({"do": "prefs"})
+        self.assertEqual(self.app.calls[-2:], [("report",), ("prefs",)])
+
+    def test_report_url_has_versions_not_logs(self):
+        from urllib.parse import parse_qs, urlparse
+        from talkto import __version__, sorun
+        url = sorun.report_url(["POCO X6 Pro"])
+        self.assertTrue(url.startswith("https://github.com/cruciblelab/arastirma/issues/new?"))
+        body = parse_qs(urlparse(url).query)["body"][0]
+        self.assertIn(__version__, body)
+        self.assertIn("POCO X6 Pro", body)
+        self.assertIn("gunluk.txt", body)  # yalnızca yeri; içeriği gönderilmez
 
     def test_showing_after_extension_connects(self):
         self.assertFalse(self.ada.showing())

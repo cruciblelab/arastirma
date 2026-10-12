@@ -65,7 +65,8 @@ class App(Adw.Application):
         self._style_display(Gdk.Display.get_default())
         for name, cb in (("quit", self._quit), ("about", self._about), ("show", lambda *_: self.present()),
                          ("setup", lambda *_: self.open_setup()), ("preferences", lambda *_: self.open_preferences()),
-                         ("mini-player", lambda *_: self.open_mini_player())):
+                         ("mini-player", lambda *_: self.open_mini_player()),
+                         ("report", lambda *_: self.report_problem())):
             a = Gio.SimpleAction.new(name, None)
             a.connect("activate", cb)
             self.add_action(a)
@@ -258,6 +259,16 @@ class App(Adw.Application):
                                actions={"default": ("Adımları göster", show), "goster": ("Adımları göster", show)})
             log.info("hata ayıklaması kapalı telefon takıldı: %s", ph.get("name"))
 
+    def report_problem(self):
+        """GitHub'da sorun sayfası (sürüm ve sistem bilgisi yazılı); hiçbir şey kendiliğinden gönderilmez."""
+        from .. import sorun
+        phones = sorted(set(self.device_names.values()))
+        try:
+            Gio.AppInfo.launch_default_for_uri(sorun.report_url(phones), None)
+        except GLib.Error as e:
+            log.warning("tarayıcı açılamadı: %s", e.message)
+            self.toast("Tarayıcı açılamadı: " + sorun.ISSUES)
+
     def present(self):
         self.activate()
 
@@ -344,7 +355,9 @@ class App(Adw.Application):
             self.ada.on_track()
         if self.now.loading(did):
             self._loading_changed()
-        if ev["track"] and self.config["track_popup"]:
+        # Üst ada ekrandayken şarkı değişimini o gösterir: masaüstü bildirimi ayrıca çıkmaz (Özelleştir'den açılır).
+        ada_shows = self.ada is not None and self.ada.showing() and not self.config["ada_track_popup"]
+        if ev["track"] and self.config["track_popup"] and not ada_shows:
             # Kapak birkaç yüz ms sonra gelir; hızlı atlamada da her parça için bildirim çıkmasın.
             self._cancel_popup(did)
             self._popup_timers[did] = GLib.timeout_add(900, self._track_popup, did)

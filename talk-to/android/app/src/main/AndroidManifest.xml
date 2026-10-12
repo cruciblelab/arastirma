@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Bilgisayar telefonda bir şey yapınca kısa titreşim (bilgisayardaki "Telefonda titreşim" açıksa). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Bluetooth: yalnızca eşleşmiş bilgisayara bağlanmak için (tarama yapılmaz). -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />

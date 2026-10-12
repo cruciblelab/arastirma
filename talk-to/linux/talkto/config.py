@@ -64,6 +64,10 @@ class Config:
         "ada_enabled": True,  # üst ada (GNOME eklentisi kuruluysa) görünsün
         "ada_theme": "deniz",  # talkto.ui.ada.THEMES
         "ada_mode": "sakin",  # talkto.ui.ada.MODES: sakin | tasan (taşan dalgalar)
+        "ada_offset": 0,  # üst adanın ortadan yana kaydırılması (px; "Konumu değiştir")
+        "ada_track_popup": False,  # üst ada ekrandayken şarkı bildirimi de çıksın mı (ada zaten gösteriyor)
+        "ada_click_sound": False,  # adada düğmeye basınca / sayfa değişince kısa ses
+        "phone_vibrate": False,  # bilgisayar telefonda bir şey yapınca telefon kısaca titresin
         "mirror_preset": "akici",  # telefonun ekranı: akici / hizli / hafif (talkto.mirror.PRESETS)
         "mirror_audio": True,  # telefonun sesi ekran açıkken bilgisayardan çalsın (Android 11+)
         "track_popup": True,  # şarkı değişince masaüstü bildirimi

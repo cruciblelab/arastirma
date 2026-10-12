@@ -48,6 +48,9 @@ MODES = {
     "sakin": ("Sakin", "Dalga yalnızca adanın içinde."),
     "tasan": ("Taşan dalgalar", "Çalarken su adadan taşar (süs, gerçek ses değil)."),
 }
+BOOL_PREFS = ("ada_track_popup", "ada_click_sound", "phone_vibrate")  # adadan açılıp kapanabilen ayarlar
+HUB_PREFS = ("phone_vibrate",)  # telefona da gidenler
+MAX_OFFSET = 4000
 NOTIF_KEEP = 3600  # bildirim sayfasında son bir saatin bildirimleri
 MEDIA_GRACE = 3.0  # şarkı değişirken telefon bir anlığına "çalmıyor" diyebilir: ada o arada boşa düşmesin
 
@@ -151,8 +154,11 @@ class AdaService:
             "themes": [dict(colors, id=k, name=name) for k, (name, colors) in THEMES.items()],
             "mode": cfg["ada_mode"] if cfg["ada_mode"] in MODES else "sakin",
             "modes": [{"id": k, "name": name, "hint": hint} for k, (name, hint) in MODES.items()],
+            "prefs": {k: bool(cfg[k]) for k in BOOL_PREFS},
+            "offset": int(cfg["ada_offset"] or 0),
             "phone": phone["name"] if phone else None,
             "battery": (phone.get("battery") or {}).get("level") if phone else None,
+            "charging": bool((phone.get("battery") or {}).get("charging")) if phone else False,
             "media": m,
             "call": self.call,
             "notifications": apps,
@@ -231,12 +237,25 @@ class AdaService:
         elif what == "set":  # adadaki özelleştirme: yalnızca bilinen ayarlar ve değerler
             key, value = a.get("key"), a.get("value")
             allowed = {"ada_theme": THEMES, "ada_mode": MODES}
-            if key in allowed and isinstance(value, str) and value in allowed[key]:
+            ok = ((key in allowed and isinstance(value, str) and value in allowed[key])
+                  or (key in BOOL_PREFS and isinstance(value, bool))
+                  or (key == "ada_offset" and isinstance(value, int) and not isinstance(value, bool)
+                      and abs(value) <= MAX_OFFSET))
+            if ok:
+                if key in HUB_PREFS:
+                    self.app.call("set_option", key, value)  # telefona da iletilir
                 self.app.config.set(key, value)
                 self.changed()
                 w = getattr(self.app, "window", None)
                 if w is not None and hasattr(w, "sync_ada_rows"):
                     w.sync_ada_rows()
+        elif what == "notif_clear":  # adadaki bildirim listesini boşaltır (telefondakilere dokunmaz)
+            self.notifs.clear()
+            self.changed()
+        elif what == "report":
+            self.app.report_problem()
+        elif what == "prefs":
+            self.app.open_preferences()
 
     # ---- zamanlayıcı ------------------------------------------------------------------------
 

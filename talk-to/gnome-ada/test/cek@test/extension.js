@@ -7,6 +7,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 // Test sürücüsü: D-Bus'ta test.Cek (/test/Cek): Shot(yol), Click(x, y), Drag(x1, y1, x2, y2), Move(x, y), Scroll(x, y, dy),
 // Find(sınıf) → (x, y, w, h): o stil sınıfındaki ilk görünür öğenin ekrandaki yeri (yoksa w = -1).
 // Win(başlık) → (x, y, w, h): o başlıklı pencerenin ekrandaki yeri (gölgesiz çerçeve; yoksa w = -1).
+// Banners(açık): sistem bildirimlerinin ekranda görünmesi (testte varsayılan kapalı).
 // Genel bakışı kapatır.
 const XML = `<node><interface name="test.Cek">
 <method name="Shot"><arg type="s" direction="in"/></method>
@@ -15,6 +16,7 @@ const XML = `<node><interface name="test.Cek">
 <method name="Move"><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
 <method name="Scroll"><arg type="d" direction="in"/><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
 <method name="Win"><arg type="s" direction="in"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/></method>
+<method name="Banners"><arg type="b" direction="in"/></method>
 <method name="Find"><arg type="s" direction="in"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/></method>
 </interface></node>`;
 export default class Cek extends Extension {
@@ -64,6 +66,9 @@ export default class Cek extends Extension {
         this._dev.notify_absolute_motion(this._t(), x, y);
         this._dev.notify_discrete_scroll(this._t(), dy < 0 ? Clutter.ScrollDirection.UP : Clutter.ScrollDirection.DOWN,
             Clutter.ScrollSource.WHEEL);
+    }
+    Banners(on) {
+        Main.messageTray.bannerBlocked = !on;
     }
     Win(title) {
         for (const a of global.get_window_actors()) {

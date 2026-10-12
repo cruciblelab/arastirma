@@ -25,7 +25,8 @@ app.call = lambda *a: calls.append(a) or open(f"{OUT}/eylemler.txt", "a").write(
 bus = None
 
 def cek(method, *args):
-    sig = {"Shot": "(s)", "Click": "(dd)", "Drag": "(dddd)", "Move": "(dd)", "Scroll": "(ddd)", "Find": "(s)"}[method]
+    sig = {"Shot": "(s)", "Click": "(dd)", "Drag": "(dddd)", "Move": "(dd)", "Scroll": "(ddd)", "Find": "(s)",
+           "Banners": "(b)"}[method]
     r = bus.call_sync("test.Cek", "/test/Cek", "test.Cek", method, GLib.Variant(sig, args), None, 0, 10000, None)
     return r.unpack() if r else None
 
@@ -43,6 +44,18 @@ def drag_left(far=False):
     x, y, w, h = find("ada")
     # far: adanın dışında bırak (GNOME 42'de bırakma adaya gelmiyor, sürükleme takılı kalıyordu)
     cek("Drag", x + w * 0.8, y + h * 0.5, x - 60 if far else x + w * 0.8 - 200, y + h * 0.5)
+
+def ensure_expanded():
+    x, y, w, h = find("ada")
+    if h < 60:
+        cek("Click", x + w / 2, y + h / 2)
+
+def drag_right():
+    x, y, w, h = find("ada")
+    cek("Drag", x + w * 0.2, y + h * 0.5, x + w * 0.2 + 200, y + h * 0.5)
+
+def kaydet(name):
+    open(f"{OUT}/{name}.json", "w").write(json.dumps(app.ada.state(), ensure_ascii=False))
 
 def ada_center():
     x, y, w, h = find("ada")
@@ -114,19 +127,35 @@ steps = [
     lambda: cek("Move", 640.0, 600.0),
     lambda: (olc("tiklayinca"), cek("Shot", f"{OUT}/9-normal.png")),
     # Diğer → Özelleştir: ada büyür; tema (Gece) ve kip (Taşan dalgalar) seçilir, ✕ ile kapanır.
-    lambda: click("ada"),
+    lambda: ensure_expanded(),
     lambda: drag_left(),
     lambda: drag_left(),  # son sayfa: Diğer (fazlası son sayfada kalır)
     lambda: click("ada-ozellestir"),
     lambda: (olc("ozellestir"), cek("Shot", f"{OUT}/10-ozellestir.png")),
     lambda: click("ada-tema-gece"),
     lambda: click("ada-kip-tasan"),
-    lambda: (cek("Shot", f"{OUT}/11-tasan.png"), olc_cls("ada-tasan"),
-             open(f"{OUT}/durum2.json", "w").write(json.dumps(app.ada.state(), ensure_ascii=False))),
-    lambda: click("ada-kapat-ozel"),
+    lambda: click("ada-ayar-phone_vibrate"),
+    lambda: click("ada-ayar-ada_click_sound"),
+    lambda: (cek("Shot", f"{OUT}/11-tasan.png"), olc_cls("ada-tasan"), kaydet("durum2")),
+    # Konumu değiştir: kilit açılır, ada sağa sürüklenir, "Bitti" ile kilitlenir.
+    lambda: click("ada-konum"),
+    lambda: (olc("kilitsiz"), cek("Shot", f"{OUT}/12-kilitsiz.png")),
+    lambda: drag_right(),
+    lambda: (olc("konum"), kaydet("durum3")),
+    lambda: click("ada-bitti"),
     lambda: cek("Move", 640.0, 600.0),
-    *[lambda: None] * 5,
+    *[lambda: None] * 2,
     lambda: (olc("ozel_kapandi"), cek("Shot", f"{OUT}/12-kapandi.png")),
+    # Bildirimleri temizle
+    lambda: ensure_expanded(),
+    lambda: drag_right(),
+    lambda: drag_right(),  # Diğer → zamanlayıcı → bildirimler
+    lambda: (cek("Shot", f"{OUT}/13-bildirimler.png"), click("ada-temizle")),
+    lambda: kaydet("durum4"),
+    # GNOME'un kendi bildirimi adanın üstünde görünmeli
+    lambda: (cek("Banners", True), app.notifier.show("Deneme bildirimi", "Adanın üstünde görünmeli")),
+    lambda: cek("Shot", f"{OUT}/14-sistem-bildirimi.png"),
+    lambda: cek("Banners", False),
     lambda: app.quit(),
 ]
 i = [0]

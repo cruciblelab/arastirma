@@ -369,6 +369,9 @@ class Hub:
             if key == "share_media" and not value:
                 for s in list(self.sessions.values()):
                     await self.media_off(s)
+            if key == "phone_vibrate":  # telefon titreşim tercihini profil iletisiyle öğrenir
+                for s in list(self.sessions.values()):
+                    await s.send_profile()
             self.emit_status()
 
     async def answer(self, rid: str, ok):
@@ -655,7 +658,8 @@ class Session:
         """Telefon kendisini hangi profille tanıdığımızı ve neye izin verildiğini bilsin."""
         pid, prof = self.config.profile_of(self.device_id)
         await self.send({"type": "profile", "id": pid, "name": prof["name"],
-                         "permissions": {k: bool(prof.get(k)) for k in Config.PERMISSIONS}})
+                         "permissions": {k: bool(prof.get(k)) for k in Config.PERMISSIONS},
+                         "vibrate": bool(self.config["phone_vibrate"])})
         await self.send({"type": "commands", "items": pc.command_list(self.config.commands(), prof)})
         if not (prof.get("media") and self.config["share_media"]):
             await self.hub.media_off(self)

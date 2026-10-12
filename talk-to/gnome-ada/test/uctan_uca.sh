@@ -27,7 +27,7 @@ gnome-shell --headless --wayland --no-x11 --virtual-monitor 1280x800 > "$OUT/she
 SH=$!
 for i in $(seq 1 120); do gdbus introspect --session --dest test.Cek --object-path /test/Cek > /dev/null 2>&1 && break; sleep 0.5; done
 sleep 1
-WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland timeout 150 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
+WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland timeout 200 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
     > "$OUT/talkto.log" 2>&1
 kill $SH; wait $SH 2> /dev/null'
 rm -rf "$H" 2> /dev/null || true
@@ -35,6 +35,13 @@ fail() { echo "HATA: $*"; grep -iE "JS ERROR|talkto-ada" "$OUT/shell.log" | head
 grep -q "JS ERROR" "$OUT/shell.log" && grep -B2 -A8 "JS ERROR" "$OUT/shell.log" | grep -q "talkto-ada" && fail "eklentide JS hatası"
 grep -q "('media_control', 'p', 'play_pause', None)" "$OUT/eylemler.txt" 2> /dev/null || fail "adadaki oynat düğmesi Talk To'ya ulaşmadı"
 grep -q "('call_action', 'p', 'k1', 1)" "$OUT/eylemler.txt" || fail "adadaki Yanıtla düğmesi ulaşmadı"
+python3 - "$OUT" <<'PYEOF' || fail "Özelleştir ayarları, konum ya da bildirim temizleme Talk To'ya ulaşmadı"
+import json, sys
+d2, d3, d4 = (json.load(open(f"{sys.argv[1]}/{n}.json")) for n in ("durum2", "durum3", "durum4"))
+assert d2["prefs"]["phone_vibrate"] and d2["prefs"]["ada_click_sound"], d2["prefs"]
+assert 180 <= d3["offset"] <= 220, d3["offset"]
+assert d4["notifications"] == [], d4["notifications"]
+PYEOF
 grep -q "('phone_timer', 'p', 60," "$OUT/eylemler.txt" || fail "zamanlayıcı (1 dk, telefonda da) kurulmadı"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['timer'] and d['timer']['phone'], d" "$OUT/durum.json" \
     || fail "zamanlayıcı durumu yanlış"
@@ -47,15 +54,18 @@ assert abs(b["kaydir1"] - b["normal"]) <= 2, "ilk yukarı kaydırma büyükten n
 assert b["ince"] < 14, "ikinci yukarı kaydırma ince şerit yapmalı"
 assert abs(b["bakis"] - b["normal"]) <= 2, "ince şeridin üstüne gelince normal hâl görünmeli"
 assert b["ayrilinca"] < 14, "fare ayrılınca ince şeride dönmeli"
-assert abs(b["tiklayinca"] - b["normal"]) <= 2, "tıklayınca normale dönmeli (fare ayrılınca da)"
+assert b["tiklayinca"] > b["normal"] + 20, "ince şeritten görünen adaya tek tıklama büyütmeli"
 assert b["ada-acik"] > 0 and b["ada-kapali"] > 0, "görüşmede hoparlör/sessiz simgeli düğme yok"
 assert b["ozellestir"] > b["buyuk"], "Özelleştir'e basınca ada daha da büyümeli"
 assert b["ada-tasan"] > 0, "Taşan dalgalar kipinde çalarken su görünmeli"
-assert b["ozel_kapandi"] <= b["normal"] + 2, "✕ ile kapanınca ada küçülmeli"
+assert b["ozel_kapandi"] <= b["normal"] + 2, "Bitti'den sonra ada normal boyda olmalı"
+assert abs(b["kilitsiz"] - b["normal"]) <= 6, "Konumu değiştir: ada normal boya iner"
+x, y, w, h = json.load(open(sys.argv[1]))["konum"]
+assert 820 <= x + w / 2 <= 860, f"sağa sürüklenen adanın ortası ~840 olmalı: {x + w / 2}"
 PYEOF
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert (d['theme_id'], d['mode']) == ('gece', 'tasan'), d" \
     "$OUT/durum2.json" || fail "adadan seçilen tema/kip Talk To'ya yazılmadı"
 [ "$(grep -c "('call_action', 'p', 'k1', 1)" "$OUT/eylemler.txt")" -ge 2 ] || fail "hoparlör düğmesi ulaşmadı"
 for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 4b-gorusme 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal \
-         10-ozellestir 11-tasan 12-kapandi; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
+         10-ozellestir 11-tasan 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
 echo "ÜST ADA UÇTAN UCA TESTİ GEÇTİ"

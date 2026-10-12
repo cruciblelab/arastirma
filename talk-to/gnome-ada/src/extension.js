@@ -180,6 +180,8 @@ class Ada {
         this.custom = false;  // "Diğer → Özelleştir": ada büyüyüp tema ve kip seçimini gösterir
         this.thin = false;   // ince şerit (yukarı kaydırıldı)
         this.peek = false;   // ince şeritteyken fare üstünde: normal hâl görünür
+        this.moving = false; // "Konumu değiştir": kilit açık, ada üst kenar boyunca sağa-sola sürüklenir
+        this.offset = 0;     // ortadan yana kaydırma (px); Talk To'da saklanır
         this._scrollAt = 0;
         this._scrollSum = 0;
         this.pageIndex = 0;
@@ -202,13 +204,16 @@ class Ada {
         this.spill = new Spill(this);
         this.waves.push(this.spill);
         Main.layoutManager.addTopChrome(this.spill.actor, {affectsInputRegion: false, trackFullscreen: true});
+        // GNOME bildirimleri de ekranın üst ortasında çıkar: adanın altında kalmasınlar, üstünde görünsünler.
+        for (const actor of [this.spill.actor, this.box])
+            this._belowTray(actor);
         this._sigs = [
             [this.box, this.box.connect('notify::width', () => this._place())],
             [this.box, this.box.connect('notify::height', () => this._place())],
             [this.box, this.box.connect('notify::scale-x', () => this._place())],
             [Main.layoutManager, Main.layoutManager.connect('monitors-changed', () => this._place())],
-            [this.box, this.box.connect('button-press-event', (a, e) => this._press(e))],
-            [this.box, this.box.connect('motion-event', (a, e) => this._motion(e))],
+            // Olaylar düğmelerden önce görülür: sürükleme bir düğmenin üstünden başlasa da sayfa değişsin.
+            [this.box, this.box.connect('captured-event', (a, e) => this._captured(e))],
             [this.box, this.box.connect('button-release-event', (a, e) => this._release(e))],
             [this.box, this.box.connect('notify::hover', () => this._hoverChanged())],
             [this.box, this.box.connect('scroll-event', (a, e) => this._scroll(e))],
@@ -233,6 +238,13 @@ class Ada {
         this.spill.actor.destroy();
         Main.layoutManager.removeChrome(this.box);
         this.box.destroy();
+    }
+
+    _belowTray(actor) {
+        const tray = Main.messageTray;
+        const parent = actor.get_parent();
+        if (tray && parent && tray.get_parent() === parent)
+            parent.set_child_below_sibling(actor, tray);
     }
 
     // ---- Talk To ile bağlantı ---------------------------------------------------------
@@ -274,6 +286,8 @@ class Ada {
         const prev = this.state && this.state.media;
         this.state = st;
         this.theme = Object.assign({}, DEFAULT_THEME, st.theme || {});
+        if (!this.moving)  // sürüklerken Talk To'nun eski değeri araya girmesin
+            this.offset = st.offset || 0;
         this.playing = !!(st.media && st.media.active && st.media.playing);
         this.loading = !!(st.media && st.media.active && st.media.loading);
         this.box.set_style(`background-gradient-direction: vertical; background-color: ${this.theme.bg1};` +
@@ -308,10 +322,11 @@ class Ada {
             return;
         if (this.thin && kind !== 'call')
             return; // ince şeritte yalnızca arama büyütür
-        if (this.custom) {  // özelleştirirken yalnızca arama araya girer
+        if (this.custom || this.moving) {  // özelleştirirken / konum değiştirirken yalnızca arama araya girer
             if (kind !== 'call')
                 return;
             this.custom = false;
+            this.moving = false;
         }
         this.pageName = page;
         this._expand(true);
@@ -327,10 +342,14 @@ class Ada {
         if (!m)
             return;
         const top = Main.panel ? Main.panel.height : 0;
-        this.box.set_position(Math.round(m.x + (m.width - this.box.width) / 2), m.y + top);
+        // Ortadan yana kaydırılmış olabilir ("Konumu değiştir"); hiçbir zaman ekranın dışına taşmaz.
+        const room = Math.max(0, (m.width - this.box.width) / 2);
+        const off = Math.max(-room, Math.min(room, this.offset));
+        const cx = m.x + m.width / 2 + off;
+        this.box.set_position(Math.round(cx - this.box.width / 2), m.y + top);
         const s = this.spill.actor;
         s.set_size(Math.round(this.box.width * this.box.scale_x) + 2 * SPILL_PAD, SPILL_H);
-        s.set_position(Math.round(m.x + (m.width - s.width) / 2),
+        s.set_position(Math.round(cx - s.width / 2),
             m.y + top + Math.round(this.box.height * this.box.scale_y) - 3);
     }
 
@@ -355,8 +374,11 @@ class Ada {
 
     _setClass() {
         const thin = this.thin && !this.peek && !this.expanded;
+        const peek = this.thin && this.peek && !this.expanded;
+        // Üstüne gelince görünen normal hâl geçicidir: hafif saydam (tıklayınca büyür, ayrılınca ince şerit).
+        this.box.ease({opacity: peek ? 205 : 255, duration: 160, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         for (const [cls, on] of [['ada-buyuk', this.expanded], ['ada-ince', thin],
-            ['ada-ozel', this.custom && this.expanded]]) {
+            ['ada-ozel', this.custom && this.expanded], ['ada-kilitsiz', this.moving]]) {
             if (on)
                 this.box.add_style_class_name(cls);
             else
@@ -469,6 +491,8 @@ class Ada {
     }
 
     _scroll(event) {
+        if (this.moving)
+            return Clutter.EVENT_STOP;
         let up = false;
         const dir = event.get_scroll_direction();
         if (dir === Clutter.ScrollDirection.UP) {
@@ -567,12 +591,36 @@ class Ada {
 
     // ---- sürükleyerek sayfa değiştirme -------------------------------------------------
 
-    _press(event) {
-        if (event.get_button() !== 1)
+    // Basma her zaman kaydedilir ve düğmeye de gider. Fare 8 pikselden fazla kayarsa sürüklemedir: düğmenin
+    // basışı iptal edilir (bırakınca tıklama sayılmaz), olaylar adaya kalır. Kaymazsa düğme normal tıklanır;
+    // düğme olmayan yere bırakma ise adanın kendi "button-release-event"ine düşer (büyüt/küçült).
+    _captured(event) {
+        const type = event.type();
+        if (type === Clutter.EventType.BUTTON_PRESS) {
+            if (event.get_button() === 1) {
+                [this._dragX, this._dragY] = event.get_coords();
+                this._dragged = false;
+            }
             return Clutter.EVENT_PROPAGATE;
-        [this._dragX, this._dragY] = event.get_coords();
-        this._dragged = false;
+        }
+        if (type === Clutter.EventType.MOTION) {
+            const wasDragged = this._dragged;
+            const r = this._motion(event);
+            if (this._dragged && !wasDragged)
+                this._cancelButtons(this.box);
+            return r;
+        }
+        if (type === Clutter.EventType.BUTTON_RELEASE && this._dragged)
+            return this._release(event);
         return Clutter.EVENT_PROPAGATE;
+    }
+
+    _cancelButtons(actor) {
+        for (const c of actor.get_children()) {
+            if (c instanceof St.Button && c.pressed)
+                c.fake_release();
+            this._cancelButtons(c);
+        }
     }
 
     // Sürükleme başlayınca fare adaya bağlanır: GNOME 42'de bağlanmazsa fare adanın dışında bırakıldığında
@@ -610,14 +658,26 @@ class Ada {
             return Clutter.EVENT_PROPAGATE;
         }
         const [x, y] = event.get_coords();
-        const dx = x - this._dragX;
-        if (!this._dragged && (Math.abs(dx) > 8 || Math.abs(y - this._dragY) > 8)) {
+        const dx = x - this._dragX, dy = y - this._dragY;
+        if (!this._dragged && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
             this._dragged = true;
+            this._offStart = this.offset;
             this._grabPointer();
         }
-        if (this.expanded && this._dragged)
-            this.page.translation_x = Math.max(-80, Math.min(80, dx * 0.6));
-        return this._dragged ? Clutter.EVENT_STOP : Clutter.EVENT_PROPAGATE;
+        if (!this._dragged)
+            return Clutter.EVENT_PROPAGATE;
+        if (this.moving) {  // kilit açık: ada üst kenar boyunca kayar (_place ekranın içinde tutar)
+            this.offset = this._offStart + dx;
+            this._place();
+        } else if (this.expanded && !this.custom && Math.abs(dx) > Math.abs(dy)) {
+            // Sayfa fareyi bire bir izler; gidecek sayfa yoksa lastik gibi az esner.
+            const pages = this._pages();
+            const i = pages.indexOf(this.pageName);
+            const edge = (dx > 0 && i <= 0) || (dx < 0 && i >= pages.length - 1);
+            this.page.translation_x = edge ? dx * 0.3 : dx;
+            this.page.opacity = 255 - Math.min(110, Math.abs(dx) * 0.5);
+        }
+        return Clutter.EVENT_STOP;
     }
 
     _release(event) {
@@ -627,37 +687,76 @@ class Ada {
         const dx = x - this._dragX, dy = y - this._dragY;
         this._dragX = undefined;
         this._ungrab();
-        if (this._dragged && -dy >= DRAG_UP && -dy > Math.abs(dx)) {  // yukarı sürükleme: küçül
-            this.page.translation_x = 0;
+        if (this.moving) {
+            if (this._dragged) {
+                const m = Main.layoutManager.primaryMonitor;
+                const room = m ? Math.max(0, (m.width - this.box.width) / 2) : 0;
+                this.offset = Math.round(Math.max(-room, Math.min(room, this.offset)));
+                this.act({do: 'set', key: 'ada_offset', value: this.offset});
+            }
+        } else if (this._dragged && -dy >= DRAG_UP && -dy > Math.abs(dx)) {  // yukarı sürükleme: küçül
+            this._springBack();
             this._shrink();
         } else if (this.custom) {  // özelleştirme panelinde boş yere tıklama/sürükleme bir şey yapmaz
-            this.page.translation_x = 0;
-        } else if (this.thin && !this.expanded && !this._dragged) {  // ince şeride tıklama: normale dön
+            this._springBack();
+        } else if (this.thin && !this.expanded && !this._dragged) {
+            // İnce şeritteki (üstüne gelince görünen) adaya tıklama: doğrudan büyür; kapanınca normal kalır.
             this._unthin();
-        } else if (this._dragged && Math.abs(dx) >= DRAG_PAGE) {
+            this._expand(true);
+        } else if (this._dragged && Math.abs(dx) >= DRAG_PAGE && Math.abs(dx) > Math.abs(dy)) {
             if (!this.expanded)
                 this._expand(true);
             this._turn(dx > 0 ? -1 : 1);
         } else if (!this._dragged) {
             this._expand(!this.expanded);
         } else {
-            this.page.ease({translation_x: 0, duration: 150, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+            this._springBack();
         }
         return Clutter.EVENT_STOP;
     }
 
+    _springBack() {
+        this.page.ease({translation_x: 0, opacity: 255, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_BACK});
+    }
+
+    // Sayfa değişimi: eskisi gittiği yöne kayıp söner, yenisi öbür yandan kayarak gelir; boy yeni sayfayla
+    // birlikte yumuşakça değişir.
     _turn(dir) {
         const pages = this._pages();
         let i = pages.indexOf(this.pageName);
         if (i < 0)
             i = pages.indexOf('calan');
         const next = Math.max(0, Math.min(pages.length - 1, i + dir));
-        this.pageName = pages[next];
-        this._morph(() => this._buildPage());
-        this.page.translation_x = dir * 60;
-        this.page.opacity = 120;
-        this.page.ease({translation_x: 0, opacity: 255, duration: 200, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        if (next === i) {
+            this._springBack();
+            return;
+        }
         this._cancel('collapse');
+        this._click();
+        const w = Math.max(120, this.page.width);
+        this.page.remove_all_transitions();
+        this.page.ease({translation_x: -dir * w * 0.45, opacity: 0, duration: 110,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD,
+            onComplete: () => {
+                this.pageName = pages[next];
+                this._morph(() => this._buildPage());
+                this.page.translation_x = dir * w * 0.35;
+                this.page.opacity = 0;
+                this.page.ease({translation_x: 0, opacity: 255, duration: 260,
+                    mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+            }});
+    }
+
+    // Adada düğmeye basınca / sayfa değişince kısa ses (Özelleştir → Dokunma sesi; varsayılan kapalı).
+    _click() {
+        const prefs = (this.state && this.state.prefs) || {};
+        if (!prefs.ada_click_sound)
+            return;
+        try {
+            global.display.get_sound_player().play_from_theme('audio-volume-change', 'Talk To ada', null);
+        } catch (e) {
+            // ses teması yoksa sessiz geç
+        }
     }
 
     // ---- içerik --------------------------------------------------------------------------
@@ -699,6 +798,7 @@ class Ada {
         const b = new St.Button({style_class: `ada-dugme ${cls || ''}`, can_focus: true,
             child: new St.Icon({icon_name: icon, icon_size: 14})});
         b.connect('clicked', () => {
+            this._click();
             cb();
             this._cancel('collapse');
         });
@@ -707,7 +807,10 @@ class Ada {
 
     _textButton(text, cb, cls) {
         const b = new St.Button({style_class: `ada-metin ${cls || ''}`, label: text, can_focus: true});
-        b.connect('clicked', () => cb());
+        b.connect('clicked', () => {
+            this._click();
+            cb();
+        });
         return b;
     }
 
@@ -755,6 +858,35 @@ class Ada {
                 this.compact.add_child(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 8,
                     style_class: 'ada-yesil'}));
             this.compact.add_child(this._wave(64, 6));
+            return;
+        }
+        if (this.moving) {  // kilit açık: sürükleyerek kaydır, ortala, bitti
+            this.compact.add_child(new St.Icon({icon_name: 'object-flip-horizontal-symbolic', icon_size: 14}));
+            this.compact.add_child(this._label('Sağa-sola sürükle', 'ada-baslik'));
+            this.compact.add_child(this._textButton('Ortala', () => {
+                this.offset = 0;
+                this._place();
+                this.act({do: 'set', key: 'ada_offset', value: 0});
+            }, 'ada-kucuk-metin'));
+            this.compact.add_child(this._textButton('Bitti', () => this._setMoving(false),
+                'ada-kucuk-metin ada-secili ada-bitti'));
+            return;
+        }
+        if (this.expanded) {  // büyükken üst satır: saat, tarih, telefonun pili (çalan zaten aşağıda)
+            const clock = this._liveLabel(() => GLib.DateTime.new_now_local().format('%H:%M'), 'ada-baslik');
+            this.compact.add_child(clock);
+            this.compact.add_child(this._label(GLib.DateTime.new_now_local().format('%-d %b %a'), 'ada-soluk'));
+            this.compact.add_child(new St.Widget({x_expand: true}));
+            if (call && this.pageName !== 'arama') {
+                this.compact.add_child(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 12,
+                    style_class: 'ada-yesil'}));
+            }
+            if (st.phone && st.battery !== undefined && st.battery !== null) {
+                const lvl = Math.max(0, Math.min(100, Math.round(st.battery / 10) * 10));
+                this.compact.add_child(new St.Icon({icon_name: `battery-level-${lvl}${st.charging
+                    ? '-charging' : ''}-symbolic`, icon_size: 14}));
+                this.compact.add_child(this._label(`%${st.battery}`, 'ada-soluk'));
+            }
             return;
         }
         if (call) {
@@ -858,9 +990,36 @@ class Ada {
 
     _otherPage() {
         this.page.add_child(this._label('Diğer', 'ada-baslik'));
-        const r = this._row(this._textButton('Özelleştir', () => this._setCustom(true), 'ada-ozellestir'));
+        const r = this._row(this._textButton('Özelleştir', () => this._setCustom(true), 'ada-ozellestir'),
+            this._textButton('Sorun bildir', () => this.act({do: 'report'}), 'ada-sorun'));
         r.x_align = Clutter.ActorAlign.CENTER;
         this.page.add_child(r);
+    }
+
+    // "Konumu değiştir": kilit açılır, ada normal boyda; sağa-sola sürüklenir, "Bitti" ile kilitlenir.
+    _setMoving(on) {
+        this._morph(() => {
+            this.moving = on;
+            if (on) {
+                this.custom = false;
+                this.expanded = false;
+                this.thin = false;
+                this.peek = false;
+                this.page.visible = false;
+                this._cancel('collapse');
+            }
+            this._setClass();
+            this._buildCompact();
+        });
+    }
+
+    _toggle(label, key) {
+        const prefs = (this.state && this.state.prefs) || {};
+        const on = !!prefs[key];
+        const name = this._label(label, 'ada-ayar-ad');
+        name.x_expand = true;
+        return this._row(name, this._textButton(on ? 'Açık' : 'Kapalı',
+            () => this.act({do: 'set', key, value: !on}), `ada-kucuk-metin ada-ayar-${key} ${on ? 'ada-secili' : ''}`));
     }
 
     _setCustom(on) {
@@ -921,11 +1080,25 @@ class Ada {
             hint.x_align = Clutter.ActorAlign.CENTER;
             this.page.add_child(hint);
         }
+
+        // Sık değiştirilenler; gerisi "Tüm ayarlar"da (Talk To'nun Tercihler penceresi).
+        this.page.add_child(this._toggle('Şarkı değişince masaüstü bildirimi de', 'ada_track_popup'));
+        this.page.add_child(this._label('Geri bildirim', 'ada-soluk'));
+        this.page.add_child(this._toggle('Dokunma sesi', 'ada_click_sound'));
+        this.page.add_child(this._toggle('Telefonda titreşim', 'phone_vibrate'));
+        const end = this._row(this._textButton('Konumu değiştir', () => this._setMoving(true), 'ada-konum'),
+            this._textButton('Tüm ayarlar', () => this.act({do: 'prefs'}), 'ada-tum-ayarlar'));
+        end.x_align = Clutter.ActorAlign.CENTER;
+        this.page.add_child(end);
     }
 
     _notifPage() {
         const apps = (this.state && this.state.notifications) || [];
-        this.page.add_child(this._label('Bildirimler', 'ada-baslik'));
+        const head = this._row(this._label('Bildirimler', 'ada-baslik'));
+        head.add_child(new St.Widget({x_expand: true}));
+        if (apps.length)  // adadaki listeyi boşaltır (telefondaki bildirimlere dokunmaz)
+            head.add_child(this._textButton('Temizle', () => this.act({do: 'notif_clear'}), 'ada-kucuk-metin ada-temizle'));
+        this.page.add_child(head);
         if (!apps.length) {
             this.page.add_child(this._label('Yeni bildirim yok', 'ada-soluk'));
             return;

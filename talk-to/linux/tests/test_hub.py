@@ -516,6 +516,10 @@ class FeatureTest(_Base):
         self.assertTrue(prof["permissions"]["commands"])
         cmds = await p.recv_type("commands")
         self.assertIn("kilitle", [c["id"] for c in cmds["items"]])
+        # "Telefonda titreşim" (varsayılan kapalı) profil iletisiyle gider; değişince yeniden gönderilir.
+        self.assertFalse(prof["vibrate"])
+        await self.hub.set_option("phone_vibrate", True)
+        self.assertTrue((await p.recv_type("profile"))["vibrate"])
         await p.close()
 
     async def test_choose_profile_in_approval_and_guest_limits(self):

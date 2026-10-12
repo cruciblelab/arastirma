@@ -215,6 +215,7 @@ class Window(Adw.ApplicationWindow):
         menu.append("Mini oynatıcı", "app.mini-player")
         menu.append("Tercihler", "app.preferences")
         menu.append("Kurulum yardımcısı", "app.setup")
+        menu.append("Sorun bildir", "app.report")
         menu.append("Hakkında", "app.about")
         menu.append("Tamamen kapat", "app.quit")
         header.pack_end(Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, tooltip_text="Menü"))
@@ -356,6 +357,8 @@ class Window(Adw.ApplicationWindow):
                 keys = list(table)
                 if self.app.config[key] in keys:
                     row.set_selected(keys.index(self.app.config[key]))
+            if getattr(self, "sw_vibrate", None) is not None:
+                self.sw_vibrate.set_active(self.app.config["phone_vibrate"])
         finally:
             self._updating = False
 
@@ -552,6 +555,12 @@ class Window(Adw.ApplicationWindow):
         self.sw_autostart.set_active(system.autostart_enabled())
         self.sw_autostart.connect("notify::active", lambda r, _: system.set_autostart(r.get_active()))
         g.add(self.sw_autostart)
+        self.sw_vibrate = compat.SwitchRow(title="Telefonda titreşim",
+                                           subtitle="Bilgisayardan telefonda bir şey yapılınca (arama düğmesi, oynat/atla, "
+                                                    "zamanlayıcı) telefon kısaca titrer")
+        self.sw_vibrate.set_active(self.app.config["phone_vibrate"])
+        self.sw_vibrate.connect("notify::active", lambda r, _: self._set("phone_vibrate", r.get_active()))
+        g.add(self.sw_vibrate)
         page.add(g)
         page.add(self._build_data_group())  # en altta: sıfırlama gibi geri dönüşü zahmetli işler
         return page
@@ -1198,7 +1207,8 @@ class Window(Adw.ApplicationWindow):
         self.sw_pin.connect("notify::active", lambda r, _: not self._updating and self.app.set_pinned(r.get_active()))
         g.add(self.sw_pin)
         self.sw_popup = compat.SwitchRow(title="Şarkı değişince bildirim göster",
-                                         subtitle="Ekranın üstünde kısa süre görünür; duraklat ve sonraki düğmeleriyle")
+                                         subtitle="Ekranın üstünde kısa süre görünür; duraklat ve sonraki düğmeleriyle. "
+                                                  "Üst ada ekrandayken çıkmaz (adanın Özelleştir'inden açılır)")
         self.sw_popup.set_active(self.app.config["track_popup"])
         self.sw_popup.connect("notify::active", lambda r, _: self.app.config.set("track_popup", r.get_active()))
         g.add(self.sw_popup)

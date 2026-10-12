@@ -101,6 +101,21 @@ object Talk {
     private val sender = Executors.newSingleThreadExecutor()
     private val fileSender = Executors.newFixedThreadPool(2)
     private val main = Handler(Looper.getMainLooper())
+
+    /** Bilgisayardaki "Telefonda titreşim" (profil iletisiyle gelir; varsayılan kapalı). */
+    @Volatile var vibrate = false
+
+    /** Bilgisayar telefonda bir şey yaptı (arama düğmesi, oynat/atla, zamanlayıcı): açıksa kısa bir "tık". */
+    private fun tick() {
+        if (!vibrate) return
+        runCatching {
+            val v = if (android.os.Build.VERSION.SDK_INT >= 31)
+                app.getSystemService(android.os.VibratorManager::class.java)?.defaultVibrator
+            else @Suppress("DEPRECATION") app.getSystemService(android.os.Vibrator::class.java)
+            if (v == null || !v.hasVibrator()) return
+            v.vibrate(android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK))
+        }
+    }
     private var discovery: Discovery? = null
     private var discoveryUsers = 0
     private var multicastLock: WifiManager.MulticastLock? = null
@@ -403,8 +418,11 @@ object Talk {
                 "media_control" -> if (mediaOn()) {
                     val v = if (msg.isNull("value")) null else msg.optDouble("value").takeUnless { it.isNaN() }
                     main.post { PhoneMedia.control(msg.optString("action"), v) }
+                    // Ses ve konum sürüklemesi sürekli gelir: yalnızca düğme gibi komutlarda titreşir.
+                    if (msg.optString("action") in setOf("play_pause", "play", "pause", "next", "previous")) tick()
                 }
                 "profile" -> {
+                    vibrate = msg.optBoolean("vibrate", false)
                     val p = msg.optJSONObject("permissions") ?: JSONObject()
                     profile.value = Profile(msg.optString("id"), msg.optString("name"),
                         p.keys().asSequence().associateWith { p.optBoolean(it) })
@@ -425,16 +443,21 @@ object Talk {
                     msg.optLong("uptime"), if (msg.isNull("volume")) null else msg.optInt("volume"), msg.optBoolean("muted"))
                 "notify" -> Notifs.fromComputer(app, msg.optString("title"), msg.optString("text"))
                 "call_action" -> if (notificationsOn()) {
+                    tick()
                     val (title, error) = Calls.press(app, msg.optString("key"), msg.optInt("action", -1))
                     send(JSONObject().put("type", "call_result").put("kind", "action")
                         .put("title", title ?: JSONObject.NULL).put("error", error ?: JSONObject.NULL))
                 }
                 "call_volume" -> if (notificationsOn()) {
+                    tick()
                     send(Calls.volume(app, msg.optInt("dir") > 0).put("type", "call_result"))
                 }
                 "phone_info_request" -> runCatching { send(PhoneInfo.collect(app)) }
                 "ring" -> Notifs.ring(app)
-                "timer" -> main.post { Notifs.startTimer(app, msg.optInt("seconds"), msg.optString("label")) }
+                "timer" -> main.post {
+                    tick()
+                    Notifs.startTimer(app, msg.optInt("seconds"), msg.optString("label"))
+                }
                 "timer_cancel" -> main.post { Notifs.cancelTimer(app) }
                 "ring_stop" -> Notifs.stopRing(app)
                 "clipboard" -> main.post {
