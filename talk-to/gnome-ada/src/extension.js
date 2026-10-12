@@ -32,7 +32,7 @@ const AdaProxy = Gio.DBusProxy.makeProxyWrapper(IFACE);
 const DRAG_PAGE = 40;      // bu kadar piksel yana çekince sayfa değişir
 const DRAG_UP = 24;        // bu kadar yukarı çekince küçülür
 const SPILL_PAD = 26;      // taşan su adanın iki yanından bu kadar dışarı taşar
-const SPILL_H = 60;
+const SPILL_H = 70;      // su adanın altına bu kadar iner (şelaleler aşağıda solar)
 const SCROLL_COOLDOWN_MS = 350; // dokunmatik yüzeyin tek kaydırması birden çok kademe atlamasın
 const PEEK_LEAVE_MS = 450;      // ince şeritten fare ayrılınca normal hâlin kalma süresi
 const SHOW_EVENT_MS = 5000; // şarkı/bildirim olunca büyük kalma süresi
@@ -75,9 +75,9 @@ class Spill {
         this.actor.connect('repaint', area => this._paint(area));
     }
 
-    // Su adanın üst kenarından taşar, iki yanından şelale gibi aşağı dökülür, altta toplanıp çalkalanır
-    // (ortası kabarık, akıntıların düştüğü iki yanda da kabarır) ve damlalar düşer. Çizim adanın üstüne değil
-    // çevresine yapılır; tıklamaları almaz.
+    // Su adanın üst kenarından taşar, iki yanından aşağı akar ve alt köşelerden şelale gibi dümdüz aşağı düşer
+    // (aşağı indikçe solar). Altta, adanın genişliğini aşmadan çalkalanır; hiçbir şey adanın yanlarına doğru
+    // yayılmaz. Çizim adanın üstüne değil çevresine yapılır; tıklamaları almaz.
     _paint(area) {
         const cr = area.get_context();
         const [w, h] = area.get_surface_size();
@@ -91,18 +91,25 @@ class Spill {
         const bh = Math.max(6, Math.min(h - 12, this.bh || 30));  // adanın yüksekliği (bu çizimde)
         const [r1, g1, b1] = rgba(th.wave1, 1);
         const [r2, g2, b2] = rgba(th.wave2, 1);
-
-        // 1) Yanlardan dökülen su: üstte ince, aşağı indikçe kalınlaşır, hafifçe dalgalanır.
-        const sw = 1.5 + 5 * energy * beat;
-        // Adanın alt köşeleri yuvarlak: su köşeyi sararak altına iner.
+        const sw = 1.5 + 4 * energy * beat;  // akıntının kalınlığı
+        // Adanın alt köşeleri yuvarlak: su köşeyi biraz sarar, sonra köşeden aşağı düşer.
         const R = Math.min(18, bh / 2);
         const hug = y => y <= bh - R ? 0 : R - Math.sqrt(Math.max(0, R * R - Math.pow(y - (bh - R), 2)));
+        const yF = bh - R * 0.35;  // düşüşün başladığı yer
+        const sheet = (x0, side, y0, y1) => {
+            const g = new Cairo.LinearGradient(0, y0, 0, y1);
+            g.addColorStopRGBA(0, r1, g1, b1, 0.9);
+            g.addColorStopRGBA(1, r2, g2, b2, y1 > bh ? 0 : 0.75);  // aşağı düşen kısım solarak biter
+            return g;
+        };
+
         for (const side of [-1, 1]) {
             const x0 = side < 0 ? left : right;
+            // 1) Adanın yanı boyunca inen su (üstte ince, aşağı indikçe kalınlaşır).
             const ys = [];
-            for (let y = 0; y < bh; y += 3)
+            for (let y = 0; y < yF; y += 3)
                 ys.push(y);
-            ys.push(bh);
+            ys.push(yF);
             cr.moveTo(x0, 0);
             for (const y of ys) {
                 const wob = Math.sin(y / 6 + t * 7 + side) * (0.4 + 0.8 * energy);
@@ -111,41 +118,56 @@ class Spill {
             for (const y of ys.reverse())
                 cr.lineTo(x0 - side * hug(y), y);
             cr.closePath();
-            const g = new Cairo.LinearGradient(0, 0, 0, bh);
-            g.addColorStopRGBA(0, r1, g1, b1, 0.9);
-            g.addColorStopRGBA(1, r2, g2, b2, 0.75);
-            cr.setSource(g);
+            cr.setSource(sheet(x0, side, 0, bh));
             cr.fill();
-            // Şelalenin akan parıltıları: aşağı kayan kısa açık çizgiler.
-            for (let i = 0; i < 3; i++) {
-                const p = (t * (1.1 + 0.35 * i) + i * 0.33) % 1;
-                const y = p * bh;
-                cr.moveTo(x0 + side * sw * 0.45, y);
-                cr.lineTo(x0 + side * sw * 0.45, Math.min(bh, y + 5 + 4 * energy));
+
+            // 2) Köşeden dümdüz aşağı düşen şelale: hafifçe salınır, aşağı indikçe incelip solar.
+            const xF = x0 - side * hug(yF);
+            const fall = h - yF;
+            cr.moveTo(xF, yF);
+            for (let y = yF; y <= h; y += 3) {
+                const k = (y - yF) / fall;
+                const sway = Math.sin(y / 9 - t * 6 + side) * (0.5 + energy) * k;
+                cr.lineTo(xF + side * (sw * (1 - 0.5 * k)) + sway, y);
+            }
+            for (let y = h; y >= yF; y -= 3) {
+                const k = (y - yF) / fall;
+                const sway = Math.sin(y / 9 - t * 6 + side) * (0.5 + energy) * k;
+                cr.lineTo(xF + sway, y);
+            }
+            cr.closePath();
+            cr.setSource(sheet(xF, side, yF, h));
+            cr.fill();
+            // Akan parıltılar: yan akıntıdan başlayıp şelaleden aşağı kayar.
+            for (let i = 0; i < 4; i++) {
+                const p = (t * (0.9 + 0.3 * i) + i * 0.25) % 1;
+                const y = p * h;
+                const x = y < yF ? x0 + side * (sw * 0.45 - hug(y)) : xF + side * sw * 0.45;
+                cr.moveTo(x, y);
+                cr.lineTo(x, Math.min(h, y + 5 + 5 * energy));
                 cr.setLineWidth(1);
-                cr.setSourceRGBA(1, 1, 1, 0.45 * energy * (1 - p * 0.6));
+                cr.setSourceRGBA(1, 1, 1, 0.45 * energy * (1 - p * 0.8));
                 cr.stroke();
             }
         }
 
-        // 2) Altta toplanan su: ortası kabarık, akıntıların düştüğü iki yanda da kabarır.
+        // 3) Altta toplanan su: yalnızca adanın genişliğinde, ortası kabarık.
         const base = bh - 3;
         const room = h - base;
+        const inner = R * 0.6;
         const mid = x => {
-            const u = Math.max(0, Math.min(1, (x - left) / Math.max(1, right - left)));
+            const u = Math.max(0, Math.min(1, (x - left - inner) / Math.max(1, right - left - 2 * inner)));
             return Math.pow(Math.sin(Math.PI * u), 1.3);
         };
-        const splash = x => Math.exp(-Math.pow((x - left) / 11, 2)) + Math.exp(-Math.pow((x - right) / 11, 2));
-        const layers = [[th.wave2, 0.5, 1.0, 0.0, 1.0], [th.wave1, 0.85, 1.5, 1.9, 0.72]];
+        const layers = [[th.wave2, 0.5, 1.0, 0.0, 0.8], [th.wave1, 0.85, 1.5, 1.9, 0.58]];
         for (const [color, alpha, speed, shift, scale] of layers) {
             const max = room * scale * (0.2 + 0.65 * energy * beat);
-            cr.moveTo(0, base);
-            for (let x = 0; x <= w; x += 3) {
+            cr.moveTo(left + inner, base);
+            for (let x = left + inner; x <= right - inner; x += 3) {
                 const ripple = 0.75 + 0.25 * Math.sin(x / w * Math.PI * 6 + t * 3 * speed + shift);
-                const prof = Math.max(mid(x), 0.75 * splash(x) * (0.6 + 0.4 * energy));
-                cr.lineTo(x, base + max * prof * ripple);
+                cr.lineTo(x, base + max * mid(x) * ripple);
             }
-            cr.lineTo(w, base);
+            cr.lineTo(right - inner, base);
             cr.closePath();
             const g = new Cairo.LinearGradient(0, base, 0, base + Math.max(1, max));
             const [r, gg, b] = rgba(color, 1);
@@ -155,13 +177,12 @@ class Spill {
             cr.fill();
         }
 
-        // 3) Damlalar: ortadan ve iki şelalenin dibinden düşer (çalarken).
+        // 4) Ortadan düşen birkaç damla (çalarken).
         if (energy > 0.3) {
-            for (let i = 0; i < 5; i++) {
-                const p = (t * (0.55 + i * 0.15) + i * 0.29) % 1;
-                const x = i < 3 ? left + (right - left) * (0.2 + 0.3 * i) + Math.sin(t + i) * 6
-                    : (i === 3 ? left : right) + (i === 3 ? -1 : 1) * (3 + p * 6);
-                cr.arc(x, base + room * 0.3 + p * room * 0.7, 1.5 + energy, 0, 2 * Math.PI);
+            for (let i = 0; i < 3; i++) {
+                const p = (t * (0.55 + i * 0.17) + i * 0.37) % 1;
+                const x = left + (right - left) * (0.25 + 0.25 * i) + Math.sin(t + i) * 6;
+                cr.arc(x, base + room * 0.35 + p * room * 0.65, 1.5 + energy, 0, 2 * Math.PI);
                 cr.setSourceRGBA(r2, g2, b2, 0.7 * (1 - p) * energy);
                 cr.fill();
             }
