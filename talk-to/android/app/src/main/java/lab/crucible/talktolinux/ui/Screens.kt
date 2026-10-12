@@ -185,7 +185,7 @@ fun TalkScreen(
                     },
                 )
             } else {
-                TopAppBar(title = { Text("Talk To Linux", fontWeight = FontWeight.SemiBold) }, actions = {
+                TopAppBar(title = { Text("Talk To", fontWeight = FontWeight.SemiBold) }, actions = {
                     MoreMenu(
                         "İzinler ve yetkiler" to openPerms,
                         "Görünüm ve özellikler" to openFeatures,
@@ -276,7 +276,7 @@ private fun LazyListScope.disconnected(onManual: () -> Unit, onBluetoothPermissi
     item {
         // "Bağlı değil" bir hata değil: nötr (T5).
         StatusCard(Icons.Rounded.Computer, "Bir bilgisayara bağlı değil",
-            "Bilgisayarda Talk To Android açıkken aşağıda görünür. Bir kez eşleştirdiğin bilgisayara sonra " +
+            "Bilgisayarda Talk To açıkken aşağıda görünür. Bir kez eşleştirdiğin bilgisayara sonra " +
                 "kendiliğinden bağlanılır.")
     }
     item {
@@ -446,7 +446,7 @@ private fun PasswordDialog(t: Talk.Target) {
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
                 t.fp?.let {
-                    Text("Güvenlik kodu: ${Auth.shortFingerprint(it)}\nBilgisayardaki Talk To Android penceresinde de aynısı yazmalı.",
+                    Text("Güvenlik kodu: ${Auth.shortFingerprint(it)}\nBilgisayardaki Talk To penceresinde de aynısı yazmalı.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -465,7 +465,7 @@ private fun ManualDialog(onClose: () -> Unit) {
         title = { Text("IP adresiyle bağlan") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Adres bilgisayardaki Talk To Android penceresinde, “Kablosuz” bölümünde yazar.",
+                Text("Adres bilgisayardaki Talk To penceresinde, “Kablosuz” bölümünde yazar.",
                     style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(host, { host = it.trim() }, label = { Text("IP adresi") }, singleLine = true,
                     placeholder = { Text("192.168.1.20") },

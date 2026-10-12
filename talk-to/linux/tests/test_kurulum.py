@@ -63,7 +63,7 @@ class SetupChecksTest(unittest.TestCase):
     def test_connect_from_computer(self):
         """USB'deki telefon telefona gitmeden bağlanır: kur → bağlan → bağlı."""
         dev = {"serial": "S1", "state": "device", "model": "2311DRK48G", "name": "POCO X6 Pro", "app": False}
-        inst = item(self.phone_step({"devices": [dev]}), "POCO X6 Pro: Talk To Linux yok")
+        inst = item(self.phone_step({"devices": [dev]}), "POCO X6 Pro: Talk To yok")
         self.assertEqual((inst.action, inst.action_label), ("install_phone_app:S1", "Kur ve bağlan"))
         dev.update(app=True, app_version="0.9.0")
         tel = self.phone_step({"devices": [dev]}, dict(STATUS, wireless=True))
@@ -105,19 +105,39 @@ class SetupChecksTest(unittest.TestCase):
         titles = [i.title for i in tel.items]
         self.assertIn("Xiaomi: “USB üzerinden yükle” kapalı", titles)
         self.assertIn("Xiaomi: “USB hata ayıklama (Güvenlik ayarları)” kapalı", titles)
-        upd = item(tel, "Redmi Note 12: Talk To Linux eski (0.6.0)")
+        upd = item(tel, "Redmi Note 12: Talk To eski (0.6.0)")
         self.assertEqual((upd.ok, upd.action, upd.action_label), (False, "install_phone_app:S1", "Güncelle"))
         # İzinler Xiaomi ayarı açılmadan bilgisayardan verilemez: düğme yerine ne yapılacağı yazar.
         self.assertIsNone(item(tel, "Telefondaki izinler").action)
         # Ayarlar açılıp uygulama güncellenince uyarılar kalkar, "Bağlan" ve "Tamamla" çıkar.
         dev.update(xiaomi_permissions=True, xiaomi_install=True, app_version="0.9.0")
         tel = self.phone_step({"devices": [dev]})
-        self.assertFalse(any(i.title.startswith(("Xiaomi", "Redmi Note 12: Talk To Linux eski")) for i in tel.items))
+        self.assertFalse(any(i.title.startswith(("Xiaomi", "Redmi Note 12: Talk To eski")) for i in tel.items))
         self.assertEqual(item(tel, "Redmi Note 12 USB'de").action, "connect_usb:S1")
         self.assertEqual(item(tel, "Telefondaki izinler").action, "phone_setup:S1")
         # Telefonda izinler verildiyse Xiaomi'nin "Güvenlik ayarları" anahtarı artık gerekmez.
         dev.update(xiaomi_permissions=False, perms={"post": True, "listener": True, "battery": True})
         self.assertFalse(any(i.title.startswith("Xiaomi") for i in self.phone_step({"devices": [dev]}).items))
+
+    def test_play_and_light_versions_offer_full_upgrade(self):
+        """Play'den (hilesiz) ya da hafif sürüm kuruluysa: buradaki tam sürüm aynı sürüm olsa da "Tam sürüme
+        yükselt" çıkar ve neyin eksik olduğu söylenir. Telefondaki daha yeniyse tam sürüm onu eskitmez."""
+        cases = {"0.9.0-play": "Play sürümü", "0.8.0-play": "Play sürümü", "0.9.0-hafif": "hafif sürüm"}
+        for version, kind in cases.items():
+            with self.subTest(version):
+                dev = {"serial": "S1", "state": "device", "model": "Pixel 8", "app": True, "app_version": version}
+                up = item(self.phone_step({"devices": [dev]}), f"Pixel 8: Talk To {kind}")
+                self.assertEqual((up.ok, up.action, up.action_label),
+                                 (False, "install_phone_app:S1", "Tam sürüme yükselt"))
+                self.assertIn("eşleşme ve ayarlar korunur", up.text)
+        self.assertIn("aramaları bilgisayardan cevaplanamaz", setup_checks.update_texts(
+            {"app": True, "app_version": "0.9.0-play"}, {"apk_version": "0.9.0"})[1])
+        self.assertIsNone(setup_checks.app_update({"app": True, "app_version": "0.9.1-play"}, {"apk_version": "0.9.0"}))
+        self.assertIsNone(setup_checks.app_update({"app": True, "app_version": "0.9.0"}, {"apk_version": "0.9.0"}))
+        self.assertEqual(setup_checks.app_update({"app": True, "app_version": "0.8.0"}, {"apk_version": "0.9.0"}),
+                         "update")
+        self.assertEqual([setup_checks.app_flavor(v) for v in ("0.18.0", "0.18.0-play", "0.18.0-hafif", None)],
+                         ["tam", "play", "hafif", "tam"])
 
     def test_nothing_recognised_lists_usb_devices(self):
         info = item(self.phone_step({"devices": [], "usb_devices": ["Logitech USB Receiver (046d:c52b)"]}),

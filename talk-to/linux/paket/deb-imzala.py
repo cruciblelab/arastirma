@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Talk To Android .deb paketini imzalar ya da imzasını doğrular (debsigs "_gpgorigin" biçimi).
+"""Talk To .deb paketini imzalar ya da imzasını doğrular (debsigs "_gpgorigin" biçimi).
 
     python3 paket/deb-imzala.py imzala  PAKET.deb GIZLI_ANAHTAR.asc
     python3 paket/deb-imzala.py dogrula PAKET.deb [ANAHTARLIK.gpg]

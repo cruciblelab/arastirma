@@ -29,7 +29,7 @@ def headless(approve_all: bool):
         hub.auto_approve = approve_all
         await hub.start()
         st = hub.status()
-        print(f"Talk To Android arayüzsüz çalışıyor: {', '.join(st['addresses'])} port {st['port']} "
+        print(f"Talk To arayüzsüz çalışıyor: {', '.join(st['addresses'])} port {st['port']} "
               f"(kablosuz={'açık' if st['wireless'] else 'kapalı'}, usb={'açık' if st['usb'] else 'kapalı'}) "
               f"güvenlik kodu {st['short_fp']}", flush=True)
         await asyncio.Event().wait()

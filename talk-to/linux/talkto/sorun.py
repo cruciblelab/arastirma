@@ -37,7 +37,7 @@ def report_url(phones: list[str] | None = None) -> str:
     body = "\n".join([
         "**Ne oldu?**", "", "", "**Ne bekliyordun?**", "", "", "**Nasıl tekrar olur?** (adım adım)", "", "",
         "---",
-        f"- Talk To Android: {__version__}",
+        f"- Talk To: {__version__}",
         f"- Sistem: {_os_name()}",
         f"- Masaüstü: {_gnome()}",
         f"- Telefon(lar): {', '.join(phones) if phones else 'bağlı değil'}",

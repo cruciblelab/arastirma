@@ -3,7 +3,7 @@
 // Hep küçük durur (çalan şarkı, dalga); arama, şarkı değişimi ya da bildirim olunca büyür. Basılı tutup yana
 // sürükleyince sayfa değişir: arama ← çalan → bildirimler → zamanlayıcı. Yukarı kaydırınca (tekerlek, dokunmatik
 // yüzey ya da yukarı sürükleme) bir kademe küçülür: büyük → normal → ince şerit. İnce şeridin üstüne gelince normal
-// hâli görünür, tıklayınca normale döner. İnce şeritteyken yalnızca arama adayı büyütür. Veriyi Talk To Android'den D-Bus ile
+// hâli görünür, tıklayınca normale döner. İnce şeritteyken yalnızca arama adayı büyütür. Veriyi Talk To'dan D-Bus ile
 // alır (lab.crucible.TalkToAndroid, /lab/crucible/TalkToAndroid/Ada): bu eklenti yalnızca gösterir ve düğmeleri
 // Talk To'ya iletir; telefonla kendisi konuşmaz. Talk To kapalıyken görünmez.
 //

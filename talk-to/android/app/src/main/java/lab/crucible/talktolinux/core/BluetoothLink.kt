@@ -13,7 +13,7 @@ import java.io.IOException
 import java.util.UUID
 
 /**
- * Bluetooth RFCOMM bağlantısı. Bilgisayardaki Talk To Android, BlueZ'e bu
+ * Bluetooth RFCOMM bağlantısı. Bilgisayardaki Talk To, BlueZ'e bu
  * UUID ile bir profil kaydeder (linux/talkto/bluetooth.py). Telefon ve
  * bilgisayar önce sistem Bluetooth ayarlarından eşleştirilmiş olmalıdır.
  */
@@ -61,7 +61,7 @@ object BluetoothLink {
             socket.connect()
         } catch (e: IOException) {
             runCatching { socket.close() }
-            throw IOException("Bilgisayardaki Talk To Android'e Bluetooth ile ulaşılamadı " +
+            throw IOException("Bilgisayardaki Talk To'ya Bluetooth ile ulaşılamadı " +
                 "(açık mı, Bluetooth ayarı açık mı?)", e)
         }
         return socket

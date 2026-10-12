@@ -50,7 +50,7 @@ object Notifs {
 
     fun service(ctx: Context, text: String) = NotificationCompat.Builder(ctx, CH_CONNECTION)
         .setSmallIcon(R.drawable.ic_stat_talk)
-        .setContentTitle("Talk To Linux")
+        .setContentTitle("Talk To")
         .setContentText(text)
         .setOngoing(true)
         .setContentIntent(openApp(ctx))
@@ -86,7 +86,7 @@ object Notifs {
         if (!canPost(ctx)) return false
         val n = NotificationCompat.Builder(ctx, CH_COMPUTER)
             .setSmallIcon(R.drawable.ic_stat_talk)
-            .setContentTitle("Talk To Linux deneme bildirimi")
+            .setContentTitle("Talk To deneme bildirimi")
             .setContentText("Bunu bilgisayarda da görüyorsan bildirimler çalışıyor.")
             .setAutoCancel(true)
             .setTimeoutAfter(15_000)

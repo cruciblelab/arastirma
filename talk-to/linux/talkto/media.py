@@ -15,7 +15,7 @@ PATH = "/org/mpris/MediaPlayer2"
 IFACE_ROOT = "org.mpris.MediaPlayer2"
 IFACE_PLAYER = "org.mpris.MediaPlayer2.Player"
 MAX_ART = 600 * 1024
-# Talk To Android'in telefonlar için açtığı oynatıcılar (ui/phone_mpris.py); bilgisayar medyası sayılmaz.
+# Talk To'nun telefonlar için açtığı oynatıcılar (ui/phone_mpris.py); bilgisayar medyası sayılmaz.
 OWN_PREFIX = PREFIX + "talktoandroid."
 
 

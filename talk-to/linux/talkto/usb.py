@@ -20,7 +20,7 @@ PHONE_ACTIVITY = PHONE_PACKAGE + "/.ui.MainActivity"
 # yalnızca adb'nin açabildiği bir kapı (DUMP izniyle korunur); başka uygulamalar kullanamaz.
 PHONE_CONNECT = PHONE_PACKAGE + "/.ui.UsbBaglan"
 # Telefondaki uygulama başka anahtarla imzalı: üzerine kurulamaz, önce kaldırılmalı.
-CONFLICT = ("Telefondaki Talk To Linux başka bir anahtarla imzalanmış; güncellemek için kaldırıp yeniden kurmak "
+CONFLICT = ("Telefondaki Talk To başka bir anahtarla imzalanmış; güncellemek için kaldırıp yeniden kurmak "
             "gerekiyor. Eşleşme ve bildirim erişimi sıfırlanır.")
 
 
@@ -107,7 +107,7 @@ def version_tuple(v: str | None) -> tuple[int, ...]:
 
 
 def find_apk() -> Path | None:
-    """Telefona kurulacak Talk To Linux APK'sı: paketle gelen, kur.sh'nin kopyaladığı ya da kaynakta derlenen."""
+    """Telefona kurulacak Talk To APK'sı: paketle gelen, kur.sh'nin kopyaladığı ya da kaynakta derlenen."""
     here = Path(__file__).resolve().parent
     candidates = [os.environ.get("TALKTO_APK"),
                   "/usr/share/talk-to-android/talk-to-linux.apk",
@@ -320,12 +320,12 @@ class AdbWatcher:
         rc, out = await _adb("-s", serial, "shell", "am", "start", "-n", PHONE_CONNECT, timeout=10)
         if rc != 0 or "Error" in out or "Exception" in out:
             if "does not exist" in out:
-                return False, "Telefondaki Talk To Linux bilgisayardan bağlanmayı bilmiyor (eski sürüm); önce güncelle."
+                return False, "Telefondaki Talk To bilgisayardan bağlanmayı bilmiyor (eski sürüm); önce güncelle."
             if "Permission Denial" in out or "SecurityException" in out:
-                return False, ("Telefon bu bilgisayarın uygulamayı açmasına izin vermedi. Telefonda Talk To Linux'u "
+                return False, ("Telefon bu bilgisayarın uygulamayı açmasına izin vermedi. Telefonda Talk To'yu "
                                "açıp “USB kablosu”na dokun.")
             return False, (out.strip().splitlines() or ["adb hatası"])[-1][:200]
-        return True, "Telefonda Talk To Linux açıldı, bağlanıyor…"
+        return True, "Telefonda Talk To açıldı, bağlanıyor…"
 
     async def refresh(self):
         """Telefondaki ayarlar değişmiş olabilir: ayrıntılar yeniden okunur, değiştiyse bildirilir."""
@@ -345,7 +345,7 @@ class AdbWatcher:
         return rc == 0 and "package:" in out
 
     async def install_app(self, serial: str, replace: bool = False) -> tuple[bool, str]:
-        """Telefona Talk To Linux'u USB üzerinden kurar (ya da günceller) ve açar.
+        """Telefona Talk To'yu USB üzerinden kurar (ya da günceller) ve açar.
 
         Play Protect'in internetten yüklenen uygulamalara uyguladığı engel adb ile
         kurulumda geçerli değildir. replace: imza farklıysa önce kaldır (CONFLICT dönünce
@@ -378,8 +378,8 @@ class AdbWatcher:
             ok, _ = await self.connect_phone(serial)
             if not ok:
                 await _adb("-s", serial, "shell", "am", "start", "-n", PHONE_ACTIVITY)
-            return True, ("Talk To Linux telefona kuruldu ve bağlanıyor…" if ok else
-                          "Talk To Linux telefona kuruldu ve açıldı.")
+            return True, ("Talk To telefona kuruldu ve bağlanıyor…" if ok else
+                          "Talk To telefona kuruldu ve açıldı.")
         finally:
             d["installing"] = False
             self.on_change(self.snapshot())

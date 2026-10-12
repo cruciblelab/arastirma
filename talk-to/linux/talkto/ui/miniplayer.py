@@ -74,7 +74,7 @@ def build_menu() -> Gio.Menu:
     auto.append("Müzik başlayınca kendiliğinden aç", "mini.auto")
     menu.append_section(None, auto)
     other = Gio.Menu()
-    other.append("Talk To Android'i aç", "mini.home")
+    other.append("Talk To'yu aç", "mini.home")
     other.append("Kapat", "mini.close")
     menu.append_section(None, other)
     return menu
@@ -160,7 +160,7 @@ class MiniPlayer(Adw.Window):
                                           tooltip_text="Ayarlar: üstte tut, tepecik, boyut",
                                           css_classes=["flat", "circular", "mini-tool"])
         head.append(self.menu_button)
-        home = _small("go-home-symbolic", "Talk To Android'i aç")
+        home = _small("go-home-symbolic", "Talk To'yu aç")
         home.connect("clicked", lambda *_: app.present())
         head.append(home)
         close = _small("window-close-symbolic", "Kapat")

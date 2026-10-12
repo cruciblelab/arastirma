@@ -46,7 +46,7 @@ class IpcServer:
             try:
                 r, w = await asyncio.wait_for(asyncio.open_unix_connection(str(self.path)), 1)
                 w.close()
-                raise OSError("başka bir Talk To Android zaten çalışıyor")
+                raise OSError("başka bir Talk To zaten çalışıyor")
             except (ConnectionRefusedError, FileNotFoundError, asyncio.TimeoutError):
                 self.path.unlink(missing_ok=True)
         self.path.parent.mkdir(parents=True, exist_ok=True)

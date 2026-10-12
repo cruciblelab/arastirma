@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Talk To Android
+Name=Talk To
 GenericName=Telefon bağlantısı
 Comment=Android telefonu USB, Wi-Fi ya da Bluetooth ile bağla: bildirimler, medya, dosyalar, komutlar
 Exec=talk-to-android

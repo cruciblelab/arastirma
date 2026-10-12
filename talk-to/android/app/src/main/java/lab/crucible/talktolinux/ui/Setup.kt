@@ -212,7 +212,7 @@ private fun notificationItems(perms: PermActions): List<Item> {
     if (!Checks.hasNotifications) {
         return listOf(Item("Hafif sürüm",
             "Bu sürüm telefon bildirimlerini ve telefonda çalan müziği bilgisayara gönderemez. Tam sürüm için " +
-                "bilgisayarda Talk To Android → Bağlantı → USB → “Talk To Linux'u güncelle”.", null))
+                "telefonu USB ile tak; bilgisayardaki Talk To'da “Tam sürüme yükselt”e bas.", null))
     }
     val restricted = if (Build.VERSION.SDK_INT >= 33)
         "Ayar gri ve açılmıyorsa: Uygulama bilgisi → sağ üstteki ⋮ → “Kısıtlanmış ayarlara izin ver”, sonra tekrar dene."
@@ -223,7 +223,7 @@ private fun notificationItems(perms: PermActions): List<Item> {
             { Checks.postNotifications(ctx) }, "İzin ver", perms.notifications),
         Item("Bildirim erişimi",
             "Telefon bildirimlerinin bilgisayarda görünmesi ve telefonda çalan müziğin (Spotify, YouTube…) " +
-                "bilgisayardan kontrolü için. Açılan sayfada Talk To Linux'u aç.",
+                "bilgisayardan kontrolü için. Açılan sayfada Talk To'yu aç.",
             { Checks.notifAccess() }, "Ayarı aç", { Checks.openNotifAccess(ctx) },
             hint = restricted, hintAction = restricted?.let { "Uygulama bilgisi" },
             onHint = { Checks.open(ctx, Checks.appDetails(ctx)) }),
@@ -245,7 +245,7 @@ private fun backgroundItems(): List<Item> {
     val ctx = LocalContext.current
     return listOf(
         Item("Pil kısıtlaması yok",
-            "Ekran kapalıyken bağlantı kopmasın diye. Açılan listede Talk To Linux'u “Kısıtlama yok” / " +
+            "Ekran kapalıyken bağlantı kopmasın diye. Açılan listede Talk To'yu “Kısıtlama yok” / " +
                 "“Optimize etme” yap. Bazı telefonlarda (Xiaomi, Huawei, Samsung) ayrıca “Otomatik başlat” açılmalı.",
             { Checks.battery(ctx) }, "Ayarı aç", { Checks.open(ctx, Checks.batterySettings(), Checks.appDetails(ctx)) },
             optional = true, hint = "Bulamazsan: Uygulama bilgisi → Pil.", hintAction = "Uygulama bilgisi",
@@ -288,20 +288,20 @@ private fun connectionItems(perms: PermActions): List<Item> {
 private class Step(val icon: ImageVector, val title: String, val text: String)
 
 private val STEPS = listOf(
-    Step(Icons.Rounded.SwapHoriz, "Talk To Linux'a hoş geldin",
+    Step(Icons.Rounded.SwapHoriz, "Talk To'ya hoş geldin",
         "Telefonunu Linux bilgisayarına bağlar: bildirimler bilgisayarda görünür, müzik iki yönden kontrol edilir, " +
             "dosya ve pano gider gelir, bilgisayara komut verirsin. Birkaç ayar gerekiyor; her adımda ne olduğunu " +
             "ve “Kontrol et” düğmesini göreceksin. Ayarlar kapalı kalsa da uygulama açılır, istediğin zaman " +
-            "İzinler ekranından tamamlayabilirsin."),
+            "İzinler ekranından tamamlayabilirsin.\n\nAçık kaynak (GPL-3.0) ve tamamen yerel: telefonunla bilgisayarın doğrudan ve şifreli konuşur. Sunucu, hesap, reklam ya da izleme yok; hiçbir veri bize ya da başka bir yere gitmez."),
     Step(Icons.Rounded.Notifications, "Bildirimler ve müzik",
         "Telefonun bildirimlerinin ve çalan müziğin bilgisayara gitmesi için. Telefonu kabloyla bilgisayara " +
-            "bağladıysan bunları tek tek açmana gerek yok: bilgisayardaki Talk To Android'de “Telefonu ayarla”."),
+            "bağladıysan bunları tek tek açmana gerek yok: bilgisayardaki Talk To'da “Telefonu ayarla”."),
     Step(Icons.Rounded.BatteryChargingFull, "Arka planda çalışma",
         "Android pil tasarrufu için arka plandaki uygulamaları kapatabilir; o zaman bağlantı kopar."),
     Step(Icons.Rounded.Usb, "Nasıl bağlanacaksın?",
         "Birini hazırlaman yeterli. USB en hızlısı, Wi-Fi kablosuz, Bluetooth ağ olmadan da çalışır."),
     Step(Icons.Rounded.Computer, "Bilgisayar tarafı",
-        "Bilgisayarda Talk To Android uygulaması kurulu ve açık olmalı (Ubuntu'da .deb dosyasına çift tıkla). " +
+        "Bilgisayarda Talk To uygulaması kurulu ve açık olmalı (Ubuntu'da .deb dosyasına çift tıkla). " +
             "Açıkken bu telefon onu Wi-Fi'de kendiliğinden bulur; USB'de kabloyu takman yeter. İlk bağlantıda " +
             "iki ekranda aynı 6 haneli numara görünür; aynıysa bilgisayarda “Numaralar aynı”yı seçersin."),
 )
@@ -393,7 +393,7 @@ fun PermissionsScreen(perms: PermActions, onBack: () -> Unit, onOpenWizard: () -
                             "Bağlanınca bilgisayarın bu telefonu hangi profille tanıdığı ve neye izin verdiği burada görünür.")
                     } else {
                         ListRow(Icons.Rounded.Security, "${connected.serverName}: “${p.name}” profili",
-                            "İzinleri bilgisayarın sahibi, bilgisayardaki Talk To Android'de bu telefonun profilinden belirler.")
+                            "İzinleri bilgisayarın sahibi, bilgisayardaki Talk To'da bu telefonun profilinden belirler.")
                         Checks.PROFILE_PERMISSIONS.forEach { (key, label) ->
                             RowDivider()
                             val on = p.can(key)

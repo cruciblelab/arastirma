@@ -1,6 +1,6 @@
 """Ekran görüntüsü: xdg-desktop-portal (GNOME, KDE, Wayland ve X11'de çalışır).
 
-İlk seferde masaüstü "Talk To Android ekran görüntüsü alabilsin mi?" diye
+İlk seferde masaüstü "Talk To ekran görüntüsü alabilsin mi?" diye
 sorabilir. Yalnızca portal hiç yoksa (hata "unavailable: ...") çağıran taraf komut
 satırı araçlarına (gnome-screenshot, spectacle, grim...) düşer; portal cevap verip
 görüntü vermediyse ("denied") ya da cevap vermediyse ("timeout") ekran alınmaz.

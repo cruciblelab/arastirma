@@ -1,4 +1,4 @@
-"""Talk To Android çekirdeği: TLS sunucusu, kimlik doğrulama, oturumlar ve özellikler.
+"""Talk To çekirdeği: TLS sunucusu, kimlik doğrulama, oturumlar ve özellikler.
 
 Arayüzden bağımsızdır. Arayüz Hub'ı ayrı bir iş parçacığında çalışan asyncio
 döngüsünde çalıştırır (HubThread), komutları submit() ile gönderir ve olayları
@@ -69,13 +69,13 @@ def phone_problems(phone: dict, perms: dict, show_notifications: bool = True) ->
     """Telefonun bildirdiği durumdan, bildirim ve müziğin neden gelmeyeceğini anlatan uyarılar."""
     out = []
     if phone.get("flavor") == "hafif":
-        out.append("Telefondaki Talk To Linux hafif sürüm: bildirimler ve telefonda çalan müzik gelmez. "
-                   "Telefonu USB ile takıp Telefonlar sayfasında ⋯ → “Talk To Linux'u güncelle” ile tam sürümü kur.")
+        out.append("Telefondaki Talk To hafif sürüm: bildirimler ve telefonda çalan müzik gelmez. "
+                   "Telefonu USB ile tak; Telefonlar sayfasındaki “Tam sürüme yükselt” düğmesi tam sürümü kurar.")
     elif phone.get("notif_access") is False:
         out.append("Telefonda bildirim erişimi kapalı: bildirimler ve telefonda çalan müzik gelmez. "
-                   "Telefonda Talk To Linux'u aç ve “İzin ver”e dokun.")
+                   "Telefonda Talk To'yu aç ve “İzin ver”e dokun.")
     elif phone.get("listener") is False:
-        out.append("Bildirim erişimi açık ama Android bildirim dinleyicisini başlatmamış. Telefonda Talk To Linux'u "
+        out.append("Bildirim erişimi açık ama Android bildirim dinleyicisini başlatmamış. Telefonda Talk To'yu "
                    "bir kez aç; düzelmezse Ayarlar → Bildirim erişimi'nde kapatıp aç ya da telefonu yeniden başlat.")
     if not perms.get("notifications"):
         out.append("Bu telefonun profili bildirimlere izin vermiyor (Telefonlar → Profiller).")
@@ -85,7 +85,7 @@ def phone_problems(phone: dict, perms: dict, show_notifications: bool = True) ->
         out.append("Bu telefonun profili medya kontrolüne izin vermiyor (Telefonlar → Profiller).")
     from .usb import version_tuple
     if phone.get("version") and version_tuple(phone["version"]) < version_tuple(__version__):
-        out.append(f"Telefondaki Talk To Linux eski ({phone['version']}; bu bilgisayardaki {__version__}). Bazı "
+        out.append(f"Telefondaki Talk To eski ({phone['version']}; bu bilgisayardaki {__version__}). Bazı "
                    "özellikler çalışmayabilir. Telefonu USB ile takınca Telefonlar sayfasından tek tıkla güncellenir.")
     return out
 
@@ -511,7 +511,7 @@ class Hub:
     async def mirror_device(self, serial: str, title: str | None = None) -> tuple[bool, str]:
         """adb'nin gördüğü telefonun (USB ya da ip:port) ekranını açar."""
         d = self.usb.devices.get(serial, {})
-        return await self.mirror.start_checked(serial, f"{title or d.get('model') or serial} · Talk To Android",
+        return await self.mirror.start_checked(serial, f"{title or d.get('model') or serial} · Talk To",
                                                **self._mirror_opts())
 
     async def mirror_session(self, device_id: str) -> tuple[bool, str]:
@@ -533,7 +533,7 @@ class Hub:
                 return False, msg
         else:
             return False, "Bluetooth üzerinden ekran açılamaz; USB ya da Wi-Fi gerekir"
-        return await self.mirror.start_checked(serial, f"{s.name} · Talk To Android", **self._mirror_opts())
+        return await self.mirror.start_checked(serial, f"{s.name} · Talk To", **self._mirror_opts())
 
     async def mirror_prepare_wireless(self, serial: str) -> tuple[bool, str]:
         ok, text = await mirror.enable_wireless(serial)
@@ -562,7 +562,7 @@ class Hub:
         return True, text if set_ok else f"{text} {summary}"
 
     async def phone_setup(self, serial: str) -> tuple[bool, str]:
-        """Talk To Linux'un telefondaki izinlerini USB'den verir; bağlı oturuma sonucu da yollar."""
+        """Talk To'nun telefondaki izinlerini USB'den verir; bağlı oturuma sonucu da yollar."""
         if serial in self.setting_up:
             return False, "Telefon zaten ayarlanıyor"
         d = self.usb.devices.get(serial)

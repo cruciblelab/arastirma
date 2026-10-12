@@ -12,7 +12,7 @@ import lab.crucible.talktolinux.core.Talk
 import lab.crucible.talktolinux.service.TalkService
 
 /**
- * "Paylaş → Talk To Linux": dosyalar bilgisayara gider, bağlantılar bilgisayarda açılır, metin panoya kopyalanır.
+ * "Paylaş → Talk To": dosyalar bilgisayara gider, bağlantılar bilgisayarda açılır, metin panoya kopyalanır.
  *
  * Etkinlik dışa açık olduğundan herhangi bir uygulama doğrudan çağırabilir; bu yüzden her paylaşım
  * kısa bir onayla gönderilir (kullanıcı ne gideceğini ve nereye gideceğini görür).
@@ -38,7 +38,7 @@ class ShareActivity : Activity() {
         val pc = (Talk.state.value as? Talk.State.Connected)?.serverName ?: Talk.prefs.server(Talk.prefs.autoServer)?.name
         if (!connected && (pc == null || !Talk.willReconnect())) {
             dialog().setTitle("Bilgisayara bağlı değilsin")
-                .setMessage("Göndermek için önce Talk To Linux'ta bir bilgisayara bağlan, sonra yeniden paylaş.")
+                .setMessage("Göndermek için önce Talk To'da bir bilgisayara bağlan, sonra yeniden paylaş.")
                 .setPositiveButton("Uygulamayı aç") { _, _ ->
                     startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }

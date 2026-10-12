@@ -289,7 +289,7 @@ object Talk {
                         "wrong_password" -> { state.value = State.Idle; say("Şifre yanlış"); passwordFor.value = target.copy(fp = fp) }
                         "rejected" -> fail("Bilgisayarda reddedildi ya da süre doldu", auto = false)
                         "too_many_attempts" -> fail("Çok fazla hatalı deneme. 10 dakika sonra tekrar dene.", auto = false)
-                        "server_outdated" -> fail("Bilgisayardaki Talk To Android eski. Güvenli eşleşme için " +
+                        "server_outdated" -> fail("Bilgisayardaki Talk To eski. Güvenli eşleşme için " +
                             "bilgisayardaki uygulamayı güncelle (0.5 ya da daha yeni).", auto = false)
                         "protocol" -> fail("Bilgisayar beklenmeyen bir yanıt verdi; bağlanılmadı.", auto = false)
                         else -> if (res.reason.startsWith("fp_changed:")) fail(fpChanged(res.reason.substringAfter(':')), auto = false)
@@ -326,10 +326,10 @@ object Talk {
                     "engelliyor olabilir (misafir ağı, “AP izolasyonu”) ya da bilgisayarın güvenlik duvarı " +
                     "${target.port} portunu kapatıyor."
             e is java.net.ConnectException && ("ECONNREFUSED" in m || "refused" in m) ->
-                "bilgisayar bu adreste dinlemiyor: Talk To Android açık mı, Tercihler'de Wi-Fi açık mı, port " +
+                "bilgisayar bu adreste dinlemiyor: Talk To açık mı, Tercihler'de Wi-Fi açık mı, port " +
                     "${target.port} mi?"
             e is java.net.NoRouteToHostException || "EHOSTUNREACH" in m || "ENETUNREACH" in m ->
-                "bu adrese ulaşılamıyor: telefon Wi-Fi'ye bağlı mı, adres bilgisayardaki Talk To Android'de " +
+                "bu adrese ulaşılamıyor: telefon Wi-Fi'ye bağlı mı, adres bilgisayardaki Talk To'da " +
                     "yazanla aynı mı?"
             e is java.net.UnknownHostException -> "adres anlaşılamadı (${target.host})"
             e is javax.net.ssl.SSLException -> "güvenli bağlantı kurulamadı (${m.ifEmpty { "TLS" }})"
@@ -337,7 +337,7 @@ object Talk {
         }
     }
 
-    private fun fpChanged(name: String) = "$name bilgisayarının güvenlik kodu değişmiş. Talk To Android yeniden " +
+    private fun fpChanged(name: String) = "$name bilgisayarının güvenlik kodu değişmiş. Talk To yeniden " +
         "kurulduysa bilgisayarı listeden unutup tekrar eşleştir; kurulmadıysa bağlanma."
 
     private fun fail(text: String, auto: Boolean = true) {
@@ -487,7 +487,7 @@ object Talk {
                     val clipped = text.length > CLIPBOARD_MAX
                     try {
                         app.getSystemService(ClipboardManager::class.java)
-                            .setPrimaryClip(ClipData.newPlainText("Talk To Linux", text.take(CLIPBOARD_MAX)))
+                            .setPrimaryClip(ClipData.newPlainText("Talk To", text.take(CLIPBOARD_MAX)))
                         if (clipped) say("Bilgisayarın panosu çok uzundu; ilk ${CLIPBOARD_MAX / 1000} bin karakter kopyalandı")
                         else if (Build.VERSION.SDK_INT < 33) Toast.makeText(app, "Bilgisayarın panosu kopyalandı", Toast.LENGTH_SHORT).show()
                     } catch (e: RuntimeException) {
@@ -614,7 +614,7 @@ object Talk {
         main.postDelayed({
             if (setupRunning.value) {
                 setupRunning.value = false
-                say("Bilgisayar cevap vermedi; bilgisayardaki Talk To Android'i güncelle")
+                say("Bilgisayar cevap vermedi; bilgisayardaki Talk To'yu güncelle")
             }
         }, 45_000)
     }

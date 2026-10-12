@@ -105,7 +105,7 @@ class YenidenBaslamaTest(unittest.TestCase):
                 return log.exists() and text in log.read_text(errors="replace")
 
             old_version = surum_izleyici.version_in(lib / "talkto" / "__init__.py")
-            self.assertTrue(wait(lambda: logged(f"Talk To Android {old_version} başladı (süreç {p.pid})"), 20),
+            self.assertTrue(wait(lambda: logged(f"Talk To {old_version} başladı (süreç {p.pid})"), 20),
                             "uygulama başlamadı")
             time.sleep(1)
             self.assertIsNone(p.poll(), "uygulama başlarken kapandı")
@@ -116,7 +116,7 @@ class YenidenBaslamaTest(unittest.TestCase):
             os.replace(tmpf, init)  # dpkg gibi: yeni dosya yazılıp eskisinin üstüne taşınır
             self.assertTrue(wait(lambda: logged("99.0.0 kuruldu"), 20), "güncelleme fark edilmedi")
             # exec: aynı süreç numarası, yeni sürüm; arka planda başladığı için yine --arka-planda.
-            self.assertTrue(wait(lambda: logged(f"Talk To Android 99.0.0 başladı (süreç {p.pid})"), 20),
+            self.assertTrue(wait(lambda: logged(f"Talk To 99.0.0 başladı (süreç {p.pid})"), 20),
                             "yeni sürümle başlamadı")
             time.sleep(1)
             self.assertIsNone(p.poll(), "yeniden başlarken kapandı")
@@ -132,7 +132,7 @@ class YenidenBaslamaTest(unittest.TestCase):
             self.assertTrue(wait(lambda: logged("pencereler:") and logged("terminalden teşhis istendi"), 10),
                             "teşhis yazılmadı")
             text = log.read_text(errors="replace")
-            self.assertRegex(text, r"Window “Talk To Android” görünür=True")
+            self.assertRegex(text, r"Window “Talk To” görünür=True")
             self.assertIn("donma-bekcisi", text)
         finally:
             p.terminate()

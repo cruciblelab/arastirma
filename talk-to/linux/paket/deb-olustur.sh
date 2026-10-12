@@ -48,6 +48,22 @@ cp "$HERE/paket/talk-to-android-paket.gpg" "$ROOT/usr/share/keyrings/"
 # Yayıncı kartı (ad, site, iletişim, doğrulama adresi): imzanın kapsamında; Paket Güncelleyici gösterir.
 cp "$HERE/paket/talk-to-android-paket.json" "$ROOT/usr/share/keyrings/"
 cp "$HERE/../README.md" "$ROOT/usr/share/doc/talk-to-android/"
+# Lisans (Debian'ın beklediği yerde): GPL-3.0-or-later; tam metni sistemde /usr/share/common-licenses/GPL-3.
+cat > "$ROOT/usr/share/doc/talk-to-android/copyright" <<'EOF2'
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Talk To
+Source: https://github.com/cruciblelab/arastirma
+
+Files: *
+Copyright: 2026 Crucible ekibi
+License: GPL-3.0-or-later
+ This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+ Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ option) any later version.
+ .
+ On Debian systems, the complete text of the GNU General Public License version 3 can be found in
+ /usr/share/common-licenses/GPL-3.
+EOF2
 SIZE=$(du -sk "$ROOT/usr" | cut -f1)
 cat > "$ROOT/DEBIAN/control" <<CTL
 Package: talk-to-android
@@ -62,7 +78,7 @@ Installed-Size: $SIZE
 Maintainer: Crucible ekibi <noreply@crucible.invalid>
 Homepage: https://github.com/cruciblelab/arastirma
 Description: Android telefonu USB, Wi-Fi ya da Bluetooth ile Linux'a bağlar
- Telefondaki Talk To Linux uygulamasıyla eşleşir. Telefon bildirimlerini
+ Telefondaki Talk To uygulamasıyla eşleşir. Telefon bildirimlerini
  masaüstünde gösterir; iki yönde medya kontrolü, dosya ve pano aktarımı sağlar;
  telefondan bilgisayara kilitle, uyku, ekran görüntüsü ve kendi tanımladığın
  Linux komutlarını çalıştırır. Her yeni telefon için onay ya da şifre ister ve

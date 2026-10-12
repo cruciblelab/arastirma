@@ -12,24 +12,35 @@ android {
         applicationId = "lab.crucible.talktolinux"
         minSdk = 29
         targetSdk = 35
-        versionCode = 24
-        versionName = "0.17.0"
+        versionCode = 25
+        versionName = "0.18.0"
     }
 
-    // İki sürüm, aynı uygulama kimliği (biri diğerinin üzerine kurulabilir):
+    // Üç sürüm, aynı uygulama kimliği (biri diğerinin üzerine kurulabilir):
     //  tam   : bildirim erişimi var (bildirimler + telefondaki medya). Play Protect, internetten
     //          yüklenen ve bu izni isteyen uygulamaları bazı ülkelerde engelliyor; USB (adb) ile kurulur.
+    //          Aramayı cevaplarken arka planda ekran açma engelini görünmez bir noktayla aşar (OVERLAY_TRICK).
+    //  play  : Google Play'e uygun ("hilesiz"): tam sürümün aynısı, yalnızca "diğer uygulamaların üzerinde
+    //          göster" izni ve o hile yok. Bilgisayar USB'de bunu görünce "Tam sürüme yükselt" der.
     //  hafif : bildirim erişimi yok; dosya yöneticisinden doğrudan kurulabilir.
     flavorDimensions += "surum"
     productFlavors {
         create("tam") {
             dimension = "surum"
             buildConfigField("boolean", "NOTIFICATIONS", "true")
+            buildConfigField("boolean", "OVERLAY_TRICK", "true")
+        }
+        create("play") {
+            dimension = "surum"
+            versionNameSuffix = "-play"
+            buildConfigField("boolean", "NOTIFICATIONS", "true")
+            buildConfigField("boolean", "OVERLAY_TRICK", "false")
         }
         create("hafif") {
             dimension = "surum"
             versionNameSuffix = "-hafif"
             buildConfigField("boolean", "NOTIFICATIONS", "false")
+            buildConfigField("boolean", "OVERLAY_TRICK", "false")
         }
     }
 

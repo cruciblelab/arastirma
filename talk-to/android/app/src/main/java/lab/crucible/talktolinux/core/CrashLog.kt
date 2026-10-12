@@ -27,7 +27,7 @@ object CrashLog {
                 e.printStackTrace(PrintWriter(sw))
                 val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT).format(Date())
                 File(app.filesDir, FILE).writeText(
-                    "Talk To Linux ${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR}) · Android ${Build.VERSION.RELEASE} " +
+                    "Talk To ${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR}) · Android ${Build.VERSION.RELEASE} " +
                         "(SDK ${Build.VERSION.SDK_INT}) · ${Build.MANUFACTURER} ${Build.MODEL}\n" +
                         "$stamp · iş parçacığı ${thread.name}\n\n" + sw.toString().take(16_000))
             }

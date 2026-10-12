@@ -182,7 +182,7 @@ class MediaCard(Gtk.Box):
 
 class Window(Adw.ApplicationWindow):
     def __init__(self, app):
-        super().__init__(application=app, title="Talk To Android", default_width=920, default_height=700)
+        super().__init__(application=app, title="Talk To", default_width=920, default_height=700)
         self.app = app
         self.set_size_request(360, 480)
         self.status = {}
@@ -208,7 +208,7 @@ class Window(Adw.ApplicationWindow):
             bp.add_setter(switcher, "visible", False)
             self.add_breakpoint(bp)
         else:  # eski libadwaita: dar pencerede başlık sığmazsa sekmeler alta iner
-            title = Adw.ViewSwitcherTitle(stack=self.stack, title="Talk To Android")
+            title = Adw.ViewSwitcherTitle(stack=self.stack, title="Talk To")
             header.set_title_widget(title)
             title.bind_property("title-visible", bottom, "reveal", GObject.BindingFlags.SYNC_CREATE)
         menu = Gio.Menu()
@@ -623,7 +623,7 @@ class Window(Adw.ApplicationWindow):
         box.append(ident)
         box.append(Gtk.Label(label="Bu bilgisayarın kimliğini de yenile (telefonlarda bu bilgisayarı unutup yeniden "
                                    "eşleşmek gerekir)", wrap=True, xalign=0, max_width_chars=44))
-        self.app.confirm("Talk To Android sıfırlansın mı?",
+        self.app.confirm("Talk To sıfırlansın mı?",
                          "Eşleşmiş telefonlar, profiller, komutlar ve bütün ayarlar silinir; uygulama yeniden başlar "
                          "ve kurulum yardımcısı açılır. Silinenler çöp kutusuna taşınır, gerekirse oradan geri "
                          "alınır. Telefondan alınan dosyalar kalır.",
@@ -703,12 +703,12 @@ class Window(Adw.ApplicationWindow):
             # Telefon USB'de, uygulaması hazır: telefona gitmeden buradan bağlanılır.
             self.hero_icon.set_from_icon_name("phone-symbolic")
             self.hero_title.set_text(f"{setup_checks.display_name(d)} USB'de")
-            self.hero_sub.set_text("“Bağlan”a bas: telefonda Talk To Linux açılır ve bağlanır, telefonda bir şey "
+            self.hero_sub.set_text("“Bağlan”a bas: telefonda Talk To açılır ve bağlanır, telefonda bir şey "
                                    "seçmen gerekmez. İlk seferde burada iki ekrandaki numarayı karşılaştırırsın.")
         elif ways:
             self.hero_icon.set_from_icon_name("computer-symbolic")
             self.hero_title.set_text("Telefon bekleniyor")
-            self.hero_sub.set_text(f"{st['name']} hazır: {', '.join(ways)}. Telefonda Talk To Linux'u açınca bu "
+            self.hero_sub.set_text(f"{st['name']} hazır: {', '.join(ways)}. Telefonda Talk To'yu açınca bu "
                                    "bilgisayar listede görünür.")
         else:
             self.hero_icon.set_from_icon_name("network-offline-symbolic")
@@ -812,7 +812,7 @@ class Window(Adw.ApplicationWindow):
             pass
         elif not snap.get("devices") and not snap.get("unseen") and not self.app.config["simple_mode"]:
             # Basit modda kablo şart değil (Wi-Fi yeter): boş "USB bekleniyor" satırı kalabalık yapmasın.
-            r = row("Telefon bekleniyor", "Telefonu USB ile tak ve USB hata ayıklamayı aç. Telefonda Talk To Linux "
+            r = row("Telefon bekleniyor", "Telefonu USB ile tak ve USB hata ayıklamayı aç. Telefonda Talk To "
                                           "yoksa buradan tek tıkla kurulur." if snap.get("apk") else
                     "Telefonu USB ile tak ve USB hata ayıklamayı aç")
             r.set_subtitle_lines(3)
@@ -832,14 +832,18 @@ class Window(Adw.ApplicationWindow):
                 else:
                     sub = "USB tüneli kurulamadı: kabloyu çıkarıp tak"
                 if d.get("app") is False and snap.get("apk"):
-                    sub = "Telefonda Talk To Linux yok: sağdaki düğme kurar, açar ve bağlar"
+                    sub = "Telefonda Talk To yok: sağdaki düğme kurar, açar ve bağlar"
+                elif setup_checks.app_update(d, snap) == "upgrade":
+                    sub = (setup_checks.update_texts(d, snap)[0] + ": "
+                           + setup_checks.FLAVOR_LACKS[setup_checks.app_flavor(d["app_version"])]
+                           + "; sağdaki düğmeyle tam sürüme yükselt")
                 elif setup_checks.app_outdated(d, snap):
-                    sub = (f"Telefondaki Talk To Linux eski ({d['app_version']}; bu bilgisayardaki "
+                    sub = (f"Telefondaki Talk To eski ({d['app_version']}; bu bilgisayardaki "
                            f"{snap['apk_version']}): sağdaki düğmeyle güncelle")
                 elif setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False and missing:
                     # Yalnızca eksik izin varken önemli: bağlanmayı engellemez.
                     sub += ("\nEksik izinler bilgisayardan verilemiyor (Xiaomi: “USB hata ayıklama (Güvenlik "
-                            "ayarları)” kapalı); telefonda Talk To Linux → İzinler'den ver")
+                            "ayarları)” kapalı); telefonda Talk To → İzinler'den ver")
                 icon = "emblem-ok-symbolic" if d["tunnel"] else "dialog-warning-symbolic"
             elif state == "unauthorized":
                 sub, icon = "Telefonda “USB hata ayıklamaya izin ver” onayını ver", "dialog-question-symbolic"
@@ -874,14 +878,15 @@ class Window(Adw.ApplicationWindow):
             b.connect("clicked", lambda *_: self.app.install_phone_app(serial))
             r.add_suffix(b)
         elif setup_checks.app_outdated(d, snap):
-            b = Gtk.Button(label="Talk To Linux'u güncelle", valign=Gtk.Align.CENTER,
-                           css_classes=["suggested-action"],
+            upgrade = setup_checks.app_update(d, snap) == "upgrade"
+            b = Gtk.Button(label="Tam sürüme yükselt" if upgrade else "Telefondaki Talk To'yu güncelle",
+                           valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
                            tooltip_text=f"{d['app_version']} → {snap['apk_version']}; eşleşme ve ayarlar korunur")
             b.connect("clicked", lambda *_: self.app.install_phone_app(serial))
             r.add_suffix(b)
         elif not session and d.get("app"):
             b = Gtk.Button(label="Bağlan", valign=Gtk.Align.CENTER, css_classes=["suggested-action"],
-                           tooltip_text="Telefonda Talk To Linux'u açar ve USB'den bağlar")
+                           tooltip_text="Telefonda Talk To'yu açar ve USB'den bağlar")
             b.connect("clicked", lambda *_: self.app.connect_phone(serial))
             r.add_suffix(b)
         elif missing and not (setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False):
@@ -897,7 +902,7 @@ class Window(Adw.ApplicationWindow):
             if ":" not in serial:
                 items.append(("Kablosuz ekranı hazırla", "wireless"))
         if d.get("app"):
-            items += [("Telefonu ayarla (izinler)", "setup"), ("Talk To Linux'u güncelle", "install")]
+            items += [("Telefonu ayarla (izinler)", "setup"), ("Telefondaki Talk To'yu güncelle", "install")]
         for label, act in items:
             item = Gio.MenuItem.new(label, None)
             item.set_action_and_target_value("win.usb", GLib.Variant("s", f"{act}|{serial}|{d.get('model') or ''}"))
@@ -971,10 +976,12 @@ class Window(Adw.ApplicationWindow):
         missing = setup_checks.perms_missing(d, s) if d else None
         outdated = bool(d and setup_checks.app_outdated(d, snap))
         locked = bool(d and setup_checks.xiaomi(d) and d.get("xiaomi_permissions") is False)
-        if outdated:
-            lines.append(f"Telefondaki Talk To Linux eski ({d['app_version']} → {snap['apk_version']})")
+        if outdated and setup_checks.app_update(d, snap) == "upgrade":
+            lines.append(setup_checks.update_texts(d, snap)[0] + " (tam sürüme yükseltilebilir)")
+        elif outdated:
+            lines.append(f"Telefondaki Talk To eski ({d['app_version']} → {snap['apk_version']})")
         elif missing:
-            lines.append("Eksik izin: " + ", ".join(missing) + (" (Xiaomi: telefonda Talk To Linux → İzinler'den ver)"
+            lines.append("Eksik izin: " + ", ".join(missing) + (" (Xiaomi: telefonda Talk To → İzinler'den ver)"
                                                                  if locked else ""))
         r = row(s["name"], "\n".join(lines))
         r.set_subtitle_lines(4)
@@ -985,7 +992,8 @@ class Window(Adw.ApplicationWindow):
         if busy:
             r.add_suffix(Gtk.Spinner(spinning=True, valign=Gtk.Align.CENTER))
         elif outdated:
-            primary = ("Güncelle", lambda: self.app.install_phone_app(d["serial"]), "install")
+            primary = (setup_checks.update_texts(d, snap)[2], lambda: self.app.install_phone_app(d["serial"]),
+                       "install")
         elif missing and not locked:
             primary = ("İzinleri tamamla", lambda: self.app.phone_setup(d["serial"]), "setup")
         else:
@@ -1010,7 +1018,7 @@ class Window(Adw.ApplicationWindow):
             if not primary or primary[2] != "setup":
                 items.append(("Telefondaki izinleri tamamla", "setup"))
             if not primary or primary[2] != "install":
-                items.append(("Talk To Linux'u yeniden kur", "install"))
+                items.append(("Telefondaki Talk To'yu yeniden kur", "install"))
         items += [("Bağlantıyı kes", "disconnect"), ("Unut…", "forget")]
         menu = Gio.Menu()
         for label, act in items:
@@ -1185,7 +1193,7 @@ class Window(Adw.ApplicationWindow):
         self.media_empty = Adw.StatusPage(
             icon_name="audio-x-generic-symbolic", title="Telefonda çalan bir şey yok",
             description="Spotify, YouTube Music ya da başka bir uygulamada müzik açınca burada görünür.\n"
-                        "Telefonda Talk To Linux uygulamasına “bildirim erişimi” verilmiş olmalı.")
+                        "Telefonda Talk To uygulamasına “bildirim erişimi” verilmiş olmalı.")
         self.media_empty.add_css_class("compact")
         self.media_box.append(self.media_empty)
         self.media_group.add(self.media_box)
@@ -1410,7 +1418,7 @@ class Window(Adw.ApplicationWindow):
             rows.append(r)
             self._tr_rows[key] = (r, bar)
         if not rows:
-            rows.append(row("Henüz aktarım yok", "Telefonda bir dosyayı “Paylaş → Talk To Linux” ile gönderebilirsin"))
+            rows.append(row("Henüz aktarım yok", "Telefonda bir dosyayı “Paylaş → Talk To” ile gönderebilirsin"))
         self.transfer_group.set_rows(rows)
 
     # ---- Bildirimler ----------------------------------------------------------
@@ -1419,7 +1427,7 @@ class Window(Adw.ApplicationWindow):
         page = Adw.PreferencesPage()
         g = Adw.PreferencesGroup()
         self.sw_notif = compat.SwitchRow(title="Telefon bildirimlerini masaüstünde göster",
-                                      subtitle="Telefonda Talk To Linux uygulamasına “bildirim erişimi” verilmiş olmalı")
+                                      subtitle="Telefonda Talk To uygulamasına “bildirim erişimi” verilmiş olmalı")
         self.sw_notif.set_active(self.app.config["show_notifications"])
         self.sw_notif.connect("notify::active", lambda r, _: self._set("show_notifications", r.get_active()))
         g.add(self.sw_notif)

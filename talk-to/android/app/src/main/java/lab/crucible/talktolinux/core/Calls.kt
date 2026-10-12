@@ -16,6 +16,7 @@ import android.telecom.TelecomManager
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
+import lab.crucible.talktolinux.BuildConfig
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -85,7 +86,7 @@ object Calls {
             ?: return null to "düğme bulunamadı (arama bitmiş ya da bildirim değişmiş olabilir)"
         val title = a.title?.toString()
         val answer = isAnswer(title)
-        if (answer && Settings.canDrawOverlays(ctx)) {
+        if (answer && BuildConfig.OVERLAY_TRICK && Settings.canDrawOverlays(ctx)) {  // Play sürümünde yok
             // "Cevapla" çoğu uygulamada arama ekranını açar; Android arka plandaki uygulamanın ekran açmasını
             // sessizce engelliyor. Ekranda görünür (görünmez küçüklükte) bir penceremiz varken engel yok:
             // bir anlığına açılır, düğmeye basılır, kapanır. Sonuç bilgisayara arama durumundan anlaşılır.

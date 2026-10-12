@@ -34,7 +34,7 @@ def set_autostart(on: bool):
         return
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_text(
-        "[Desktop Entry]\nType=Application\nName=Talk To Android\n"
+        "[Desktop Entry]\nType=Application\nName=Talk To\n"
         "Comment=Telefon bağlantısı arka planda\n"
         f"Exec={launcher()} --arka-planda\nIcon={APP_ID}\nTerminal=false\n"
         "X-GNOME-Autostart-enabled=true\n", encoding="utf-8")

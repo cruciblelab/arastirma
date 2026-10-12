@@ -72,12 +72,12 @@ XIAOMI_PERMISSIONS = ("Ayarlar → Ek ayarlar → Geliştirici seçenekleri → 
                       "Xiaomi bunun için telefonda SIM kart takılı olmasını ve Mi hesabına giriş yapılmasını istiyor. "
                       "Kapalıyken bilgisayar telefondaki izinleri veremez; istersen izinleri telefonda elle ver.")
 XIAOMI_INSTALL = ("Geliştirici seçenekleri → “USB üzerinden yükle”yi aç (Mi hesabı ister). Kapalıyken bilgisayar "
-                  "Talk To Linux'u kuramaz ya da güncelleyemez.")
+                  "telefona Talk To'yu kuramaz ya da güncelleyemez.")
 # Oppo/Realme/OnePlus (ColorOS): adb'nin izin vermesi için Geliştirici seçeneklerinde ayrı anahtar. Durumu adb'den
 # güvenilir okunamıyor; yalnızca eksik izin varken ne yapılacağı söylenir.
 COLOROS = ("oppo", "realme", "oneplus")
 COLOROS_PERMISSIONS = ("Bilgisayarın verebilmesi için Geliştirici seçenekleri → “İzin izlemeyi devre dışı bırak”ı aç "
-                       "(Oppo/Realme/OnePlus) ya da telefonda Talk To Linux → İzinler ve yetkiler'den kendin ver.")
+                       "(Oppo/Realme/OnePlus) ya da telefonda Talk To → İzinler ve yetkiler'den kendin ver.")
 PERM_NAMES = {"listener": "bildirim erişimi", "battery": "pil kısıtlamasının kaldırılması", "post": "bildirim izni"}
 
 
@@ -131,10 +131,45 @@ def dev_guide(phone: dict) -> list[tuple[str, str]]:
     return DEV_GUIDES[brand_of(phone)]
 
 
+def app_flavor(version: str | None) -> str:
+    """Telefondaki sürümün türü, sürüm adının sonundan: "play" (Google Play'e uygun), "hafif" ya da "tam"."""
+    v = version or ""
+    return "play" if v.endswith("-play") else "hafif" if v.endswith("-hafif") else "tam"
+
+
+FLAVOR_NAMES = {"play": "Play sürümü", "hafif": "hafif sürüm"}
+# Tam sürümde fazlası: kullanıcıya neden yükseltmesi gerektiği, dürüstçe.
+FLAVOR_LACKS = {"play": "Google Play'in kuralları yüzünden bazı telefonlarda (Xiaomi, HyperOS) WhatsApp gibi "
+                        "uygulamaların aramaları bilgisayardan cevaplanamaz",
+                "hafif": "bildirimler ve telefonda çalan müzik bilgisayara gelmez"}
+
+
+def app_update(d: dict, usb: dict) -> str | None:
+    """Bu bilgisayardaki APK telefondakini değiştirmeli mi: "update" (eski), "upgrade" (Play ya da hafif
+    sürüm; buradaki tam sürüm aynı ya da daha yeni) ya da None."""
+    if not (d.get("app") and d.get("app_version") and usb.get("apk_version")):
+        return None
+    have, here = version_tuple(d["app_version"]), version_tuple(usb["apk_version"])
+    if app_flavor(d["app_version"]) != "tam" and app_flavor(usb["apk_version"]) == "tam" and have <= here:
+        return "upgrade"
+    return "update" if have < here else None
+
+
 def app_outdated(d: dict, usb: dict) -> bool:
-    """Telefondaki uygulama bu bilgisayardaki APK'dan eski mi?"""
-    return bool(d.get("app") and d.get("app_version") and usb.get("apk_version")
-                and version_tuple(d["app_version"]) < version_tuple(usb["apk_version"]))
+    """Telefondaki uygulama bu bilgisayardaki APK ile değiştirilmeli mi (eski ya da tam sürüm değil)?"""
+    return app_update(d, usb) is not None
+
+
+def update_texts(d: dict, usb: dict) -> tuple[str, str, str]:
+    """(durum, açıklama, düğme) — eski ya da tam olmayan sürüm için."""
+    if app_update(d, usb) == "upgrade":
+        kind = app_flavor(d["app_version"])
+        return (f"Telefondaki Talk To {FLAVOR_NAMES[kind]}",
+                f"Bu sürümde {FLAVOR_LACKS[kind]}. Tam sürüm bu bilgisayarda hazır: tek tıkla USB'den kurulur, "
+                "eşleşme ve ayarlar korunur.", "Tam sürüme yükselt")
+    return (f"Telefondaki Talk To eski ({d['app_version']})",
+            f"Bu bilgisayardaki sürüm {usb['apk_version']}. Tek tıkla USB'den güncellenir ve bağlanır; "
+            "eşleşme ve ayarlar korunur.", "Güncelle")
 
 
 def xiaomi(d: dict) -> bool:
@@ -179,11 +214,11 @@ def _phone_permissions(d: dict | None, session: dict | None) -> Item | None:
         return Item("Telefondaki izinler tamam", "Bildirim erişimi ve diğer izinler verilmiş.", True)
     text = "Eksik: " + ", ".join(missing) + "."
     if d is None:
-        return Item("Telefondaki izinler", text + " Telefonda Talk To Linux → İzinler ve yetkiler'den ver; ya da "
+        return Item("Telefondaki izinler", text + " Telefonda Talk To → İzinler ve yetkiler'den ver; ya da "
                     "telefonu USB ile takınca buradan tek tıkla tamamlanır.", False)
     if xiaomi(d) and d.get("xiaomi_permissions") is False:
         return Item("Telefondaki izinler", text + " Bilgisayarın verebilmesi için yukarıdaki Xiaomi ayarını aç ya da "
-                    "telefonda Talk To Linux → İzinler ve yetkiler'den kendin ver.", False)
+                    "telefonda Talk To → İzinler ve yetkiler'den kendin ver.", False)
     if (d.get("maker") or "").casefold() in COLOROS:
         text += " " + COLOROS_PERMISSIONS
     return Item("Telefondaki izinler", text + " “Tamamla” eksikleri USB'den bir kerede verir; telefonda menü "
@@ -194,31 +229,31 @@ def _usb_device_items(d: dict, usb: dict, sessions: list[dict]) -> list[Item]:
     name, serial = display_name(d), d["serial"]
     session = session_of(d, sessions)
     if d.get("installing"):
-        return [Item(f"{name}: Talk To Linux kuruluyor…", "Telefonda bir soru çıkarsa onayla; bitince kendiliğinden "
+        return [Item(f"{name}: Talk To kuruluyor…", "Telefonda bir soru çıkarsa onayla; bitince kendiliğinden "
                      "açılır ve bağlanır.", None)]
     items = []
     needs_install = (d.get("app") is False or app_outdated(d, usb)) and usb.get("apk")
     if xiaomi(d) and needs_install and d.get("xiaomi_install") is False:
         items.append(Item("Xiaomi: “USB üzerinden yükle” kapalı", XIAOMI_INSTALL, False))
     if d.get("app") is False and usb.get("apk"):
-        items.append(Item(f"{name}: Talk To Linux yok", "Tek tıkla USB'den kurulur, açılır ve bağlanır.", False,
+        items.append(Item(f"{name}: Talk To yok", "Tek tıkla USB'den kurulur, açılır ve bağlanır.", False,
                           f"install_phone_app:{serial}", "Kur ve bağlan"))
         return items
     if d.get("app") is False:
-        items.append(Item(f"{name}: Talk To Linux yok", "Bu pakette telefon uygulaması yok; GitHub'daki sürümler "
+        items.append(Item(f"{name}: Talk To yok", "Bu pakette telefon uygulaması yok; GitHub'daki sürümler "
                           "sayfasından indirip telefona kur.", False))
         return items
     if app_outdated(d, usb):
-        items.append(Item(f"{name}: Talk To Linux eski ({d['app_version']})",
-                          f"Bu bilgisayardaki sürüm {usb['apk_version']}. Tek tıkla USB'den güncellenir ve bağlanır; "
-                          "eşleşme ve ayarlar korunur.", False, f"install_phone_app:{serial}", "Güncelle"))
+        title, text, button = update_texts(d, usb)
+        items.append(Item(f"{name}: {title.removeprefix('Telefondaki ')}", text, False,
+                          f"install_phone_app:{serial}", button))
     elif session:
         via = {"usb": "USB", "wifi": "Wi-Fi", "bluetooth": "Bluetooth"}.get(session.get("kind"), session.get("kind"))
         items.append(Item(f"{session.get('name') or name} bağlı ({via})",
                           "Bundan sonra kablo takılınca ya da aynı ağdayken kendiliğinden bağlanır.", True))
     elif d.get("app"):
         items.append(Item(f"{name} USB'de, bağlanmaya hazır",
-                          "“Bağlan”a bas: telefonda Talk To Linux açılır ve bağlanır, telefonda bir şey seçmen "
+                          "“Bağlan”a bas: telefonda Talk To açılır ve bağlanır, telefonda bir şey seçmen "
                           "gerekmez. İlk seferde burada iki ekrandaki numarayı karşılaştırırsın.", False,
                           f"connect_usb:{serial}", "Bağlan"))
     missing = perms_missing(d, session)
@@ -242,7 +277,7 @@ def _phone_step(status: dict, usb: dict, simple: bool) -> Step:
               "Telefon USB kablosuyla takılıysa “Bağlan” yeter, telefonda bir şey seçmen gerekmez. Kablo yoksa "
               "aynı Wi-Fi ağında telefondan bağlanılır.", "phone-symbolic")
     if not usb.get("apk"):
-        st.items.append(Item("Telefon uygulaması bu pakette yok", "Talk To Linux'u GitHub'daki sürümler sayfasından "
+        st.items.append(Item("Telefon uygulaması bu pakette yok", "Talk To'yu GitHub'daki sürümler sayfasından "
                              "indirip telefona kur.", False, optional=True))
     usb_optional = simple or connected
     if not usb.get("adb"):
@@ -276,7 +311,7 @@ def _phone_step(status: dict, usb: dict, simple: bool) -> Step:
             st.items.append(perms)
     if not connected:
         if status.get("wireless"):
-            st.items.append(Item("Wi-Fi ile", f"Telefon aynı Wi-Fi ağındaysa: telefonda Talk To Linux'u aç, listede "
+            st.items.append(Item("Wi-Fi ile", f"Telefon aynı Wi-Fi ağındaysa: telefonda Talk To'yu aç, listede "
                                  f"“{host}”a dokun.", None))
         else:
             st.items.append(Item("Wi-Fi ile bağlanmak için kablosuz bağlantıyı aç", "Açınca bu bilgisayar yerel ağda "
@@ -299,7 +334,9 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
                    "kontrol edilir, dosya ve pano gider gelir, telefon bu bilgisayara komut verir. Birkaç adımda "
                    "hazırlayalım; adımlar telefonun durumuna göre kendiliğinden güncellenir. İstediğin zaman "
                    "menüdeki “Kurulum yardımcısı”ndan geri dönebilirsin.")
-    out = [Step("hos-geldin", "Talk To Android'e hoş geldin", welcome, "lab.crucible.TalkToAndroid"),
+    welcome += ("\n\nAçık kaynak (GPL-3.0) ve tamamen yerel: telefonla bu bilgisayar doğrudan ve şifreli konuşur. "
+                "Sunucu, hesap, reklam ya da izleme yok; hiçbir veri bize ya da başka bir yere gitmez.")
+    out = [Step("hos-geldin", "Talk To'ya hoş geldin", welcome, "lab.crucible.TalkToAndroid"),
            _phone_step(status, usb, simple)]
 
     w = Step("wifi", "Wi-Fi (kablosuz)",

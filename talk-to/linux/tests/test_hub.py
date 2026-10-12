@@ -934,7 +934,7 @@ exit 0""")
         ok, msg = await self.hub.mirror_session(p.device_id)
         self.assertTrue(ok, msg)
         await self.wait_call("scrcpy")
-        self.assertIn("scrcpy -s ABC123 --window-title Test Telefonu · Talk To Android --stay-awake "
+        self.assertIn("scrcpy -s ABC123 --window-title Test Telefonu · Talk To --stay-awake "
                       "--video-bit-rate=16M --max-size=1920 --max-fps=60 --video-buffer=60 --print-fps", self.calls())
         ok, msg = await self.hub.mirror_session(p.device_id)  # açıkken ikinci pencere açılmaz
         self.assertTrue(ok)
@@ -1007,7 +1007,7 @@ case "$*" in
   *"getprop ro.product.model"*) echo "Pixel 8" ;;
   *"getprop ro.build.version.sdk"*) echo 34 ;;
   *"pm path"*) echo "package:/data/app/base.apk" ;;
-  *"dumpsys package"*) echo "  lab.crucible.talktolinux/.service.NotificationListener" ;;
+  *"dumpsys package"*) echo "      android.permission.SYSTEM_ALERT_WINDOW"; echo "  lab.crucible.talktolinux/.service.NotificationListener" ;;
   *"pm grant"*) %(grant)s ;;
   *"allow_listener"*) echo lab.crucible.talktolinux/lab.crucible.talktolinux.service.NotificationListener > $STATE ;;
   *"settings get secure enabled_notification_listeners"*) cat $STATE 2>/dev/null || echo null ;;
@@ -1068,6 +1068,18 @@ exit 0"""
                                                                                 "xiaomi_autostart")},
                          {"overlay": "zaten açık", "xiaomi_popup": "zaten açık", "xiaomi_autostart": "zaten açık"})
         self.assertNotIn("appops set lab.crucible.talktolinux SYSTEM_ALERT_WINDOW", "\n".join(self.calls()))
+
+    async def test_play_version_is_not_given_overlay(self):
+        """Play sürümü "üstte gösterme" iznini istemiyor: verilmeye çalışılıp "olmadı" denmez; gerisi aynı."""
+        self.phone(first='  *"dumpsys package"*) echo "    versionName=0.18.0-play"; '
+                         'echo "  lab.crucible.talktolinux/.service.NotificationListener" ;;')
+        await self.hub.usb._poll()
+        ok, text = await self.hub.phone_setup("ABC123")
+        self.assertTrue(ok, text)
+        calls = "\n".join(self.calls())
+        self.assertNotIn("SYSTEM_ALERT_WINDOW", calls)
+        self.assertIn("pm grant lab.crucible.talktolinux android.permission.ANSWER_PHONE_CALLS", calls)
+        self.assertIn("allow_listener", calls)
 
     async def test_answer_permission_failure_is_told(self):
         """Bir izin verilemezse sessiz kalınmaz: hangisi ve sonucu (aramayı telefondan cevaplamak) söylenir."""

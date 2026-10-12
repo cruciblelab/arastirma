@@ -65,7 +65,7 @@ jobs:
             echo "::warning::TALKTO_DEB_IMZA_ANAHTARI sırrı yok: .deb imzasız üretiliyor."
           fi
           r=0
-          sh paket/deb-olustur.sh "$(ls apk/talk-to-linux-*.apk | grep -v hafif)" || r=$?
+          sh paket/deb-olustur.sh "$(ls apk/talk-to-linux-*.apk | grep -v -e hafif -e play)" || r=$?
           rm -f "$RUNNER_TEMP/deb-imza.asc"
           exit $r
 
@@ -210,7 +210,8 @@ jobs:
             echo "::warning::TALKTO_KEYSTORE_BASE64 sırrı yok: APK her derlemede farklı geçici anahtarla imzalanır, eski sürümün üzerine kurulamaz."
           fi
           r=0
-          ./gradlew --no-daemon assembleTamRelease assembleHafifRelease testTamReleaseUnitTest lintTamRelease lintHafifRelease || r=$?
+          ./gradlew --no-daemon assembleTamRelease assembleHafifRelease assemblePlayRelease bundlePlayRelease \
+            testTamReleaseUnitTest lintTamRelease lintHafifRelease lintPlayRelease || r=$?
           rm -f "$RUNNER_TEMP/talktolinux.jks"
           exit $r
 
@@ -233,11 +234,16 @@ jobs:
           v=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           cp app/build/outputs/apk/tam/release/app-tam-release.apk "talk-to-linux-$v.apk"
           cp app/build/outputs/apk/hafif/release/app-hafif-release.apk "talk-to-linux-$v-hafif.apk"
+          # Google Play'e uygun sürüm: deneme için APK, Play Console'a yüklemek için AAB (paket .deb'e girmez).
+          cp app/build/outputs/apk/play/release/app-play-release.apk "talk-to-linux-$v-play.apk"
+          cp app/build/outputs/bundle/playRelease/app-play-release.aab "talk-to-linux-$v-play.aab"
 
       - uses: actions/upload-artifact@v4
         with:
           name: talk-to-linux-apk
-          path: talk-to/android/talk-to-linux-*.apk
+          path: |
+            talk-to/android/talk-to-linux-*.apk
+            talk-to/android/talk-to-linux-*.aab
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -280,7 +286,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash talk-to/linux/tests/emulator_e2e.sh "$(ls apk/talk-to-linux-*.apk | grep -v hafif)" emulator-sonuc
+          script: bash talk-to/linux/tests/emulator_e2e.sh "$(ls apk/talk-to-linux-*.apk | grep -v -e hafif -e play)" emulator-sonuc "$(ls apk/talk-to-linux-*-play.apk)"
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -304,4 +310,5 @@ jobs:
         with:
           files: |
             *.apk
+            *.aab
             *.deb

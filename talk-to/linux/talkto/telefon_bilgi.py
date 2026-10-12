@@ -79,5 +79,5 @@ def rows(info: dict | None) -> list[tuple[str, str]]:
         d, h, m = s // 86400, s // 3600 % 24, s // 60 % 60
         out.append(("Açık kalma", (f"{d} gün " if d else "") + f"{h} sa {m} dk"))
     if info.get("app_version"):
-        out.append(("Talk To Linux", info["app_version"]))
+        out.append(("Telefondaki Talk To", info["app_version"]))
     return out

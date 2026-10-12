@@ -33,7 +33,7 @@
         android:allowBackup="false"
         tools:ignore="DataExtractionRules"
         android:icon="@mipmap/ic_launcher"
-        android:label="Talk To Linux"
+        android:label="Talk To"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"

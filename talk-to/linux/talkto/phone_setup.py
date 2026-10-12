@@ -28,7 +28,7 @@ def _explain(out: str) -> str:
     if "SecurityException" in text or "GRANT_RUNTIME_PERMISSIONS" in text or "not allowed" in text.lower():
         return LOCKED
     if "Unknown package" in text or "not installed" in text.lower():
-        return "Talk To Linux telefonda kurulu değil."
+        return "Talk To telefonda kurulu değil."
     return text.splitlines()[-1][:200] if text else "bilinmeyen hata"
 
 
@@ -45,9 +45,11 @@ async def setup_phone(serial: str) -> list[dict]:
         return [_item("adb", "Telefona ulaşılamadı", False, _explain(out) if rc else "Android sürümü okunamadı")]
     rc, out = await _sh(serial, "pm", "path", PHONE_PACKAGE)
     if rc != 0 or "package:" not in out:
-        return [_item("app", "Talk To Linux telefonda yok", False, "Önce “Talk To Linux'u kur” ile kur.")]
+        return [_item("app", "Talk To telefonda yok", False, "Önce telefona Talk To'yu kur.")]
     rc, out = await _sh(serial, "dumpsys", "package", PHONE_PACKAGE)
     full = "service.NotificationListener" in out  # hafif sürümde bildirim dinleyicisi yok
+    # Play sürümü "diğer uygulamaların üzerinde göster" iznini istemiyor: verilemez, sorulmaz da.
+    overlay = "android.permission.SYSTEM_ALERT_WINDOW" in out
     granted = {k: bool(re.search(rf"android\.permission\.{k}: granted=true", out))
                for k in ("POST_NOTIFICATIONS", "BLUETOOTH_CONNECT", "ANSWER_PHONE_CALLS")}
 
@@ -62,7 +64,7 @@ async def setup_phone(serial: str) -> list[dict]:
         else:
             rc, out = await _sh(serial, "pm", "grant", PHONE_PACKAGE, "android.permission.POST_NOTIFICATIONS")
             items.append(_item("post", "Bildirim gösterme izni", rc == 0, "" if rc == 0 else (
-                "telefon bilgisayarın vermesine izin vermedi; telefonda Talk To Linux açılınca çıkan soruya "
+                "telefon bilgisayarın vermesine izin vermedi; telefonda Talk To açılınca çıkan soruya "
                 "“İzin ver” de" if _explain(out) == LOCKED else _explain(out))))
     else:
         items.append(_item("post", "Bildirim gösterme izni", None, "Bu Android sürümünde gerekmiyor."))
@@ -98,7 +100,7 @@ async def setup_phone(serial: str) -> list[dict]:
         items.append(_item("battery", "Pil kısıtlaması kaldırıldı", ok, "" if ok else _explain(out)))
 
     if full:
-        items += await _answer_items(serial, granted["ANSWER_PHONE_CALLS"])
+        items += await _answer_items(serial, granted["ANSWER_PHONE_CALLS"], overlay)
 
     # Xiaomi/HyperOS: "Otomatik başlatma" kapalıyken telefon açılınca uygulamaya haber verilmez; telefon yeniden
     # başlayınca bilgisayara kendiliğinden bağlanamaz.
@@ -107,7 +109,7 @@ async def setup_phone(serial: str) -> list[dict]:
         ok, why = await _appop(serial, "10008")
         items.append(_item("xiaomi_autostart", "Otomatik başlatma (Xiaomi)", ok,
                            "zaten açık" if why == "zaten" else "" if ok else
-                           f"verilemedi ({why}); telefonda Ayarlar → Uygulamalar → Talk To Linux → Otomatik başlatma'yı "
+                           f"verilemedi ({why}); telefonda Ayarlar → Uygulamalar → Talk To → Otomatik başlatma'yı "
                            "aç, yoksa telefon yeniden başlayınca bağlanmak için uygulamayı açman gerekir"))
 
     if sdk >= 31:
@@ -125,7 +127,7 @@ ANSWER_HINT = "olmazsa aramayı telefondan cevaplarsın"
 XIAOMI = ("xiaomi", "redmi", "poco")
 
 
-async def _answer_items(serial: str, answer_granted: bool) -> list[dict]:
+async def _answer_items(serial: str, answer_granted: bool, overlay: bool = True) -> list[dict]:
     """Aramayı bilgisayardan cevaplamak için gerekenler. Telefonda yeni bir ayar satırı yok: hepsi buradan
     sessizce verilir, verilemeyen olursa nedeniyle söylenir (ok False).
 
@@ -144,16 +146,17 @@ async def _answer_items(serial: str, answer_granted: bool) -> list[dict]:
             f"telefon bilgisayarın vermesine izin vermedi; {ANSWER_HINT}" if _explain(out) == LOCKED else
             f"verilemedi ({_explain(out)}); {ANSWER_HINT}")))
 
-    ok, why = await _appop(serial, "SYSTEM_ALERT_WINDOW")
-    items.append(_item("overlay", "Arama ekranını açabilme (üstte gösterme izni)", ok,
-                       "zaten açık" if why == "zaten" else "" if ok else f"verilemedi ({why}); {ANSWER_HINT}"))
+    if overlay:
+        ok, why = await _appop(serial, "SYSTEM_ALERT_WINDOW")
+        items.append(_item("overlay", "Arama ekranını açabilme (üstte gösterme izni)", ok,
+                           "zaten açık" if why == "zaten" else "" if ok else f"verilemedi ({why}); {ANSWER_HINT}"))
 
     _, maker = await _sh(serial, "getprop", "ro.product.manufacturer")
     if maker.strip().lower() in XIAOMI:
         ok, why = await _appop(serial, "10021")
         items.append(_item("xiaomi_popup", "Arka planda açılır pencereler (Xiaomi)", ok,
                            "zaten açık" if why == "zaten" else "" if ok else
-                           f"verilemedi ({why}); telefonda Ayarlar → Uygulamalar → Talk To Linux → Diğer izinler'den "
+                           f"verilemedi ({why}); telefonda Ayarlar → Uygulamalar → Talk To → Diğer izinler'den "
                            f"açılabilir, {ANSWER_HINT}"))
     return items
 

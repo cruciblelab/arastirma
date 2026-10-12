@@ -113,12 +113,12 @@ class App(Adw.Application):
         self._version_file = Path(talkto.__file__)
         updated = os.environ.pop("TALKTO_GUNCELLENDI", None)
         if updated:  # önceki süreç güncelleme yüzünden yeniden başlattı
-            self.notifier.show(f"Talk To Android {updated} sürümüne güncellendi",
+            self.notifier.show(f"Talk To {updated} sürümüne güncellendi",
                                "Yeni sürümle yeniden başlatıldı; telefon birkaç saniye içinde yeniden bağlanır.",
                                key="guncellendi")
         reset = os.environ.pop("TALKTO_SIFIRLANDI", None)
         if reset:
-            self.notifier.show("Talk To Android sıfırlandı",
+            self.notifier.show("Talk To sıfırlandı",
                                "Ayarlar başka bir uygulamayla temizlendi; Talk To sıfırdan başladı." if reset == "dis"
                                else "Eski ayarlar ve eşleşmeler çöp kutusunda; gerekirse oradan geri alınır.",
                                key="sifirlandi")
@@ -392,7 +392,7 @@ class App(Adw.Application):
             win.set_visible(False)
             if not self._hidden_hint_shown:
                 self._hidden_hint_shown = True
-                self.notifier.show("Talk To Android arka planda çalışıyor",
+                self.notifier.show("Talk To arka planda çalışıyor",
                                    "Telefon bağlı kalır. Tamamen kapatmak için menüden “Tamamen kapat”.",
                                    actions={"default": ("Aç", self.present)})
             return True
@@ -435,10 +435,14 @@ class App(Adw.Application):
         self.quit()
 
     def _about(self, *_):
-        compat.about(self.window, application_name="Talk To Android", application_icon=APP_ID,
+        compat.about(self.window, application_name="Talk To", application_icon=APP_ID,
                      version=__version__, developer_name="Crucible ekibi",
                      website="https://github.com/cruciblelab/arastirma",
-                     comments="Linux bilgisayar ile Android telefonu USB, Wi-Fi ya da Bluetooth üzerinden bağlar.")
+                     license_type=Gtk.License.GPL_3_0,
+                     comments="Linux bilgisayar ile Android telefonu USB, Wi-Fi ya da Bluetooth üzerinden bağlar.\n\n"
+                              "Açık kaynak ve tamamen yerel: telefonla bilgisayar doğrudan ve şifreli konuşur; sunucu, "
+                              "hesap, reklam ya da izleme yok. İnternete yalnızca sen istersen çıkılır (telefon "
+                              "ekranı aracını indirmek, Sorun bildir sayfasını açmak).")
 
     # ---- hub'a komut ----------------------------------------------------------
 
@@ -652,7 +656,7 @@ class App(Adw.Application):
     def connect_phone(self, serial):
         """Telefona gitmeden bağlan: telefondaki uygulama USB'den bağlanacak şekilde açılır; ilk seferde
         eşleşme numarası burada (kurulum yardımcısı açıksa onun üstünde) sorulur."""
-        self.toast("Telefonda Talk To Linux açılıyor…")
+        self.toast("Telefonda Talk To açılıyor…")
         self._after(self.hub.connect_phone(serial), lambda ok, msg: None if ok else self.toast(msg))
 
     def phone_setup(self, serial):
@@ -774,7 +778,7 @@ class App(Adw.Application):
             self.toast(f"{d['device']} izinlerini ayarlamamı istedi; ayarlanıyor…")
         elif event == "phone_crash":
             path = d["path"]
-            self.notifier.show(f"{d['device']}: Talk To Linux son seferde çökmüştü",
+            self.notifier.show(f"{d['device']}: Talk To son seferde çökmüştü",
                                "Nedeni bir dosyaya kaydedildi; geliştiriciye göndermek için klasörde göster.",
                                key="telefon-cokme", actions={"default": ("Klasörde göster",
                                                                          lambda: self.show_in_folder(path))})
@@ -877,7 +881,7 @@ class App(Adw.Application):
 
     def _clipboard_later(self, d, preview):
         self.pending_clip = d["text"]
-        self.notifier.show(f"{d['device']} panosu geldi", "Talk To Android'e geçince panoya kopyalanır: " + preview,
+        self.notifier.show(f"{d['device']} panosu geldi", "Talk To'ya geçince panoya kopyalanır: " + preview,
                            key="pano", actions={"default": ("Kopyala", self.present)})
 
     def apply_pending_clipboard(self):

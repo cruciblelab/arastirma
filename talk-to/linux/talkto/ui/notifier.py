@@ -32,7 +32,7 @@ class Notifier:
             log.warning("bildirim servisine bağlanılamadı: %s", e.message)
             self.bus = None
 
-    def show(self, title: str, body: str = "", *, key: str | None = None, app_name: str = "Talk To Android",
+    def show(self, title: str, body: str = "", *, key: str | None = None, app_name: str = "Talk To",
              icon: str | None = None, actions: dict | None = None, urgent=False, resident=False,
              sound: str | None = None):
         """actions: {'kimlik': ('Etiket', geri_çağrı)}; resident: düğmeye basınca kapanmasın (ör. ses +/−)."""

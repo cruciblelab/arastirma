@@ -58,7 +58,7 @@ def ensure_gui() -> bool:
     ok, why = gui_available()
     if ok:
         return True
-    title = "Talk To Android"
+    title = "Talk To"
     if "libadwaita 1.1+" in why:
         _tell(title, "Bu Linux sürümündeki libadwaita çok eski (1.1 ya da üstü gerekiyor). "
                      "Ubuntu 22.04, Debian 12, Fedora 36 ya da daha yenisi gerekli.", error=True)
@@ -69,7 +69,7 @@ def ensure_gui() -> bool:
                      + " ".join(PACKAGES.get(tool or "apt-get")), error=True)
         return False
     pkgs = PACKAGES[tool]
-    if not _ask(title, "Talk To Android'in penceresi için birkaç sistem paketi gerekiyor:\n\n"
+    if not _ask(title, "Talk To'nun penceresi için birkaç sistem paketi gerekiyor:\n\n"
                        + ", ".join(pkgs) + "\n\nŞimdi kurulsun mu? Bilgisayarın şifresi sorulacak."):
         return False
     r = subprocess.run(["pkexec", shutil.which(tool), *INSTALL[tool], *pkgs], capture_output=True, text=True)

@@ -275,7 +275,8 @@ def about(parent, **kw):
     else:
         Gtk.AboutDialog(transient_for=parent, modal=True, program_name=kw["application_name"],
                         logo_icon_name=kw["application_icon"], version=kw["version"], comments=kw["comments"],
-                        website=kw["website"], authors=[kw["developer_name"]]).present()
+                        website=kw["website"], authors=[kw["developer_name"]],
+                        license_type=kw.get("license_type", Gtk.License.UNKNOWN)).present()
 
 
 # ---- dosya seçme ve açma ------------------------------------------------------------------

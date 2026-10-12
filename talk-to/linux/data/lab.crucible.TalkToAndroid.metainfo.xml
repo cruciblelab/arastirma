@@ -2,11 +2,12 @@
 <component type="desktop-application">
   <id>lab.crucible.TalkToAndroid</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>CC-BY-NC-4.0</project_license>
-  <name>Talk To Android</name>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Talk To</name>
   <summary>Android telefonu USB, Wi-Fi ya da Bluetooth ile bağla</summary>
   <description>
-    <p>Telefondaki Talk To Linux uygulamasıyla eşleşir ve telefonla bilgisayarı birbirine bağlar.</p>
+    <p>Telefondaki Talk To uygulamasıyla eşleşir ve telefonla bilgisayarı birbirine bağlar.</p>
+    <p>Açık kaynak (GPL-3.0) ve tamamen yerel: telefonla bilgisayar doğrudan ve şifreli konuşur. Sunucu, hesap, reklam ya da izleme yok; hiçbir veri geliştiriciye ya da başka bir yere gitmez.</p>
     <ul>
       <li>Telefon bildirimleri masaüstünde</li>
       <li>Telefonda ve bilgisayarda çalan müziği karşı taraftan kontrol</li>
@@ -37,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.18.0" date="2026-10-12">
+      <description><p>Açık kaynak (GPL-3.0) ve tamamen yerel olduğu sade bir dille anlatılıyor; iki uygulamanın adı artık “Talk To”. Telefonda Google Play'e uygun yeni sürüm; bilgisayar USB'de bu sürümü görünce “Tam sürüme yükselt” der.</p></description>
+    </release>
     <release version="0.17.0" date="2026-10-12">
       <description><p>Yeniden başlayınca kendiliğinden bağlanma: telefon açılınca (ya da telefon uygulaması güncellenince) uygulamayı açmadan kayıtlı bilgisayara bağlanır; Xiaomi/HyperOS'ta gereken “Otomatik başlatma” izni bilgisayardan verilir. Bilgisayarda “Oturum açılınca başlat” bir kez kendiliğinden açılır (Tercihler'den kapatılabilir, kapatılırsa öyle kalır). Üst ada: fare tekerleğiyle aşağı kaydırınca geri büyür (yalnızca küçülüyordu).</p></description>
     </release>

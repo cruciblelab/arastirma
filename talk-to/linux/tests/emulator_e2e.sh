@@ -1,10 +1,14 @@
 #!/bin/bash
 # Gerçek Android'de (emülatör) uçtan uca deneme: USB yolu (adb reverse), eşleşme, bildirim
 # dinleyicisi, telefondan bilgisayara bildirim, güncelleme sonrası yeniden bağlanma.
-#   bash talk-to/linux/tests/emulator_e2e.sh talk-to-linux.apk sonuc-klasoru
+#   bash talk-to/linux/tests/emulator_e2e.sh talk-to-linux.apk sonuc-klasoru [play.apk]
+# play.apk verilirse önce o (Google Play'e uygun sürüm) kurulur; 5. adımdaki güncelleme onu tam sürüme
+# yükseltir (bilgisayardaki "Tam sürüme yükselt" düğmesinin yaptığı): eşleşme korunmalı.
 # Emülatör açık ve `adb` onu görüyor olmalı. Ekran görüntüleri ve günlükler sonuç klasörüne yazılır.
 set -euo pipefail
 APK=$(realpath "$1")
+FIRST=$APK FIRST_FLAVOR=tam
+if [ -n "${3:-}" ]; then FIRST=$(realpath "$3") FIRST_FLAVOR=play; fi
 OUT=$(realpath -m "${2:-emulator-sonuc}")
 HERE=$(cd "$(dirname "$0")" && pwd)
 PKG=lab.crucible.talktolinux
@@ -94,8 +98,8 @@ trap 'kill $SERVER 2>/dev/null || true; adb logcat -d > "$OUT/logcat.txt" 2>/dev
 for _ in $(seq 50); do grep -q hazir "$OUT/sunucu.out" 2>/dev/null && break; sleep 0.2; done
 grep -q hazir "$OUT/sunucu.out" || fail "sunucu açılmadı: $(cat "$OUT/sunucu.log")"
 
-log "uygulama kuruluyor"
-adb install -r "$APK"
+log "uygulama kuruluyor ($FIRST_FLAVOR)"
+adb install -r "$FIRST"
 # İzinler burada verilmez: 2. adımda telefondaki "Bilgisayar ayarlasın" düğmesiyle bilgisayar verir.
 adb reverse tcp:47600 tcp:47600
 adb logcat -c || true
@@ -123,7 +127,7 @@ grep -q 'text="Bitir"' "$OUT/ui.xml" && fail "bilgisayar bağlarken telefondaki 
 log "tamam: sihirbaz kendiliğinden kapandı"
 wait_for "bilgisayar eşleşme istedi" 'of("ask")' 30
 wait_for "bağlandı" 'of("connected")' 30
-wait_for "telefon durumunu bildirdi" 'phone().get("flavor") == "tam"' 30
+wait_for "telefon durumunu bildirdi ($FIRST_FLAVOR)" "phone().get('flavor') == '$FIRST_FLAVOR'" 30
 wait_for "bildirim erişimi başta kapalı" 'phone().get("notif_access") is False' 10
 sleep 2
 shot 02-izin-eksik
@@ -162,7 +166,7 @@ fi
 log "3) uygulamadaki Deneme bildirimi düğmesi"
 tap_text "Deneme bildirimi"
 wait_for "deneme bildirimi bilgisayara ulaştı" \
-    'any(n["title"] == "Talk To Linux deneme bildirimi" for n in of("notification"))' 30
+    'any(n["title"] == "Talk To deneme bildirimi" for n in of("notification"))' 30
 
 log "4) sekmeler (basit mod: Dosyalar sekmesi yok)"
 for t in Medya Bilgisayar; do
@@ -188,7 +192,7 @@ sleep 2
 shot 03-izinler
 adb shell input keyevent KEYCODE_BACK
 
-log "5) güncelleme (USB'den yeniden kurulum) sonrası"
+log "5) güncelleme (USB'den yeniden kurulum; $FIRST_FLAVOR → tam) sonrası"
 # Sayımlar güncellemeden hemen önceki değerlere göre: önceki adımlarda bir kopma olduysa yanıltmasın.
 count() { python3 -c 'import json,sys; print(sum(1 for l in open(sys.argv[1]) if l.strip() and json.loads(l)["event"]==sys.argv[2]))' "$EV" "$1"; }
 C0=$(count connected)
@@ -199,8 +203,8 @@ adb install -r "$APK"
 wait_for "kendiliğinden yeniden bağlandı (onaysız, uygulama açılmadan)" \
     "len(of('connected')) > $C0 and len(of('ask')) == $A0" 60
 adb shell am start -W -n $PKG/.ui.MainActivity > /dev/null
-wait_for "güncellemeden sonra da dinleyici bağlı" \
-    'phone().get("listener") is True and len([e for e in ev if e["event"] == "status"]) > 0' 40
+wait_for "güncellemeden sonra da dinleyici bağlı (tam sürüm)" \
+    'phone().get("listener") is True and phone().get("flavor") == "tam"' 40
 adb shell "cmd notification post -S bigtext -t 'Guncelleme sonrasi' e2e2 'Hala geliyor mu'"
 wait_for "güncellemeden sonra bildirim ulaştı" 'any(n["title"] == "Guncelleme sonrasi" for n in of("notification"))' 30
 shot 04-guncelleme-sonrasi

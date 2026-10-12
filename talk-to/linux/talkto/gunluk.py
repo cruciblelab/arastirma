@@ -49,7 +49,7 @@ def setup(level=logging.INFO):
         logging.getLogger("talkto").error("yakalanmamış hata", exc_info=(kind, value, tb))
     sys.excepthook = hook  # GTK geri çağrılarındaki hatalar da buraya düşer
     from . import __version__
-    logging.getLogger("talkto").info("Talk To Android %s başladı (süreç %d)", __version__, os.getpid())
+    logging.getLogger("talkto").info("Talk To %s başladı (süreç %d)", __version__, os.getpid())
 
 
 def stacks() -> str:

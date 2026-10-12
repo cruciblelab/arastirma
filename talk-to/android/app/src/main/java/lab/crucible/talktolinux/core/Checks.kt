@@ -52,7 +52,7 @@ object Checks {
 
     // ---- ayar sayfaları -----------------------------------------------------------
 
-    /** Android 11+: doğrudan Talk To Linux'un bildirim erişimi anahtarı; daha eskide liste. */
+    /** Android 11+: doğrudan Talk To'nun bildirim erişimi anahtarı; daha eskide liste. */
     fun notifAccessIntent(ctx: Context): Intent =
         if (Build.VERSION.SDK_INT >= 30) Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
             .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,

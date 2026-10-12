@@ -62,7 +62,7 @@ class BluetoothServer:
             self._state(False, f"Bluetooth profili hazırlanamadı: {e.message}")
             return
         opts = {
-            "Name": GLib.Variant("s", "Talk To Android"),
+            "Name": GLib.Variant("s", "Talk To"),
             "Role": GLib.Variant("s", "server"),
             "RequireAuthentication": GLib.Variant("b", True),
             "RequireAuthorization": GLib.Variant("b", False),
