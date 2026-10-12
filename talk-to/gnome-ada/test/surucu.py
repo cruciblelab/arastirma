@@ -40,6 +40,10 @@ X = 640
 steps = [
     lambda: (app.art_paths.__setitem__("k1", ART), app.on_event("status", {**app.hub.status(), "sessions": [sess]}),
              app.on_event("media", {"device_id": "p", "state": song("Firuze")})),
+    # Gerçek hub açılışta kendi (telefonsuz) durumunu yayınlar: sahte telefonu ve şarkıyı yeniden ver.
+    lambda: (app.on_event("status", {**app.hub.status(), "sessions": [sess]}),
+             app.on_event("media", {"device_id": "p", "state": song("Firuze")})),
+    *[lambda: None] * 4,  # müzik başlayınca ada büyür; ~5 sn sonra küçülür
     lambda: cek("Shot", f"{OUT}/1-kucuk.png"),
     lambda: app.on_event("media", {"device_id": "p", "state": song("Gesi Bağları")}),
     lambda: cek("Shot", f"{OUT}/2-sarki-degisti.png"),
