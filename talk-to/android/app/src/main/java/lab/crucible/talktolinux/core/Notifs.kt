@@ -28,8 +28,10 @@ object Notifs {
     const val CH_FILES = "dosyalar"
     const val CH_RING = "zil"
     const val CH_COMPUTER = "bilgisayar"
+    const val CH_TIMER = "zamanlayici"
     const val ID_SERVICE = 1
     const val ID_RING = 2
+    const val ID_TIMER = 3
 
     fun createChannels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
@@ -38,6 +40,8 @@ object Notifs {
         nm.createNotificationChannel(NotificationChannel(CH_RING, "Telefonu bul", NotificationManager.IMPORTANCE_HIGH))
         nm.createNotificationChannel(NotificationChannel(CH_COMPUTER, "Bilgisayardan gelen bildirimler",
             NotificationManager.IMPORTANCE_DEFAULT))
+        nm.createNotificationChannel(NotificationChannel(CH_TIMER, "Zamanlayıcı", NotificationManager.IMPORTANCE_HIGH)
+            .apply { setSound(null, null) })  // sesi kendimiz çalarız (alarm akışında, sessizde de duyulsun)
     }
 
     private fun openApp(ctx: Context) = PendingIntent.getActivity(
@@ -140,6 +144,66 @@ object Notifs {
             }
             main.postDelayed({ stopRing(ctx) }, 30_000)
         }
+    }
+
+    // ---- Zamanlayıcı (bilgisayardaki üst adadan "telefonda da kur") -------------------------------
+    // Saat uygulamasını açmak arka plandan başlatma kısıtına takılır; bu yüzden zamanlayıcıyı uygulama kendisi
+    // tutar: geri sayan bildirim, bitince alarm sesi (telefon sessizde olsa da) ve "Durdur".
+
+    private val timerHandler = Handler(Looper.getMainLooper())
+    private var timerTone: Ringtone? = null
+
+    private fun timerPending(ctx: Context, action: String, code: Int) = PendingIntent.getService(
+        ctx, code, Intent(ctx, TalkService::class.java).setAction(action), PendingIntent.FLAG_IMMUTABLE)
+
+    @SuppressLint("MissingPermission")  // canPost() denetliyor
+    fun startTimer(ctx: Context, seconds: Int, label: String) {
+        cancelTimer(ctx)
+        if (seconds <= 0) return
+        val end = System.currentTimeMillis() + seconds * 1000L
+        if (canPost(ctx)) {
+            NotificationManagerCompat.from(ctx).notify(ID_TIMER, NotificationCompat.Builder(ctx, CH_TIMER)
+                .setSmallIcon(R.drawable.ic_stat_talk)
+                .setContentTitle(label.ifBlank { "Zamanlayıcı" })
+                .setContentText("Bilgisayardan kuruldu")
+                .setWhen(end).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true)
+                .setOngoing(true).setSilent(true)
+                .addAction(0, "İptal", timerPending(ctx, TalkService.ACTION_TIMER_CANCEL, 3))
+                .build())
+        }
+        timerHandler.postDelayed({ timerDone(ctx, label) }, seconds * 1000L)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun timerDone(ctx: Context, label: String) {
+        val uri = RingtoneManager.getActualDefaultRingtoneUri(ctx, RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+        timerTone = RingtoneManager.getRingtone(ctx, uri)?.apply {
+            audioAttributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()
+            isLooping = true
+            play()
+        }
+        if (canPost(ctx)) {
+            val stop = timerPending(ctx, TalkService.ACTION_TIMER_CANCEL, 4)
+            NotificationManagerCompat.from(ctx).notify(ID_TIMER, NotificationCompat.Builder(ctx, CH_TIMER)
+                .setSmallIcon(R.drawable.ic_stat_talk)
+                .setContentTitle("Süre doldu")
+                .setContentText(label.ifBlank { "Zamanlayıcı" })
+                .setPriority(NotificationCompat.PRIORITY_HIGH).setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setContentIntent(stop).setDeleteIntent(stop).setAutoCancel(true)
+                .addAction(0, "Durdur", stop)
+                .build())
+        }
+        timerHandler.postDelayed({ timerTone?.stop(); timerTone = null }, 60_000)
+    }
+
+    /** Geri sayımı ya da çalan alarmı durdurur. */
+    fun cancelTimer(ctx: Context) {
+        timerHandler.removeCallbacksAndMessages(null)
+        timerTone?.stop()
+        timerTone = null
+        NotificationManagerCompat.from(ctx).cancel(ID_TIMER)
     }
 
     fun stopRing(ctx: Context) {

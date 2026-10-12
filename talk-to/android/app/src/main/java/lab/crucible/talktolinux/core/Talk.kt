@@ -434,6 +434,8 @@ object Talk {
                 }
                 "phone_info_request" -> runCatching { send(PhoneInfo.collect(app)) }
                 "ring" -> Notifs.ring(app)
+                "timer" -> main.post { Notifs.startTimer(app, msg.optInt("seconds"), msg.optString("label")) }
+                "timer_cancel" -> main.post { Notifs.cancelTimer(app) }
                 "ring_stop" -> Notifs.stopRing(app)
                 "clipboard" -> main.post {
                     // Binder sınırı ~1 MB: çok uzun metin setPrimaryClip'te süreci çökertir.

@@ -84,6 +84,7 @@ jobs:
           sudo apt-get install -y -q ./paket/talk-to-android_*_all.deb
           talk-to-android yardim
           test -f /usr/share/talk-to-android/talk-to-linux.apk
+          test -f /usr/share/talk-to-android/gnome-ada/45/metadata.json -a -f /usr/share/talk-to-android/gnome-ada/42/extension.js
           # Telefon uygulamasının sürümü pakette: telefondakiyle karşılaştırılır (bilgisayarın sürümüyle değil).
           test "$(cat /usr/share/talk-to-android/talk-to-linux.apk.surum)" = "$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' ../android/app/build.gradle.kts | head -n 1)"
           python3 -c "import json; k=json.load(open('/usr/share/keyrings/talk-to-android-paket.json')); assert k['yayinci'] and k['dogrulama'].startswith('https://')"
@@ -113,6 +114,38 @@ jobs:
         with:
           name: linux-ekran-goruntuleri-${{ matrix.os }}
           path: talk-to/linux/ekran/*.png
+
+  ada:
+    # Üst ada: gerçek GNOME Shell (sanal ekran, Wayland) içinde eklenti + gerçek Talk To (sahte telefon olayları).
+    # Eklentideki düğmelere sanal fareyle basılır; Talk To'ya ulaşan eylemler ve ekran görüntüleri denetlenir.
+    name: Üst ada (GNOME Shell eklentisi)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: talk-to/gnome-ada
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bağımlılıklar
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q gnome-shell gjs python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas dbus libglib2.0-bin
+
+      - name: Sözdizimi (GNOME 45+ ve 42–44 sürümleri)
+        run: |
+          python3 build.py "$RUNNER_TEMP/ada"
+          gjs test/sozdizimi.js "$RUNNER_TEMP/ada/45/extension.js" modul
+          gjs test/sozdizimi.js "$RUNNER_TEMP/ada/42/extension.js" betik
+
+      - name: Uçtan uca
+        run: PY=/usr/bin/python3 timeout 300 test/uctan_uca.sh "$RUNNER_TEMP/ada-test"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ust-ada-ekran
+          path: ${{ runner.temp }}/ada-test/
 
   android:
     name: Android (Talk To Linux)
@@ -234,7 +267,7 @@ jobs:
   release:
     name: Sürüm yayınla
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, android, emulator]
+    needs: [linux, android, emulator, ada]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

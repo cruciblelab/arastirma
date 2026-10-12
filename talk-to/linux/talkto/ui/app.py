@@ -48,6 +48,7 @@ class App(Adw.Application):
         self.installing_scrcpy = False
         self.pending_clip = None  # Wayland'da pencere odakta değilken gelen pano metni
         self.mini = None  # mini oynatıcı penceresi
+        self.ada = None  # üst ada köprüsü (do_startup'ta)
         self.now = NowPlaying()
         self.art_paths: dict[str, str] = {}
         self._popup_timers: dict[str, int] = {}
@@ -74,6 +75,9 @@ class App(Adw.Application):
 
         self.config = Config()
         self.notifier = Notifier()
+        from . import ada
+        self.ada = ada.AdaService(self)  # üst ada (GNOME eklentisi) için D-Bus köprüsü
+        GLib.idle_add(lambda: ada.refresh_if_outdated() and False)
         # Donma bekçisi ve terminalden teşhis (talk-to-android teshis → SIGUSR1).
         self.bekci = gunluk.Bekci()
         GLib.timeout_add(500, self.bekci.beat)
@@ -312,6 +316,8 @@ class App(Adw.Application):
             self.notifier.close(f"calan|{did}")
         if ev["started"] and self.config["mini_player_pinned"] and self.mini is None:
             self.open_mini_player()
+        if ev["track"] and self.ada:
+            self.ada.on_track()
         if ev["track"] and self.config["track_popup"]:
             # Kapak birkaç yüz ms sonra gelir; hızlı atlamada da her parça için bildirim çıkmasın.
             self._cancel_popup(did)
@@ -587,6 +593,14 @@ class App(Adw.Application):
     # ---- hub'dan gelen olaylar (ana iş parçacığı) ---------------------------------
 
     def on_event(self, event, d):
+        self._on_event(event, d)
+        if self.ada:
+            try:
+                self.ada.on_event(event, d)
+            except Exception:  # noqa: BLE001 — üst ada asıl arayüzü bozmasın
+                log.exception("üst ada güncellenemedi")
+
+    def _on_event(self, event, d):
         w = self.window
         if event == "status":
             self.device_names = {x["device_id"]: x["name"] for x in d.get("sessions", [])}

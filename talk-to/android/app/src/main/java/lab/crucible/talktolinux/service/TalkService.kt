@@ -32,6 +32,7 @@ class TalkService : Service() {
     companion object {
         const val ACTION_STOP = "lab.crucible.talktolinux.STOP"
         const val ACTION_STOP_RING = "lab.crucible.talktolinux.STOP_RING"
+        const val ACTION_TIMER_CANCEL = "lab.crucible.talktolinux.TIMER_CANCEL"
         const val ACTION_SEND = "lab.crucible.talktolinux.SEND"
         const val EXTRA_URIS = "uris"
     }
@@ -109,6 +110,7 @@ class TalkService : Service() {
         when (intent?.action) {
             ACTION_STOP -> Talk.disconnect()
             ACTION_STOP_RING -> Notifs.stopRing(this)
+            ACTION_TIMER_CANCEL -> Notifs.cancelTimer(this)
             ACTION_SEND -> {
                 // Uri okuma izinleri ClipData ile servise geçer ve servis yaşadıkça sürer.
                 val uris = mutableListOf<Uri>()

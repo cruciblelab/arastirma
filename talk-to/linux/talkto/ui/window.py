@@ -283,6 +283,7 @@ class Window(Adw.ApplicationWindow):
         if page is not None:
             self.prefs_window.set_visible_page(self.prefs_pages[page])
         self._update_data_rows()
+        self._update_ada_rows()
         self.prefs_window.present()
 
     # ---- basit mod -------------------------------------------------------------
@@ -308,7 +309,55 @@ class Window(Adw.ApplicationWindow):
             self.extras_group.add(sw)
             self.sw_extras[key] = sw
         page.add(self.extras_group)
+        page.add(self._build_ada_group())
         return page
+
+    def _build_ada_group(self):
+        """Üst ada: GNOME eklentisi (bkz. talkto.ui.ada). Kur/kaldır, göster, tema."""
+        from . import ada
+        g = self.ada_group = Adw.PreferencesGroup(
+            title="Üst ada",
+            description="Ekranın üst ortasında, üst çubuktan sarkan küçük ada: çalan şarkı (dalgalanan su), gelen "
+                        "arama, bildirimler ve zamanlayıcı. Basılı tutup yana sürükleyince sayfa değişir.")
+        self.ada_row = Adw.ActionRow(title="GNOME eklentisi")
+        self.ada_row.set_subtitle_lines(4)
+        self.ada_btn = Gtk.Button(valign=Gtk.Align.CENTER)
+        self.ada_btn.connect("clicked", lambda *_: self._ada_toggle())
+        self.ada_row.add_suffix(self.ada_btn)
+        g.add(self.ada_row)
+        self.sw_ada = compat.SwitchRow(title="Göster", subtitle="Kapalıyken eklenti kurulu kalır ama ada görünmez")
+        self.sw_ada.set_active(self.app.config["ada_enabled"])
+        self.sw_ada.connect("notify::active", lambda r, _: self._set("ada_enabled", r.get_active()))
+        g.add(self.sw_ada)
+        keys = list(ada.THEMES)
+        self.ada_theme = Adw.ComboRow(title="Tema", model=Gtk.StringList.new([ada.THEMES[k][0] for k in keys]))
+        cur = self.app.config["ada_theme"]
+        self.ada_theme.set_selected(keys.index(cur) if cur in keys else 0)
+        self.ada_theme.connect("notify::selected", lambda r, _: self._set("ada_theme", keys[r.get_selected()]))
+        g.add(self.ada_theme)
+        self._update_ada_rows()
+        return g
+
+    def _update_ada_rows(self):
+        from . import ada
+        state = ada.running_state()
+        text = {
+            "absent": "Kurulu değil. Kurunca ilk seferde bir kez oturumu kapatıp açman gerekir (GNOME eklentileri "
+                      "ancak oturum açılırken yüklenir).",
+            "pending": "Kuruldu. Görünmesi için oturumu bir kez kapatıp aç.",
+            "active": "Açık.",
+        }[state]
+        self.ada_row.set_subtitle(text)
+        self.ada_btn.set_label("Kur" if state == "absent" else "Kaldır")
+        self.ada_btn.set_css_classes(["suggested-action"] if state == "absent" else [])
+        for r in (self.sw_ada, self.ada_theme):
+            r.set_sensitive(state != "absent")
+
+    def _ada_toggle(self):
+        from . import ada
+        ok, msg = ada.install() if ada.running_state() == "absent" else ada.uninstall()
+        self._prefs_toast(msg if ok else f"Olmadı: {msg}")
+        self._update_ada_rows()
 
     def _set_feature_option(self, key, value):
         if self._updating:

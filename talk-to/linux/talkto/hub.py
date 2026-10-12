@@ -429,6 +429,13 @@ class Hub:
         if s:
             await s.send({"type": "ring" if on else "ring_stop"})
 
+    async def phone_timer(self, device_id: str, seconds: int, label: str = ""):
+        """Telefonda zamanlayıcı kurar (seconds=0: iptal)."""
+        s = self.sessions.get(device_id)
+        if s:
+            await s.send({"type": "timer", "seconds": int(seconds), "label": label[:80]} if seconds > 0
+                         else {"type": "timer_cancel"})
+
     async def send_clipboard(self, device_id: str, text: str):
         s = self.sessions.get(device_id)
         if s and text:

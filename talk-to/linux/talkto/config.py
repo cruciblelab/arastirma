@@ -61,6 +61,8 @@ class Config:
         "mini_on_top": False,  # mini oynatıcı diğer pencerelerin üstünde (Wayland'de XWayland ile)
         "mini_compact": False,  # mini oynatıcı tepecik (ince şerit) hâlinde
         "mini_size": "orta",  # kucuk / orta / buyuk
+        "ada_enabled": True,  # üst ada (GNOME eklentisi kuruluysa) görünsün
+        "ada_theme": "deniz",  # talkto.ui.ada.THEMES
         "mirror_preset": "akici",  # telefonun ekranı: akici / hizli / hafif (talkto.mirror.PRESETS)
         "mirror_audio": True,  # telefonun sesi ekran açıkken bilgisayardan çalsın (Android 11+)
         "track_popup": True,  # şarkı değişince masaüstü bildirimi

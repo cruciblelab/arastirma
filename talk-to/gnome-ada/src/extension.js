@@ -1,0 +1,557 @@
+// Talk To · Üst ada: ekranın üst ortasında, üst çubuktan aşağı sarkan küçük bir "ada".
+//
+// Hep küçük durur (çalan şarkı, dalga); arama, şarkı değişimi ya da bildirim olunca büyür. Basılı tutup yana
+// sürükleyince sayfa değişir: arama ← çalan → bildirimler → zamanlayıcı. Veriyi Talk To Android'den D-Bus ile
+// alır (lab.crucible.TalkToAndroid, /lab/crucible/TalkToAndroid/Ada): bu eklenti yalnızca gösterir ve düğmeleri
+// Talk To'ya iletir; telefonla kendisi konuşmaz. Talk To kapalıyken görünmez.
+//
+// Dalga gerçek sesten gelmez (telefon ses verisi göndermiyor): çalarken akan dalga, duraklayınca durgun su.
+//
+// Bu dosya GNOME 45+ biçiminde (ES modülleri) yazılır; build.py GNOME 42–44 sürümünü (imports.*) üretir.
+// IMPORTS-BASLA
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import St from 'gi://St';
+import Clutter from 'gi://Clutter';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+// IMPORTS-BITTI
+
+const BUS_NAME = 'lab.crucible.TalkToAndroid';
+const OBJECT_PATH = '/lab/crucible/TalkToAndroid/Ada';
+const IFACE = `<node><interface name="lab.crucible.TalkToAndroid.Ada">
+  <method name="GetState"><arg type="s" direction="out"/></method>
+  <method name="Action"><arg type="s" direction="in"/></method>
+  <signal name="Changed"><arg type="s"/></signal>
+</interface></node>`;
+const AdaProxy = Gio.DBusProxy.makeProxyWrapper(IFACE);
+
+const DRAG_PAGE = 40;      // bu kadar piksel yana çekince sayfa değişir
+const SHOW_EVENT_MS = 5000; // şarkı/bildirim olunca büyük kalma süresi
+const IDLE_COLLAPSE_MS = 6000;
+const DEFAULT_THEME = {bg1: '#0a2342', bg2: '#12436b', wave1: '#2ec4b6', wave2: '#8de4ff', text: '#eaf6ff',
+    dim: '#9cc3dd', accent: '#2ec4b6'};
+
+function rgba(hex, alpha) {
+    const h = (hex || '#000000').replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, alpha];
+}
+
+function mmss(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60;
+    const pad = v => String(v).padStart(2, '0');
+    return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+// Deniz: iki katlı dalga; çalarken akar, duraklayınca neredeyse durgun.
+class Wave {
+    constructor(width, height, ada) {
+        this.ada = ada;
+        this.actor = new St.DrawingArea({width, height, style_class: 'ada-wave'});
+        this.actor.connect('repaint', area => this._paint(area));
+    }
+
+    _paint(area) {
+        const cr = area.get_context();
+        const [w, h] = area.get_surface_size();
+        const t = this.ada.theme;
+        const playing = this.ada.playing;
+        const amp = playing ? h * 0.22 : h * 0.05;
+        const phase = this.ada.phase;
+        const layers = [[t.wave2, 0.55, 1.0, 0.0], [t.wave1, 0.95, 1.6, 1.7]];
+        for (const [color, alpha, speed, shift] of layers) {
+            cr.moveTo(0, h);
+            for (let x = 0; x <= w; x += 2) {
+                const y = h * 0.52 + amp * Math.sin(x / w * Math.PI * 3 + phase * speed + shift) +
+                    amp * 0.35 * Math.sin(x / w * Math.PI * 7 - phase * speed * 1.3);
+                cr.lineTo(x, y);
+            }
+            cr.lineTo(w, h);
+            cr.closePath();
+            cr.setSourceRGBA(...rgba(color, alpha));
+            cr.fill();
+        }
+        cr.$dispose();
+    }
+
+    repaint() {
+        this.actor.queue_repaint();
+    }
+}
+
+class Ada {
+    constructor() {
+        this.state = null;
+        this.theme = DEFAULT_THEME;
+        this.playing = false;
+        this.phase = 0;
+        this.expanded = false;
+        this.pageIndex = 0;
+        this.pageName = 'calan';
+        this.lastEvent = 0;
+        this.waves = [];
+        this.live = []; // [etiket, metni veren işlev]: her saniye güncellenir (sayaç, görüşme süresi)
+        this._timers = {};
+
+        this.box = new St.BoxLayout({style_class: 'ada', vertical: true, reactive: true, track_hover: true,
+            visible: false});
+        this.compact = new St.BoxLayout({style_class: 'ada-compact'});
+        this.box.add_child(this.compact);
+        this.page = new St.BoxLayout({style_class: 'ada-page', vertical: true, visible: false,
+            clip_to_allocation: true});
+        this.box.add_child(this.page);
+
+        Main.layoutManager.addTopChrome(this.box, {affectsInputRegion: true, trackFullscreen: true});
+        this._sigs = [
+            [this.box, this.box.connect('notify::width', () => this._place())],
+            [this.box, this.box.connect('notify::height', () => this._place())],
+            [Main.layoutManager, Main.layoutManager.connect('monitors-changed', () => this._place())],
+            [this.box, this.box.connect('button-press-event', (a, e) => this._press(e))],
+            [this.box, this.box.connect('motion-event', (a, e) => this._motion(e))],
+            [this.box, this.box.connect('button-release-event', (a, e) => this._release(e))],
+            [this.box, this.box.connect('notify::hover', () => this._hoverChanged())],
+        ];
+
+        this._watch = Gio.bus_watch_name(Gio.BusType.SESSION, BUS_NAME, Gio.BusNameWatcherFlags.NONE,
+            () => this._connect(), () => this._lost());
+    }
+
+    destroy() {
+        Gio.bus_unwatch_name(this._watch);
+        for (const id of Object.values(this._timers))
+            GLib.source_remove(id);
+        this._timers = {};
+        if (this._proxy && this._sigId)
+            this._proxy.disconnectSignal(this._sigId);
+        this._proxy = null;
+        for (const [obj, id] of this._sigs)
+            obj.disconnect(id);
+        Main.layoutManager.removeChrome(this.box);
+        this.box.destroy();
+    }
+
+    // ---- Talk To ile bağlantı ---------------------------------------------------------
+
+    _connect() {
+        new AdaProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH, (proxy, error) => {
+            if (error) {
+                log(`Talk To ada: ${error}`);
+                return;
+            }
+            this._proxy = proxy;
+            this._sigId = proxy.connectSignal('Changed', (_p, _s, [json]) => this._update(json));
+            proxy.GetStateRemote(([json], err) => {
+                if (!err)
+                    this._update(json);
+            });
+        });
+    }
+
+    _lost() {
+        this._proxy = null;
+        this.state = null;
+        this.box.visible = false;
+        this._animate(false);
+    }
+
+    act(obj) {
+        if (this._proxy)
+            this._proxy.ActionRemote(JSON.stringify(obj), () => {});
+    }
+
+    _update(json) {
+        let st;
+        try {
+            st = JSON.parse(json);
+        } catch (e) {
+            return;
+        }
+        this.state = st;
+        this.theme = Object.assign({}, DEFAULT_THEME, st.theme || {});
+        this.playing = !!(st.media && st.media.active && st.media.playing);
+        this.box.set_style(`background-gradient-direction: vertical; background-color: ${this.theme.bg1};` +
+            `background-gradient-start: ${this.theme.bg1}; background-gradient-end: ${this.theme.bg2};` +
+            `color: ${this.theme.text};`);
+        this.box.visible = st.enabled !== false;
+        const ev = st.event || {};
+        if (ev.seq && ev.seq !== this.lastEvent) {
+            const first = this.lastEvent === 0;
+            this.lastEvent = ev.seq;
+            if (!first)
+                this._onEvent(ev.kind);
+        }
+        if (!st.call && this.pageName === 'arama')
+            this.pageName = 'calan';
+        this._buildCompact();
+        if (this.expanded)
+            this._buildPage();
+        this._animate(this.playing && this.box.visible);
+    }
+
+    _onEvent(kind) {
+        const page = {call: 'arama', track: 'calan', notification: 'bildirim'}[kind];
+        if (!page)
+            return;
+        this.pageName = page;
+        this._expand(true);
+        if (kind !== 'call')
+            this._collapseLater(SHOW_EVENT_MS);
+    }
+
+    // ---- yerleşim ---------------------------------------------------------------------
+
+    _place() {
+        const m = Main.layoutManager.primaryMonitor;
+        if (!m)
+            return;
+        const top = Main.panel ? Main.panel.height : 0;
+        this.box.set_position(Math.round(m.x + (m.width - this.box.width) / 2), m.y + top);
+    }
+
+    _pages() {
+        const list = this.state && this.state.call ? ['arama'] : [];
+        return list.concat(['calan', 'bildirim', 'zamanlayici']);
+    }
+
+    _expand(on) {
+        this.expanded = on;
+        this.page.visible = on;
+        this.box.remove_style_class_name(on ? 'ada-kucuk' : 'ada-buyuk');
+        this.box.add_style_class_name(on ? 'ada-buyuk' : 'ada-kucuk');
+        if (on) {
+            this._buildPage();
+            this.page.opacity = 0;
+            this.page.ease({opacity: 255, duration: 180, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        } else {
+            this._cancel('collapse');
+        }
+        this._buildCompact();
+    }
+
+    _collapseLater(ms) {
+        this._cancel('collapse');
+        this._timers.collapse = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+            delete this._timers.collapse;
+            const callActive = this.state && this.state.call;
+            if (!this.box.hover && !(callActive && this.pageName === 'arama'))
+                this._expand(false);
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _cancel(name) {
+        if (this._timers[name]) {
+            GLib.source_remove(this._timers[name]);
+            delete this._timers[name];
+        }
+    }
+
+    _hoverChanged() {
+        if (this.box.hover)
+            this._cancel('collapse');
+        else if (this.expanded)
+            this._collapseLater(IDLE_COLLAPSE_MS);
+    }
+
+    // ---- dalga canlandırması -----------------------------------------------------------
+
+    _animate(on) {
+        if (on && !this._timers.wave) {
+            this._timers.wave = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 40, () => {
+                this.phase += 0.12;
+                for (const w of this.waves)
+                    w.repaint();
+                return GLib.SOURCE_CONTINUE;
+            });
+        } else if (!on) {
+            this._cancel('wave');
+            for (const w of this.waves)
+                w.repaint();
+        }
+    }
+
+    _wave(width, height) {
+        const w = new Wave(width, height, this);
+        this.waves.push(w);
+        w.actor.connect('destroy', () => {
+            this.waves = this.waves.filter(x => x !== w);
+        });
+        return w.actor;
+    }
+
+    // ---- sürükleyerek sayfa değiştirme -------------------------------------------------
+
+    _press(event) {
+        if (event.get_button() !== 1)
+            return Clutter.EVENT_PROPAGATE;
+        [this._dragX] = event.get_coords();
+        this._dragged = false;
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _motion(event) {
+        if (this._dragX === undefined)
+            return Clutter.EVENT_PROPAGATE;
+        const [x] = event.get_coords();
+        const dx = x - this._dragX;
+        if (Math.abs(dx) > 8)
+            this._dragged = true;
+        if (this.expanded && this._dragged)
+            this.page.translation_x = Math.max(-80, Math.min(80, dx * 0.6));
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _release(event) {
+        if (this._dragX === undefined)
+            return Clutter.EVENT_PROPAGATE;
+        const [x] = event.get_coords();
+        const dx = x - this._dragX;
+        this._dragX = undefined;
+        if (this._dragged && Math.abs(dx) >= DRAG_PAGE) {
+            if (!this.expanded)
+                this._expand(true);
+            this._turn(dx > 0 ? -1 : 1);
+        } else if (!this._dragged) {
+            this._expand(!this.expanded);
+        } else {
+            this.page.ease({translation_x: 0, duration: 150, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        }
+        return Clutter.EVENT_STOP;
+    }
+
+    _turn(dir) {
+        const pages = this._pages();
+        let i = pages.indexOf(this.pageName);
+        if (i < 0)
+            i = pages.indexOf('calan');
+        const next = Math.max(0, Math.min(pages.length - 1, i + dir));
+        this.pageName = pages[next];
+        this._buildPage();
+        this.page.translation_x = dir * 60;
+        this.page.opacity = 120;
+        this.page.ease({translation_x: 0, opacity: 255, duration: 200, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        this._cancel('collapse');
+    }
+
+    // ---- içerik --------------------------------------------------------------------------
+
+    _clear(actor) {
+        actor.destroy_all_children();
+    }
+
+    _liveLabel(fn, cls) {
+        const l = this._label(fn(), cls);
+        const item = [l, fn];
+        this.live.push(item);
+        l.connect('destroy', () => {
+            this.live = this.live.filter(x => x !== item);
+        });
+        this._clock();
+        return l;
+    }
+
+    _clock() {
+        if (this._timers.clock)
+            return;
+        this._timers.clock = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
+            if (!this.live.length) {
+                delete this._timers.clock;
+                return GLib.SOURCE_REMOVE;
+            }
+            for (const [l, fn] of this.live)
+                l.text = fn();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    _label(text, cls) {
+        return new St.Label({text: text || '', style_class: cls || '', y_align: Clutter.ActorAlign.CENTER});
+    }
+
+    _button(icon, cb, cls) {
+        const b = new St.Button({style_class: `ada-dugme ${cls || ''}`, can_focus: true,
+            child: new St.Icon({icon_name: icon, icon_size: 16})});
+        b.connect('clicked', () => {
+            cb();
+            this._cancel('collapse');
+        });
+        return b;
+    }
+
+    _textButton(text, cb, cls) {
+        const b = new St.Button({style_class: `ada-metin ${cls || ''}`, label: text, can_focus: true});
+        b.connect('clicked', () => cb());
+        return b;
+    }
+
+    _cover(size) {
+        const media = this.state && this.state.media;
+        const art = media && media.active && media.art;
+        const bin = new St.Bin({style_class: 'ada-kapak', width: size, height: size});
+        if (art) {
+            bin.set_style(`background-image: url("file://${art}"); background-size: cover;` +
+                `border-radius: ${Math.round(size / 4)}px;`);
+        } else {
+            bin.set_child(new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: Math.round(size * 0.6)}));
+        }
+        return bin;
+    }
+
+    _buildCompact() {
+        this._clear(this.compact);
+        const st = this.state || {};
+        const media = st.media || {};
+        const call = st.call;
+        if (call) {
+            this.compact.add_child(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 16,
+                style_class: 'ada-yesil'}));
+            this.compact.add_child(this._label(call.caller || 'Arama', 'ada-baslik'));
+            this.compact.add_child(call.state === 'ringing' ? this._label('arıyor', 'ada-soluk')
+                : this._liveLabel(() => mmss(Date.now() / 1000 - (call.since || Date.now() / 1000)), 'ada-soluk'));
+            return;
+        }
+        if (st.timer && !media.playing) {
+            this.compact.add_child(new St.Icon({icon_name: 'alarm-symbolic', icon_size: 16}));
+            this.compact.add_child(this._liveLabel(() => mmss(st.timer.ends_at - Date.now() / 1000), 'ada-baslik'));
+            return;
+        }
+        if (media.active) {
+            this.compact.add_child(this._cover(22));
+            const title = this._label(media.title, 'ada-baslik');
+            title.clutter_text.ellipsize = 3; // Pango.EllipsizeMode.END
+            this.compact.add_child(title);
+            this.compact.add_child(this._wave(54, 18));
+            this.compact.add_child(this._button(media.playing ? 'media-playback-pause-symbolic'
+                : 'media-playback-start-symbolic', () => this.act({do: 'media', action: 'play_pause'})));
+            return;
+        }
+        this.compact.add_child(new St.Icon({icon_name: st.phone ? 'phone-symbolic' : 'phone-disabled-symbolic',
+            icon_size: 16}));
+        this.compact.add_child(this._label(st.phone ? st.phone + (st.battery !== undefined && st.battery !== null
+            ? ` · %${st.battery}` : '') : 'Telefon bağlı değil', 'ada-soluk'));
+        this.compact.add_child(this._wave(40, 14));
+    }
+
+    _buildPage() {
+        this._clear(this.page);
+        const builders = {arama: () => this._callPage(), calan: () => this._musicPage(),
+            bildirim: () => this._notifPage(), zamanlayici: () => this._timerPage()};
+        (builders[this.pageName] || builders.calan)();
+    }
+
+    _row(...children) {
+        const r = new St.BoxLayout({style_class: 'ada-satir'});
+        for (const c of children)
+            r.add_child(c);
+        return r;
+    }
+
+    _musicPage() {
+        const media = (this.state && this.state.media) || {};
+        if (!media.active) {
+            this.page.add_child(this._label('Telefonda bir şey çalmıyor', 'ada-soluk'));
+            return;
+        }
+        const texts = new St.BoxLayout({vertical: true, x_expand: true, y_align: Clutter.ActorAlign.CENTER});
+        texts.add_child(this._label(media.title, 'ada-baslik'));
+        texts.add_child(this._label([media.artist, media.player].filter(Boolean).join(' · '), 'ada-soluk'));
+        this.page.add_child(this._row(this._cover(56), texts));
+        this.page.add_child(this._wave(380, 26));
+        const ctl = this._row(
+            this._button('media-skip-backward-symbolic', () => this.act({do: 'media', action: 'previous'})),
+            this._button(media.playing ? 'media-playback-pause-symbolic' : 'media-playback-start-symbolic',
+                () => this.act({do: 'media', action: 'play_pause'}), 'ada-buyuk-dugme'),
+            this._button('media-skip-forward-symbolic', () => this.act({do: 'media', action: 'next'})));
+        ctl.x_align = Clutter.ActorAlign.CENTER;
+        this.page.add_child(ctl);
+    }
+
+    _callPage() {
+        const call = this.state && this.state.call;
+        if (!call)
+            return;
+        const ringing = call.state === 'ringing';
+        const texts = new St.BoxLayout({vertical: true, x_expand: true});
+        texts.add_child(this._label(call.caller || 'Bilinmeyen', 'ada-baslik ada-iri'));
+        texts.add_child(this._label(`${call.app}${ringing ? ' araması' : ' görüşmesi'}`, 'ada-soluk'));
+        this.page.add_child(this._row(new St.Icon({icon_name: 'call-start-symbolic', icon_size: 28,
+            style_class: 'ada-yesil'}), texts));
+        const btns = this._row();
+        btns.x_align = Clutter.ActorAlign.CENTER;
+        for (const a of call.actions || []) {
+            const bad = /reddet|kapat|decline|hang|end|sonlandır/i.test(a.title);
+            btns.add_child(this._textButton(a.title, () => this.act({do: 'call', key: call.key, i: a.i}),
+                bad ? 'ada-kirmizi' : 'ada-yesil-dugme'));
+        }
+        if (!ringing) {
+            btns.add_child(this._button('audio-volume-low-symbolic', () => this.act({do: 'call_volume', up: false})));
+            btns.add_child(this._button('audio-volume-high-symbolic', () => this.act({do: 'call_volume', up: true})));
+        }
+        this.page.add_child(btns);
+    }
+
+    _notifPage() {
+        const apps = (this.state && this.state.notifications) || [];
+        this.page.add_child(this._label('Bildirimler', 'ada-baslik'));
+        if (!apps.length) {
+            this.page.add_child(this._label('Yeni bildirim yok', 'ada-soluk'));
+            return;
+        }
+        for (const n of apps.slice(0, 4)) {
+            const line = this._label(`${n.app}${n.count > 1 ? ` (${n.count})` : ''}`, 'ada-uygulama');
+            const last = this._label(n.last || '', 'ada-soluk');
+            last.clutter_text.ellipsize = 3;
+            last.x_expand = true;
+            this.page.add_child(this._row(line, last));
+        }
+    }
+
+    _timerPage() {
+        const st = this.state || {};
+        const timer = st.timer;
+        if (timer) {
+            const big = this._liveLabel(() => mmss(timer.ends_at - Date.now() / 1000), 'ada-sayac');
+            big.x_align = Clutter.ActorAlign.CENTER;
+            this.page.add_child(big);
+            const where = this._label(timer.phone ? 'Telefonda da kuruldu' : 'Bu bilgisayarda', 'ada-soluk');
+            where.x_align = Clutter.ActorAlign.CENTER;
+            this.page.add_child(where);
+            const r = this._row(this._textButton('İptal', () => this.act({do: 'timer_cancel'}), 'ada-kirmizi'));
+            r.x_align = Clutter.ActorAlign.CENTER;
+            this.page.add_child(r);
+            return;
+        }
+        this.page.add_child(this._label('Zamanlayıcı', 'ada-baslik'));
+        // Telefon bağlıysa varsayılan açık; kullanıcı bir kez değiştirince onun seçimi kalır.
+        const onPhone = !!st.phone && this.timerPhone !== false;
+        const presets = this._row();
+        presets.x_align = Clutter.ActorAlign.CENTER;
+        for (const min of [1, 5, 10, 25, 60]) {
+            presets.add_child(this._textButton(`${min} dk`, () => this.act({do: 'timer', seconds: min * 60,
+                phone: onPhone}), 'ada-sure'));
+        }
+        this.page.add_child(presets);
+        const toggle = this._textButton(onPhone ? '✓ Telefonda da kur' : 'Telefonda da kur', () => {
+            this.timerPhone = !onPhone;
+            this._buildPage();
+        }, onPhone ? 'ada-secili' : '');
+        toggle.reactive = !!st.phone;
+        const r = this._row(toggle);
+        r.x_align = Clutter.ActorAlign.CENTER;
+        this.page.add_child(r);
+    }
+
+}
+
+export default class AdaExtension extends Extension {
+    enable() {
+        this._ada = new Ada();
+    }
+
+    disable() {
+        this._ada.destroy();
+        this._ada = null;
+    }
+}

@@ -23,6 +23,8 @@ mkdir -p "$ROOT/DEBIAN" "$ROOT/usr/lib/talk-to-android" "$ROOT/usr/bin" "$ROOT/u
     "$ROOT/usr/share/keyrings"
 cp -r "$HERE/talkto" "$ROOT/usr/lib/talk-to-android/"
 find "$ROOT/usr/lib/talk-to-android" -name __pycache__ -prune -exec rm -rf {} +
+# Üst ada (GNOME eklentisi): GNOME 42–44 ve 45+ sürümleri; kullanıcı Tercihler'den kurunca kendi klasörüne kopyalanır.
+python3 "$HERE/../gnome-ada/build.py" "$ROOT/usr/share/talk-to-android/gnome-ada" > /dev/null
 cat > "$ROOT/usr/bin/talk-to-android" <<'SH'
 #!/bin/sh
 PYTHONPATH="/usr/lib/talk-to-android${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m talkto "$@"

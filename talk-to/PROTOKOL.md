@@ -98,6 +98,7 @@ Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorle
 | `clipboard` | iki yön | `text` |
 | `open_url` | telefon → bilgisayar | `url` (yalnızca http/https) |
 | `ring` / `ring_stop` | bilgisayar → telefon | telefonu bul |
+| `timer` / `timer_cancel` | bilgisayar → telefon | `{"seconds": 600, "label": "10 dk"}`: telefonda zamanlayıcı (geri sayan bildirim, bitince alarm sesi); üst adadan “Telefonda da kur” |
 | `profile` | bilgisayar → telefon | `id`, `name`, `permissions` {notifications, media, files, clipboard, open_url, commands, power, screenshot}; bağlanınca ve profil değişince |
 | `commands` | bilgisayar → telefon | `items`: [{`id`, `name`, `icon`, `power`}] — profilin izin verdiği komutlar |
 | `run_command` | telefon → bilgisayar | `id` (yalnızca listedeki bir kimlik; komut metni gönderilmez) |
