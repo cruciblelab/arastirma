@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.15.4" date="2026-10-12">
+      <description><p>Taşan dalgalar sakinleşti: su yanlardan inip köşeleri sarıyor ve adanın alt çizgisinde ince, dalgalı bir şerit oluyor; aşağı sarkan şelale ve damlalar kaldırıldı (dikkat dağıtıyordu).</p></description>
+    </release>
     <release version="0.15.3" date="2026-10-12">
       <description><p>Taşan dalgalar: su yanlardan inip alt köşelerden şelale gibi dümdüz aşağı düşüyor ve soluyor; altta çalkalanan su artık adanın genişliğini aşmıyor (0.15.2'de köşelerden dışa doğru taşıyordu).</p></description>
     </release>
