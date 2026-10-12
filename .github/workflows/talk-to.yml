@@ -151,7 +151,7 @@ jobs:
           done
           for k in x11 wayland; do
             cat "$RUNNER_TEMP/ada-test/mini-menu-$k.json"; echo
-            python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['open_after_click'] and d['closed_after_outside'] and not d.get('errors'), d" "$RUNNER_TEMP/ada-test/mini-menu-$k.json"
+            python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['open_after_click'] and d['closed_after_outside'] and d['closed_by_x'] and not d.get('errors'), d" "$RUNNER_TEMP/ada-test/mini-menu-$k.json"
           done
           grep -q X11Display "$RUNNER_TEMP/ada-test/mini-menu-x11.json"
 

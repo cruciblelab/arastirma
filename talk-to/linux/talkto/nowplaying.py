@@ -5,7 +5,15 @@ Arayüzden bağımsızdır (test edilebilir). Kararlar:
   duraklatıp devam etmek pencereyi yeniden açmaz, kullanıcı kapattıysa kapalı kalır).
 - "track": çalarken parça değişti ya da ilk kez göründü (masaüstünde kısa bildirim).
 - "stopped": çalan bir şey kalmadı (şarkı bildirimi kaldırılır).
+
+Telefon şarkı değişirken (ya da kendiliğinden) bir an "çalmıyor" deyip hemen geri dönebiliyor. Bu kısa boşluk
+(REJOIN sn) "durdu, yeniden başladı" sayılmaz: yoksa kullanıcının kapattığı mini oynatıcı yeniden açılıyor, aynı
+şarkı için yeniden bildirim çıkıyor ve ada yeniden büyüyordu.
 """
+
+import time
+
+REJOIN = 3.0
 
 
 def _key(st: dict):
@@ -16,10 +24,18 @@ class NowPlaying:
     def __init__(self):
         self.states: dict[str, dict] = {}
         self.current: str | None = None
+        self.gone: dict[str, tuple[float, dict]] = {}  # az önce "çalmıyor" diyen telefon: (an, son durum)
+        self.clock = time.monotonic
 
     def update(self, device_id: str, state: dict) -> dict:
         old = self.states.get(device_id) or {}
         active, playing = bool(state.get("active")), bool(state.get("playing"))
+        if not active and old.get("active"):
+            self.gone[device_id] = (self.clock(), old)
+        elif active and not old.get("active") and device_id in self.gone:
+            at, prev = self.gone.pop(device_id)
+            if self.clock() - at < REJOIN:
+                old = prev  # kısa boşluk: hiç durmamış gibi
         was_active = bool(old.get("active"))
         self.states[device_id] = dict(state) if active else {"active": False}
         events = {

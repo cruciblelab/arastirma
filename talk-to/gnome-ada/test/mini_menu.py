@@ -48,6 +48,24 @@ def menu_xy():
     return seen["xy"]
 
 
+def close_xy():
+    """Kapat (X) düğmesi: mini oynatıcıda "window-close-symbolic" simgeli düğme."""
+    from gi.repository import Graphene, Gtk
+    m = app.mini
+    def walk(w):
+        while w is not None:
+            if isinstance(w, Gtk.Button) and w.get_icon_name() == "window-close-symbolic" and w.get_mapped():
+                return w
+            r = walk(w.get_first_child())
+            if r:
+                return r
+            w = w.get_next_sibling()
+        return None
+    b = walk(m.get_first_child())
+    ok, p = b.compute_point(m, Graphene.Point().init(b.get_width() / 2, b.get_height() / 2))
+    return p.x, p.y + 32
+
+
 steps = [
     lambda: app.open_mini_player(),
     lambda: seen.update(display=type(app.mini.get_display()).__name__),
@@ -57,6 +75,9 @@ steps = [
     lambda: cek("Click", 900.0, 600.0),  # ana pencerenin boş bir yeri
     lambda: None,
     lambda: (seen.update(closed_after_outside=not menu_open()), cek("Shot", f"{OUT}/mini-menu-disari.png")),
+    lambda: cek("Click", *map(float, close_xy())),  # X: mini oynatıcı kapanmalı
+    lambda: None,
+    lambda: seen.update(closed_by_x=app.mini is None),
 ]
 i = [0]
 

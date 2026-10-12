@@ -335,7 +335,9 @@ class App(Adw.Application):
         if ev["stopped"]:
             self._cancel_popup(did)
             self.notifier.close(f"calan|{did}")
-        if ev["started"] and self.config["mini_player_pinned"] and self.mini is None:
+        # Üst ada ekrandayken çalanı o gösterir: mini oynatıcı ayrıca kendiliğinden açılmaz (elle açılabilir).
+        if (ev["started"] and self.config["mini_player_pinned"] and self.mini is None
+                and not (self.ada and self.ada.showing())):
             self.open_mini_player()
         if ev["track"] and self.ada:
             self.ada.on_track()
@@ -399,6 +401,11 @@ class App(Adw.Application):
         elif not on and self.bt:
             self.bt.stop()
             self.bt = None
+
+    def do_shutdown(self):
+        if self.ada:
+            self.ada.stop()  # D-Bus nesnesi bırakılsın (aynı süreçte yeniden başlayan uygulama için)
+        Adw.Application.do_shutdown(self)
 
     def _quit(self, *_):
         if self.bt:

@@ -71,6 +71,28 @@ class NowPlayingTest(unittest.TestCase):
         self.assertFalse(ev["started"] or ev["track"])
         self.assertEqual(n.shown()[0], "a")  # duraklatılmış parça da gösterilir
 
+    def test_short_gap_is_not_a_restart(self):
+        """Telefon bir an "çalmıyor" deyip geri dönerse: kapatılan mini oynatıcı yeniden açılmaz, aynı şarkı için
+        yeniden bildirim/ada büyümesi olmaz. Gerçekten durup (REJOIN sn'den uzun) yeniden başlarsa olur."""
+        from talkto import nowplaying
+        t = [100.0]
+        n = NowPlaying()
+        n.clock = lambda: t[0]
+        n.update("a", song("Firuze"))
+        n.update("a", {"active": False})
+        t[0] += 1
+        ev = n.update("a", song("Firuze"))
+        self.assertFalse(ev["started"] or ev["track"])
+        n.update("a", {"active": False})
+        t[0] += 0.5
+        ev = n.update("a", song("Gesi Bağları"))  # boşlukta parça değişti: yalnızca "track"
+        self.assertTrue(ev["track"])
+        self.assertFalse(ev["started"])
+        n.update("a", {"active": False})
+        t[0] += nowplaying.REJOIN + 1
+        ev = n.update("a", song("Gesi Bağları"))
+        self.assertTrue(ev["started"] and ev["track"])
+
     def test_paused_new_track_is_quiet(self):
         n = NowPlaying()
         ev = n.update("a", song("Firuze", playing=False))

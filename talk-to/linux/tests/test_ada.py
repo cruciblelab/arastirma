@@ -174,6 +174,14 @@ class StateTest(unittest.TestCase):
         self.assertTrue(self.ada._emit_id)  # eklentiye "değişti" gidecek (olay değil: ada büyümez)
         self.assertEqual(self.ada.seq, seq)
 
+    def test_showing_after_extension_connects(self):
+        self.assertFalse(self.ada.showing())
+        inv = type("Inv", (), {"return_value": lambda self, v: None})()
+        self.ada._method(None, None, None, None, "GetState", None, inv)  # eklenti bağlandı
+        self.assertTrue(self.ada.showing())
+        self.app.config.set("ada_enabled", False)
+        self.assertFalse(self.ada.showing())
+
     def test_actions(self):
         self.ada.on_event("status", {"sessions": [SESS]})
         self.app.now.update("p", {"active": True, "title": "x", "playing": True})

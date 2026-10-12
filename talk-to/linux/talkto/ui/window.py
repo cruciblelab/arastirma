@@ -1171,7 +1171,8 @@ class Window(Adw.ApplicationWindow):
         mini.add_suffix(b)
         g.add(mini)
         self.sw_pin = compat.SwitchRow(title="Müzik başlayınca mini oynatıcıyı aç",
-                                       subtitle="Telefonda müzik başlayınca mini oynatıcı kendiliğinden açılır")
+                                       subtitle="Telefonda müzik başlayınca mini oynatıcı kendiliğinden açılır "
+                                                "(üst ada ekrandayken açılmaz)")
         self.sw_pin.set_active(self.app.config["mini_player_pinned"])
         self.sw_pin.connect("notify::active", lambda r, _: not self._updating and self.app.set_pinned(r.get_active()))
         g.add(self.sw_pin)

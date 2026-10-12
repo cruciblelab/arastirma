@@ -60,6 +60,7 @@ class AdaService:
         self._last_media = None  # son gösterilen çalan ve zamanı (MEDIA_GRACE)
         self._last_media_t = 0.0
         self._grace_id = 0
+        self.seen = False  # eklenti bu çalışmada Talk To'ya bağlandı (durumu istedi): ada ekranda
         self._emit_id = 0
         self._reg = 0
         self.conn = app.get_dbus_connection()
@@ -70,6 +71,10 @@ class AdaService:
                                                   self._method, None, None)
         except GLib.Error as e:
             log.warning("ada D-Bus nesnesi yayımlanamadı: %s", e.message)
+
+    def showing(self) -> bool:
+        """Üst ada ekranda mı (eklenti bağlandı ve "Göster" açık): mini oynatıcı kendiliğinden açılmaz."""
+        return self.seen and bool(self.app.config["ada_enabled"])
 
     def stop(self):
         if self._grace_id:
@@ -83,6 +88,7 @@ class AdaService:
 
     def _method(self, _conn, _sender, _path, _iface, method, params, inv):
         if method == "GetState":
+            self.seen = True
             inv.return_value(GLib.Variant("(s)", (json.dumps(self.state(), ensure_ascii=False),)))
             return
         try:
