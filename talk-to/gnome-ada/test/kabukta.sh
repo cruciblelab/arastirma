@@ -16,6 +16,9 @@ gnome-shell --headless --wayland --virtual-monitor 1280x800 > "$OUT/shell.log" 2
 SH=$!
 for i in $(seq 1 120); do gdbus introspect --session --dest test.Cek --object-path /test/Cek > /dev/null 2>&1 && break; sleep 0.5; done
 sleep 1
+# Test makinesinde ekran kartı yok: GTK GPU çizicisi (EGL) yazılım çizimde ara sıra açılışta takılıyor
+# (CI: pencere açılırken 2 dakika bekleyip öldürüldü). Linux işindeki ekran görüntüleri gibi cairo ile çizilir.
+export GSK_RENDERER=cairo
 export WAYLAND_DISPLAY=wayland-0 DISPLAY=:0; export XAUTHORITY=$(ls $XDG_RUNTIME_DIR/.mutter-Xwaylandauth.* 2>/dev/null | head -1); echo "xauth=$XAUTHORITY" > "$OUT/env.txt"
 timeout 120 "$@" > "$OUT/surucu.log" 2>&1
 kill $SH; wait $SH 2> /dev/null' _ "$@"

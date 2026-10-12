@@ -27,7 +27,7 @@ gnome-shell --headless --wayland --no-x11 --virtual-monitor 1280x800 > "$OUT/she
 SH=$!
 for i in $(seq 1 120); do gdbus introspect --session --dest test.Cek --object-path /test/Cek > /dev/null 2>&1 && break; sleep 0.5; done
 sleep 1
-WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland timeout 200 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
+WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland GSK_RENDERER=cairo timeout 200 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
     > "$OUT/talkto.log" 2>&1
 kill $SH; wait $SH 2> /dev/null'
 rm -rf "$H" 2> /dev/null || true
