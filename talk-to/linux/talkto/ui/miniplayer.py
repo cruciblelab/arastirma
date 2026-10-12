@@ -26,6 +26,8 @@ from . import compat, ustte
 # boyut: (normal genişlik, kapak), (tepecik genişlik, kapak). Küçükte ses ve ilerleme çubuğu gizlenir.
 SIZES = {"kucuk": ((340, 64), (300, 34)), "orta": ((440, 96), (340, 40)), "buyuk": ((560, 136), (400, 48))}
 SIZE_NAMES = {"kucuk": "Küçük", "orta": "Orta", "buyuk": "Büyük"}
+ART_WAIT_MS = 4000  # yeni kapak bu kadar gelmezse (kapaksız şarkı) eski kapak kaldırılır
+TRACK_GAP_MS = 2500  # şarkı değişirken telefon bir an "çalmıyor" diyebilir: o arada boşa düşmesin
 BLUR_CLOSE_MS = 250  # pencere bu kadar odaksız kalırsa açık menüler kapanır
 MENU_WATCH_MS = 300  # XWayland'de menü açıkken odak bu aralıkla pencere yöneticisine sorulur
 
@@ -413,8 +415,31 @@ class MiniPlayer(Adw.Window):
 
     # ---- durum ------------------------------------------------------------------
 
+    def _art_wait_over(self):
+        self._timers.pop("art_wait", None)
+        self.app._refresh_mini()
+        return False
+
+    def _gap_over(self):
+        self._timers.pop("gap", None)
+        self._gap_done = True
+        self.app._refresh_mini()
+        return False
+
     def show_state(self, device_id, device_name, state, art_path=None):
         active = bool(device_id and state.get("active"))
+        gap = self._timers.pop("gap", None)
+        if active and gap:
+            GLib.source_remove(gap)
+        if not active and getattr(self, "state", None) and not getattr(self, "_gap_done", False):
+            # Az önce çalıyordu: hemen "çalmıyor"a düşme, kısa bir süre son şarkı (duraklamış) kalsın.
+            self._timers["gap"] = gap or GLib.timeout_add(TRACK_GAP_MS, self._gap_over)
+            self.wave.set_playing(False)
+            self.c_wave.set_playing(False)
+            for b in (self.play, self.c_play):
+                b.set_icon_name("media-playback-start-symbolic")
+            return
+        self._gap_done = False
         self.device_id = device_id if active else None
         self.state = dict(state) if active else {}
         for w in (self.prev, self.play, self.next, self.volume, self.progress, self.c_play, self.c_next):
@@ -431,6 +456,7 @@ class MiniPlayer(Adw.Window):
             self.c_artist.set_text("Telefonda çalan")
             self.art_stack.set_visible_child_name("yok")
             self.c_stack.set_visible_child_name("yok")
+            self._art = None  # sonraki şarkıda eski kapak "bekliyor" diye gösterilmesin
             for b in (self.play, self.c_play):
                 b.set_icon_name("media-playback-start-symbolic")
             self.progress.set_range(0, 1)
@@ -458,8 +484,18 @@ class MiniPlayer(Adw.Window):
         if art_path and art_path != self._art:  # konum her güncellendiğinde kapak yeniden yüklenmesin
             self.pic.set_filename(art_path)
             self.c_pic.set_paintable(self.pic.get_paintable())
-        self._art = art_path
-        name = "var" if art_path else "yok"
+        # Yeni şarkının kapağı telefondan biraz sonra gelir: o arada boş simgeye düşmek yerine eski kapak soluk durur.
+        if title != getattr(self, "_title", None):
+            self._title, self._title_t = title, time.monotonic()
+            if not art_path and self._art is not None and "art_wait" not in self._timers:
+                self._timers["art_wait"] = GLib.timeout_add(ART_WAIT_MS + 50, self._art_wait_over)
+        waiting = (not art_path and self._art is not None
+                   and time.monotonic() - self._title_t < ART_WAIT_MS / 1000)
+        for pic in (self.pic, self.c_pic):
+            pic.set_opacity(0.4 if waiting else 1)
+        if art_path:
+            self._art = art_path
+        name = "var" if (art_path or waiting) else "yok"
         self.art_stack.set_visible_child_name(name)
         self.c_stack.set_visible_child_name(name)
         self._tick()

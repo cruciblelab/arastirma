@@ -62,8 +62,7 @@ class Wave {
         const cr = area.get_context();
         const [w, h] = area.get_surface_size();
         const t = this.ada.theme;
-        const playing = this.ada.playing;
-        const amp = playing ? h * 0.22 : h * 0.05;
+        const amp = h * this.ada.amp;  // çalarken 0.22, duraklayınca 0.05; arada yumuşak geçer
         const phase = this.ada.phase;
         const layers = [[t.wave2, 0.55, 1.0, 0.0], [t.wave1, 0.95, 1.6, 1.7]];
         for (const [color, alpha, speed, shift] of layers) {
@@ -92,6 +91,7 @@ class Ada {
         this.theme = DEFAULT_THEME;
         this.playing = false;
         this.phase = 0;
+        this.amp = 0.05;
         this.expanded = false;
         this.thin = false;   // ince şerit (yukarı kaydırıldı)
         this.peek = false;   // ince şeritteyken fare üstünde: normal hâl görünür
@@ -105,7 +105,8 @@ class Ada {
         this._timers = {};
 
         this.box = new St.BoxLayout({style_class: 'ada', vertical: true, reactive: true, track_hover: true,
-            visible: false});
+            visible: false, clip_to_allocation: true});
+        this.box.set_pivot_point(0.5, 0);
         this.compact = new St.BoxLayout({style_class: 'ada-compact'});
         this.box.add_child(this.compact);
         this.page = new St.BoxLayout({style_class: 'ada-page', vertical: true, visible: false,
@@ -133,6 +134,7 @@ class Ada {
         for (const id of Object.values(this._timers))
             GLib.source_remove(id);
         this._timers = {};
+        this._ungrab();
         if (this._proxy && this._sigId)
             this._proxy.disconnectSignal(this._sigId);
         this._proxy = null;
@@ -178,6 +180,7 @@ class Ada {
         } catch (e) {
             return;
         }
+        const prev = this.state && this.state.media;
         this.state = st;
         this.theme = Object.assign({}, DEFAULT_THEME, st.theme || {});
         this.playing = !!(st.media && st.media.active && st.media.playing);
@@ -185,18 +188,24 @@ class Ada {
             `background-gradient-start: ${this.theme.bg1}; background-gradient-end: ${this.theme.bg2};` +
             `color: ${this.theme.text};`);
         this.box.visible = st.enabled !== false;
-        const ev = st.event || {};
-        if (ev.seq && ev.seq !== this.lastEvent) {
-            const first = this.lastEvent === 0;
-            this.lastEvent = ev.seq;
-            if (!first)
-                this._onEvent(ev.kind);
-        }
-        if (!st.call && this.pageName === 'arama')
-            this.pageName = 'calan';
-        this._buildCompact();
-        if (this.expanded)
-            this._buildPage();
+        const media = st.media;
+        const newTrack = !!(prev && media && prev.title && media.title !== prev.title);
+        this._morph(() => {
+            const ev = st.event || {};
+            if (ev.seq && ev.seq !== this.lastEvent) {
+                const first = this.lastEvent === 0;
+                this.lastEvent = ev.seq;
+                if (!first)
+                    this._onEvent(ev.kind);
+            }
+            if (!st.call && this.pageName === 'arama')
+                this.pageName = 'calan';
+            this._buildCompact();
+            if (this.expanded)
+                this._buildPage();
+        });
+        if (newTrack)  // yeni şarkı: yazılar hafifçe kayarak belirir (hiç boş görünmeden)
+            this._fadeIn(this.compact, -3, 110);
         this._animate(this.playing && this.box.visible);
     }
 
@@ -208,6 +217,7 @@ class Ada {
             return; // ince şeritte yalnızca arama büyütür
         this.pageName = page;
         this._expand(true);
+        this._bump();
         if (kind !== 'call')
             this._collapseLater(SHOW_EVENT_MS);
     }
@@ -238,17 +248,18 @@ class Ada {
     }
 
     _expand(on) {
-        this.expanded = on;
-        this.page.visible = on;
-        this._setClass();
-        if (on) {
-            this._buildPage();
-            this.page.opacity = 0;
-            this.page.ease({opacity: 255, duration: 180, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-        } else {
-            this._cancel('collapse');
-        }
-        this._buildCompact();
+        this._morph(() => {
+            this.expanded = on;
+            this.page.visible = on;
+            this._setClass();
+            if (on) {
+                this._buildPage();
+                this._fadeIn(this.page, -6);
+            } else {
+                this._cancel('collapse');
+            }
+            this._buildCompact();
+        });
     }
 
     _collapseLater(ms) {
@@ -262,6 +273,17 @@ class Ada {
         });
     }
 
+    _refreshLater(name, ms) {
+        this._cancel(name);
+        this._timers[name] = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+            delete this._timers[name];
+            this._buildCompact();
+            if (this.expanded)
+                this._buildPage();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
     _cancel(name) {
         if (this._timers[name]) {
             GLib.source_remove(this._timers[name]);
@@ -270,6 +292,9 @@ class Ada {
     }
 
     _hoverChanged() {
+        // Üstüne gelince hafifçe kabarır.
+        this.box.ease({scale_x: this.box.hover ? 1.02 : 1, scale_y: this.box.hover ? 1.02 : 1, duration: 160,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         if (this.box.hover)
             this._cancel('collapse');
         else if (this.expanded)
@@ -291,9 +316,12 @@ class Ada {
     _setPeek(on) {
         if (this.peek === on)
             return;
-        this.peek = on;
-        this._setClass();
-        this._buildCompact();
+        this._morph(() => {
+            this.peek = on;
+            this._setClass();
+            this._buildCompact();
+        });
+        this._fadeIn(this.compact);
     }
 
     // Bir kademe küçült (yukarı kaydırma) ya da ince şeritten normale dön (tıklama).
@@ -301,19 +329,24 @@ class Ada {
         if (this.expanded) {
             this._expand(false);
         } else if (!this.thin) {
-            this.thin = true;
-            this.peek = false;
-            this._setClass();
-            this._buildCompact();
+            this._morph(() => {
+                this.thin = true;
+                this.peek = false;
+                this._setClass();
+                this._buildCompact();
+            });
         }
     }
 
     _unthin() {
         this._cancel('peek');
-        this.thin = false;
-        this.peek = false;
-        this._setClass();
-        this._buildCompact();
+        this._morph(() => {
+            this.thin = false;
+            this.peek = false;
+            this._setClass();
+            this._buildCompact();
+        });
+        this._fadeIn(this.compact);
     }
 
     _scroll(event) {
@@ -339,19 +372,67 @@ class Ada {
 
     // ---- dalga canlandırması -----------------------------------------------------------
 
+    // Çalarken dalga akar; duraklayınca yavaşlayıp durulur (birden donmaz), sonra çizim durur.
     _animate(on) {
-        if (on && !this._timers.wave) {
-            this._timers.wave = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 40, () => {
-                this.phase += 0.12;
-                for (const w of this.waves)
-                    w.repaint();
-                return GLib.SOURCE_CONTINUE;
-            });
-        } else if (!on) {
-            this._cancel('wave');
+        this.waveOn = on;
+        if (this._timers.wave)
+            return;
+        this._timers.wave = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 40, () => {
+            const target = this.waveOn ? 0.22 : 0.05;
+            this.amp += (target - this.amp) * 0.08;
+            this.phase += 0.03 + 0.09 * ((this.amp - 0.05) / 0.17);
             for (const w of this.waves)
                 w.repaint();
+            if (!this.waveOn && Math.abs(this.amp - target) < 0.002) {
+                this.amp = target;
+                delete this._timers.wave;
+                return GLib.SOURCE_REMOVE;
+            }
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    // ---- canlandırmalar ----------------------------------------------------------------
+
+    // Boyut değişimi (büyüme, küçülme, ince şerit, sayfa) yumuşak olsun: önce eski boyutta sabitlenir,
+    // içerik yenilenir, sonra yeni doğal boyuta kayar.
+    _morph(fn) {
+        if (this._morphing)  // iç içe çağrıda dıştaki canlandırır
+            return fn();
+        const [w0, h0] = this.box.get_size();
+        this._morphing = true;
+        try {
+            fn();
+        } finally {
+            this._morphing = false;
         }
+        if (!this.box.visible || !this.box.mapped || w0 <= 0)
+            return;
+        this.box.remove_transition('width');
+        this.box.remove_transition('height');
+        this.box.set_size(-1, -1);
+        const [, w1] = this.box.get_preferred_width(-1);
+        const [, h1] = this.box.get_preferred_height(w1);
+        if (Math.abs(w1 - w0) < 2 && Math.abs(h1 - h0) < 2)
+            return;
+        this.box.set_size(w0, h0);
+        this.box.ease({width: w1, height: h1, duration: 240, mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+            onComplete: () => this.box.set_size(-1, -1)});
+    }
+
+    // Bir şey olunca (arama, şarkı, bildirim) hafif bir sıçrama.
+    _bump() {
+        this.box.remove_transition('scale-x');
+        this.box.remove_transition('scale-y');
+        this.box.ease({scale_x: 1.04, scale_y: 1.04, duration: 110, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.box.ease({scale_x: 1, scale_y: 1, duration: 260,
+                mode: Clutter.AnimationMode.EASE_OUT_BACK})});
+    }
+
+    _fadeIn(actor, dy = 0, from = 0) {
+        actor.opacity = from;
+        actor.translation_y = dy;
+        actor.ease({opacity: 255, translation_y: 0, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
     _wave(width, height) {
@@ -373,16 +454,49 @@ class Ada {
         return Clutter.EVENT_PROPAGATE;
     }
 
+    // Sürükleme başlayınca fare adaya bağlanır: GNOME 42'de bağlanmazsa fare adanın dışında bırakıldığında
+    // bırakma olayı adaya hiç gelmiyor, sürükleme "takılı" kalıyordu (sayfa kayıyor ama değişmiyordu).
+    // Basılınca değil, sürükleme başlayınca bağlanır: yoksa düğmeler tıklamayı alamaz.
+    _grabPointer() {
+        if (this._grab)
+            return;
+        try {
+            if (global.stage.grab)
+                this._grab = global.stage.grab(this.box);
+        } catch (e) {
+            this._grab = null;
+        }
+    }
+
+    _ungrab() {
+        if (this._grab) {
+            this._grab.dismiss();
+            this._grab = null;
+        }
+    }
+
+    _endDrag() {
+        this._dragX = undefined;
+        this._ungrab();
+        this.page.ease({translation_x: 0, duration: 150, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+    }
+
     _motion(event) {
         if (this._dragX === undefined)
             return Clutter.EVENT_PROPAGATE;
+        if (!(event.get_state() & Clutter.ModifierType.BUTTON1_MASK)) {  // bırakma kaçırıldı: sürüklemeyi bitir
+            this._endDrag();
+            return Clutter.EVENT_PROPAGATE;
+        }
         const [x, y] = event.get_coords();
         const dx = x - this._dragX;
-        if (Math.abs(dx) > 8 || Math.abs(y - this._dragY) > 8)
+        if (!this._dragged && (Math.abs(dx) > 8 || Math.abs(y - this._dragY) > 8)) {
             this._dragged = true;
+            this._grabPointer();
+        }
         if (this.expanded && this._dragged)
             this.page.translation_x = Math.max(-80, Math.min(80, dx * 0.6));
-        return Clutter.EVENT_PROPAGATE;
+        return this._dragged ? Clutter.EVENT_STOP : Clutter.EVENT_PROPAGATE;
     }
 
     _release(event) {
@@ -391,6 +505,7 @@ class Ada {
         const [x, y] = event.get_coords();
         const dx = x - this._dragX, dy = y - this._dragY;
         this._dragX = undefined;
+        this._ungrab();
         if (this._dragged && -dy >= DRAG_UP && -dy > Math.abs(dx)) {  // yukarı sürükleme: küçül
             this.page.translation_x = 0;
             this._shrink();
@@ -415,7 +530,7 @@ class Ada {
             i = pages.indexOf('calan');
         const next = Math.max(0, Math.min(pages.length - 1, i + dir));
         this.pageName = pages[next];
-        this._buildPage();
+        this._morph(() => this._buildPage());
         this.page.translation_x = dir * 60;
         this.page.opacity = 120;
         this.page.ease({translation_x: 0, opacity: 255, duration: 200, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
@@ -473,13 +588,34 @@ class Ada {
         return b;
     }
 
+    // Şarkı değişince yeni kapak telefondan biraz sonra gelir: o arada boş simgeye düşmek yerine eski kapak
+    // soluk durur, yenisi gelince belirerek yerine geçer.
     _cover(size) {
         const media = this.state && this.state.media;
-        const art = media && media.active && media.art;
+        let art = media && media.active && media.art;
+        let stale = false;
+        if (media && media.title !== this._artTitle) {  // yeni şarkı: kapağının gelmesi beklenir (en çok 4 sn)
+            this._artTitle = media.title;
+            this._artWaitUntil = Date.now() + 4000;
+            if (!art)
+                this._refreshLater('art', 4100);
+        }
+        if (art) {
+            this._lastArt = art;
+        } else if (media && media.active && this._lastArt && Date.now() < this._artWaitUntil) {
+            art = this._lastArt;
+            stale = true;
+        }
         const bin = new St.Bin({style_class: 'ada-kapak', width: size, height: size});
         if (art) {
             bin.set_style(`background-image: url("file://${art}"); background-size: cover;` +
                 `border-radius: ${Math.round(size / 4)}px;`);
+            if (stale)
+                bin.opacity = 110;
+            else if (this._artShown && this._artShown !== art)
+                this._fadeIn(bin);
+            if (!stale)
+                this._artShown = art;
         } else {
             bin.set_child(new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: Math.round(size * 0.6)}));
         }
@@ -594,11 +730,16 @@ class Ada {
             return;
         }
         for (const n of apps.slice(0, 4)) {
+            const icon = n.icon
+                ? new St.Icon({gicon: Gio.FileIcon.new(Gio.File.new_for_path(n.icon)), icon_size: 16,
+                    style_class: 'ada-uygulama-simge'})
+                : new St.Icon({icon_name: 'mail-unread-symbolic', icon_size: 14, style_class: 'ada-uygulama-simge'});
+            icon.y_align = Clutter.ActorAlign.CENTER;
             const line = this._label(`${n.app}${n.count > 1 ? ` (${n.count})` : ''}`, 'ada-uygulama');
             const last = this._label(n.last || '', 'ada-soluk');
             last.clutter_text.ellipsize = 3;
             last.x_expand = true;
-            this.page.add_child(this._row(line, last));
+            this.page.add_child(this._row(icon, line, last));
         }
     }
 

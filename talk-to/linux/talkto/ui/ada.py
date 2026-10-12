@@ -45,6 +45,7 @@ THEMES = {
     "orman": ("Orman", {"bg1": "#0b2b1c", "bg2": "#154734", "wave1": "#52b788", "wave2": "#b7e4c7", "text": "#eefaf2"}),
 }
 NOTIF_KEEP = 3600  # bildirim sayfasında son bir saatin bildirimleri
+MEDIA_GRACE = 2.5  # şarkı değişirken telefon bir anlığına "çalmıyor" diyebilir: ada o arada boşa düşmesin
 
 
 class AdaService:
@@ -56,6 +57,9 @@ class AdaService:
         self.notifs: dict[str, dict] = {}  # uygulama → {"keys": {anahtar: zaman}, "last": metin, "time": zaman}
         self.status: dict = {}
         self.timer = None  # {"ends_at", "total", "phone", "device_id", "source"}
+        self._last_media = None  # son gösterilen çalan ve zamanı (MEDIA_GRACE)
+        self._last_media_t = 0.0
+        self._grace_id = 0
         self._emit_id = 0
         self._reg = 0
         self.conn = app.get_dbus_connection()
@@ -68,6 +72,9 @@ class AdaService:
             log.warning("ada D-Bus nesnesi yayımlanamadı: %s", e.message)
 
     def stop(self):
+        if self._grace_id:
+            GLib.source_remove(self._grace_id)
+            self._grace_id = 0
         if self._reg and self.conn:
             self.conn.unregister_object(self._reg)
             self._reg = 0
@@ -114,8 +121,14 @@ class AdaService:
         if did and media.get("active"):
             m = {k: media.get(k) for k in ("title", "artist", "player", "playing", "position_ms", "duration_ms")}
             m.update(active=True, art=art if art and os.path.exists(art) else None, device_id=did)
+            self._last_media, self._last_media_t = m, time.monotonic()
+        elif self._last_media and time.monotonic() - self._last_media_t < MEDIA_GRACE:
+            m = dict(self._last_media, playing=False)  # kısa boşlukta son şarkı kalır; süre dolunca yeniden bakılır
+            if not self._grace_id:
+                self._grace_id = GLib.timeout_add(int(MEDIA_GRACE * 1000) + 100, self._grace_over)
         cutoff = time.time() - NOTIF_KEEP
-        apps = [{"app": a, "count": len(v["keys"]), "last": v["last"]} for a, v in
+        apps = [{"app": a, "count": len(v["keys"]), "last": v["last"],
+                 "icon": v.get("icon") if v.get("icon") and os.path.exists(v["icon"]) else None} for a, v in
                 sorted(self.notifs.items(), key=lambda kv: -kv[1]["time"]) if v["keys"] and v["time"] >= cutoff]
         timer = None
         if self.timer:
@@ -139,7 +152,7 @@ class AdaService:
             if self.call and self.call["device_id"] not in live:
                 self.call = None
             self.changed()
-        elif event == "media":
+        elif event in ("media", "media_art"):  # kapak şarkıdan sonra gelir: gelince ada da yenilensin
             self.changed()
         elif event == "call":
             new = not self.call or self.call.get("key") != d["key"] or self.call.get("state") != d["state"]
@@ -160,6 +173,8 @@ class AdaService:
             now = time.time()
             entry["keys"][f"{d['device_id']}|{d['key']}"] = now
             entry["last"] = ": ".join(x for x in (d.get("title"), d.get("text")) if x)[:200]
+            if d.get("icon"):
+                entry["icon"] = d["icon"]  # uygulamanın simgesi (telefondan gelir, önbellekte dosya)
             entry["time"] = now
             self.changed("notification")
         elif event == "notification_removed":
@@ -167,6 +182,11 @@ class AdaService:
             for entry in self.notifs.values():
                 entry["keys"].pop(k, None)
             self.changed()
+
+    def _grace_over(self):
+        self._grace_id = 0
+        self.changed()
+        return False
 
     def on_track(self):
         self.changed("track")

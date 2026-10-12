@@ -39,9 +39,10 @@ def click(cls):
     x, y, w, h = find(cls)
     cek("Click", x + w / 2, y + h / 2)
 
-def drag_left():
+def drag_left(far=False):
     x, y, w, h = find("ada")
-    cek("Drag", x + w * 0.8, y + h * 0.5, x + w * 0.8 - 200, y + h * 0.5)
+    # far: adanın dışında bırak (GNOME 42'de bırakma adaya gelmiyor, sürükleme takılı kalıyordu)
+    cek("Drag", x + w * 0.8, y + h * 0.5, x - 60 if far else x + w * 0.8 - 200, y + h * 0.5)
 
 def ada_center():
     x, y, w, h = find("ada")
@@ -73,10 +74,10 @@ steps = [
     lambda: app.on_event("media", {"device_id": "p", "state": song("Gesi Bağları")}),
     lambda: (cek("Shot", f"{OUT}/2-sarki-degisti.png"), olc("buyuk")),
     lambda: click("ada-buyuk-dugme"),  # oynat/duraklat
-    lambda: drag_left(),  # sola sürükle → bildirimler
+    lambda: drag_left(far=True),  # sola sürükle, adanın dışında bırak → bildirimler
     lambda: app.on_event("notification", {"device_id": "p", "device": "POCO", "key": "n1", "package": "x",
                                          "app": "WhatsApp", "title": "Ayşe", "text": "Geliyor musun?",
-                                         "time": time.time()}),
+                                         "time": time.time(), "icon": ART}),  # uygulamanın simgesi
     lambda: cek("Shot", f"{OUT}/3-bildirim.png"),
     lambda: app.on_event("call", call),
     lambda: cek("Shot", f"{OUT}/4-arama.png"),

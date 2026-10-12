@@ -17,6 +17,8 @@ const XML = `<node><interface name="test.Cek">
 </interface></node>`;
 export default class Cek extends Extension {
     enable() {
+        // Yazılımla çizen (ekran kartsız) makinede GNOME canlandırmaları kapatır; testte açık olsun.
+        global.force_animations = true;
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => { Main.overview.hide(); return GLib.SOURCE_REMOVE; });
         this._dev = Clutter.get_default_backend().get_default_seat().create_virtual_device(
             Clutter.InputDeviceType.POINTER_DEVICE);

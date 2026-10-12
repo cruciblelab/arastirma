@@ -16,13 +16,17 @@
 .ada-iri { font-size: 13pt; }
 .ada-soluk { opacity: 0.72; font-size: 8.5pt; }
 .ada-uygulama { font-weight: bold; font-size: 9pt; min-width: 80px; }
+.ada-uygulama-simge { border-radius: 4px; }
 .ada-sayac { font-size: 22pt; font-weight: 300; font-feature-settings: "tnum"; }
 .ada-kapak { border-radius: 6px; background-color: rgba(255, 255, 255, 0.12); }
-.ada-dugme { border-radius: 99px; padding: 4px; background-color: rgba(255, 255, 255, 0.08); }
+.ada-dugme { border-radius: 99px; padding: 4px; background-color: rgba(255, 255, 255, 0.08); transition-duration: 150ms; }
 .ada-dugme:hover { background-color: rgba(255, 255, 255, 0.18); }
+.ada-dugme:active { background-color: rgba(255, 255, 255, 0.3); }
 .ada-buyuk-dugme { padding: 8px; background-color: rgba(255, 255, 255, 0.2); }
-.ada-metin { border-radius: 99px; padding: 4px 12px; background-color: rgba(255, 255, 255, 0.1); font-weight: bold; }
+.ada-metin { border-radius: 99px; padding: 4px 12px; background-color: rgba(255, 255, 255, 0.1); font-weight: bold;
+    transition-duration: 150ms; }
 .ada-metin:hover { background-color: rgba(255, 255, 255, 0.2); }
+.ada-metin:active { background-color: rgba(255, 255, 255, 0.32); }
 .ada-sure { padding: 4px 9px; }
 .ada-secili { background-color: rgba(255, 255, 255, 0.28); }
 .ada-kirmizi { background-color: #c01c28; color: white; }

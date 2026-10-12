@@ -146,6 +146,34 @@ class StateTest(unittest.TestCase):
         self.ada.notifs["WhatsApp"]["time"] -= ada.NOTIF_KEEP + 1  # bir saatten eski: gösterilmez
         self.assertEqual(self.ada.state()["notifications"], [])
 
+    def test_notification_icon(self):
+        icon = Path(tempfile.mkdtemp()) / "wa.png"
+        icon.write_bytes(b"x")
+        self.ada.on_event("notification", {"device_id": "p", "key": "1", "app": "WhatsApp", "text": "a",
+                                           "icon": str(icon)})
+        self.ada.on_event("notification", {"device_id": "p", "key": "2", "app": "Gmail", "text": "b",
+                                           "icon": "/yok/boyle.png"})  # silinmiş önbellek: gösterilmez
+        icons = {n["app"]: n["icon"] for n in self.ada.state()["notifications"]}
+        self.assertEqual(icons, {"WhatsApp": str(icon), "Gmail": None})
+
+    def test_track_change_does_not_drop_to_empty(self):
+        """Şarkı değişirken telefon bir an "çalmıyor" derse ada boşa düşmez; süre dolunca gerçekten kapanır."""
+        self.app.now.update("p", {"active": True, "title": "Firuze", "playing": True})
+        self.assertEqual(self.ada.state()["media"]["title"], "Firuze")
+        self.app.now.update("p", {"active": False})
+        m = self.ada.state()["media"]
+        self.assertEqual((m["title"], m["playing"]), ("Firuze", False))
+        self.ada._last_media_t -= ada.MEDIA_GRACE + 0.1
+        self.assertIsNone(self.ada.state()["media"])
+        self.ada.stop()
+
+    def test_cover_arrival_refreshes(self):
+        seq = self.ada.seq
+        self.ada._emit_id = 0
+        self.ada.on_event("media_art", {"device_id": "p", "art_id": "a", "path": "/x"})
+        self.assertTrue(self.ada._emit_id)  # eklentiye "değişti" gidecek (olay değil: ada büyümez)
+        self.assertEqual(self.ada.seq, seq)
+
     def test_actions(self):
         self.ada.on_event("status", {"sessions": [SESS]})
         self.app.now.update("p", {"active": True, "title": "x", "playing": True})

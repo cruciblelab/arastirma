@@ -120,7 +120,7 @@ jobs:
     # Eklentideki düğmelere sanal fareyle basılır; Talk To'ya ulaşan eylemler ve ekran görüntüleri denetlenir.
     name: Üst ada (GNOME Shell eklentisi)
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: talk-to/gnome-ada
@@ -130,7 +130,8 @@ jobs:
       - name: Bağımlılıklar
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q gnome-shell gjs python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas dbus libglib2.0-bin
+          # Soru soran paket (ör. ekran yöneticisi seçimi) kurulumu bekletmesin; kurulum 15 dakikayla sınırlı.
+          sudo DEBIAN_FRONTEND=noninteractive timeout 900 apt-get install -y -q -o Dpkg::Options::=--force-confdef gnome-shell gjs python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography gsettings-desktop-schemas dbus libglib2.0-bin
 
       - name: Sözdizimi (GNOME 45+ ve 42–44 sürümleri)
         run: |
