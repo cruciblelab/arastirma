@@ -1,4 +1,4 @@
 """Paket Güncelleyici: .deb dosyasını kurulu sürümle karşılaştırır, yayıncının imzasını denetler ve kurar."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 APP_ID = "lab.crucible.PaketGuncelleyici"

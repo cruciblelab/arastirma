@@ -9,6 +9,7 @@ kutuyu işaretleyince açılır: karar kullanıcıda, ama bilerek verilir.
 
 import os
 import threading
+from pathlib import Path
 
 import gi
 
@@ -16,7 +17,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import APP_ID, __version__, apt, calisan, hatalar, iliski, imza, paket, yayinci  # noqa: E402
+from . import APP_ID, __version__, apt, calisan, hatalar, iliski, imza, paket, veriler, yayinci  # noqa: E402
 
 VERDICT = {
     paket.KUR: ("Yeni kurulum", "Bu bilgisayarda kurulu değil."),
@@ -73,7 +74,7 @@ class Window(Adw.ApplicationWindow):
         self.open_btn = Gtk.Button(icon_name="document-open-symbolic", tooltip_text="Başka bir paket aç")
         self.open_btn.connect("clicked", lambda *_: self.choose())
         header.pack_start(self.open_btn)
-        self.apps_btn = Gtk.Button(icon_name="view-list-symbolic", tooltip_text="Kurulu uygulamalar (kaldırmak için)")
+        self.apps_btn = Gtk.Button(icon_name="view-list-symbolic", tooltip_text="Kurulu uygulamalar (kaldırmak ya da verilerini temizlemek için)")
         self.apps_btn.connect("clicked", lambda *_: self.show_apps())
         header.pack_start(self.apps_btn)
         menu = Gio.Menu()
@@ -94,7 +95,7 @@ class Window(Adw.ApplicationWindow):
         b.connect("clicked", lambda *_: self.choose())
         eb.append(b)
         b = Gtk.Button(label="Kurulu uygulamalar", css_classes=["pill"],
-                       tooltip_text="Kaldırmak için: paketle kurulmuş uygulamalar, dosyadan kurulanlar üstte")
+                       tooltip_text="Kaldırmak ya da verilerini temizlemek için: paketle kurulmuş uygulamalar, dosyadan kurulanlar üstte")
         b.connect("clicked", lambda *_: self.show_apps())
         eb.append(b)
         # Çift tıklayınca .deb'ler bununla açılsın: yalnızca kullanıcı isterse (varsayılanı değiştirir).
@@ -135,7 +136,8 @@ class Window(Adw.ApplicationWindow):
         bar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=12, margin_bottom=12,
                       margin_start=18, margin_end=18)
         self.primary = Gtk.Button(halign=Gtk.Align.CENTER, css_classes=["pill", "suggested-action"])
-        self.primary.connect("clicked", lambda *_: self.install() if self.mode == "kur" else self.remove())
+        self.primary.connect("clicked", lambda *_: {"kur": self.install, "kaldir": self.remove,
+                                                     "veri": self.clean_data}[self.mode]())
         self.blocker = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["caption", "dim-label"])
         bar.append(self.primary)
         bar.append(self.blocker)
@@ -473,6 +475,14 @@ class Window(Adw.ApplicationWindow):
     def _update_primary(self):
         pkg, sim = self.pkg, self.sim
         reason = ""
+        if self.mode == "veri":
+            chosen = [k for c, k in self.data_checks if c.get_active()]
+            total = sum(k.size for k in chosen)
+            self.primary.set_label(f"Seçilenleri temizle ({human_size(total)})" if chosen else "Seçilenleri temizle")
+            self.primary.set_sensitive(bool(chosen))
+            self.blocker.set_label("Çöp kutusuna taşınır: geri almak için Dosyalar → Çöp → Geri yükle. "
+                                   "Şifre gerekmez." if chosen else "Temizlenecek klasörü işaretle.")
+            return
         if self.mode == "kaldir":
             if sim.errors:
                 reason = "apt bu paketi kaldıramayacağını söylüyor (yukarıda)."
@@ -618,7 +628,9 @@ class Window(Adw.ApplicationWindow):
         self.stack.set_visible_child_name("sonuc")
 
     def _retry(self):
-        if self.mode == "kaldir" and self.target:
+        if getattr(self, "_op", None) == "temizlik":
+            self.show_apps()
+        elif self.mode == "kaldir" and self.target:
             self.prepare_remove(self.target)
         elif self.pkg:
             self.load(self.pkg.path)
@@ -772,10 +784,24 @@ class Window(Adw.ApplicationWindow):
             theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
             r.add_prefix(Gtk.Image(icon_name=a.icon if a.icon and theme.has_icon(a.icon) else
                                    "application-x-executable-symbolic", pixel_size=32))
+            b = Gtk.Button(label="Veriler", valign=Gtk.Align.CENTER, css_classes=["flat"],
+                           tooltip_text="Önbelleğini ya da ayarlarını temizle (uygulama kalır)")
+            b.connect("clicked", lambda _b, a=a: self.show_data(a))
+            r.add_suffix(b)
             b = Gtk.Button(label="Kaldır", valign=Gtk.Align.CENTER, css_classes=["flat"])
             b.connect("clicked", lambda _b, a=a: self.prepare_remove(a))
             r.add_suffix(b)
             self.app_list.append(r)
+        cache = veriler.apt_cache_size()
+        if cache > 0:  # en üstte: indirilmiş paket dosyaları (apt-get clean)
+            r = Adw.ActionRow(title="Paket önbelleği (apt)",
+                              subtitle=f"İndirilip saklanan paket dosyaları · {human_size(cache)}. Kurulu "
+                                       f"programlara dokunmaz.")
+            r.add_prefix(Gtk.Image(icon_name="drive-harddisk-symbolic", pixel_size=32))
+            b = Gtk.Button(label="Temizle", valign=Gtk.Align.CENTER, css_classes=["flat"])
+            b.connect("clicked", lambda *_: self.clean_apt_cache(cache))
+            r.add_suffix(b)
+            self.app_list.prepend(r)
         if not apps:
             self.app_list.append(Gtk.Label(label="Paketle kurulmuş masaüstü uygulaması bulunamadı.",
                                            css_classes=["dim-label"], margin_top=18, margin_bottom=18))
@@ -862,14 +888,106 @@ class Window(Adw.ApplicationWindow):
                 self._end_job()
                 self.result_page.set_icon_name("emblem-ok-symbolic")
                 self.result_page.set_title(f"{a.name} kaldırıldı")
-                self.result_page.set_description("Ev klasöründeki kişisel ayarları (ör. ~/.config) duruyor; "
-                                                 "istersen elle silebilirsin.")
-                self._result_button("Kurulu uygulamalar", self.show_apps, suggested=True)
+                left = veriler.find(a.package, a.desktop_id, a.name)
+                if left:
+                    self.result_page.set_description(
+                        f"Ev klasöründe verileri kaldı ({human_size(sum(k.size for k in left))}): ayarlar, önbellek. "
+                        f"İstersen onları da temizle.")
+                    self._result_button("Kalan verileri göster", lambda: self.show_data(a), suggested=True)
+                else:
+                    self.result_page.set_description("")
+                self._result_button("Kurulu uygulamalar", self.show_apps, suggested=not left)
                 self._result_button("Kapat", self.close)
                 self.stack.set_visible_child_name("sonuc")
             else:
                 self._failed(hatalar.explain(self.output, code, "kaldırma"))
         self._run(apt.remove_command(a.package, purge), f"{a.name} kaldırılıyor", "kaldırma", done)
+
+    # ---- veriler ----------------------------------------------------------------------
+
+    def show_data(self, a):
+        """Uygulamanın ev klasöründeki verileri: önbellek (işaretli gelir), ayarlar ve kayıtlı veriler."""
+        if self.busy:
+            return
+        self.mode, self.target = "veri", a
+        self.title.set_subtitle(a.name)
+        self.stack.set_visible_child_name("okunuyor")
+
+        def work():
+            found = veriler.find(a.package, a.desktop_id, a.name)
+            is_running = veriler.running(a.package, a.desktop_id)
+            GLib.idle_add(self._fill_data, a, found, is_running, priority=GLib.PRIORITY_DEFAULT)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _fill_data(self, a, found, is_running):
+        self.data_checks = []
+        page = Adw.PreferencesPage()
+        head = Adw.PreferencesGroup()
+        top = Gtk.Box(spacing=16, margin_bottom=6)
+        theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
+        top.append(Gtk.Image(icon_name=a.icon if a.icon and theme.has_icon(a.icon) else "package-x-generic",
+                             pixel_size=64))
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER, hexpand=True)
+        texts.append(Gtk.Label(label=a.name, xalign=0, wrap=True, css_classes=["title-1"]))
+        texts.append(Gtk.Label(label=f"Ev klasöründeki verileri · toplam {human_size(sum(k.size for k in found))}",
+                               xalign=0, css_classes=["caption", "dim-label"]))
+        top.append(texts)
+        head.add(top)
+        page.add(head)
+        if is_running:
+            g = Adw.PreferencesGroup()
+            g.add(row("Uygulama şu an açık", "Önce kapat: açıkken temizlenen ayarlar kapanırken yeniden yazılabilir.",
+                      "dialog-warning-symbolic", ["warning"]))
+            page.add(g)
+        g = Adw.PreferencesGroup(
+            title="Klasörler",
+            description="Adı bu uygulamayla tam eşleşen klasörler. Önbelleği temizlemek güvenlidir (uygulama yeniden "
+                        "oluşturur); ayarları temizlemek uygulamayı ilk kurulduğu hâline döndürür.")
+        home = str(Path.home())
+        for k in found:
+            shown = "~" + str(k.path)[len(home):] if str(k.path).startswith(home) else str(k.path)
+            r = row(shown, f"{k.label} · {human_size(k.size)}")
+            c = Gtk.CheckButton(active=k.kind == "onbellek", valign=Gtk.Align.CENTER)
+            c.connect("toggled", lambda *_: self._update_primary())
+            r.add_prefix(c)
+            r.set_activatable_widget(c)
+            self.data_checks.append((c, k))
+            g.add(r)
+        if not found:
+            g.add(row("Bulunamadı", "Ev klasöründe bu uygulamanın adını taşıyan bir veri klasörü yok. Bazı uygulamalar "
+                      "verisini başka adla tutar; bunlar burada görünmez.", "dialog-information-symbolic",
+                      ["dim-label"]))
+        page.add(g)
+        self.primary.set_css_classes(["pill", "destructive-action"])
+        self.detail_scroll.set_child(page)
+        self._update_primary()
+        self.stack.set_visible_child_name("ozet")
+        return False
+
+    def clean_data(self):
+        a = self.target
+        chosen = [k for c, k in self.data_checks if c.get_active()]
+        moved, errors = veriler.trash([k.path for k in chosen])
+        freed = sum(k.size for k in chosen if k.path in moved)
+        if errors:
+            self.toast(f"{len(errors)} klasör taşınamadı (dokunulmadı): {errors[0]}")
+        if moved:
+            self.toast(f"{human_size(freed)} çöp kutusuna taşındı")
+        self.show_data(a)
+
+    def clean_apt_cache(self, size):
+        def done(code):
+            if code != 0:
+                self._failed(hatalar.explain(self.output, code, "temizlik"))
+                return
+            self._end_job()
+            self.result_page.set_icon_name("emblem-ok-symbolic")
+            self.result_page.set_title("Paket önbelleği temizlendi")
+            self.result_page.set_description(f"{human_size(size)} boşaldı.")
+            self._result_button("Kurulu uygulamalar", self.show_apps, suggested=True)
+            self._result_button("Kapat", self.close)
+            self.stack.set_visible_child_name("sonuc")
+        self._run(apt.clean_command(), "Paket önbelleği temizleniyor", "temizlik", done)
 
     def show_error(self, title, text):
         self.result_detail.set_visible(False)

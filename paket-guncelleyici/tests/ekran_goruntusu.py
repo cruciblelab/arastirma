@@ -107,7 +107,7 @@ def scenario(win, name):
 
 app = App()
 steps = ["bos", "guncelleme", "ilk-kez", "farkli-yayinci", "eski-imzasiz", "kilit", "bitti", "uygulamalar",
-         "kaldir", "hata-yarim"]
+         "kaldir", "veriler", "hata-yarim"]
 state = {"i": 0, "win": None}
 
 
@@ -157,6 +157,14 @@ def tick():
     elif name == "kaldir":
         a = apt.Uygulama("gnome-calculator", "1:42.2-0ubuntu1", "Hesap Makinesi", "org.gnome.Calculator", "c", False)
         win.show_remove(a, apt.Deneme(remove=["gnome-calculator", "ubuntu-desktop", "ubuntu-desktop-minimal"]))
+    elif name == "veriler":
+        from guncelleyici import veriler
+        a = apt.Uygulama("gnome-calculator", "1:42.2-0ubuntu1", "Hesap Makinesi", "org.gnome.Calculator", "c", False)
+        home = Path.home()
+        win.mode, win.target = "veri", a
+        win._fill_data(a, [veriler.Klasor(home / ".cache/gnome-calculator", "onbellek", 2_400_000),
+                           veriler.Klasor(home / ".local/share/gnome-calculator", "veri", 48_000),
+                           veriler.Klasor(home / ".config/gnome-calculator", "ayar", 3_100)], False)
     elif name == "hata-yarim":
         from guncelleyici import hatalar
         win.mode = "kur"

@@ -101,6 +101,6 @@ def explain(lines: list[str], code: int | None = None, op: str = "kurulum") -> A
     last = next((ln[3:].strip() for ln in reversed(lines) if ln.startswith("E: ")), None)
     if last is None:
         last = next((ln.strip() for ln in reversed(lines) if ln.strip()), "")
-    title = "Kurulmadı" if op == "kurulum" else "Kaldırılmadı"
+    title = {"kurulum": "Kurulmadı", "kaldırma": "Kaldırılmadı"}.get(op, "Olmadı")
     return a(title, (last or f"apt {code} koduyla bitti.") + (f" (çıkış kodu {code})" if code not in (None, 0, 1)
                                                              else ""))

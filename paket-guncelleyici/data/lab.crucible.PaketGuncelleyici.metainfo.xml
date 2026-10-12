@@ -13,6 +13,9 @@
   <developer id="lab.crucible"><name>Crucible ekibi</name></developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.0" date="2026-10-12">
+      <description><p>Kurulu uygulamalar → Veriler: uygulamanın ev klasöründeki önbelleği, ayarları ve kayıtlı verileri (adı tam eşleşen klasörler) gösterir; seçilenler çöp kutusuna taşınır (geri alınabilir), önbellek işaretli gelir, uygulama açıksa uyarır. Kaldırınca kalan veriler sunulur. Paket önbelleği (apt-get clean) tek tıkla temizlenir.</p></description>
+    </release>
     <release version="0.2.0" date="2026-10-12">
       <description><p>Kurulu uygulamaları kaldırma (önce ne gideceği gösterilir). apt ve dpkg hataları anlaşılır Türkçe açıklamaya çevrilir; yarım kalmış kurulum ve bozuk bağımlılıklar tek tıkla onarılır. Sağ tık → "Başka uygulamayla aç" listesinde her zaman görünür; istenirse .deb'ler çift tıklayınca bununla açılır.</p></description>
     </release>

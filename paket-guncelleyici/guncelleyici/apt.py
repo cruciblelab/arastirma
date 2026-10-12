@@ -212,6 +212,11 @@ def remove_command(package: str, purge: bool = False) -> list[str]:
     return [*_elevate(), "/usr/bin/apt-get", "purge" if purge else "remove", "-y", "-q", *_APT_OPTS, package]
 
 
+def clean_command() -> list[str]:
+    """apt'nin indirip sakladığı paket dosyalarını siler (kurulu programlara dokunmaz)."""
+    return [*_elevate(), "/usr/bin/apt-get", "clean"]
+
+
 def repair_command(kind: str) -> list[str]:
     """Onarım (hatalar.Aciklama.fix): yarım kalan işi tamamla ya da bozuk bağımlılıkları düzelt."""
     if kind == "yarim":

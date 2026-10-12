@@ -5,6 +5,7 @@ Sistemde "deneme-uygulama" adlı bir paket kurulur ve sonunda kaldırılır.
 """
 
 import os
+import shutil
 import subprocess
 import tempfile
 import time
@@ -132,8 +133,43 @@ class EndToEndTest(unittest.TestCase):
         wait(lambda: win.stack.get_visible_child_name() == "ozet" and win.mode == "kaldir", 60)
         self.assertIn("kaldır", win.primary.get_label())
         self.assertEqual(win.sim.remove, ["deneme-uygulama"])
+        # Ev klasöründe kalan veriler: kaldırınca sunulur, önbellek işaretli gelir, çöpe taşınır.
+        home = Path.home()
+        made = [home / ".config" / "deneme-uygulama", home / ".cache" / "deneme-uygulama"]
+        for d in made:
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "x").write_text("veri")
         self.assertIn("kaldırıldı", self.install(win))
         self.assertIsNone(paket.installed_version("deneme-uygulama"))
+        labels = []
+        child = win.result_buttons.get_first_child()
+        while child:
+            labels.append(child.get_label())
+            child = child.get_next_sibling()
+        self.assertIn("Kalan verileri göster", labels)
+        win.show_data(apps["deneme-uygulama"])
+        wait(lambda: win.stack.get_visible_child_name() == "ozet" and win.mode == "veri", 60)
+        checked = {k.kind: c.get_active() for c, k in win.data_checks}
+        self.assertEqual(checked, {"onbellek": True, "ayar": False})
+        for c, _k in win.data_checks:
+            c.set_active(True)
+        win.clean_data()
+        try:
+            self.assertFalse(any(d.exists() for d in made), "veriler çöpe taşınmadı")
+        finally:
+            for d in made:
+                shutil.rmtree(d, ignore_errors=True)
+        win.destroy()
+
+    def test_5b_apt_cache_cleaned(self):
+        """Paket önbelleğini temizleme: gerçek apt-get clean (yönetici olarak)."""
+        win = Window(self.app)
+        win.present()
+        win.clean_apt_cache(0)
+        wait(lambda: win.stack.get_visible_child_name() == "sonuc" and not win.busy, 120)
+        self.assertEqual(win.result_page.get_title(), "Paket önbelleği temizlendi")
+        from guncelleyici import veriler
+        self.assertEqual(veriler.apt_cache_size(), 0)
         win.destroy()
 
     def test_6_interrupted_dpkg_is_explained_and_repaired(self):
