@@ -74,6 +74,8 @@ python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_batte
     "$OUT/durum5.json" || fail "düşük pil adanın durumunda yok"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_battery'] is None, d['low_battery']" \
     "$OUT/durum6.json" || fail "şarja takılınca düşük pil uyarısı kalkmadı"
+python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_battery']['weak'] and d['event']['kind'] == 'pil', d" \
+    "$OUT/durum7.json" || fail "takılı ama pil düşerken ada uyarmadı"
 for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 4b-gorusme 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal \
-         10-ozellestir 11-tasan 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
+         10-ozellestir 11-tasan 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az 16-sarj-yetmiyor; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
 echo "ÜST ADA UÇTAN UCA TESTİ GEÇTİ"

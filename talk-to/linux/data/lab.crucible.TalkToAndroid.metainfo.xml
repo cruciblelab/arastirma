@@ -37,6 +37,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.16.1" date="2026-10-12">
+      <description><p>Takılı ama şarj yetmiyorsa da uyarır: telefon bilgisayarın USB'sine takılı, “şarj oluyor” diyor ama pil düşüyorsa (en yüksekten 2 puan), %15 / %10 / %5 uyarıları “takılı ama şarj yetmiyor · duvar şarjına tak” diye sürer. Pil uyarısındaki yanıp sönen simge, canlandırmalar kapalıyken eklentiyi kilitleyebiliyordu: düzeltildi.</p></description>
+    </release>
     <release version="0.16.0" date="2026-10-12">
       <description><p>Telefonun pili %15, %10 ve %5'e inince uyarı: üst ada belirip hafifçe sallanır ve kırmızı “Telefonun pili %9 · şarja tak” der; pil düşük kaldıkça küçük adada kırmızı pil görünür, şarja takılınca kalkar. Ada yoksa masaüstü bildirimi (%5'te acil). Ada, Talk To'dan önce açılınca ekranda olduğunu Talk To'ya bildiremiyordu (mini oynatıcı yine açılabiliyordu): düzeltildi.</p></description>
     </release>

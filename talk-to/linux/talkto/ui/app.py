@@ -939,19 +939,27 @@ class App(Adw.Application):
         self.pil.keep_only({s["device_id"] for s in sessions})
         for s in sessions:
             did, b = s["device_id"], s.get("battery")
-            if b and b.get("charging"):
-                self.notifier.close(f"pil|{did}")
             hit = self.pil.check(did, b)
+            weak = self.pil.weak(did)
+            if b and b.get("charging") and not weak:
+                self.notifier.close(f"pil|{did}")
             if hit is None:
                 continue
             level = b["level"]
-            log.info("telefonun pili azaldı: %%%d (%s)", level, did[:8])
+            log.info("telefonun pili azaldı: %%%d%s (%s)", level, " (takılı ama şarj yetmiyor)" if weak else "",
+                     did[:8])
             if self.ada and self.ada.showing():
                 self.ada.battery_alert(did)
                 continue
-            self.notifier.show(f"{s.get('name') or 'Telefon'}: pil %{level}",
-                               "Şarja tak; telefon birazdan kapanabilir." if hit <= 5 else "Şarja tak.",
-                               key=f"pil|{did}", icon="battery-caution-symbolic", urgent=hit <= 5)
+            name = s.get("name") or "Telefon"
+            if weak:
+                title = f"{name}: pil %{level}, şarj yetmiyor"
+                body = ("Kabloya takılı ama pil düşüyor (bilgisayarın USB'si yetmeyebilir). Duvar şarjına tak "
+                        "ya da ekranı kapat.")
+            else:
+                title = f"{name}: pil %{level}"
+                body = "Şarja tak; telefon birazdan kapanabilir." if hit <= 5 else "Şarja tak."
+            self.notifier.show(title, body, key=f"pil|{did}", icon="battery-caution-symbolic", urgent=hit <= 5)
 
     def _call_result(self, d):
         """Telefon düğmeye basamadıysa ya da ses değişmediyse nedenini söyle (sessizce çalışmıyor gibi kalmasın)."""

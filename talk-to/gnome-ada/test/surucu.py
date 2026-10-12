@@ -168,6 +168,11 @@ steps = [
     lambda: app.on_event("status", {**app.hub.status(),
                                     "sessions": [dict(sess, battery={"level": 9, "charging": True})]}),
     lambda: kaydet("durum6"),
+    # Takılı kaldı ama pil düşüyor (bilgisayarın USB'si yetmiyor): ada "şarj yetmiyor" diye yeniden uyarır.
+    lambda: app.on_event("status", {**app.hub.status(),
+                                    "sessions": [dict(sess, battery={"level": 7, "charging": True})]}),
+    lambda: None,
+    lambda: (cek("Shot", f"{OUT}/16-sarj-yetmiyor.png"), kaydet("durum7")),
     lambda: app.quit(),
 ]
 i = [0]

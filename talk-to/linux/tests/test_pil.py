@@ -34,6 +34,30 @@ class TakipTest(unittest.TestCase):
         self.assertIsNone(t.check("p", b(-1)))
         self.assertIsNone(t.check("p", None))
 
+    def test_charging_but_still_draining(self):
+        """Bilgisayarın USB'sine takılı, "şarj oluyor" ama pil düşüyor: 2 puan düşünce uyarılar sürer."""
+        t = pil.Takip()
+        self.assertEqual(t.check("p", b(14)), 15)
+        self.assertIsNone(t.check("p", b(14, True)))  # takıldı: baştan
+        self.assertFalse(t.weak("p"))
+        self.assertIsNone(t.check("p", b(13, True)))  # tek puan: oynama sayılır
+        self.assertFalse(t.weak("p"))
+        self.assertEqual(t.check("p", b(12, True)), 15)  # en yüksekten 2 düştü: şarj yetmiyor
+        self.assertTrue(t.weak("p"))
+        self.assertTrue(pil.is_low(b(12, True), weak=True))
+        self.assertEqual(t.check("p", b(10, True)), 10)
+        self.assertIsNone(t.check("p", b(11, True)))  # toparlıyor ama hâlâ en yüksekten aşağıda
+        self.assertTrue(t.weak("p"))
+        self.assertIsNone(t.check("p", b(14, True)))  # en yükseğe çıktı: şarj yetiyor
+        self.assertFalse(t.weak("p"))
+
+    def test_rising_peak_is_followed(self):
+        t = pil.Takip()
+        for lv in (10, 11, 12, 13):
+            self.assertIsNone(t.check("p", b(lv, True)))
+        self.assertIsNone(t.check("p", b(12, True)))
+        self.assertEqual(t.check("p", b(11, True)), 15)  # 13'ten 2 düştü
+
     def test_phones_are_separate_and_forgotten(self):
         t = pil.Takip()
         self.assertEqual(t.check("a", b(12)), 15)
@@ -100,6 +124,12 @@ class AppBatteryTest(unittest.TestCase):
         self.assertIn("kapanabilir", h.notifier.shown[-1][1])
         h._check_battery([{"device_id": "p", "name": "POCO", "battery": b(5, charging=True)}])
         self.assertIn("pil|p", h.notifier.closed)
+        # Takılı kaldı ama pil düşüyor: ayrı mesajla yeniden uyarır.
+        h._check_battery([{"device_id": "p", "name": "POCO", "battery": b(3, charging=True)}])
+        title, body, kw = h.notifier.shown[-1]
+        self.assertEqual(title, "POCO: pil %3, şarj yetmiyor")
+        self.assertIn("Duvar şarjına", body)
+        self.assertTrue(kw["urgent"])
 
 
 if __name__ == "__main__":

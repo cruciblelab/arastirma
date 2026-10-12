@@ -1068,20 +1068,27 @@ class Ada {
         }
         const texts = new St.BoxLayout({vertical: true, x_expand: true, y_align: Clutter.ActorAlign.CENTER});
         texts.add_child(this._label(`Telefonun pili %${low.level}`, 'ada-baslik ada-iri ada-pil-az'));
-        texts.add_child(this._label(low.level <= 5 ? `${low.name} birazdan kapanabilir · şarja tak`
+        texts.add_child(this._label(low.weak ? `${low.name} takılı ama şarj yetmiyor · duvar şarjına tak`
+            : low.level <= 5 ? `${low.name} birazdan kapanabilir · şarja tak`
             : `${low.name} · şarja tak`, 'ada-soluk'));
         const icon = new St.Icon({icon_name: low.level <= 5 ? 'battery-empty-symbolic' : 'battery-caution-symbolic',
             icon_size: 30, style_class: 'ada-pil-az ada-pil-simge'});
         const r = this._row(icon, texts);
         r.add_style_class_name('ada-pil');
         this.page.add_child(r);
-        // Simge yavaşça yanıp söner (sayfa açık kaldıkça).
-        const pulse = () => icon.ease({opacity: icon.opacity > 200 ? 110 : 255, duration: 600,
-            mode: Clutter.AnimationMode.EASE_IN_OUT_SINE, onComplete: () => {
-                if (icon.get_stage())
-                    pulse();
-            }});
-        pulse();
+        // Simge yavaşça yanıp söner (sayfa açık kaldıkça). Zamanlayıcıyla: canlandırma anında biterse
+        // (ada gizli, "canlandırmaları azalt" açık) bitince yeniden başlatmak sonsuz döngü olurdu.
+        this._cancel('pilPulse');
+        let bright = true;
+        this._timers.pilPulse = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 650, () => {
+            if (!icon.get_stage() || this.pageName !== 'pil') {
+                delete this._timers.pilPulse;
+                return GLib.SOURCE_REMOVE;
+            }
+            bright = !bright;
+            icon.ease({opacity: bright ? 255 : 110, duration: 600, mode: Clutter.AnimationMode.EASE_IN_OUT_SINE});
+            return GLib.SOURCE_CONTINUE;
+        });
     }
 
     _callPage() {

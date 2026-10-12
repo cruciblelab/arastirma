@@ -150,11 +150,14 @@ class AdaService:
         timer = None
         if self.timer:
             timer = {k: self.timer[k] for k in ("ends_at", "total", "phone")}
-        low = [x for x in self.status.get("sessions", []) if pil.is_low(x.get("battery"))]
+        takip = getattr(self.app, "pil", None)  # takılı ama şarj yetmiyor mu (pil düşüyor)
+        weak = {x["device_id"]: bool(takip and takip.weak(x["device_id"])) for x in self.status.get("sessions", [])}
+        low = [x for x in self.status.get("sessions", []) if pil.is_low(x.get("battery"), weak[x["device_id"]])]
         low.sort(key=lambda x: x["battery"]["level"])
         return {
             "low_battery": {"device_id": low[0]["device_id"], "name": low[0].get("name") or "Telefon",
-                            "level": low[0]["battery"]["level"]} if low else None,
+                            "level": low[0]["battery"]["level"], "weak": weak[low[0]["device_id"]]}
+            if low else None,
             "enabled": bool(cfg["ada_enabled"]),
             "theme": THEMES.get(cfg["ada_theme"], THEMES["deniz"])[1],
             "theme_id": cfg["ada_theme"] if cfg["ada_theme"] in THEMES else "deniz",

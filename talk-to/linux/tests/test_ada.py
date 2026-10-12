@@ -161,13 +161,20 @@ class StateTest(unittest.TestCase):
     def test_low_battery_state_and_event(self):
         self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 12, "charging": False})]})
         st = self.ada.state()
-        self.assertEqual(st["low_battery"], {"device_id": "p", "name": "POCO", "level": 12})
+        self.assertEqual(st["low_battery"], {"device_id": "p", "name": "POCO", "level": 12, "weak": False})
         self.ada.battery_alert("p")
         self.assertEqual(self.ada.state()["event"]["kind"], "pil")
         self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 12, "charging": True})]})
         self.assertIsNone(self.ada.state()["low_battery"])  # şarjda: kırmızı gösterge kalkar
         self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 40, "charging": False})]})
         self.assertIsNone(self.ada.state()["low_battery"])
+        # Takılı ama şarj yetmiyor (Talk To'nun takibi söyler): düşük sayılır, "weak" ile.
+        from talkto import pil
+        self.app.pil = pil.Takip()
+        for lv in (12, 10):
+            self.app.pil.check("p", {"level": lv, "charging": True})
+        self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 10, "charging": True})]})
+        self.assertEqual(self.ada.state()["low_battery"]["weak"], True)
 
     def test_call_cleared_when_phone_leaves(self):
         self.ada.on_event("status", {"sessions": [SESS]})
