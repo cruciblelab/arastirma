@@ -5,6 +5,10 @@ Bilgisayarda üst karttaki baloncuğa (ör. "USB · %76") tıklayınca açılan 
 
 import time
 
+# Protokol 1.0 kodları (0.19 ve önceki telefonlar Türkçesini gönderiyordu; o zaman olduğu gibi gösterilir).
+NETWORK = {"none": "yok", "wifi": "Wi-Fi", "cellular": "mobil veri", "ethernet": "kablolu", "other": "diğer"}
+HEALTH = {"good": "iyi", "overheat": "aşırı ısınmış", "dead": "ölü", "over_voltage": "aşırı gerilim", "cold": "soğuk"}
+
 
 def _num(v):
     return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
@@ -66,14 +70,14 @@ def rows(info: dict | None) -> list[tuple[str, str]]:
         if b.get("temp_c") is not None:
             v += f" · {b['temp_c']:.1f} °C".replace(".", ",")
         if b.get("health"):
-            v += f" · sağlık: {b['health']}"
+            v += f" · sağlık: {HEALTH.get(b['health'], b['health'])}"
         out.append(("Pil", v))
     for key, label, verb in (("storage", "Depolama", "dolu"), ("ram", "Bellek", "kullanımda")):
         u = _usage(info.get(key) or {}, verb)
         if u:
             out.append((label, u))
     if info.get("network"):
-        out.append(("Ağ", info["network"]))
+        out.append(("Ağ", NETWORK.get(info["network"], info["network"])))
     if info.get("uptime_s"):
         s = int(info["uptime_s"])
         d, h, m = s // 86400, s // 3600 % 24, s // 60 % 60

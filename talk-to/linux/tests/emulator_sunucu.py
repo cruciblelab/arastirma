@@ -66,6 +66,9 @@ async def main():
         if event == "ask":
             asyncio.get_running_loop().create_task(hub.answer(data["id"], True))
 
+    # Gerçek Android uygulamasının gönderdiği her ileti (ve bilgisayarınkiler) protokol tanımına uymalı.
+    import protokol_denetimi
+    protokol_denetimi.izle(on_problem=lambda p: emit("protocol_problem", {"problem": p})).__enter__()
     hub = Hub(cfg, emit, enable_media=False, enable_discovery=False)
     # adb izleyicisi açık: telefondaki "Bilgisayar ayarlasın" bilgisayarın adb ile izin vermesini ister.
     await hub.start()

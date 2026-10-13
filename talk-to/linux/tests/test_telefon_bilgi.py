@@ -10,9 +10,9 @@ from talkto import telefon_bilgi  # noqa: E402
 
 MSG = {"type": "phone_info", "manufacturer": "Xiaomi", "model": "2311DRK48G", "android": "14", "sdk": 34,
        "security_patch": "2026-08-01", "app_version": "0.9.2", "uptime_s": 2 * 86400 + 3 * 3600 + 15 * 60,
-       "battery": {"level": 76, "charging": True, "temp_c": 31.5, "health": "iyi"},
+       "battery": {"level": 76, "charging": True, "temp_c": 31.5, "health": "good"},
        "storage": {"total": 256 * 2**30, "free": 64 * 2**30}, "ram": {"total": 12 * 2**30, "free": 5 * 2**30},
-       "network": "Wi-Fi"}
+       "network": "wifi", "fingerprint": "Xiaomi/garnet/garnet:14/UKQ1/V816:user/release-keys"}
 
 
 class PhoneInfoTest(unittest.TestCase):
@@ -25,6 +25,13 @@ class PhoneInfoTest(unittest.TestCase):
         self.assertEqual(rows["Bellek"], "7,0 GB / 12,0 GB kullanımda (%58)")
         self.assertEqual(rows["Açık kalma"], "2 gün 3 sa 15 dk")
         self.assertEqual(rows["Ağ"], "Wi-Fi")
+
+    def test_old_turkish_values(self):
+        """0.19 ve önceki telefonlar ağ ve pil sağlığını Türkçe gönderiyordu: olduğu gibi gösterilir."""
+        rows = dict(telefon_bilgi.rows(telefon_bilgi.clean(dict(MSG, network="mobil veri",
+                                                                battery={"level": 5, "health": "iyi"}))))
+        self.assertEqual(rows["Ağ"], "mobil veri")
+        self.assertEqual(rows["Pil"], "%5 · sağlık: iyi")
 
     def test_bad_input(self):
         bad = {"model": 5, "battery": "x", "storage": {"total": "çok", "free": True}, "sdk": True,

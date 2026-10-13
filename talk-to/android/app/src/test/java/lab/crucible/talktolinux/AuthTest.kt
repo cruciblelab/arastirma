@@ -9,9 +9,9 @@ import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.io.File
 
-/** Linux tarafıyla aynı test vektörleri: talk-to/protokol-test-vektorleri.json */
+/** Linux tarafıyla aynı test vektörleri: talk-to/protocol/vectors.json */
 class AuthTest {
-    private val vec = JSONObject(File("../../protokol-test-vektorleri.json").readText())
+    private val vec = JSONObject(File("../../protocol/vectors.json").readText())
 
     private fun hex(b: ByteArray) = b.joinToString("") { "%02x".format(it) }
 

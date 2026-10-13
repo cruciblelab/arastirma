@@ -176,7 +176,9 @@ object Talk {
     /** Bildirim ve medyanın neden gelip gelmediğini bilgisayar da görsün. */
     fun sendPhoneStatus() {
         if (!isConnected()) return
-        send(JSONObject().put("type", "phone_status").put("flavor", BuildConfig.FLAVOR)
+        // Protokol 1.0 adları (Gradle'daki sürüm adları Türkçe: tam / hafif).
+        val flavor = when (BuildConfig.FLAVOR) { "tam" -> "full"; "hafif" -> "lite"; else -> BuildConfig.FLAVOR }
+        send(JSONObject().put("type", "phone_status").put("flavor", flavor)
             .put("sdk", Build.VERSION.SDK_INT)
             .put("notif_access", notifAccessGranted())
             .put("listener", listenerConnected.value)

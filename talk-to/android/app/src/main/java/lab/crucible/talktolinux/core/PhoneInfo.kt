@@ -60,22 +60,22 @@ object PhoneInfo {
             val cm = ctx.getSystemService(ConnectivityManager::class.java)
             val caps = cm.getNetworkCapabilities(cm.activeNetwork)
             o.put("network", when {
-                caps == null -> "yok"
-                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
-                caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "mobil veri"
-                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "kablolu"
-                else -> "diğer"
+                caps == null -> "none"
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cellular"
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
+                else -> "other"
             })
         }
         return o
     }
 
     private fun health(h: Int) = when (h) {
-        BatteryManager.BATTERY_HEALTH_GOOD -> "iyi"
-        BatteryManager.BATTERY_HEALTH_OVERHEAT -> "aşırı ısınmış"
-        BatteryManager.BATTERY_HEALTH_DEAD -> "ölü"
-        BatteryManager.BATTERY_HEALTH_OVER_VOLTAGE -> "aşırı gerilim"
-        BatteryManager.BATTERY_HEALTH_COLD -> "soğuk"
+        BatteryManager.BATTERY_HEALTH_GOOD -> "good"
+        BatteryManager.BATTERY_HEALTH_OVERHEAT -> "overheat"
+        BatteryManager.BATTERY_HEALTH_DEAD -> "dead"
+        BatteryManager.BATTERY_HEALTH_OVER_VOLTAGE -> "over_voltage"
+        BatteryManager.BATTERY_HEALTH_COLD -> "cold"
         else -> JSONObject.NULL
     }
 }

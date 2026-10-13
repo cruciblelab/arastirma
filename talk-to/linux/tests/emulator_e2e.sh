@@ -289,4 +289,13 @@ wait_for "karekodla eşleşti: bilgisayarda onay sorulmadı" \
     "len(of('paired_by_qr')) == 1 and len(of('connected')) > $C3 and len(of('ask')) == $A3" 40
 shot 08-karekodla-bagli
 
+log "protokol: gerçek telefonun ve bilgisayarın bütün iletileri protocol/messages.json'a uymalı"
+python3 -c '
+import json, sys
+bad = [json.loads(l)["data"]["problem"] for l in open(sys.argv[1], encoding="utf-8")
+       if l.strip() and json.loads(l)["event"] == "protocol_problem"]
+for p in sorted(set(bad)):
+    print("  protokole uymuyor:", p)
+sys.exit(1 if bad else 0)
+' "$EV" || fail "protokole uymayan ileti var (yukarıda)"
 log "EMÜLATÖR TESTİ GEÇTİ"

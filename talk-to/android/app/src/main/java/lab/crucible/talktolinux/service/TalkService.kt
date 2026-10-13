@@ -44,8 +44,9 @@ class TalkService : Service() {
 
     private val battery = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
-            val level = i.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) * 100 /
-                i.getIntExtra(BatteryManager.EXTRA_SCALE, 100).coerceAtLeast(1)
+            val raw = i.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            if (raw < 0) return  // seviye bildirilmedi: yanlış değer (-1) gönderilmez
+            val level = (raw * 100 / i.getIntExtra(BatteryManager.EXTRA_SCALE, 100).coerceAtLeast(1)).coerceIn(0, 100)
             val status = i.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
             val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
             val now = level to charging

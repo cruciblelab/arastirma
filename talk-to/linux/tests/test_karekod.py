@@ -29,7 +29,7 @@ class KarekodTest(unittest.TestCase):
     def test_shared_vector(self):
         """Android aynı kareleri ZXing ile çözer (AuthTest.qrMatrixDecodes): vektör bu kodla güncel olmalı."""
         import json
-        vec = json.loads((Path(__file__).resolve().parents[2] / "protokol-test-vektorleri.json").read_text())["qr_matrix"]
+        vec = json.loads((Path(__file__).resolve().parents[2] / "protocol" / "vectors.json").read_text())["qr_matrix"]
         rows = ["".join("1" if c else "0" for c in r) for r in karekod.matrix(vec["text"])]
         self.assertEqual(rows, vec["rows"])
 

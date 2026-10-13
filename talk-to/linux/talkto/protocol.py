@@ -1,4 +1,4 @@
-"""Tel düzeyi çerçeveleme (PROTOKOL.md, "Çerçeve").
+"""Tel düzeyi çerçeveleme (PROTOCOL.md, "3. Frames").
 
 Her çerçeve: 1 bayt tür + 4 bayt uzunluk (big-endian) + gövde.
   'J' (0x4A): gövde UTF-8 JSON nesnesi, "type" alanı zorunlu.

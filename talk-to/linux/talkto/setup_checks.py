@@ -193,7 +193,7 @@ def perms_missing(d: dict | None, session: dict | None) -> list[str] | None:
     """
     perms = dict((d or {}).get("perms") or {})
     phone = (session or {}).get("phone") or {}
-    if phone.get("flavor") == "hafif":
+    if phone.get("flavor") == "lite":
         perms["listener"] = None  # hafif sürümde bildirim erişimi yok
     elif phone.get("notif_access") is not None:
         perms["listener"] = phone["notif_access"]  # telefonun kendi söylediği daha güncel

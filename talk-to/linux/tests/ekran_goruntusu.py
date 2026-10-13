@@ -95,7 +95,7 @@ def fill():
     st["sessions"][0].update(profile="benim", profile_name="Benim telefonum")
     if os.environ.get("SORUN"):  # telefon bildirim dinleyicisinin bağlı olmadığını bildirmiş
         from talkto.hub import phone_problems
-        st["sessions"][0]["problems"] = phone_problems({"flavor": "tam", "notif_access": True, "listener": False},
+        st["sessions"][0]["problems"] = phone_problems({"flavor": "full", "notif_access": True, "listener": False},
                                                       {"notifications": True, "media": True})
     st["bt"] = {"available": True, "message": "Hazır. Telefonu önce sistemin Bluetooth ayarlarından bu bilgisayarla eşleştir."}
     if os.environ.get("USB_HAZIR") or os.environ.get("USB_KAPALI"):  # telefon USB'de, henüz bağlı değil

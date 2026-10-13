@@ -81,7 +81,7 @@ class Mpris:
             "playing": p.get("PlaybackStatus") == "Playing",
             "position_ms": int(p.get("Position", 0) or 0) // 1000,
             "duration_ms": int(md.get("mpris:length", 0) or 0) // 1000,
-            "volume": round(volume * 100) if isinstance(volume, float) else None,
+            "volume": max(0, min(100, round(volume * 100))) if isinstance(volume, float) else None,
             "can_seek": bool(p.get("CanSeek", False)),
             "art_id": art[0] if art else None,
             "_track": md.get("mpris:trackid"),

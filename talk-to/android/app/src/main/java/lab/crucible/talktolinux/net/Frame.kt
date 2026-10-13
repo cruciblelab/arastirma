@@ -5,7 +5,7 @@ import java.io.DataInputStream
 import java.io.IOException
 import java.nio.ByteBuffer
 
-/** Tel düzeyi çerçeveleme (PROTOKOL.md, "Çerçeve"). Linux: talkto/protocol.py */
+/** Tel düzeyi çerçeveleme (PROTOCOL.md, "3. Frames"). Linux: talkto/protocol.py */
 object Frame {
     const val JSON = 0x4A
     const val BINARY = 0x42

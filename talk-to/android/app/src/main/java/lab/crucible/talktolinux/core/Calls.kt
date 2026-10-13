@@ -160,10 +160,10 @@ object Calls {
         val stream = AudioManager.STREAM_VOICE_CALL
         r.put("before", am.getStreamVolume(stream)).put("max", am.getStreamMaxVolume(stream))
             .put("mode", when (am.mode) {
-                AudioManager.MODE_IN_CALL -> "telefon görüşmesi"
-                AudioManager.MODE_IN_COMMUNICATION -> "internet araması"
-                AudioManager.MODE_RINGTONE -> "çalıyor"
-                else -> "normal (görüşme yok)"
+                AudioManager.MODE_IN_CALL -> "in_call"
+                AudioManager.MODE_IN_COMMUNICATION -> "in_communication"
+                AudioManager.MODE_RINGTONE -> "ringtone"
+                else -> "normal"
             })
         runCatching {
             am.adjustStreamVolume(stream, if (up) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,

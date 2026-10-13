@@ -11,4 +11,7 @@ read -r PORT SHA DIR < /tmp/talkto-canli.out
 cd ../../android
 TALKTO_TEST_PORT=$PORT TALKTO_TEST_PASSWORD=test-sifre TALKTO_TEST_RECEIVE_DIR=$DIR TALKTO_TEST_SEND_SHA=$SHA \
     ./gradlew --quiet testTamReleaseUnitTest --tests 'lab.crucible.talktolinux.LiveServerTest' --rerun-tasks
+if [ -s "$DIR/../protokol-sorunlari.txt" ]; then
+    echo "Protokole uymayan ileti (protocol/messages.json):"; cat "$DIR/../protokol-sorunlari.txt"; exit 1
+fi
 echo "Canlı test geçti (sunucu günlüğü: /tmp/talkto-canli.log)"

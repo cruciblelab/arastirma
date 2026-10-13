@@ -1,4 +1,4 @@
-"""Eşleştirme ve kimlik doğrulama hesapları (PROTOKOL.md, "Kimlik doğrulama").
+"""Eşleştirme ve kimlik doğrulama hesapları (PROTOCOL.md, "4. Handshake and authentication").
 
 Android tarafı (net/Auth.kt) aynı hesapları yapar; iki tarafın aynı sonucu
 verdiği protokol/test-vektorleri.json ile denetlenir.

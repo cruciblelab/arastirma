@@ -29,6 +29,15 @@ async def main():
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         cfg.set("port", s.getsockname()[1])
+    # Android ağ kodunun gönderdiği her ileti protokol tanımına uymalı: sorunlar dosyaya yazılır, betik bakar.
+    import protokol_denetimi
+    problems = tmp / "protokol-sorunlari.txt"
+    problems.touch()
+
+    def note(p):
+        with problems.open("a", encoding="utf-8") as f:
+            f.write(p + "\n")
+    protokol_denetimi.izle(on_problem=note).__enter__()
     hub = Hub(cfg, lambda e, d: print(f"[{e}] {d}", file=sys.stderr, flush=True) if e != "status" else None,
               enable_media=False, enable_discovery=False)
     hub.usb.available = staticmethod(lambda: False)

@@ -30,6 +30,15 @@ def free_port():
 
 
 class _Base(unittest.IsolatedAsyncioTestCase):
+    # Bilgisayarın gönderdiği her ileti protocol/messages.json'a uymalı. Sahte telefonun gönderdikleri denetlenmez:
+    # bazı testler bilerek bozuk ileti yollar (gerçek telefonunkiler emülatör ve canlı testte denetlenir).
+    def setUp(self):
+        import protokol_denetimi
+        watch = protokol_denetimi.izle(phone=False)
+        self.protocol_problems = watch.__enter__()
+        self.addCleanup(watch.__exit__, None, None, None)
+        self.addCleanup(lambda: self.assertEqual(self.protocol_problems, [], "protokole uymayan ileti"))
+
     async def asyncSetUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         os.environ["TALKTO_CACHE_DIR"] = str(Path(self.tmp.name) / "cache")
@@ -467,9 +476,10 @@ class HubTest(_Base):
         await asyncio.sleep(0.1)
         info = self.hub.status()["sessions"][0]
         self.assertFalse(info["phone"]["listener"])
+        self.assertEqual(info["phone"]["flavor"], "full")  # 0.19 ve öncesi telefon "tam" der: protokol 1.0 adıyla
         self.assertEqual(len(info["problems"]), 1)
         self.assertIn("dinleyici", info["problems"][0])
-        await p.send({"type": "phone_status", "flavor": "tam", "notif_access": True, "listener": True})
+        await p.send({"type": "phone_status", "flavor": "full", "notif_access": True, "listener": True})
         await asyncio.sleep(0.1)
         self.assertEqual(self.hub.status()["sessions"][0]["problems"], [])
         await p.close()
@@ -478,8 +488,8 @@ class HubTest(_Base):
         from talkto.hub import phone_problems
         allow = {"notifications": True, "media": True}
         self.assertEqual(phone_problems({}, allow), [])  # eski telefon sürümü durum göndermez: uyarı yok
-        self.assertIn("hafif", phone_problems({"flavor": "hafif"}, allow)[0])
-        self.assertIn("erişimi kapalı", phone_problems({"flavor": "tam", "notif_access": False}, allow)[0])
+        self.assertIn("hafif", phone_problems({"flavor": "lite"}, allow)[0])
+        self.assertIn("erişimi kapalı", phone_problems({"flavor": "full", "notif_access": False}, allow)[0])
         self.assertEqual(len(phone_problems({}, {"notifications": False, "media": False})), 2)
         self.assertIn("gösterme kapalı", phone_problems({}, allow, show_notifications=False)[0])
 
@@ -798,7 +808,7 @@ class UnitTest(unittest.TestCase):
 
     def test_shared_vectors(self):
         """Android (net/Auth.kt) aynı vektörleri kendi testinde kontrol eder."""
-        vec = json.loads((ROOT / "protokol-test-vektorleri.json").read_text(encoding="utf-8"))
+        vec = json.loads((ROOT / "protocol" / "vectors.json").read_text(encoding="utf-8"))
         for v in vec["password_proof"]:
             self.assertEqual(auth.password_proof(v["password"], v["nonce"], v["fp"]), v["proof"])
         for v in vec["pairing_code"]:
@@ -890,7 +900,7 @@ exit 0""")
 
     async def test_outdated_phone_is_reported(self):
         p = await self.paired_phone()
-        await p.send({"type": "phone_status", "flavor": "tam", "notif_access": True, "listener": True,
+        await p.send({"type": "phone_status", "flavor": "full", "notif_access": True, "listener": True,
                       "version": "0.6.0"})
         await asyncio.sleep(0.1)
         problems = self.hub.status()["sessions"][0]["problems"]

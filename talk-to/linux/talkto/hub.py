@@ -54,11 +54,18 @@ MAX_PENDING_ASKS = 3     # aynı anda açık onay penceresi
 MAX_INCOMING = 4         # bir telefondan aynı anda gelen (ya da onay bekleyen) aktarım
 MAX_UNAUTHENTICATED = 16 # kimliği doğrulanmamış toplam bağlantı
 PREAUTH_MAX_JSON = 64 * 1024
-# Bilgisayarın desteklediği el sıkışma özellikleri (PROTOKOL.md): pair2 = taahhütlü onay kodu,
+# Bilgisayarın desteklediği el sıkışma özellikleri (PROTOCOL.md): pair2 = taahhütlü onay kodu,
 # pw2 = PBKDF2'li şifre kanıtı.
 FEATURES = ("pair2", "pw2", "qr1")
 _PKG = re.compile(r"^[A-Za-z0-9._]{1,200}$")
 _ART = re.compile(r"^[0-9a-f]{8,64}$")
+
+
+# 0.19 ve önceki telefonlar sürüm türünü Türkçe bildiriyordu (protokol 1.0: full / play / lite).
+OLD_FLAVORS = {"tam": "full", "hafif": "lite"}
+# Telefonun ses kipi (call_result.mode) kullanıcıya gösterilirken.
+CALL_MODES = {"in_call": "telefon görüşmesi", "in_communication": "internet araması", "ringtone": "çalıyor",
+              "normal": "normal (görüşme yok)"}
 
 
 def _s(value, limit=4000) -> str:
@@ -68,7 +75,7 @@ def _s(value, limit=4000) -> str:
 def phone_problems(phone: dict, perms: dict, show_notifications: bool = True) -> list[str]:
     """Telefonun bildirdiği durumdan, bildirim ve müziğin neden gelmeyeceğini anlatan uyarılar."""
     out = []
-    if phone.get("flavor") == "hafif":
+    if phone.get("flavor") == "lite":
         out.append("Telefondaki Talk To hafif sürüm: bildirimler ve telefonda çalan müzik gelmez. "
                    "Telefonu USB ile tak; Telefonlar sayfasındaki “Tam sürüme yükselt” düğmesi tam sürümü kurar.")
     elif phone.get("notif_access") is False:
@@ -1002,7 +1009,8 @@ class Session:
             hub.emit_status()
         elif t == "phone_status":
             player = msg.get("player")
-            self.phone = {"flavor": _s(msg.get("flavor"), 20), "sdk": _int(msg.get("sdk")),
+            flavor = _s(msg.get("flavor"), 20)
+            self.phone = {"flavor": OLD_FLAVORS.get(flavor, flavor), "sdk": _int(msg.get("sdk")),
                           "notif_access": bool(msg.get("notif_access")), "listener": bool(msg.get("listener")),
                           "player": _s(player, 100) if isinstance(player, str) else None,
                           "notifications_sent": _int(msg.get("notifications_sent")),
@@ -1042,7 +1050,7 @@ class Session:
             r = {"device_id": self.device_id, "kind": "volume" if msg.get("kind") == "volume" else "action",
                  "title": _s(msg.get("title"), 60) or None, "error": _s(msg.get("error"), 300) or None,
                  "before": num(msg.get("before")), "after": num(msg.get("after")), "max": num(msg.get("max")),
-                 "mode": _s(msg.get("mode"), 40) or None}
+                 "mode": CALL_MODES.get(_s(msg.get("mode"), 40), _s(msg.get("mode"), 40)) or None}
             if r["kind"] == "volume":
                 log.info("görüşme sesi (%s): %s → %s / %s, kip: %s%s", self.name, r["before"], r["after"], r["max"],
                          r["mode"], f", hata: {r['error']}" if r["error"] else "")
