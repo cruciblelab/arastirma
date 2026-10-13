@@ -63,8 +63,9 @@ class Config:
         "mini_compact": False,  # mini oynatıcı tepecik (ince şerit) hâlinde
         "mini_size": "orta",  # kucuk / orta / buyuk
         "ada_enabled": True,  # üst ada (GNOME eklentisi kuruluysa) görünsün
-        "ada_theme": "deniz",  # talkto.ui.ada.THEMES
+        "ada_theme": "deniz",  # talkto.ada_temalar.THEMES (Ada Place)
         "ada_mode": "sakin",  # talkto.ui.ada.MODES: sakin | tasan (taşan dalgalar)
+        "ada_motion": "canli",  # talkto.ada_temalar.MOTIONS: süslerin hareketi (canli | yavas | durgun)
         "ada_offset": 0,  # üst adanın ortadan yana kaydırılması (px; "Konumu değiştir")
         "ada_track_popup": False,
         # Ada ekrandayken telefon bildirimleri ve aramalar masaüstü bildirimi olarak da çıksın mı. Kapalı: yalnızca

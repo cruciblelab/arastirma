@@ -71,6 +71,25 @@ def olc_cls(cls):
     boy[cls] = [x, y, w, h]
     open(f"{OUT}/boyutlar.json", "w").write(json.dumps(boy))
 
+def tema(key):
+    app.ada.action({"do": "set", "key": "ada_theme", "value": key})
+
+def shell_cpu():
+    """GNOME Shell sürecinin şimdiye dek harcadığı işlemci süresi (sn)."""
+    for d in os.listdir("/proc"):
+        try:
+            if d.isdigit() and open(f"/proc/{d}/comm").read().strip() == "gnome-shell":
+                f = open(f"/proc/{d}/stat").read().rsplit(")", 1)[1].split()
+                return (int(f[11]) + int(f[12])) / os.sysconf("SC_CLK_TCK")
+        except OSError:
+            pass
+    return None
+
+islem = {}
+def cpu(name):
+    islem[name] = [shell_cpu(), time.monotonic()]
+    open(f"{OUT}/islemci.json", "w").write(json.dumps(islem))
+
 def song(title, playing=True):
     return {"active": True, "player": "Spotify", "title": title, "artist": "Sezen Aksu", "playing": playing,
             "position_ms": 1000, "duration_ms": 200000, "volume": 50, "can_seek": True, "art_id": "k1",
@@ -140,6 +159,9 @@ steps = [
     lambda: click("ada-ayar-phone_vibrate"),
     lambda: click("ada-ayar-ada_click_sound"),
     lambda: (cek("Shot", f"{OUT}/11-tasan.png"), olc_cls("ada-tasan"), kaydet("durum2")),
+    # Ada Place: adanın içindeki küçük temalardan süslü olanı seç (süsler hemen görünür)
+    lambda: click("ada-tema-kuzey"),
+    lambda: (cek("Shot", f"{OUT}/11b-kuzey-ozel.png"), kaydet("durum2b")),
     # Konumu değiştir: kilit açılır, ada sağa sürüklenir, "Bitti" ile kilitlenir.
     lambda: click("ada-konum"),
     lambda: (olc("kilitsiz"), cek("Shot", f"{OUT}/12-kilitsiz.png")),
@@ -180,6 +202,23 @@ steps = [
     lambda: cek("Scroll", *ada_center(), 1.0),
     lambda: (olc("asagi1"), cek("Scroll", *ada_center(), 1.0)),
     lambda: (olc("asagi2"), cek("Shot", f"{OUT}/17-tekerlek-asagi.png")),
+    # Süslü temalar küçük hâlde (süsler adanın üstünden geçer; tıklamaları almaz) ve kabuğun ne kadar çalıştığı.
+    lambda: (cek("Move", 640.0, 600.0), tema("deniz")),
+    *[lambda: None] * 3,  # büyük hâlden küçüğe dönsün
+    lambda: cpu("susuz_bas"),
+    *[lambda: None] * 5,
+    lambda: (cpu("susuz_son"), tema("kuzey")),
+    lambda: cpu("suslu_bas"),
+    *[lambda: None] * 5,
+    lambda: (cpu("suslu_son"), cek("Shot", f"{OUT}/20-kuzey.png"), olc("kuzey"), olc_cls("ada-gok")),
+    lambda: tema("pamuk"),
+    lambda: cek("Shot", f"{OUT}/18-pamuk.png"),
+    lambda: tema("sis"),
+    lambda: cek("Shot", f"{OUT}/19-sis.png"),
+    lambda: tema("neon"),
+    lambda: cek("Shot", f"{OUT}/21-neon.png"),
+    lambda: click("ada"),  # süslerin altındaki ada tıklamayı alıyor mu: büyür
+    lambda: (olc("suslu_tik"), cek("Shot", f"{OUT}/22-neon-buyuk.png")),
     lambda: app.quit(),
 ]
 i = [0]

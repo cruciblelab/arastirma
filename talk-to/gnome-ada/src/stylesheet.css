@@ -46,7 +46,10 @@
 .ada.ada-ozel { min-width: 400px; }
 .ada-ozellestir { padding: 6px 18px; }
 .ada-tema-kutu { spacing: 3px; }
-.ada-tema { border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.15); transition-duration: 150ms; }
+/* Tema örnekleri küçük birer ada: üstü düz, alt köşeler yuvarlak; süsleri canlı. */
+.ada-tema { border-radius: 0 0 9px 9px; border: 2px solid rgba(255, 255, 255, 0.15); transition-duration: 150ms; }
+.ada-tema-izgara { spacing: 5px; padding: 2px 0 4px 0; }
+.ada-tema-sira { spacing: 5px; }
 .ada-tema:hover { border-color: rgba(255, 255, 255, 0.5); }
 .ada-tema-secili { border: 2px solid white; }
 .ada-tema-ad { font-size: 8pt; opacity: 0.8; }

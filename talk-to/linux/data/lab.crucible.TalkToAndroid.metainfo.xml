@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.25.0" date="2026-10-13">
+      <description><p>Ada Place: üst ada için tatlıdan havalıya 16 tema, Ada sekmesinde canlı önizlemeleriyle. Bazı temalarda adanın üstünden saydam süsler geçer: bulut, sis, kar, kiraz yaprağı, baloncuk, kalp, ateş böceği, yıldız ve kayan yıldız, kuzey ışıkları, neon, yağmur ve şimşek, altın parıltı. Süsler yazıları kapatmaz, aramada çekilir; hareketleri Canlı, Yavaş ya da Durgun seçilebilir.</p></description>
+    </release>
     <release version="0.24.0" date="2026-10-13">
       <description><p>Üst adanın bildirimler sayfasında her bildirimin ne zaman geldiği yazıyor: “şimdi”, “3 dk önce”, “2 sa önce”. Süre ekran açıkken kendiliğinden ilerliyor.</p></description>
     </release>

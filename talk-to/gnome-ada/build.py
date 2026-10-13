@@ -4,7 +4,7 @@
   build/45/  GNOME 45 ve sonrası (Ubuntu 24.04: GNOME 46): ES modülleri, kaynak olduğu gibi
   build/42/  GNOME 42–44 (Ubuntu 22.04: GNOME 42): imports.* ve init()
 
-Kaynak tek (src/extension.js); 42 sürümü içe aktarma satırları ve sınıf bildirimi değiştirilerek üretilir.
+Kaynak tek (src/extension.js; temaların süsleri src/sahne.js'ten içine konur); 42 sürümü içe aktarma satırları ve sınıf bildirimi değiştirilerek üretilir.
     python3 build.py [hedef_klasör]
 """
 
@@ -18,7 +18,7 @@ UUID = "talkto-ada@crucible.lab"
 META = {"uuid": UUID, "name": "Talk To · Üst ada",
         "description": "Telefonda çalan, gelen arama, bildirimler ve zamanlayıcı ekranın üst ortasında. "
                        "Talk To ile çalışır.",
-        "url": "https://github.com/cruciblelab/arastirma", "version": 14}
+        "url": "https://github.com/cruciblelab/arastirma", "version": 15}
 LEGACY_IMPORTS = """const {GLib, Gio, St, Clutter} = imports.gi;
 const Cairo = imports.cairo;
 const Main = imports.ui.main;"""
@@ -32,8 +32,19 @@ def legacy(source: str) -> str:
     return head + LEGACY_IMPORTS + "\n" + body + "\nfunction init() {\n    return new AdaExtension();\n}\n"
 
 
-def build(out: Path):
+SAHNE_MARK = "// SAHNE: build.py buraya src/sahne.js'i koyar (temaların süsleri: sahnePaint).\n"
+
+
+def source() -> str:
+    """extension.js, temaların süsleri (src/sahne.js) içine konmuş olarak. sahne.js ayrı durur: aynı çizim testte
+    tek başına çalıştırılıp Talk To'daki önizlemeyle karşılaştırılır."""
     src = (HERE / "src" / "extension.js").read_text(encoding="utf-8")
+    assert src.count(SAHNE_MARK) == 1, "extension.js'te SAHNE yeri yok"
+    return src.replace(SAHNE_MARK, (HERE / "src" / "sahne.js").read_text(encoding="utf-8"))
+
+
+def build(out: Path):
+    src = source()
     for name, versions, code in (("45", ["45", "46", "47", "48"], src), ("42", ["42", "43", "44"], legacy(src))):
         d = out / name
         if d.exists():

@@ -140,7 +140,7 @@ def fill():
 
 
 FAKE = {}
-pages = ["telefonlar", "medya", "dosyalar", "bildirimler"]
+pages = ["telefonlar", "medya", "dosyalar", "bildirimler", "ada"]
 step = {"i": 0}
 
 

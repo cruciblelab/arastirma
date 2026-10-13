@@ -27,7 +27,7 @@ gnome-shell --headless --wayland --no-x11 --virtual-monitor 1280x800 > "$OUT/she
 SH=$!
 for i in $(seq 1 120); do gdbus introspect --session --dest test.Cek --object-path /test/Cek > /dev/null 2>&1 && break; sleep 0.5; done
 sleep 1
-WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland GSK_RENDERER=cairo timeout 200 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
+WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland GSK_RENDERER=cairo timeout 280 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
     > "$OUT/talkto.log" 2>&1
 kill $SH; wait $SH 2> /dev/null'
 rm -rf "$H" 2> /dev/null || true
@@ -66,11 +66,23 @@ assert b["ada-pil"] > 0, "telefonun pili %9'a inince ada pil uyarısını göste
 assert abs(b["asagi1"] - b["normal"]) <= 3, "ince şeritte aşağı kaydırınca normal hâle dönmeli: %s" % b["asagi1"]
 assert b["asagi2"] > b["normal"] + 20, "normal hâlde aşağı kaydırınca büyümeli: %s" % b["asagi2"]
 assert abs(b["kilitsiz"] - b["normal"]) <= 6, "Konumu değiştir: ada normal boya iner"
+k, g = json.load(open(sys.argv[1]))["kuzey"], json.load(open(sys.argv[1]))["ada-gok"]
+assert all(abs(k[i] - g[i]) <= 2 for i in range(4)), f"süsler adanın tam üstünde olmalı: ada {k}, süs {g}"
+assert b["suslu_tik"] > b["normal"] + 20, "süslerin altındaki ada tıklamayı almalı (süsler tepkisiz)"
 x, y, w, h = json.load(open(sys.argv[1]))["konum"]
 assert 820 <= x + w / 2 <= 860, f"sağa sürüklenen adanın ortası ~840 olmalı: {x + w / 2}"
 PYEOF
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert (d['theme_id'], d['mode']) == ('gece', 'tasan'), d" \
     "$OUT/durum2.json" || fail "adadan seçilen tema/kip Talk To'ya yazılmadı"
+python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['theme_id'] == 'kuzey' and d['theme']['fx'], d['theme']" \
+    "$OUT/durum2b.json" || fail "adadaki küçük temalardan (Ada Place) seçilen tema yazılmadı"
+python3 - "$OUT/islemci.json" <<'PYEOF' || true
+import json, sys
+d = json.load(open(sys.argv[1]))
+def pct(a, b): return 100 * (d[b][0] - d[a][0]) / (d[b][1] - d[a][1])
+print(f"GNOME Shell işlemci kullanımı (yazılımla çizim, sanal ekran): süssüz %{pct('susuz_bas', 'susuz_son'):.1f}, "
+      f"Kuzey ışıkları %{pct('suslu_bas', 'suslu_son'):.1f}")
+PYEOF
 [ "$(grep -c "('call_action', 'p', 'k1', 1)" "$OUT/eylemler.txt")" -ge 2 ] || fail "hoparlör düğmesi ulaşmadı"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_battery']['level'] == 9, d['low_battery']" \
     "$OUT/durum5.json" || fail "düşük pil adanın durumunda yok"
@@ -79,5 +91,5 @@ python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_batte
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_battery']['weak'] and d['event']['kind'] == 'pil', d" \
     "$OUT/durum7.json" || fail "takılı ama pil düşerken ada uyarmadı"
 for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 4b-gorusme 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal \
-         10-ozellestir 11-tasan 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az 16-sarj-yetmiyor; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
+         10-ozellestir 11-tasan 11b-kuzey-ozel 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az 16-sarj-yetmiyor 18-pamuk 19-sis 20-kuzey 21-neon 22-neon-buyuk; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
 echo "ÜST ADA UÇTAN UCA TESTİ GEÇTİ"

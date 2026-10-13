@@ -83,16 +83,20 @@ class StateTest(unittest.TestCase):
     def test_defaults_and_theme(self):
         st = self.ada.state()
         self.assertTrue(st["enabled"])
-        self.assertEqual(st["theme"], ada.THEMES["deniz"][1])
+        self.assertEqual(st["theme"], dict(ada.THEMES["deniz"]["colors"], fx=[]))
         self.assertIsNone(st["phone"])
         self.assertIsNone(st["media"])
         self.app.config.set("ada_theme", "gece")
         self.app.config.set("ada_enabled", False)
         st = self.ada.state()
-        self.assertEqual(st["theme"]["bg1"], ada.THEMES["gece"][1]["bg1"])
+        self.assertEqual(st["theme"]["bg1"], ada.THEMES["gece"]["colors"]["bg1"])
         self.assertFalse(st["enabled"])
         self.app.config.set("ada_theme", "yok-boyle-tema")
-        self.assertEqual(self.ada.state()["theme"], ada.THEMES["deniz"][1])
+        self.assertEqual(self.ada.state()["theme_id"], "deniz")
+        self.assertEqual(self.ada.state()["theme"]["bg1"], ada.THEMES["deniz"]["colors"]["bg1"])
+        # Süslü tema: süsler de eklentiye gider
+        self.app.config.set("ada_theme", "kuzey")
+        self.assertEqual([f["type"] for f in self.ada.state()["theme"]["fx"]], ["stars", "aurora"])
 
     def test_phone_and_media(self):
         self.ada.on_event("status", {"sessions": [SESS]})
@@ -240,19 +244,22 @@ class StateTest(unittest.TestCase):
         st = self.ada.state()
         self.assertEqual((st["theme_id"], st["mode"]), ("deniz", "sakin"))
         self.assertEqual([t["id"] for t in st["themes"]], list(ada.THEMES))
-        self.assertTrue(all({"bg1", "bg2", "wave1", "name"} <= set(t) for t in st["themes"]))
+        self.assertTrue(all({"bg1", "bg2", "wave1", "name", "group", "fx"} <= set(t) for t in st["themes"]))
+        self.assertEqual(st["motion"], "canli")
         self.assertEqual([m["id"] for m in st["modes"]], ["sakin", "tasan"])
         self.ada.action({"do": "set", "key": "ada_theme", "value": "gece"})
         self.ada.action({"do": "set", "key": "ada_mode", "value": "tasan"})
+        self.ada.action({"do": "set", "key": "ada_motion", "value": "yavas"})
         st = self.ada.state()
-        self.assertEqual((st["theme_id"], st["mode"]), ("gece", "tasan"))
-        self.assertEqual(st["theme"], ada.THEMES["gece"][1])
+        self.assertEqual((st["theme_id"], st["mode"], st["motion"]), ("gece", "tasan", "yavas"))
+        self.assertEqual(st["theme"], dict(ada.THEMES["gece"]["colors"], fx=[]))
         # Yalnızca bilinen ayarlar ve değerler: ada başka bir ayarı değiştiremez.
         for bad in ({"key": "ada_theme", "value": "yok"}, {"key": "port", "value": 1},
-                    {"key": "ada_mode", "value": ["tasan"]}, {"key": "run_in_background", "value": False}):
+                    {"key": "ada_mode", "value": ["tasan"]}, {"key": "run_in_background", "value": False},
+                    {"key": "ada_motion", "value": "hizli"}):
             self.ada.action(dict(bad, do="set"))
         st = self.ada.state()
-        self.assertEqual((st["theme_id"], st["mode"]), ("gece", "tasan"))
+        self.assertEqual((st["theme_id"], st["mode"], st["motion"]), ("gece", "tasan", "yavas"))
         self.assertTrue(self.app.config["run_in_background"])
 
     def test_quick_settings_offset_and_actions(self):

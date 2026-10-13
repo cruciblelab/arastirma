@@ -315,14 +315,18 @@ class Window(Adw.ApplicationWindow):
 
     def _build_ada_page(self):
         """Ana penceredeki "Ada" sekmesi (kullanıcı: Tercihler'in dibinde "çok ters yerde" duruyordu)."""
+        from .ada_place import AdaPlace
         page = Adw.PreferencesPage()
         page.add(self._build_ada_group())
+        self.ada_place = AdaPlace(self.app.config["ada_theme"], self._pick_ada_theme)
+        page.add(self.ada_place)
         how = Adw.PreferencesGroup(title="Nasıl kullanılır")
         for title, text in (
                 ("Tıkla", "Ada büyür ya da küçülür."),
                 ("Fare tekerleği", "Yukarı: küçülür (büyük → normal → ince şerit). Aşağı: geri büyür."),
                 ("Basılı tut ve yana sürükle", "Sayfa değişir: arama, çalan, bildirimler, zamanlayıcı, diğer."),
-                ("Diğer → Özelleştir", "Tema, kip, dokunma sesi ve adanın yeri (üst kenar boyunca kaydırılır).")):
+                ("Diğer → Özelleştir", "Tema, kip, dokunma sesi ve adanın yeri (üst kenar boyunca kaydırılır). "
+                                       "Bütün temalar önizlemeleriyle yukarıda, Ada Place'te.")):
             r = Adw.ActionRow(title=title, subtitle=text)
             r.set_subtitle_lines(2)
             how.add(r)
@@ -346,12 +350,14 @@ class Window(Adw.ApplicationWindow):
         self.sw_ada.set_active(self.app.config["ada_enabled"])
         self.sw_ada.connect("notify::active", lambda r, _: self._set("ada_enabled", r.get_active()))
         g.add(self.sw_ada)
-        keys = list(ada.THEMES)
-        self.ada_theme = Adw.ComboRow(title="Tema", model=Gtk.StringList.new([ada.THEMES[k][0] for k in keys]))
-        cur = self.app.config["ada_theme"]
-        self.ada_theme.set_selected(keys.index(cur) if cur in keys else 0)
-        self.ada_theme.connect("notify::selected", lambda r, _: self._set("ada_theme", keys[r.get_selected()]))
-        g.add(self.ada_theme)
+        motions = list(ada.MOTIONS)
+        self.ada_motion = Adw.ComboRow(
+            title="Süslerin hareketi", subtitle="Bulut, sis, yıldız... Yavaş ve Durgun daha az iş yapar (dizüstünde pil)",
+            model=Gtk.StringList.new([ada.MOTIONS[k][0] for k in motions]))
+        cur = self.app.config["ada_motion"]
+        self.ada_motion.set_selected(motions.index(cur) if cur in motions else 0)
+        self.ada_motion.connect("notify::selected", lambda r, _: self._set("ada_motion", motions[r.get_selected()]))
+        g.add(self.ada_motion)
         modes = list(ada.MODES)
         self.ada_mode = Adw.ComboRow(title="Kip", subtitle="Taşan dalgalar: çalarken su adanın altından taşar (süs)",
                                      model=Gtk.StringList.new([ada.MODES[k][0] for k in modes]))
@@ -369,14 +375,21 @@ class Window(Adw.ApplicationWindow):
         self._update_ada_rows()
         return g
 
+    def _pick_ada_theme(self, key):
+        """Ada Place'te bir karta tıklandı: tema seçilir, ada hemen değişir."""
+        self._set("ada_theme", key)
+        self.ada_place.select(key)
+
     def sync_ada_rows(self):
         """Tema/kip adadan değiştirildi: tercihlerdeki seçimler de güncellensin (yeniden kaydetmeden)."""
         from . import ada
-        if getattr(self, "ada_theme", None) is None:
+        if getattr(self, "ada_mode", None) is None:
             return
         self._updating = True
         try:
-            for row, key, table in ((self.ada_theme, "ada_theme", ada.THEMES), (self.ada_mode, "ada_mode", ada.MODES)):
+            if getattr(self, "ada_place", None) is not None:
+                self.ada_place.select(self.app.config["ada_theme"])
+            for row, key, table in ((self.ada_motion, "ada_motion", ada.MOTIONS), (self.ada_mode, "ada_mode", ada.MODES)):
                 keys = list(table)
                 if self.app.config[key] in keys:
                     row.set_selected(keys.index(self.app.config[key]))
@@ -397,7 +410,8 @@ class Window(Adw.ApplicationWindow):
         self.ada_row.set_subtitle(text)
         self.ada_btn.set_label("Kur" if state == "absent" else "Kaldır")
         self.ada_btn.set_css_classes(["suggested-action"] if state == "absent" else [])
-        for r in (self.sw_ada, self.ada_theme, self.ada_mode, self.sw_ada_popup):
+        # Ada Place hep açık: eklenti kurulmadan da temalara bakılıp seçilebilir (kurulunca o temayla gelir).
+        for r in (self.sw_ada, self.ada_motion, self.ada_mode, self.sw_ada_popup):
             r.set_sensitive(state != "absent")
 
     def _ada_toggle(self):

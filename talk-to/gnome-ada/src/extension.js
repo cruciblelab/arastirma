@@ -177,6 +177,31 @@ class Spill {
     }
 }
 
+// SAHNE: build.py buraya src/sahne.js'i koyar (temaların süsleri: sahnePaint).
+
+// Temanın süsleri (bulut, sis, yıldız...): adanın tam üstünde saydam katman. Tıklamaları almaz (tepkisiz, girdi
+// bölgesine katılmaz); büyükken soluklaşır, aramada ve ince şeritte çekilir.
+class Sky {
+    constructor(ada) {
+        this.ada = ada;
+        this.radius = 18;
+        this.actor = new St.DrawingArea({reactive: false, visible: false, style_class: 'ada-gok'});
+        this.actor.connect('repaint', area => this._paint(area));
+    }
+
+    _paint(area) {
+        const cr = area.get_context();
+        const [w, h] = area.get_surface_size();
+        sahnePaint(cr, w, h, this.ada.fxTime(), this.ada.theme.fx || [],
+            {radius: this.radius, alpha: this.ada.expanded ? 0.4 : 1});
+        cr.$dispose();
+    }
+
+    repaint() {
+        this.actor.queue_repaint();
+    }
+}
+
 // Deniz: iki katlı dalga; çalarken akar, duraklayınca neredeyse durgun.
 class Wave {
     constructor(width, height, ada) {
@@ -243,6 +268,8 @@ class Ada {
         this.lastEvent = 0;
         this.waves = [];
         this.live = []; // [etiket, metni veren işlev]: her saniye güncellenir (sayaç, görüşme süresi)
+        this.swatches = []; // Özelleştir'deki küçük tema önizlemeleri (süsleri canlı)
+        this._fx0 = GLib.get_monotonic_time() / 1e6;
         this._timers = {};
 
         this.box = new St.BoxLayout({style_class: 'ada', vertical: true, reactive: true, track_hover: true,
@@ -258,13 +285,19 @@ class Ada {
         this.spill = new Spill(this);
         this.waves.push(this.spill);
         Main.layoutManager.addTopChrome(this.spill.actor, {affectsInputRegion: false, trackFullscreen: true});
+        this.sky = new Sky(this);
+        Main.layoutManager.addTopChrome(this.sky.actor, {affectsInputRegion: false, trackFullscreen: true});
         // GNOME bildirimleri de ekranın üst ortasında çıkar: adanın altında kalmasınlar, üstünde görünsünler.
-        for (const actor of [this.spill.actor, this.box])
+        // Sıra (alttan): taşan su, ada, süsler, bildirimler.
+        for (const actor of [this.spill.actor, this.box, this.sky.actor])
             this._belowTray(actor);
         this._sigs = [
             [this.box, this.box.connect('notify::width', () => this._place())],
             [this.box, this.box.connect('notify::height', () => this._place())],
             [this.box, this.box.connect('notify::scale-x', () => this._place())],
+            [this.box, this.box.connect('notify::opacity', () => {
+                this.sky.actor.opacity = this.box.opacity;
+            })],
             [Main.layoutManager, Main.layoutManager.connect('monitors-changed', () => this._place())],
             // Olaylar düğmelerden önce görülür: sürükleme bir düğmenin üstünden başlasa da sayfa değişsin.
             [this.box, this.box.connect('captured-event', (a, e) => this._captured(e))],
@@ -290,6 +323,8 @@ class Ada {
             obj.disconnect(id);
         Main.layoutManager.removeChrome(this.spill.actor);
         this.spill.actor.destroy();
+        Main.layoutManager.removeChrome(this.sky.actor);
+        this.sky.actor.destroy();
         Main.layoutManager.removeChrome(this.box);
         this.box.destroy();
     }
@@ -384,6 +419,7 @@ class Ada {
             this._fadeIn(this.compact, -3, 110);
         this._animate((this.playing || this.loading) && this.box.visible);
         this._spillUpdate();
+        this._skyUpdate();
     }
 
     _onEvent(kind) {
@@ -432,6 +468,79 @@ class Ada {
         this.spill.bh = bh;
         s.set_size(Math.round(this.box.width * this.box.scale_x) + 2 * SPILL_PAD, bh + SPILL_H);
         s.set_position(Math.round(cx - s.width / 2), m.y + top);
+        // Süsler adanın tam üstünde, aynı biçimde (alt köşeler yuvarlak).
+        const k = this.sky.actor;
+        k.set_size(Math.round(this.box.width * this.box.scale_x), bh);
+        k.set_position(Math.round(cx - k.width / 2), m.y + top);
+        const node = this.box.peek_theme_node();  // ilk çizimden önce yok: varsayılan kalır
+        if (node)
+            this.sky.radius = node.get_border_radius(St.Corner.BOTTOMLEFT) * this.box.scale_x;
+        this.sky.repaint();
+    }
+
+    // ---- temanın süsleri ----------------------------------------------------------------
+
+    // Süslerin hareketi: Talk To'daki ayar (canli / yavas / durgun) ve GNOME'un "Canlandırmalar" ayarı.
+    _fxMotion() {
+        const st = this.state || {};
+        let anim = true;
+        try {
+            anim = St.Settings.get().enable_animations;
+        } catch (e) {
+            // eski kabuk: açık say
+        }
+        return anim ? st.motion || 'canli' : 'durgun';
+    }
+
+    fxTime() {
+        const m = this._fxMotion();
+        if (m === 'durgun')
+            return 8;  // süsler dağılmış hâlde durur
+        const t = GLib.get_monotonic_time() / 1e6 - this._fx0;
+        return 8 + (m === 'yavas' ? t * 0.5 : t);
+    }
+
+    // Süsler: temada varsa, ada görünürken; aramada ve ince şeritte çekilir (dikkat dağıtmasın).
+    _skyUpdate() {
+        const st = this.state || {};
+        const fx = (this.theme && this.theme.fx) || [];
+        const thinShown = this.thin && !this.peek && !this.expanded;
+        const on = fx.length > 0 && this.box.visible && !st.call && !thinShown;
+        const k = this.sky.actor;
+        if (on && !k.visible) {
+            k.opacity = 0;
+            k.show();
+            k.ease({opacity: this.box.opacity, duration: 400, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        } else if (!on && k.visible) {
+            k.ease({opacity: 0, duration: 300, mode: Clutter.AnimationMode.EASE_OUT_QUAD, onComplete: () => k.hide()});
+        }
+        this.skyOn = on;
+        this.sky.repaint();
+        this._fxTimer();
+    }
+
+    // Süslerin saati: yalnızca bir şey canlıyken çalışır (süsler görünür ya da Özelleştir açık). Canlı: saniyede 20
+    // kare, Yavaş: 10; Durgun ya da ekran kilitliyken çizim yok.
+    _fxTimer() {
+        const motion = this._fxMotion();
+        const want = (this.skyOn || (this.custom && this.expanded)) && motion !== 'durgun';
+        const interval = motion === 'yavas' ? 100 : 50;
+        if (this._timers.fx && (!want || this._fxInterval !== interval)) {
+            GLib.source_remove(this._timers.fx);
+            delete this._timers.fx;
+        }
+        if (!want || this._timers.fx)
+            return;
+        this._fxInterval = interval;
+        this._timers.fx = GLib.timeout_add(GLib.PRIORITY_DEFAULT, interval, () => {
+            if (Main.sessionMode.isLocked)
+                return GLib.SOURCE_CONTINUE;
+            if (this.skyOn)
+                this.sky.repaint();
+            for (const a of this.swatches)
+                a.queue_repaint();
+            return GLib.SOURCE_CONTINUE;
+        });
     }
 
     // Taşan su: "Taşan dalgalar" kipinde, ada görünürken ve çalarken (ya da şarkılar arasında).
@@ -454,6 +563,8 @@ class Ada {
     }
 
     _setClass() {
+        if (this.sky)
+            this._skyUpdate();
         const thin = this.thin && !this.peek && !this.expanded;
         const peek = this.thin && this.peek && !this.expanded;
         // Üstüne gelince görünen normal hâl geçicidir: hafif saydam (tıklayınca büyür, ayrılınca ince şerit).
@@ -1046,6 +1157,7 @@ class Ada {
     }
 
     _buildPage() {
+        this.swatches = [];
         this._clear(this.page);
         if (this.custom) {
             this._customPage();
@@ -1206,24 +1318,47 @@ class Ada {
         head.add_child(this._button('window-close-symbolic', () => this._setCustom(false), 'ada-kapat-ozel'));
         this.page.add_child(head);
 
-        this.page.add_child(this._label('Tema', 'ada-soluk'));
-        const themes = this._row();
-        themes.x_align = Clutter.ActorAlign.CENTER;
-        for (const t of st.themes || []) {
-            const box = new St.BoxLayout({vertical: true, style_class: 'ada-tema-kutu'});
+        // Temalar: her biri küçük bir ada (süsleri canlı); üstüne gelince adı yazar. Büyük önizlemeler Talk To'da
+        // (Ada sekmesi → Ada Place).
+        const themes = st.themes || [];
+        const current = themes.find(t => t.id === st.theme_id);
+        const name = this._label(current ? current.name : '', 'ada-tema-ad');
+        const grid = new St.BoxLayout({vertical: true, style_class: 'ada-tema-izgara'});
+        grid.x_align = Clutter.ActorAlign.CENTER;
+        let row = null;
+        themes.forEach((t, i) => {
+            if (i % 8 === 0) {
+                row = this._row();
+                row.add_style_class_name('ada-tema-sira');
+                grid.add_child(row);
+            }
             const swatch = new St.Button({style_class: `ada-tema ada-tema-${t.id} ${t.id === st.theme_id ? 'ada-tema-secili' : ''}`,
-                can_focus: true, width: 46, height: 30});
+                can_focus: true, track_hover: true, width: 34, height: 22});
             swatch.set_style(`background-gradient-direction: vertical; background-color: ${t.bg1};` +
                 `background-gradient-start: ${t.bg1}; background-gradient-end: ${t.bg2};` +
-                `border-bottom: 5px solid ${t.wave1};`);
+                `border-bottom: 3px solid ${t.wave1};`);
+            if (t.fx && t.fx.length) {
+                const area = new St.DrawingArea({x_expand: true, y_expand: true});
+                area.connect('repaint', a => {
+                    const cr = a.get_context();
+                    const [w, h] = a.get_surface_size();
+                    sahnePaint(cr, w, h, this.fxTime(), t.fx, {scale: 0.5, radius: 5});
+                    cr.$dispose();
+                });
+                swatch.set_child(area);
+                this.swatches.push(area);
+            }
+            swatch.connect('notify::hover', () => {
+                name.text = swatch.hover ? t.name : current ? current.name : '';
+            });
             swatch.connect('clicked', () => this.act({do: 'set', key: 'ada_theme', value: t.id}));
-            box.add_child(swatch);
-            const name = this._label(t.name, 'ada-tema-ad');
-            name.x_align = Clutter.ActorAlign.CENTER;
-            box.add_child(name);
-            themes.add_child(box);
-        }
-        this.page.add_child(themes);
+            row.add_child(swatch);
+        });
+        const head2 = this._row(this._label('Tema', 'ada-soluk'), name);
+        head2.add_child(new St.Widget({x_expand: true}));
+        head2.add_child(this._textButton('Ada Place', () => this.act({do: 'prefs'}), 'ada-kucuk-metin ada-place'));
+        this.page.add_child(head2);
+        this.page.add_child(grid);
 
         this.page.add_child(this._label('Kip', 'ada-soluk'));
         const modes = this._row();

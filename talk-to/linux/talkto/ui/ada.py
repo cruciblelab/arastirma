@@ -26,7 +26,7 @@ from pathlib import Path
 
 from gi.repository import Gio, GLib
 
-from .. import arama, pil
+from .. import ada_temalar, arama, pil
 
 log = logging.getLogger("talkto.ada")
 
@@ -39,13 +39,8 @@ XML = f"""<node><interface name="{IFACE}">
   <signal name="Changed"><arg type="s"/></signal>
 </interface></node>"""
 
-THEMES = {
-    "deniz": ("Deniz", {"bg1": "#0a2342", "bg2": "#12436b", "wave1": "#2ec4b6", "wave2": "#8de4ff", "text": "#eaf6ff"}),
-    "gece": ("Gece", {"bg1": "#0f0f14", "bg2": "#1d1b2e", "wave1": "#7f5af0", "wave2": "#2cb67d", "text": "#f2f0ff"}),
-    "gunbatimi": ("Gün batımı", {"bg1": "#2b1055", "bg2": "#7a2e5c", "wave1": "#ff9e5e", "wave2": "#ffd166",
-                                 "text": "#fff4e6"}),
-    "orman": ("Orman", {"bg1": "#0b2b1c", "bg2": "#154734", "wave1": "#52b788", "wave2": "#b7e4c7", "text": "#eefaf2"}),
-}
+THEMES = ada_temalar.THEMES  # Ada Place: talkto/ada_temalar.py
+MOTIONS = ada_temalar.MOTIONS
 MODES = {
     "sakin": ("Sakin", "Dalga yalnızca adanın içinde."),
     "tasan": ("Taşan dalgalar", "Çalarken su adadan taşar (süs, gerçek ses değil)."),
@@ -166,14 +161,17 @@ class AdaService:
         weak = {x["device_id"]: bool(takip and takip.weak(x["device_id"])) for x in self.status.get("sessions", [])}
         low = [x for x in self.status.get("sessions", []) if pil.is_low(x.get("battery"), weak[x["device_id"]])]
         low.sort(key=lambda x: x["battery"]["level"])
+        theme_id = cfg["ada_theme"] if cfg["ada_theme"] in THEMES else ada_temalar.DEFAULT
+        theme = THEMES[theme_id]
         return {
             "low_battery": {"device_id": low[0]["device_id"], "name": low[0].get("name") or "Telefon",
                             "level": low[0]["battery"]["level"], "weak": weak[low[0]["device_id"]]}
             if low else None,
             "enabled": bool(cfg["ada_enabled"]),
-            "theme": THEMES.get(cfg["ada_theme"], THEMES["deniz"])[1],
-            "theme_id": cfg["ada_theme"] if cfg["ada_theme"] in THEMES else "deniz",
-            "themes": [dict(colors, id=k, name=name) for k, (name, colors) in THEMES.items()],
+            "theme": dict(theme["colors"], fx=theme["fx"]),
+            "theme_id": theme_id,
+            "themes": [dict(t["colors"], id=k, name=t["name"], group=t["group"], fx=t["fx"]) for k, t in THEMES.items()],
+            "motion": cfg["ada_motion"] if cfg["ada_motion"] in MOTIONS else "canli",
             "mode": cfg["ada_mode"] if cfg["ada_mode"] in MODES else "sakin",
             "modes": [{"id": k, "name": name, "hint": hint} for k, (name, hint) in MODES.items()],
             "prefs": {k: bool(cfg[k]) for k in BOOL_PREFS},
@@ -275,7 +273,7 @@ class AdaService:
             self.app.present()
         elif what == "set":  # adadaki özelleştirme: yalnızca bilinen ayarlar ve değerler
             key, value = a.get("key"), a.get("value")
-            allowed = {"ada_theme": THEMES, "ada_mode": MODES}
+            allowed = {"ada_theme": THEMES, "ada_mode": MODES, "ada_motion": MOTIONS}
             ok = ((key in allowed and isinstance(value, str) and value in allowed[key])
                   or (key in BOOL_PREFS and isinstance(value, bool))
                   or (key == "ada_offset" and isinstance(value, int) and not isinstance(value, bool)

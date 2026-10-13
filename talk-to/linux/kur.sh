@@ -27,7 +27,7 @@ assert (Adw.get_major_version(), Adw.get_minor_version()) >= (1, 1)
 PY
 if [ -n "$eksik" ]; then
     echo "Eksik:$eksik"
-    echo "  Ubuntu/Debian: sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography adb"
+    echo "  Ubuntu/Debian: sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 python3-cryptography adb"
     echo "  Fedora:        sudo dnf install python3-gobject gtk4 libadwaita python3-cryptography android-tools"
     echo "  Arch:          sudo pacman -S python-gobject gtk4 libadwaita python-cryptography android-tools"
     exit 1
