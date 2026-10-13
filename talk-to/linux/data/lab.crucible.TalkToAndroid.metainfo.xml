@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.27.0" date="2026-10-13">
+      <description><p>Adanın dalgası artık ayrı bir kutu değil: normal hâlde adanın alt kenarı su (çalarken dalgalanır, çalmazken sakin), ince şeritte şeridin kendisi su. Deniz, Orman ve Kar saate göre değişir (şafak, gündüz, akşam, gece; Ada sekmesinden kapatılabilir). Dizüstü pildeyken ada kendiliğinden Yavaş çalışır, prize takılınca Canlı'ya döner.</p></description>
+    </release>
     <release version="0.26.0" date="2026-10-13">
       <description><p>Üst ada daha az iş yapar: dalga ve süsler tek saatle çizilir; bir dakika dokunulmazsa, tam ekranda, ekran kilitliyken ve güç tasarrufu kipinde ada hiç kıpırdamaz. Ada Place önizlemeleri yalnızca farenin üstündeki kartta oynar. Süsler artık yazıların altında (yazılar net), bir şey çalmazken dalga adanın sol ucunda. Yeni tema: Gün döngüsü (saate göre şafak, gündüz, gün batımı, gece). Zamanlayıcı sayfası isteğe bağlı; Özelleştir adada boş bir yere ya da dışarı tıklayınca kapanır.</p></description>
     </release>
