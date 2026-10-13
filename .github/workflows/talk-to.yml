@@ -150,7 +150,7 @@ jobs:
           gjs test/sozdizimi.js "$RUNNER_TEMP/ada/42/extension.js" betik
 
       - name: Uçtan uca
-        run: PY=/usr/bin/python3 timeout 300 test/uctan_uca.sh "$RUNNER_TEMP/ada-test"
+        run: PY=/usr/bin/python3 timeout 420 test/uctan_uca.sh "$RUNNER_TEMP/ada-test"
 
       - name: Mini oynatıcının ⋮ menüsü (Wayland ve üstte tutulurken XWayland)
         # Menü tıklanınca açık kalmalı, başka yere tıklanınca kapanmalı.
@@ -164,6 +164,20 @@ jobs:
             python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['open_after_click'] and d['closed_after_outside'] and d['closed_by_x'] and not d.get('errors'), d" "$RUNNER_TEMP/ada-test/mini-menu-$k.json"
           done
           grep -q X11Display "$RUNNER_TEMP/ada-test/mini-menu-x11.json"
+
+      - name: Başarım ölçümü (kabuğun ve Talk To'nun işlemci kullanımı)
+        # Sayılar bilgi içindir (sanal ekran, yazılımla çizim). Denetlenen: kullanıcı başında değilken ada durur,
+        # Ada sekmesi fare bir karta gelmeden çizmez.
+        run: |
+          PY=/usr/bin/python3 timeout 480 test/olcum.sh "$RUNNER_TEMP/ada-test/olcum"
+          python3 - "$RUNNER_TEMP/ada-test/olcum/olcum.json" <<'PYEOF'
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          for k, v in d.items():
+              print(f"{k:22} kabuk %{v['kabuk']:5}  talkto %{v['talkto']}")
+          assert d["muzik_kuzey_uzakta"]["kabuk"] < 3, "kullanıcı başında değilken ada durmalı"
+          assert d["pencere_ada_sekmesi"]["talkto"] < 3, "Ada sekmesi boşuna çiziyor"
+          PYEOF
 
       - uses: actions/upload-artifact@v4
         if: always()

@@ -324,7 +324,7 @@ class Window(Adw.ApplicationWindow):
         for title, text in (
                 ("Tıkla", "Ada büyür ya da küçülür."),
                 ("Fare tekerleği", "Yukarı: küçülür (büyük → normal → ince şerit). Aşağı: geri büyür."),
-                ("Basılı tut ve yana sürükle", "Sayfa değişir: arama, çalan, bildirimler, zamanlayıcı, diğer."),
+                ("Basılı tut ve yana sürükle", "Sayfa değişir: arama, çalan, bildirimler, zamanlayıcı (açıksa), diğer."),
                 ("Diğer → Özelleştir", "Tema, kip, dokunma sesi ve adanın yeri (üst kenar boyunca kaydırılır). "
                                        "Bütün temalar önizlemeleriyle yukarıda, Ada Place'te.")):
             r = Adw.ActionRow(title=title, subtitle=text)
@@ -339,7 +339,7 @@ class Window(Adw.ApplicationWindow):
         g = self.ada_group = Adw.PreferencesGroup(
             title="Üst ada",
             description="Ekranın üst ortasında, üst çubuktan sarkan küçük ada: çalan şarkı (dalgalanan su), gelen "
-                        "arama, bildirimler ve zamanlayıcı. Basılı tutup yana sürükleyince sayfa değişir.")
+                        "arama, bildirimler ve (isteğe bağlı) zamanlayıcı. Basılı tutup yana sürükleyince sayfa değişir.")
         self.ada_row = Adw.ActionRow(title="GNOME eklentisi")
         self.ada_row.set_subtitle_lines(4)
         self.ada_btn = Gtk.Button(valign=Gtk.Align.CENTER)
@@ -352,7 +352,8 @@ class Window(Adw.ApplicationWindow):
         g.add(self.sw_ada)
         motions = list(ada.MOTIONS)
         self.ada_motion = Adw.ComboRow(
-            title="Süslerin hareketi", subtitle="Bulut, sis, yıldız... Yavaş ve Durgun daha az iş yapar (dizüstünde pil)",
+            title="Hareket", subtitle="Dalga ve süsler. Yavaş yarı yarıya az iş yapar, Durgun hiç kıpırdamaz. Bir "
+                                      "dakika dokunulmazsa, tam ekranda, kilitte ve güç tasarrufunda ada zaten durur.",
             model=Gtk.StringList.new([ada.MOTIONS[k][0] for k in motions]))
         cur = self.app.config["ada_motion"]
         self.ada_motion.set_selected(motions.index(cur) if cur in motions else 0)
@@ -365,6 +366,12 @@ class Window(Adw.ApplicationWindow):
         self.ada_mode.set_selected(modes.index(cur) if cur in modes else 0)
         self.ada_mode.connect("notify::selected", lambda r, _: self._set("ada_mode", modes[r.get_selected()]))
         g.add(self.ada_mode)
+        self.sw_ada_timer = compat.SwitchRow(
+            title="Zamanlayıcı sayfası", subtitle="Adada yana kaydırınca zamanlayıcı da çıksın (kurulu bir sayaç "
+                                                  "varken her zaman görünür)")
+        self.sw_ada_timer.set_active(self.app.config["ada_timer_page"])
+        self.sw_ada_timer.connect("notify::active", lambda r, _: self._set("ada_timer_page", r.get_active()))
+        g.add(self.sw_ada_timer)
         self.sw_ada_popup = compat.SwitchRow(
             title="Masaüstü bildirimi de göster",
             subtitle="Kapalıyken telefon bildirimleri ve aramalar yalnızca adada görünür (masaüstü bildirimi "
@@ -395,6 +402,7 @@ class Window(Adw.ApplicationWindow):
                     row.set_selected(keys.index(self.app.config[key]))
             if getattr(self, "sw_vibrate", None) is not None:
                 self.sw_vibrate.set_active(self.app.config["phone_vibrate"])
+            self.sw_ada_timer.set_active(self.app.config["ada_timer_page"])
         finally:
             self._updating = False
 
@@ -411,7 +419,7 @@ class Window(Adw.ApplicationWindow):
         self.ada_btn.set_label("Kur" if state == "absent" else "Kaldır")
         self.ada_btn.set_css_classes(["suggested-action"] if state == "absent" else [])
         # Ada Place hep açık: eklenti kurulmadan da temalara bakılıp seçilebilir (kurulunca o temayla gelir).
-        for r in (self.sw_ada, self.ada_motion, self.ada_mode, self.sw_ada_popup):
+        for r in (self.sw_ada, self.ada_motion, self.ada_mode, self.sw_ada_timer, self.sw_ada_popup):
             r.set_sensitive(state != "absent")
 
     def _ada_toggle(self):
@@ -1318,6 +1326,8 @@ class Window(Adw.ApplicationWindow):
             card.set_art(path)
 
     def _tick(self):
+        if not self.get_mapped():  # pencere kapalı (arka planda): kimse görmüyor, ilerleme çubukları beklesin
+            return True
         for c in self.media_cards.values():
             if c.get_visible():
                 c.tick()

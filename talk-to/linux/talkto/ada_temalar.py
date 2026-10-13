@@ -1,6 +1,7 @@
 """Üst adanın temaları (Ada Place): renkler ve süsler, tatlıdan havalıya.
 
 Renkler: bg1/bg2 (yukarıdan aşağı zemin), wave1/wave2 (dalga), text (yazı ve simgeler).
+Gün döngüsü temasında (cycle) renkler ve süsler saate göre değişir: resolve(tema, saat).
 Süsler (fx) adanın üstünden geçen saydam katmandır; çizimi gnome-ada/src/sahne.js (adada) ve
 talkto/ui/ada_sahne.py (önizlemede). Süs alanları: type, color, color2 (yalnızca aurora), alpha (0–1), count,
 size (px), speed (px/sn; glint ve lightning'de kaç saniyede bir), shoot (stars: kayan yıldız).
@@ -43,6 +44,19 @@ THEMES = {
     "sis": _theme("Sisli sabah", "sakin", "Adanın üstünden ağır ağır geçen sis",
                   "#2f3e46", "#52796f", "#cad2c5", "#84a98c", "#f4f7f2",
                   _fx("fog", "#ffffff", 0.3, count=3, speed=6)),
+    "dongu": dict(_theme("Gün döngüsü", "sakin", "Saate göre: şafak, gündüz, gün batımı, gece",
+                         "#8ecae6", "#d8f1ff", "#219ebc", "#ffffff", "#0b2545"),
+                  # (başlangıç, bitiş saati, renkler, süsler): arada renkler yavaşça geçer, süsler biri solarken
+                  # öteki belirir
+                  cycle=[(5.5, 6.5, {"bg1": "#2b2d55", "bg2": "#b5523b", "wave1": "#f2cc8f", "wave2": "#ffe8d6"},
+                          [_fx("fog", "#ffffff", 0.22, count=2, speed=5),
+                           _fx("stars", "#ffffff", 0.35, count=6, size=0.9, speed=8)]),
+                         (8.0, 16.5, {"bg1": "#8ecae6", "bg2": "#d8f1ff", "wave1": "#219ebc", "wave2": "#ffffff"},
+                          [_fx("clouds", "#ffffff", 0.75, count=3, size=8, speed=8)]),
+                         (18.0, 19.0, {"bg1": "#3a0ca3", "bg2": "#c2410c", "wave1": "#fcbf49", "wave2": "#ffd6a5"},
+                          [_fx("clouds", "#ffd6a5", 0.3, count=2, size=10, speed=8)]),
+                         (21.0, 4.5, {"bg1": "#03045e", "bg2": "#0b132b", "wave1": "#48cae4", "wave2": "#90e0ef"},
+                          [_fx("stars", "#ffffff", 0.8, count=12, size=1, speed=12, shoot=True)])]),
     "atesbocegi": _theme("Ateş böceği", "sakin", "Karanlıkta yanıp sönen ışıklar",
                          "#081c15", "#1b4332", "#95d5b2", "#d8f3dc", "#effaf3",
                          _fx("fireflies", "#ffe66d", 0.9, count=5, size=2.5, speed=10)),
@@ -74,11 +88,77 @@ THEMES = {
 }
 DEFAULT = "deniz"
 
-MOTIONS = {
-    "canli": ("Canlı", "Süsler akıcı hareket eder."),
-    "yavas": ("Yavaş", "Süsler yarı hızda ve daha seyrek çizilir (daha az iş)."),
-    "durgun": ("Durgun", "Süsler durur (resim gibi); hiç canlandırma yok."),
+MOTIONS = {  # dalga ve süsler birlikte
+    "canli": ("Canlı", "Dalga ve süsler akıcı hareket eder."),
+    "yavas": ("Yavaş", "Yarı hızda ve yarı yarıya seyrek çizilir (daha az iş)."),
+    "durgun": ("Durgun", "Hiç kıpırdamaz (resim gibi); çalarken dalga yüksek durur."),
 }
+
+
+LIGHT_TEXT, DARK_TEXT = "#f4f8ff", "#0b2545"
+
+
+def _rgb(h):
+    return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def _hex(c):
+    return "#" + "".join(f"{max(0, min(255, round(v))):02x}" for v in c)
+
+
+def mix(a, b, u):
+    return _hex(x + (y - x) * u for x, y in zip(_rgb(a), _rgb(b)))
+
+
+def luminance(h):
+    def ch(v):
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = _rgb(h)
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast(a, b):
+    la, lb = sorted((luminance(a), luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def middle(colors) -> str:
+    """Zeminin ortası (yazı adanın ortasında durur)."""
+    return mix(colors["bg1"], colors["bg2"], 0.5)
+
+
+def _in(h, a, b):
+    """h saati [a, b] aralığında mı (gece yarısını aşan aralıklar dahil)."""
+    return a <= h <= b if a <= b else h >= a or h <= b
+
+
+def _since(h, a):
+    return (h - a) % 24
+
+
+def resolve(theme: dict, hour: float) -> dict:
+    """Gün döngüsü temasının o saatteki hâli (renkler ve süsler); öteki temalar olduğu gibi."""
+    cycle = theme.get("cycle")
+    if not cycle:
+        return theme
+    hour %= 24
+    n = len(cycle)
+    for i, (start, end, colors, fx) in enumerate(cycle):
+        if _in(hour, start, end):
+            c, fxs = dict(colors), list(fx)
+            break
+        nxt = cycle[(i + 1) % n]
+        gap = _since(nxt[0], end)
+        if 0 < _since(hour, end) < gap:  # bu duraktan sonrakine geçiş
+            u = _since(hour, end) / gap
+            c = {k: mix(colors[k], nxt[2][k], u) for k in colors}
+            fxs = [dict(f, alpha=f["alpha"] * (1 - u)) for f in fx] + [dict(f, alpha=f["alpha"] * u) for f in nxt[3]]
+            fxs = [f for f in fxs if f["alpha"] >= 0.02]
+            break
+    # Yazı: o anki zeminde (yazının durduğu orta renk) en okunur olan, açık ya da koyu
+    c["text"] = max((LIGHT_TEXT, DARK_TEXT), key=lambda t: contrast(t, middle(c)))
+    return dict(theme, colors=c, fx=fxs)
 
 
 def problems():

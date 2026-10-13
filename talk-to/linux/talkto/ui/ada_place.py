@@ -2,8 +2,12 @@
 
 Her kart küçük bir masaüstü gösterir: üst çubuk ve ondan sarkan ada (çalan şarkı, dalga ve temanın süsleri:
 bulut, sis, yıldız...). Süsler adadakiyle aynı çizimdir (ada_sahne.py = gnome-ada/src/sahne.js). Karta tıklayınca
-tema seçilir; ada da hemen değişir. Önizlemeler yalnızca sekme görünürken ve sistemde canlandırmalar açıkken
-oynar. pycairo (python3-gi-cairo) yoksa kartlar düz renkli durur.
+tema seçilir; ada da hemen değişir.
+
+Boşuna çizmez: kartlar durgun bir resimdir; yalnızca farenin üstünde durduğu kart oynar, o da pencere öndeyken
+(odaktayken), sekme görünürken ve sistemde canlandırmalar açıkken. (Seçili kartın da sürekli oynaması Talk To'ya
+%4 iş çıkarıyordu: ölçüldü.) pycairo (python3-gi-cairo)
+yoksa kartlar düz renkli durur.
 """
 
 import math
@@ -26,11 +30,11 @@ except ImportError:
     HAVE_CAIRO = False
 
 CARD_W, CARD_H = 232, 70
-FPS = 20
+FPS = 15
 SCALE = 1.35  # önizlemedeki ada gerçeğinden biraz büyük (süsler seçilsin)
 
 
-def draw_card(cr, w, h, theme, t, playing=True):
+def draw_card(cr, w, h, theme, t, playing=True, clock="13:15"):
     """Bir kartın resmi: masaüstü, üst çubuk ve sarkan ada (ada_sahne ile süsler)."""
     rgb = ada_sahne.rgb
     # masaüstü ve üst çubuk (temadan bağımsız, hep aynı: temalar yan yana karşılaştırılsın)
@@ -48,7 +52,7 @@ def draw_card(cr, w, h, theme, t, playing=True):
     cr.select_font_face("Sans", ada_sahne.cairo.FONT_SLANT_NORMAL, ada_sahne.cairo.FONT_WEIGHT_BOLD)
     cr.set_font_size(8)
     cr.move_to(w / 2 - 12, 9)
-    cr.show_text("13:15")
+    cr.show_text(clock)
 
     colors = theme["colors"]
     sc = SCALE
@@ -98,7 +102,7 @@ def _fallback_css(themes) -> str:
 
 
 class ThemeCard(Gtk.Button):
-    def __init__(self, key, theme, on_pick):
+    def __init__(self, key, theme, on_pick, on_hover):
         super().__init__(css_classes=["flat", "ada-kart", f"ada-kart-{key}"], tooltip_text=theme["desc"])
         self.key, self.theme = key, theme
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -121,10 +125,20 @@ class ThemeCard(Gtk.Button):
         box.append(desc)
         self.set_child(box)
         self.connect("clicked", lambda *_: on_pick(key))
-        self.t = 0.0
+        motion = Gtk.EventControllerMotion()
+        motion.connect("enter", lambda *_: on_hover(key, True))
+        motion.connect("leave", lambda *_: on_hover(key, False))
+        self.add_controller(motion)
+        self.t = 8.0  # durgun resim: süsler dağılmış hâlde
 
     def _draw(self, _area, cr, w, h):
-        draw_card(cr, w, h, self.theme, self.t)
+        theme, clock = self.theme, "13:15"
+        if "cycle" in theme:  # gün döngüsü: durgunken şimdiki saat, oynarken bütün gün 12 saniyede geçer
+            lt = time.localtime()
+            hour = (lt.tm_hour + lt.tm_min / 60 + (self.t - 8.0) * 2) % 24
+            theme = ada_temalar.resolve(theme, hour)
+            clock = f"{int(hour):02d}:{int(hour % 1 * 60):02d}"
+        draw_card(cr, w, h, theme, self.t, clock=clock)
 
     def set_selected(self, on):
         self.check.set_visible(on)
@@ -149,6 +163,10 @@ class AdaPlace(Adw.PreferencesGroup):
         self.cards: dict[str, ThemeCard] = {}
         self._timer = 0
         self._t0 = time.monotonic()
+        self.hovered = None
+        self.selected = current
+        self._root = None
+        self._root_sig = 0
         if not HAVE_CAIRO:
             css = Gtk.CssProvider()
             css.load_from_data(_fallback_css(ada_temalar.THEMES).encode())
@@ -162,32 +180,58 @@ class AdaPlace(Adw.PreferencesGroup):
                                max_children_per_line=4, column_spacing=8, row_spacing=8)
             for key, th in ada_temalar.THEMES.items():
                 if th["group"] == group:
-                    card = self.cards[key] = ThemeCard(key, th, on_pick)
+                    card = self.cards[key] = ThemeCard(key, th, on_pick, self._hover)
                     flow.append(card)
             self.add(flow)
         self.select(current)
-        self.connect("map", lambda *_: self._start())
-        self.connect("unmap", lambda *_: self._stop())
+        self.connect("map", lambda *_: self._mapped(True))
+        self.connect("unmap", lambda *_: self._mapped(False))
 
     def select(self, key):
+        self.selected = key
         for k, card in self.cards.items():
             card.set_selected(k == key)
+        self._update()
 
-    def _animating(self) -> bool:
+    def _hover(self, key, inside):
+        if inside:
+            self.hovered = key
+        elif self.hovered == key:
+            self.hovered = None
+        self._update()
+
+    def _mapped(self, on):
+        # Pencerenin önde olup olmadığı (odak) değişince de karar yeniden verilir.
+        if self._root is not None and self._root_sig:
+            self._root.disconnect(self._root_sig)
+            self._root, self._root_sig = None, 0
+        if on:
+            root = self.get_root()
+            if root is not None and hasattr(root, "is_active"):
+                self._root = root
+                self._root_sig = root.connect("notify::is-active", lambda *_: self._update())
+        self._update()
+
+    def playing(self) -> list:
+        """Şu an oynayan kartlar: yalnızca farenin üstündeki."""
+        return [self.hovered] if self.hovered in self.cards else []
+
+    def _wanted(self) -> bool:
+        if not HAVE_CAIRO or not self.get_mapped() or not self.playing():
+            return False
         s = Gtk.Settings.get_default()
-        return HAVE_CAIRO and (s is None or s.get_property("gtk-enable-animations"))
+        if s is not None and not s.get_property("gtk-enable-animations"):
+            return False
+        root = self.get_root()
+        if root is None or (hasattr(root, "is_active") and not root.is_active()):
+            return False  # pencere arkada: kullanıcı başka işte
+        return not self._hidden()
 
-    def _start(self):
-        if self._timer:
-            return
-        if not self._animating():  # canlandırma kapalı: bir kez, süsler dağılmış hâlde çizilir
-            for card in self.cards.values():
-                card.tick(8.0)
-            return
-        self._timer = GLib.timeout_add(1000 // FPS, self._frame)
-
-    def _stop(self):
-        if self._timer:
+    def _update(self):
+        want = self._wanted()
+        if want and not self._timer:
+            self._timer = GLib.timeout_add(1000 // FPS, self._frame)
+        elif not want and self._timer:
             GLib.source_remove(self._timer)
             self._timer = 0
 
@@ -201,9 +245,10 @@ class AdaPlace(Adw.PreferencesGroup):
         return bool(surface.get_state() & flags)
 
     def _frame(self):
-        if self._hidden():
-            return True
+        if not self._wanted():
+            self._timer = 0
+            return False
         t = time.monotonic() - self._t0 + 8.0
-        for card in self.cards.values():
-            card.tick(t)
+        for key in self.playing():
+            self.cards[key].tick(t)
         return True

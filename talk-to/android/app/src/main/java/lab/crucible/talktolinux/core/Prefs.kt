@@ -2,6 +2,7 @@ package lab.crucible.talktolinux.core
 
 import android.content.Context
 import android.os.Build
+import android.provider.Settings
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -12,6 +13,7 @@ import java.util.UUID
  * bilgisayarın ayarları uygulanır.
  */
 class Prefs(context: Context) {
+    private val app = context.applicationContext
     private val sp = context.getSharedPreferences("talktolinux", Context.MODE_PRIVATE)
 
     data class Server(
@@ -25,9 +27,15 @@ class Prefs(context: Context) {
             sp.edit().putString("device_id", it).apply()
         }
 
+    /** Bilgisayarda görünen ad: elle verilen, yoksa telefonun kendi adı ("Telefon hakkında → Cihaz adı", ör.
+     *  POCO X6 Pro), o da yoksa model kodu (Build.MODEL çoğu zaman "2311DRK48G" gibi bir kod). */
     var deviceName: String
-        get() = sp.getString("device_name", null) ?: Build.MODEL
+        get() = sp.getString("device_name", null) ?: systemName() ?: Build.MODEL
         set(v) = sp.edit().putString("device_name", v).apply()
+
+    private fun systemName(): String? =
+        runCatching { Settings.Global.getString(app.contentResolver, Settings.Global.DEVICE_NAME) }.getOrNull()
+            ?.trim()?.takeIf { it.isNotEmpty() && it.length <= 64 }
 
     /** İlk açılıştaki kurulum sihirbazı bitirildi ya da atlandı. */
     var setupDone: Boolean

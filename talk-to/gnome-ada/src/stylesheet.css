@@ -59,3 +59,6 @@
 .ada-kucuk-metin { padding: 2px 10px; font-size: 8.5pt; }
 .ada-ayar-ad { font-size: 9pt; }
 .ada-zaman { font-size: 0.85em; margin-left: 6px; }
+/* Bir şey çalmazken normal hâl: dalga sol uçta kenara yaslı (adanın soldaki boşluğu ve üst/alt boşluğu yok). */
+.ada.ada-sol-su { padding: 0 12px 0 0; }
+.ada-sol-su .ada-compact { min-height: 29px; }

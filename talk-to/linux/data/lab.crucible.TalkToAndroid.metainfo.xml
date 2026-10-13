@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.26.0" date="2026-10-13">
+      <description><p>Üst ada daha az iş yapar: dalga ve süsler tek saatle çizilir; bir dakika dokunulmazsa, tam ekranda, ekran kilitliyken ve güç tasarrufu kipinde ada hiç kıpırdamaz. Ada Place önizlemeleri yalnızca farenin üstündeki kartta oynar. Süsler artık yazıların altında (yazılar net), bir şey çalmazken dalga adanın sol ucunda. Yeni tema: Gün döngüsü (saate göre şafak, gündüz, gün batımı, gece). Zamanlayıcı sayfası isteğe bağlı; Özelleştir adada boş bir yere ya da dışarı tıklayınca kapanır.</p></description>
+    </release>
     <release version="0.25.0" date="2026-10-13">
       <description><p>Ada Place: üst ada için tatlıdan havalıya 16 tema, Ada sekmesinde canlı önizlemeleriyle. Bazı temalarda adanın üstünden saydam süsler geçer: bulut, sis, kar, kiraz yaprağı, baloncuk, kalp, ateş böceği, yıldız ve kayan yıldız, kuzey ışıkları, neon, yağmur ve şimşek, altın parıltı. Süsler yazıları kapatmaz, aramada çekilir; hareketleri Canlı, Yavaş ya da Durgun seçilebilir.</p></description>
     </release>

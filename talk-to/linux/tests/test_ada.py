@@ -240,6 +240,23 @@ class StateTest(unittest.TestCase):
         self.assertTrue(self.ada._emit_id)  # eklentiye "değişti" gidecek (olay değil: ada büyümez)
         self.assertEqual(self.ada.seq, seq)
 
+    def test_same_state_not_sent_twice(self):
+        """Durum değişmediyse eklentiye yeniden gönderilmez (adayı boşuna yeniden kurmasın)."""
+        sent = []
+
+        class Conn:
+            def emit_signal(self, *a):
+                sent.append(a)
+
+        self.ada.conn, self.ada._reg = Conn(), 1
+        self.ada._emit()
+        self.ada._emit()
+        self.assertEqual(len(sent), 1)
+        self.app.config.set("ada_theme", "kuzey")
+        self.ada._emit()
+        self.assertEqual(len(sent), 2)
+        self.assertEqual(self.ada.state()["idle_pause"], 60)
+
     def test_customize_from_island(self):
         st = self.ada.state()
         self.assertEqual((st["theme_id"], st["mode"]), ("deniz", "sakin"))
@@ -265,7 +282,8 @@ class StateTest(unittest.TestCase):
     def test_quick_settings_offset_and_actions(self):
         self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 64, "charging": True})]})
         st = self.ada.state()
-        self.assertEqual(st["prefs"], {"ada_track_popup": False, "ada_click_sound": False, "phone_vibrate": False})
+        self.assertEqual(st["prefs"], {"ada_track_popup": False, "ada_click_sound": False, "phone_vibrate": False,
+                                       "ada_timer_page": False})  # zamanlayıcı sayfası isteğe bağlı
         self.assertEqual((st["offset"], st["charging"]), (0, True))
         self.ada.action({"do": "set", "key": "ada_click_sound", "value": True})
         self.ada.action({"do": "set", "key": "phone_vibrate", "value": True})  # telefona da gider
@@ -274,7 +292,10 @@ class StateTest(unittest.TestCase):
                     {"key": "ada_offset", "value": True}, {"key": "ada_offset", "value": 1.5}):
             self.ada.action(dict(bad, do="set"))
         st = self.ada.state()
-        self.assertEqual(st["prefs"], {"ada_track_popup": False, "ada_click_sound": True, "phone_vibrate": True})
+        self.ada.action({"do": "set", "key": "ada_timer_page", "value": True})  # adadan açılır
+        st = self.ada.state()
+        self.assertEqual(st["prefs"], {"ada_track_popup": False, "ada_click_sound": True, "phone_vibrate": True,
+                                       "ada_timer_page": True})
         self.assertEqual(st["offset"], 180)
         self.assertIn(("set_option", "phone_vibrate", True), self.app.calls)
         self.assertNotIn(("set_option", "ada_click_sound", True), self.app.calls)

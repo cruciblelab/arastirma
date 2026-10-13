@@ -66,6 +66,8 @@ class Config:
         "ada_theme": "deniz",  # talkto.ada_temalar.THEMES (Ada Place)
         "ada_mode": "sakin",  # talkto.ui.ada.MODES: sakin | tasan (taşan dalgalar)
         "ada_motion": "canli",  # talkto.ada_temalar.MOTIONS: süslerin hareketi (canli | yavas | durgun)
+        "ada_timer_page": False,  # adada yana kaydırınca zamanlayıcı sayfası da çıksın (isteğe bağlı)
+        "ada_idle_pause": 60,  # kullanıcı bu kadar saniye dokunmazsa ada canlandırmayı durdurur
         "ada_offset": 0,  # üst adanın ortadan yana kaydırılması (px; "Konumu değiştir")
         "ada_track_popup": False,
         # Ada ekrandayken telefon bildirimleri ve aramalar masaüstü bildirimi olarak da çıksın mı. Kapalı: yalnızca

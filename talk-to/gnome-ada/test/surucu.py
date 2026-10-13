@@ -15,7 +15,7 @@ from talkto.ui.app import App
 
 def f(config, emit):
     for k, v in (("port", 47701), ("setup_done", True), ("wireless", False), ("usb", False), ("bluetooth", False),
-                 ("run_in_background", True), ("track_popup", False)):
+                 ("run_in_background", True), ("track_popup", False), ("ada_timer_page", True)):
         config.set(k, v)
     return Hub(config, emit, enable_media=False, enable_discovery=False)
 
@@ -70,6 +70,17 @@ def olc_cls(cls):
     x, y, w, h = cek("Find", cls)
     boy[cls] = [x, y, w, h]
     open(f"{OUT}/boyutlar.json", "w").write(json.dumps(boy))
+
+def bos_yere():
+    """Adanın içinde düğme olmayan bir yer: alt kenarın hemen üstü, ortada."""
+    x, y, w, h = find("ada")
+    cek("Click", x + w / 2, y + h - 4)
+
+yoklar = {}
+def yok(name, cls):
+    x, y, w, h = cek("Find", cls)
+    yoklar[name] = w < 0
+    open(f"{OUT}/yoklar.json", "w").write(json.dumps(yoklar))
 
 def tema(key):
     app.ada.action({"do": "set", "key": "ada_theme", "value": key})
@@ -219,6 +230,20 @@ steps = [
     lambda: cek("Shot", f"{OUT}/21-neon.png"),
     lambda: click("ada"),  # süslerin altındaki ada tıklamayı alıyor mu: büyür
     lambda: (olc("suslu_tik"), cek("Shot", f"{OUT}/22-neon-buyuk.png")),
+    # Özelleştir'den çıkış: ✕'e basmadan adada boş bir yere, sonra adanın dışına tıklayınca kapanır.
+    lambda: drag_left(),
+    lambda: drag_left(),
+    lambda: drag_left(),  # Diğer
+    lambda: click("ada-ozellestir"),
+    lambda: olc_cls("ada-kapat-ozel"),
+    lambda: bos_yere(),
+    lambda: (yok("ozel_bos_tik", "ada-kapat-ozel"), click("ada-ozellestir")),
+    lambda: cek("Click", 1200.0, 700.0),  # adanın dışı
+    lambda: yok("ozel_disari_tik", "ada-kapat-ozel"),
+    # Bir şey çalmıyor: dalga adanın sol ucunda (Pamuk şeker: süsler yazının altında, yazı net)
+    lambda: (tema("pamuk"), app.on_event("media", {"device_id": "p", "state": {"active": False}})),
+    *[lambda: None] * 6,  # büyük hâlden küçüğe dönsün
+    lambda: (cek("Shot", f"{OUT}/23-bosta-pamuk.png"), olc("bosta"), olc_cls("ada-sol-su")),
     lambda: app.quit(),
 ]
 i = [0]

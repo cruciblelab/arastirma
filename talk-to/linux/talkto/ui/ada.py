@@ -45,7 +45,7 @@ MODES = {
     "sakin": ("Sakin", "Dalga yalnızca adanın içinde."),
     "tasan": ("Taşan dalgalar", "Çalarken su adadan taşar (süs, gerçek ses değil)."),
 }
-BOOL_PREFS = ("ada_track_popup", "ada_click_sound", "phone_vibrate")  # adadan açılıp kapanabilen ayarlar
+BOOL_PREFS = ("ada_track_popup", "ada_click_sound", "phone_vibrate", "ada_timer_page")  # adadan açılıp kapanabilen ayarlar
 HUB_PREFS = ("phone_vibrate",)  # telefona da gidenler
 MAX_OFFSET = 4000
 NOTIF_KEEP = 3600  # bildirim sayfasında son bir saatin bildirimleri
@@ -66,6 +66,10 @@ class AdaService:
         self.seen = False  # eklenti bu çalışmada Talk To'ya bağlandı (durumu istedi): ada ekranda
         self._active, self._active_checked = False, -1e9  # kabuktaki eklenti çalışıyor mu (15 sn önbellek)
         self._emit_id = 0
+        self._sent = None  # eklentiye son gönderilen durum (aynısı yeniden gönderilmez)
+        # Gün döngüsü teması saate göre değişir: beş dakikada bir durum yeniden hesaplanır (değişmediyse
+        # eklentiye bir şey gitmez).
+        GLib.timeout_add_seconds(300, self._cycle_tick)
         self._reg = 0
         self.conn = app.get_dbus_connection()
         if self.conn is None:
@@ -113,6 +117,11 @@ class AdaService:
             log.info("ada eylemi anlaşılmadı: %s", e)
         inv.return_value(None)
 
+    def _cycle_tick(self):
+        if "cycle" in THEMES.get(self.app.config["ada_theme"], {}):
+            self.changed()
+        return True
+
     def changed(self, event=None):
         """Durum değişti; olay varsa eklenti büyüyüp ilgili sayfayı açar. Sık güncellemeler birleştirilir."""
         if event:
@@ -124,9 +133,12 @@ class AdaService:
     def _emit(self):
         self._emit_id = 0
         if self._reg and self.conn:
+            text = json.dumps(self.state(), ensure_ascii=False)
+            if text == self._sent:  # aynı durum: eklenti boşuna yeniden kurmasın
+                return False
+            self._sent = text
             try:
-                self.conn.emit_signal(None, PATH, IFACE, "Changed",
-                                      GLib.Variant("(s)", (json.dumps(self.state(), ensure_ascii=False),)))
+                self.conn.emit_signal(None, PATH, IFACE, "Changed", GLib.Variant("(s)", (text,)))
             except GLib.Error as e:
                 log.info("ada sinyali gönderilemedi: %s", e.message)
         return False
@@ -162,7 +174,10 @@ class AdaService:
         low = [x for x in self.status.get("sessions", []) if pil.is_low(x.get("battery"), weak[x["device_id"]])]
         low.sort(key=lambda x: x["battery"]["level"])
         theme_id = cfg["ada_theme"] if cfg["ada_theme"] in THEMES else ada_temalar.DEFAULT
-        theme = THEMES[theme_id]
+        lt = time.localtime()
+        hour = lt.tm_hour + lt.tm_min / 60
+        themes = {k: ada_temalar.resolve(t, hour) for k, t in THEMES.items()}  # gün döngüsü: o saatteki hâli
+        theme = themes[theme_id]
         return {
             "low_battery": {"device_id": low[0]["device_id"], "name": low[0].get("name") or "Telefon",
                             "level": low[0]["battery"]["level"], "weak": weak[low[0]["device_id"]]}
@@ -170,8 +185,9 @@ class AdaService:
             "enabled": bool(cfg["ada_enabled"]),
             "theme": dict(theme["colors"], fx=theme["fx"]),
             "theme_id": theme_id,
-            "themes": [dict(t["colors"], id=k, name=t["name"], group=t["group"], fx=t["fx"]) for k, t in THEMES.items()],
+            "themes": [dict(t["colors"], id=k, name=t["name"], group=t["group"], fx=t["fx"]) for k, t in themes.items()],
             "motion": cfg["ada_motion"] if cfg["ada_motion"] in MOTIONS else "canli",
+            "idle_pause": max(5, int(cfg["ada_idle_pause"] or 60)),
             "mode": cfg["ada_mode"] if cfg["ada_mode"] in MODES else "sakin",
             "modes": [{"id": k, "name": name, "hint": hint} for k, (name, hint) in MODES.items()],
             "prefs": {k: bool(cfg[k]) for k in BOOL_PREFS},

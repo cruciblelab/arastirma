@@ -15,6 +15,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Meta from 'gi://Meta';
 import Cairo from 'cairo';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -38,6 +39,13 @@ const PEEK_LEAVE_MS = 450;      // ince şeritten fare ayrılınca normal hâlin
 const SHOW_EVENT_MS = 5000; // şarkı/bildirim olunca büyük kalma süresi
 const BATTERY_EVENT_MS = 10000; // telefonun pili azalınca büyük kalma süresi
 const IDLE_COLLAPSE_MS = 6000;
+// Canlandırma saati: dalga ve süsler aynı karede çizilir. Kare sayısı neye gerekiyorsa o kadar: dalga 20, hızlı
+// düşen süsler (kar, yağmur, yaprak...) 20, ağır süzülenler (sis, bulut, yıldız...) daha az. "Yavaş"ta yarısı.
+const WAVE_FPS = 20;
+const SWATCH_FPS = 12;
+const FX_FPS = {clouds: 12, fog: 10, stars: 12, aurora: 15, fireflies: 15, neon: 10, glint: 15, lightning: 15,
+    snow: 20, petals: 20, bubbles: 20, hearts: 20, rain: 20};
+const IDLE_PAUSE_S = 60; // kullanıcı bu kadar dokunmazsa (fare, klavye) canlandırma durur; dokununca sürer
 const DEFAULT_THEME = {bg1: '#0a2342', bg2: '#12436b', wave1: '#2ec4b6', wave2: '#8de4ff', text: '#eaf6ff',
     dim: '#9cc3dd', accent: '#2ec4b6'};
 
@@ -58,6 +66,17 @@ function callToggle(title) {
         return {icon: muted ? 'microphone-sensitivity-muted-symbolic' : 'audio-input-microphone-symbolic', on: muted};
     }
     return null;
+}
+
+// Olayın geldiği öğe: GNOME 45+ sahneye sorar, 42–44 olayın kendisine.
+function eventActor(event) {
+    try {
+        if (global.stage.get_event_actor)
+            return global.stage.get_event_actor(event);
+    } catch (e) {
+        // eski kabuk
+    }
+    return event.get_source ? event.get_source() : null;
 }
 
 // Bildirim ne zaman geldi: "şimdi", "3 dk önce", "2 sa önce", "1 gün önce".
@@ -179,8 +198,9 @@ class Spill {
 
 // SAHNE: build.py buraya src/sahne.js'i koyar (temaların süsleri: sahnePaint).
 
-// Temanın süsleri (bulut, sis, yıldız...): adanın tam üstünde saydam katman. Tıklamaları almaz (tepkisiz, girdi
-// bölgesine katılmaz); büyükken soluklaşır, aramada ve ince şeritte çekilir.
+// Süslü temalarda adanın zemini: renk geçişi ve süsler (bulut, sis, yıldız...) adanın tam altındaki bu katmanda
+// çizilir, ada saydamdır; yazılar ve düğmeler süslerin üstünde net kalır. Tıklamaları almaz. Süsler büyükken
+// soluklaşır, aramada ve ince şeritte çekilir (zemin kalır).
 class Sky {
     constructor(ada) {
         this.ada = ada;
@@ -192,8 +212,11 @@ class Sky {
     _paint(area) {
         const cr = area.get_context();
         const [w, h] = area.get_surface_size();
-        sahnePaint(cr, w, h, this.ada.fxTime(), this.ada.theme.fx || [],
-            {radius: this.radius, alpha: this.ada.expanded ? 0.4 : 1});
+        sahneBackground(cr, w, h, this.ada.theme, this.radius);
+        if (this.ada.skyOn) {
+            sahnePaint(cr, w, h, this.ada.fxTime(), this.ada.theme.fx || [],
+                {radius: this.radius, alpha: this.ada.expanded ? 0.55 : 1});
+        }
         cr.$dispose();
     }
 
@@ -204,8 +227,10 @@ class Sky {
 
 // Deniz: iki katlı dalga; çalarken akar, duraklayınca neredeyse durgun.
 class Wave {
-    constructor(width, height, ada) {
+    // edge: adanın sol ucunda; sol alt köşesi adanınki gibi yuvarlak kırpılır, su ucu doldurur.
+    constructor(width, height, ada, edge = false) {
         this.ada = ada;
+        this.edge = edge;
         this.actor = new St.DrawingArea({width, height, style_class: 'ada-wave'});
         this.actor.connect('repaint', area => this._paint(area));
     }
@@ -214,7 +239,17 @@ class Wave {
         const cr = area.get_context();
         const [w, h] = area.get_surface_size();
         const t = this.ada.theme;
-        const amp = h * this.ada.amp;  // çalarken 0.22, duraklayınca 0.05; arada yumuşak geçer
+        const amp = h * this.ada.amp;
+        if (this.edge) {
+            const r = Math.min(h / 2, this.ada.sky.radius || 18);
+            cr.moveTo(0, 0);
+            cr.lineTo(w, 0);
+            cr.lineTo(w, h);
+            cr.lineTo(r, h);
+            cr.arc(r, h - r, r, Math.PI / 2, Math.PI);
+            cr.closePath();
+            cr.clip();
+        }  // çalarken 0.22, duraklayınca 0.05; arada yumuşak geçer
         const phase = this.ada.phase;
         const layers = [[t.wave2, 0.55, 1.0, 0.0], [t.wave1, 0.95, 1.6, 1.7]];
         for (const [color, alpha, speed, shift] of layers) {
@@ -226,7 +261,16 @@ class Wave {
             }
             cr.lineTo(w, h);
             cr.closePath();
-            cr.setSourceRGBA(...rgba(color, alpha));
+            if (this.edge) {  // uçtaki su sağa doğru erir: adaya eklenmiş değil, adanın içinde gibi
+                const [r, g, b] = rgba(color, 1);
+                const grad = new Cairo.LinearGradient(0, 0, w, 0);
+                grad.addColorStopRGBA(0, r, g, b, alpha);
+                grad.addColorStopRGBA(0.55, r, g, b, alpha * 0.75);
+                grad.addColorStopRGBA(1, r, g, b, 0);
+                cr.setSource(grad);
+            } else {
+                cr.setSourceRGBA(...rgba(color, alpha));
+            }
             cr.fill();
         }
         if (this.ada.loading) {  // şarkılar arası: suyun üstünde kayan hafif bir parıltı ("yükleniyor")
@@ -269,6 +313,9 @@ class Ada {
         this.waves = [];
         this.live = []; // [etiket, metni veren işlev]: her saniye güncellenir (sayaç, görüşme süresi)
         this.swatches = []; // Özelleştir'deki küçük tema önizlemeleri (süsleri canlı)
+        this.waveOn = false;
+        this.idle = false;   // kullanıcı bir süredir dokunmuyor: canlandırma durur
+        this._animFps = 0;
         this._fx0 = GLib.get_monotonic_time() / 1e6;
         this._timers = {};
 
@@ -288,8 +335,8 @@ class Ada {
         this.sky = new Sky(this);
         Main.layoutManager.addTopChrome(this.sky.actor, {affectsInputRegion: false, trackFullscreen: true});
         // GNOME bildirimleri de ekranın üst ortasında çıkar: adanın altında kalmasınlar, üstünde görünsünler.
-        // Sıra (alttan): taşan su, ada, süsler, bildirimler.
-        for (const actor of [this.spill.actor, this.box, this.sky.actor])
+        // Sıra (alttan): taşan su, süslü zemin, ada, bildirimler.
+        for (const actor of [this.spill.actor, this.sky.actor, this.box])
             this._belowTray(actor);
         this._sigs = [
             [this.box, this.box.connect('notify::width', () => this._place())],
@@ -298,6 +345,12 @@ class Ada {
             [this.box, this.box.connect('notify::opacity', () => {
                 this.sky.actor.opacity = this.box.opacity;
             })],
+            [this.box, this.box.connect('notify::translation-x', () => {  // sallanınca zemin de sallansın
+                this.sky.actor.translation_x = this.box.translation_x;
+            })],
+            // Tam ekran uygulamada ada gizlenir (görünmez): saat durur. Kilitlenince de.
+            [this.box, this.box.connect('notify::mapped', () => this._anim())],
+            [Main.sessionMode, Main.sessionMode.connect('updated', () => this._anim())],
             [Main.layoutManager, Main.layoutManager.connect('monitors-changed', () => this._place())],
             // Olaylar düğmelerden önce görülür: sürükleme bir düğmenin üstünden başlasa da sayfa değişsin.
             [this.box, this.box.connect('captured-event', (a, e) => this._captured(e))],
@@ -308,10 +361,22 @@ class Ada {
 
         this._watch = Gio.bus_watch_name(Gio.BusType.SESSION, BUS_NAME, Gio.BusNameWatcherFlags.NONE,
             () => this._connect(), () => this._lost());
+        this._idleSetup();
+        this._powerSetup();
     }
 
     destroy() {
         Gio.bus_unwatch_name(this._watch);
+        this._outsideWatch(false);
+        if (this._idleMon) {
+            for (const id of [this._idleWatch, this._activeWatch]) {
+                if (id)
+                    this._idleMon.remove_watch(id);
+            }
+        }
+        if (this._power && this._powerSig)
+            this._power.disconnect(this._powerSig);
+        this._power = null;
         for (const id of Object.values(this._timers))
             GLib.source_remove(id);
         this._timers = {};
@@ -370,9 +435,11 @@ class Ada {
     }
 
     _lost() {
+        this._lastJson = null;
         this._proxy = null;
         this.state = null;
         this.box.visible = false;
+        this._skyUpdate();
         this._animate(false);
     }
 
@@ -382,6 +449,10 @@ class Ada {
     }
 
     _update(json) {
+        // Aynı durum yeniden geldiyse adayı baştan kurmaya gerek yok (kabuğa boşuna iş).
+        if (json === this._lastJson)
+            return;
+        this._lastJson = json;
         let st;
         try {
             st = JSON.parse(json);
@@ -391,13 +462,21 @@ class Ada {
         const prev = this.state && this.state.media;
         this.state = st;
         this.theme = Object.assign({}, DEFAULT_THEME, st.theme || {});
+        if (st.idle_pause !== undefined && st.idle_pause !== this._idlePause) {
+            this._idlePause = st.idle_pause;
+            this._armIdle();
+        }
         if (!this.moving)  // sürüklerken Talk To'nun eski değeri araya girmesin
             this.offset = st.offset || 0;
         this.playing = !!(st.media && st.media.active && st.media.playing);
         this.loading = !!(st.media && st.media.active && st.media.loading);
-        this.box.set_style(`background-gradient-direction: vertical; background-color: ${this.theme.bg1};` +
-            `background-gradient-start: ${this.theme.bg1}; background-gradient-end: ${this.theme.bg2};` +
-            `color: ${this.theme.text};`);
+        if ((this.theme.fx || []).length) {  // zemini alttaki katman çizer (süsler yazının altında kalsın)
+            this.box.set_style(`background-color: transparent; color: ${this.theme.text};`);
+        } else {
+            this.box.set_style(`background-gradient-direction: vertical; background-color: ${this.theme.bg1};` +
+                `background-gradient-start: ${this.theme.bg1}; background-gradient-end: ${this.theme.bg2};` +
+                `color: ${this.theme.text};`);
+        }
         this.box.visible = st.enabled !== false;
         const media = st.media;
         const newTrack = !!(prev && media && prev.title && media.title !== prev.title);
@@ -489,7 +568,9 @@ class Ada {
         } catch (e) {
             // eski kabuk: açık say
         }
-        return anim ? st.motion || 'canli' : 'durgun';
+        if (!anim || this._powerSaver())
+            return 'durgun';  // GNOME'da canlandırmalar kapalı ya da güç tasarrufu kipi: ada kıpırdamaz
+        return st.motion || 'canli';
     }
 
     fxTime() {
@@ -500,47 +581,152 @@ class Ada {
         return 8 + (m === 'yavas' ? t * 0.5 : t);
     }
 
-    // Süsler: temada varsa, ada görünürken; aramada ve ince şeritte çekilir (dikkat dağıtmasın).
+    // Süslü temada zemin katmanı ada görünürken hep görünür; süsler aramada ve ince şeritte çekilir (dikkat
+    // dağıtmasın), zemin kalır.
     _skyUpdate() {
         const st = this.state || {};
         const fx = (this.theme && this.theme.fx) || [];
         const thinShown = this.thin && !this.peek && !this.expanded;
-        const on = fx.length > 0 && this.box.visible && !st.call && !thinShown;
-        const k = this.sky.actor;
-        if (on && !k.visible) {
-            k.opacity = 0;
-            k.show();
-            k.ease({opacity: this.box.opacity, duration: 400, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-        } else if (!on && k.visible) {
-            k.ease({opacity: 0, duration: 300, mode: Clutter.AnimationMode.EASE_OUT_QUAD, onComplete: () => k.hide()});
-        }
-        this.skyOn = on;
+        this.sky.actor.visible = fx.length > 0 && this.box.visible;
+        this.skyOn = this.sky.actor.visible && !st.call && !thinShown;
+        this.sky.actor.opacity = this.box.opacity;
         this.sky.repaint();
-        this._fxTimer();
+        this._anim();
     }
 
-    // Süslerin saati: yalnızca bir şey canlıyken çalışır (süsler görünür ya da Özelleştir açık). Canlı: saniyede 20
-    // kare, Yavaş: 10; Durgun ya da ekran kilitliyken çizim yok.
-    _fxTimer() {
+    // ---- canlandırma saati --------------------------------------------------------------
+
+    // Tek saat: dalga, taşan su, süsler ve Özelleştir'deki mini adalar aynı karede çizilir (ayrı saatler kabuğu
+    // saniyede daha çok kare çizmeye zorlar). Saniyede kaç kare: o an gereken en çok (bkz. WAVE_FPS, FX_FPS).
+    // Kimse bakmıyorsa hiç çalışmaz: ada görünmüyor (tam ekran), ekran kilitli, kullanıcı bir süredir dokunmuyor,
+    // Durgun / güç tasarrufu (dalga yerinde durur, süsler resim gibi).
+    _fps() {
+        if (!this.box.visible || !this.box.mapped || Main.sessionMode.isLocked || this.idle)
+            return 0;
         const motion = this._fxMotion();
-        const want = (this.skyOn || (this.custom && this.expanded)) && motion !== 'durgun';
-        const interval = motion === 'yavas' ? 100 : 50;
-        if (this._timers.fx && (!want || this._fxInterval !== interval)) {
-            GLib.source_remove(this._timers.fx);
-            delete this._timers.fx;
+        if (motion === 'durgun')
+            return 0;
+        const target = this.loading ? 0.1 : this.waveOn ? 0.22 : 0.05;
+        const wave = this.waveOn || Math.abs(this.amp - target) > 0.002 ? WAVE_FPS : 0;
+        let fx = 0;
+        if (this.skyOn) {
+            for (const f of this.theme.fx || [])
+                fx = Math.max(fx, FX_FPS[f.type] || 12);
+            if (this.expanded)  // büyükken süslerin alanı büyük, kendileri soluk: daha seyrek çizilir
+                fx = Math.round(fx / 2);
         }
-        if (!want || this._timers.fx)
+        const swatch = this.custom && this.expanded && this.swatches.length ? SWATCH_FPS : 0;
+        const fps = Math.max(wave, fx, swatch);
+        return motion === 'yavas' ? Math.round(fps / 2) : fps;
+    }
+
+    _anim() {
+        const fps = this._fps();
+        if (this._timers.anim && fps === this._animFps)
             return;
-        this._fxInterval = interval;
-        this._timers.fx = GLib.timeout_add(GLib.PRIORITY_DEFAULT, interval, () => {
-            if (Main.sessionMode.isLocked)
-                return GLib.SOURCE_CONTINUE;
-            if (this.skyOn)
-                this.sky.repaint();
-            for (const a of this.swatches)
-                a.queue_repaint();
-            return GLib.SOURCE_CONTINUE;
+        if (this._timers.anim) {
+            GLib.source_remove(this._timers.anim);
+            delete this._timers.anim;
+        }
+        this._animFps = fps;
+        if (!fps) {
+            this._settleWave();
+            return;
+        }
+        this._animLast = GLib.get_monotonic_time() / 1e6;
+        this._timers.anim = GLib.timeout_add(GLib.PRIORITY_DEFAULT, Math.round(1000 / fps), () => this._frame());
+    }
+
+    _frame() {
+        const now = GLib.get_monotonic_time() / 1e6;
+        const k = Math.min(6, (now - this._animLast) / 0.04);  // eski 40 ms'lik adımlara göre
+        this._animLast = now;
+        const target = this.loading ? 0.1 : this.waveOn ? 0.22 : 0.05;
+        if (this.waveOn || Math.abs(this.amp - target) > 0.002) {
+            // Çalarken dalga akar; duraklayınca yavaşlayıp durulur (birden donmaz).
+            this.amp += (target - this.amp) * (1 - Math.pow(0.92, k));
+            this.phase += (0.03 + 0.09 * ((this.amp - 0.05) / 0.17)) * k;
+            if (!this.waveOn && Math.abs(this.amp - target) <= 0.002)
+                this.amp = target;
+            for (const w of this.waves)
+                w.repaint();
+            this._spillUpdate();
+        }
+        if (this.skyOn)
+            this.sky.repaint();
+        for (const a of this.swatches)
+            a.queue_repaint();
+        if (this._fps() !== this._animFps) {
+            delete this._timers.anim;
+            this._animFps = -1;
+            this._anim();
+            return GLib.SOURCE_REMOVE;
+        }
+        return GLib.SOURCE_CONTINUE;
+    }
+
+    // Saat durunca (Durgun, boşta...) dalga bulunduğu yerde değil, çalıp çalmamasına uygun yükseklikte durur.
+    _settleWave() {
+        const target = this.loading ? 0.1 : this.waveOn ? 0.22 : 0.05;
+        if (this.amp !== target) {
+            this.amp = target;
+            for (const w of this.waves)
+                w.repaint();
+            this._spillUpdate();
+        }
+    }
+
+    // Kullanıcı dokunmuyor mu (fare, klavye, dokunmatik): GNOME'un boşta izleyicisi.
+    _idleSetup() {
+        try {
+            this._idleMon = global.backend.get_core_idle_monitor();
+        } catch (e) {
+            try {
+                this._idleMon = Meta.IdleMonitor.get_core();  // GNOME 42–43
+            } catch (e2) {
+                this._idleMon = null;
+            }
+        }
+        this._armIdle();
+    }
+
+    _armIdle() {
+        if (!this._idleMon)
+            return;
+        if (this._idleWatch)
+            this._idleMon.remove_watch(this._idleWatch);
+        const sec = this._idlePause === undefined ? IDLE_PAUSE_S : this._idlePause;
+        this._idleWatch = this._idleMon.add_idle_watch(Math.max(1, sec) * 1000, () => {
+            this.idle = true;
+            this._anim();
+            if (!this._activeWatch) {
+                this._activeWatch = this._idleMon.add_user_active_watch(() => {
+                    this._activeWatch = 0;
+                    this.idle = false;
+                    this._anim();
+                });
+            }
         });
+    }
+
+    // GNOME'un güç kipi (Güç tasarrufu: ada kıpırdamaz). power-profiles-daemon yoksa hiç sorulmaz.
+    _powerSetup() {
+        Gio.DBusProxy.new_for_bus(Gio.BusType.SYSTEM, Gio.DBusProxyFlags.DO_NOT_AUTO_START, null,
+            'net.hadess.PowerProfiles', '/net/hadess/PowerProfiles', 'net.hadess.PowerProfiles', null,
+            (_o, res) => {
+                try {
+                    this._power = Gio.DBusProxy.new_for_bus_finish(res);
+                    this._powerSig = this._power.connect('g-properties-changed', () => this._skyUpdate());
+                    this._skyUpdate();
+                } catch (e) {
+                    this._power = null;
+                }
+            });
+    }
+
+    _powerSaver() {
+        const v = this._power ? this._power.get_cached_property('ActiveProfile') : null;
+        return v ? v.unpack() === 'power-saver' : false;
     }
 
     // Taşan su: "Taşan dalgalar" kipinde, ada görünürken ve çalarken (ya da şarkılar arasında).
@@ -558,8 +744,11 @@ class Ada {
     }
 
     _pages() {
-        const list = this.state && this.state.call ? ['arama'] : [];
-        return list.concat(['calan', 'bildirim', 'zamanlayici', 'diger']);
+        const st = this.state || {};
+        const list = st.call ? ['arama'] : [];
+        // Zamanlayıcı isteğe bağlı (Özelleştir / Talk To'nun Ada sekmesi); kuruluysa sayfası yine görünür.
+        const timer = (st.prefs && st.prefs.ada_timer_page) || st.timer ? ['zamanlayici'] : [];
+        return list.concat(['calan', 'bildirim'], timer, ['diger']);
     }
 
     _setClass() {
@@ -627,9 +816,7 @@ class Ada {
     }
 
     _hoverChanged() {
-        // Üstüne gelince hafifçe kabarır.
-        this.box.ease({scale_x: this.box.hover ? 1.02 : 1, scale_y: this.box.hover ? 1.02 : 1, duration: 160,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        // (Üstüne gelince büyümez: ölçeklenen yazı bulanık görünüyordu.)
         if (this.box.hover)
             this._cancel('collapse');
         else if (this.expanded)
@@ -725,23 +912,7 @@ class Ada {
     // Çalarken dalga akar; duraklayınca yavaşlayıp durulur (birden donmaz), sonra çizim durur.
     _animate(on) {
         this.waveOn = on;
-        if (this._timers.wave)
-            return;
-        this._timers.wave = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 40, () => {
-            const target = this.loading ? 0.1 : this.waveOn ? 0.22 : 0.05;
-            this.amp += (target - this.amp) * 0.08;
-            this.phase += 0.03 + 0.09 * ((this.amp - 0.05) / 0.17);
-            for (const w of this.waves)
-                w.repaint();
-            this._spillUpdate();
-            if (!this.waveOn && Math.abs(this.amp - target) < 0.002) {
-                this.amp = target;
-                this._spillUpdate();
-                delete this._timers.wave;
-                return GLib.SOURCE_REMOVE;
-            }
-            return GLib.SOURCE_CONTINUE;
-        });
+        this._anim();
     }
 
     // ---- canlandırmalar ----------------------------------------------------------------
@@ -800,8 +971,8 @@ class Ada {
         actor.ease({opacity: 255, translation_y: 0, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
-    _wave(width, height) {
-        const w = new Wave(width, height, this);
+    _wave(width, height, edge = false) {
+        const w = new Wave(width, height, this, edge);
         this.waves.push(w);
         w.actor.connect('destroy', () => {
             this.waves = this.waves.filter(x => x !== w);
@@ -917,8 +1088,11 @@ class Ada {
         } else if (this._dragged && -dy >= DRAG_UP && -dy > Math.abs(dx)) {  // yukarı sürükleme: küçül
             this._springBack();
             this._shrink();
-        } else if (this.custom) {  // özelleştirme panelinde boş yere tıklama/sürükleme bir şey yapmaz
-            this._springBack();
+        } else if (this.custom) {  // özelleştirmede boş yere tıklama kapatır (✕'e gerek yok); sürükleme bir şey yapmaz
+            if (this._dragged)
+                this._springBack();
+            else if (!this._onControl(eventActor(event)))  // düğmeye (tema, ayar) basıldıysa kapanmaz
+                this._setCustom(false);
         } else if (this.thin && !this.expanded && !this._dragged) {
             // İnce şeritteki (üstüne gelince görünen) adaya tıklama: doğrudan büyür; kapanınca normal kalır.
             this._unthin();
@@ -1070,6 +1244,7 @@ class Ada {
 
     _buildCompact() {
         this._clear(this.compact);
+        this.box.remove_style_class_name('ada-sol-su');
         const st = this.state || {};
         const media = st.media || {};
         const call = st.call;
@@ -1148,11 +1323,14 @@ class Ada {
             lowTag();
             return;
         }
+        // Bir şey çalmıyor: dalga adanın sol ucunda, kenara yaslı; ucu dolduran durgun su gibi (adanın parçası).
+        this.box.add_style_class_name('ada-sol-su');
+        this.compact.add_child(this._wave(30, 29, true));
         this.compact.add_child(new St.Icon({icon_name: st.phone ? 'phone-symbolic' : 'phone-disabled-symbolic',
             icon_size: 14}));
-        this.compact.add_child(this._label(st.phone ? st.phone + (st.battery !== undefined && st.battery !== null
-            ? ` · %${st.battery}` : '') : 'Telefon bağlı değil', 'ada-soluk'));
-        this.compact.add_child(this._wave(34, 12));
+        const pct = st.battery !== undefined && st.battery !== null && !st.low_battery  // azsa sonda kırmızı yazar
+            ? ` · %${st.battery}` : '';
+        this.compact.add_child(this._label(st.phone ? st.phone + pct : 'Telefon bağlı değil', 'ada-soluk'));
         lowTag();
     }
 
@@ -1217,8 +1395,12 @@ class Ada {
         // (ada gizli, "canlandırmaları azalt" açık) bitince yeniden başlatmak sonsuz döngü olurdu.
         this._cancel('pilPulse');
         let bright = true;
+        let gone = false;
+        icon.connect('destroy', () => {
+            gone = true;
+        });
         this._timers.pilPulse = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 650, () => {
-            if (!icon.get_stage() || this.pageName !== 'pil') {
+            if (gone || !icon.get_stage() || this.pageName !== 'pil') {
                 delete this._timers.pilPulse;
                 return GLib.SOURCE_REMOVE;
             }
@@ -1294,6 +1476,7 @@ class Ada {
     }
 
     _setCustom(on) {
+        this._outsideWatch(on);
         this._morph(() => {
             this.custom = on;
             if (on)
@@ -1307,6 +1490,37 @@ class Ada {
         this._cancel('collapse');
         if (!on && !this.box.hover)
             this._collapseLater(IDLE_COLLAPSE_MS);
+    }
+
+    // Tıklanan yer bir düğme ya da düğmenin içi mi (adanın boş yeri değil)?
+    _onControl(actor) {
+        for (let a = actor; a && a !== this.box; a = a.get_parent()) {
+            if (a instanceof St.Button || (a.reactive && a !== this.page && a !== this.compact))
+                return true;
+        }
+        return false;
+    }
+
+    // Özelleştir açıkken ekranda adanın dışında bir yere tıklanırsa kapanır (tıklama yerine de ulaşır).
+    _outsideWatch(on) {
+        if (this._outsideId) {
+            global.stage.disconnect(this._outsideId);
+            this._outsideId = 0;
+        }
+        if (!on)
+            return;
+        this._outsideId = global.stage.connect('captured-event', (_s, e) => {
+            if (!this.custom) {  // başka yoldan kapandı (ada küçüldü, arama geldi): izlemeye gerek yok
+                this._outsideWatch(false);
+                return Clutter.EVENT_PROPAGATE;
+            }
+            if (e.type() === Clutter.EventType.BUTTON_PRESS) {
+                const src = eventActor(e);
+                if (!src || !this.box.contains(src))
+                    this._setCustom(false);
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
     }
 
     // Özelleştirme: tema ve kip; seçim Talk To'ya gider, ayarlara yazılır, ada hemen değişir. ✕ ile kapanır.
@@ -1327,9 +1541,10 @@ class Ada {
         grid.x_align = Clutter.ActorAlign.CENTER;
         let row = null;
         themes.forEach((t, i) => {
-            if (i % 8 === 0) {
+            if (i % 9 === 0) {
                 row = this._row();
                 row.add_style_class_name('ada-tema-sira');
+                row.x_align = Clutter.ActorAlign.CENTER;
                 grid.add_child(row);
             }
             const swatch = new St.Button({style_class: `ada-tema ada-tema-${t.id} ${t.id === st.theme_id ? 'ada-tema-secili' : ''}`,
@@ -1377,6 +1592,7 @@ class Ada {
 
         // Sık değiştirilenler; gerisi "Tüm ayarlar"da (Talk To'nun Tercihler penceresi).
         this.page.add_child(this._toggle('Şarkı değişince masaüstü bildirimi de', 'ada_track_popup'));
+        this.page.add_child(this._toggle('Zamanlayıcı sayfası', 'ada_timer_page'));
         this.page.add_child(this._label('Geri bildirim', 'ada-soluk'));
         this.page.add_child(this._toggle('Dokunma sesi', 'ada_click_sound'));
         this.page.add_child(this._toggle('Telefonda titreşim', 'phone_vibrate'));

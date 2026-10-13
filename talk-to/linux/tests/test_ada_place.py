@@ -43,6 +43,32 @@ class ThemeTableTest(unittest.TestCase):
         used = {fx["type"] for t in ada_temalar.THEMES.values() for fx in t["fx"]}
         self.assertTrue({"clouds", "fog"} <= used)
 
+    def test_text_readable_on_every_theme(self):
+        """Yazı (adanın ortasındaki zeminde) okunur: sabit temalarda en az 4,5; gün döngüsünde her an 3,5."""
+        for key, th in ada_temalar.THEMES.items():
+            if "cycle" in th:
+                continue
+            c = th["colors"]
+            self.assertGreaterEqual(ada_temalar.contrast(c["text"], ada_temalar.middle(c)), 4.5, key)
+        for i in range(24 * 6):
+            c = ada_temalar.resolve(ada_temalar.THEMES["dongu"], i / 6)["colors"]
+            self.assertGreaterEqual(ada_temalar.contrast(c["text"], ada_temalar.middle(c)), 3.5, i / 6)
+
+    def test_day_cycle(self):
+        th = ada_temalar.THEMES["dongu"]
+        noon, night = ada_temalar.resolve(th, 12), ada_temalar.resolve(th, 23.5)
+        self.assertEqual(noon["colors"]["bg1"], "#8ecae6")
+        self.assertEqual([f["type"] for f in noon["fx"]], ["clouds"])
+        self.assertEqual(night["colors"]["bg1"], "#03045e")
+        self.assertEqual([f["type"] for f in night["fx"]], ["stars"])
+        self.assertEqual(ada_temalar.resolve(th, 2), ada_temalar.resolve(th, 26))  # gece yarısını aşar
+        # Geçişte iki durağın süsleri biri solarken öteki belirir; renk arada
+        dusk = ada_temalar.resolve(th, 20)
+        self.assertEqual(sorted(f["type"] for f in dusk["fx"]), ["clouds", "stars"])
+        self.assertNotIn(dusk["colors"]["bg1"], ("#3a0ca3", "#03045e"))
+        # Sabit temalar saatten etkilenmez
+        self.assertIs(ada_temalar.resolve(ada_temalar.THEMES["kuzey"], 3), ada_temalar.THEMES["kuzey"])
+
     def test_every_fx_type_drawn_on_both_sides(self):
         js = SAHNE_JS.read_text(encoding="utf-8")
         py = (Path(ada_sahne.__file__)).read_text(encoding="utf-8")
@@ -183,7 +209,14 @@ class GalleryTest(unittest.TestCase):
         place.select("kuzey")
         self.assertTrue(place.cards["kuzey"].has_css_class("secili"))
         self.assertFalse(place.cards["gece"].has_css_class("secili"))
-        # Görünürken canlanır, gizlenince durur (sekme değişince boşuna çizmesin).
+        # Boşuna çizmez: yalnızca farenin üstündeki kart oynar (seçili de durgun); gizlenince hiçbiri.
+        self.assertEqual(place.playing(), [])
+        place._hover("kar", True)
+        self.assertEqual(place.playing(), ["kar"])
+        place._hover("kar", False)
+        self.assertEqual(place.playing(), [])
+        self.assertFalse(place._timer)  # pencerede değil
+        place._hover("kuzey", True)
         win = Gtk.Window()
         sw = Gtk.ScrolledWindow(child=place)
         win.set_child(sw)
@@ -192,8 +225,12 @@ class GalleryTest(unittest.TestCase):
         end = time.monotonic() + 2
         while time.monotonic() < end and not place._timer:
             ctx.iteration(False)
-        if Gtk.Settings.get_default().get_property("gtk-enable-animations") and ada_place.HAVE_CAIRO:
+        anim = Gtk.Settings.get_default().get_property("gtk-enable-animations") and ada_place.HAVE_CAIRO
+        if anim and win.is_active():
             self.assertTrue(place._timer)
+            place._frame()
+            self.assertGreater(place.cards["kuzey"].t, 8.0)  # farenin üstündeki oynuyor
+            self.assertEqual(place.cards["gece"].t, 8.0)     # öteki durgun resim
         win.set_visible(False)
         while ctx.pending():
             ctx.iteration(False)
