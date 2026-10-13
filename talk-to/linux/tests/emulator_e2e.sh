@@ -109,9 +109,15 @@ adb shell am start -W -n $PKG/.ui.MainActivity > /dev/null
 sleep 3
 shot 00-kurulum-1
 tap_text "Başla"
-for n in 2 3 4; do sleep 2; shot "00-kurulum-$n"; tap_text "İleri"; done
+# Üç adım: hoş geldin → bilgisayara bağlan (karekod, bulunan bilgisayarlar) → izinler.
+sleep 2; shot 00-kurulum-2
+tap_text "Karekodu tara" 5 > /dev/null || fail "sihirbazın bağlanma adımında “Karekodu tara” yok"
+adb shell input keyevent KEYCODE_BACK  # tarayıcıdan (kamera izni sorusu ya da kamera) sihirbaza dön
 sleep 2
-shot 00-kurulum-5
+adb shell dumpsys window | grep -q "permissioncontroller" && adb shell input keyevent KEYCODE_BACK && sleep 1
+tap_text "İleri"
+sleep 2
+shot 00-kurulum-3
 
 # Sihirbazın son adımında "Bitir"e basılmaz: bilgisayardaki "Bağlan" düğmesinin yaptığı gibi uygulama
 # adb'nin açabildiği kapıdan açılır. Telefonda dokunmadan bağlanmalı ve sihirbaz kendiliğinden kapanmalı.

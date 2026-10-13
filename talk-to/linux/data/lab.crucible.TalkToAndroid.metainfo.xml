@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.21.0" date="2026-10-13">
+      <description><p>Daha kolay kurulum: telefondaki kurulum üç adıma indi (hoş geldin, karekodla bağlan, izinler) ve bağlanınca kendiliğinden ilerliyor. Bilgisayardaki kurulum yardımcısında karekod ilk ve önerilen yol; kablo ve geliştirici ayarları isteğe bağlı.</p></description>
+    </release>
     <release version="0.20.0" date="2026-10-13">
       <description><p>Telefonla bilgisayarın konuştuğu dil (protokol 1.0) kısa ve kesin bir İngilizce belgeye ve her iletiyi tanımlayan bir dosyaya bağlandı; iki taraf da testlerde buna göre denetleniyor. Kullanıcı için görünen bir değişiklik yok.</p></description>
     </release>

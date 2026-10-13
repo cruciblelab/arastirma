@@ -26,6 +26,9 @@ import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Usb
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -289,31 +292,77 @@ private class Step(val icon: ImageVector, val title: String, val text: String)
 
 private val STEPS = listOf(
     Step(Icons.Rounded.SwapHoriz, "Talk To'ya hoş geldin",
-        "Telefonunu Linux bilgisayarına bağlar: bildirimler bilgisayarda görünür, müzik iki yönden kontrol edilir, " +
-            "dosya ve pano gider gelir, bilgisayara komut verirsin. Birkaç ayar gerekiyor; her adımda ne olduğunu " +
-            "ve “Kontrol et” düğmesini göreceksin. Ayarlar kapalı kalsa da uygulama açılır, istediğin zaman " +
-            "İzinler ekranından tamamlayabilirsin.\n\nAçık kaynak (GPL-3.0) ve tamamen yerel: telefonunla bilgisayarın doğrudan ve şifreli konuşur. Sunucu, hesap, reklam ya da izleme yok; hiçbir veri bize ya da başka bir yere gitmez."),
-    Step(Icons.Rounded.Notifications, "Bildirimler ve müzik",
-        "Telefonun bildirimlerinin ve çalan müziğin bilgisayara gitmesi için. Telefonu kabloyla bilgisayara " +
-            "bağladıysan bunları tek tek açmana gerek yok: bilgisayardaki Talk To'da “Telefonu ayarla”."),
-    Step(Icons.Rounded.BatteryChargingFull, "Arka planda çalışma",
-        "Android pil tasarrufu için arka plandaki uygulamaları kapatabilir; o zaman bağlantı kopar."),
-    Step(Icons.Rounded.Usb, "Nasıl bağlanacaksın?",
-        "Birini hazırlaman yeterli. USB en hızlısı, Wi-Fi kablosuz, Bluetooth ağ olmadan da çalışır."),
-    Step(Icons.Rounded.Computer, "Bilgisayar tarafı",
-        "Bilgisayarda Talk To uygulaması kurulu ve açık olmalı (Ubuntu'da .deb dosyasına çift tıkla). " +
-            "En kolayı: bilgisayarda “Telefon ekle”ye bas, burada “Karekodu tara” ile okut; başka bir şey " +
-            "sorulmaz. Ya da bu telefon bilgisayarı Wi-Fi'de kendiliğinden bulur, USB'de kabloyu takman yeter; " +
-            "o zaman ilk bağlantıda iki ekranda aynı 6 haneli numara görünür, aynıysa bilgisayarda “Numaralar " +
-            "aynı”yı seçersin."),
+        "Telefonunu bilgisayarına bağlar: bildirimler ve aramalar bilgisayarda görünür, müzik iki yönden kontrol " +
+            "edilir, dosya ve pano gider gelir. Üç adım sürer.\n\nAçık kaynak (GPL-3.0) ve tamamen yerel: " +
+            "telefonunla bilgisayarın doğrudan ve şifreli konuşur. Sunucu, hesap, reklam ya da izleme yok; hiçbir " +
+            "veri bize ya da başka bir yere gitmez."),
+    Step(Icons.Rounded.Computer, "Bilgisayara bağlan",
+        "Bilgisayarda Talk To'yu aç ve “Telefon ekle”ye bas. Çıkan karekodu buradan okut; başka bir şey sorulmaz."),
+    Step(Icons.Rounded.Notifications, "İzinler",
+        "Bildirimlerin ve müziğin bilgisayara gelmesi için. Her düğme doğrudan ilgili ayarı açar; işin bitince geri dön."),
 )
+
+/** Sihirbazın bağlanma adımı: önce karekod, sonra ağda bulunan bilgisayarlar; bağlanınca durum. */
+@Composable
+private fun ConnectStep(onScan: () -> Unit) {
+    val state by Talk.state.collectAsState()
+    val found by Talk.found.collectAsState()
+    val usb by Talk.usbAvailable.collectAsState()
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        when (val st = state) {
+            is Talk.State.Connected -> StatusCard(Icons.Rounded.CheckCircle, "${st.serverName} ile bağlandı",
+                "Son adımda izinler var.", Tone.OK)
+            is Talk.State.Approval -> ApprovalCard(st)
+            is Talk.State.Connecting -> ConnectingCard(st)
+            Talk.State.Idle -> {
+                Button(onClick = onScan, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                    Icon(Icons.Rounded.QrCodeScanner, null)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Karekodu tara", style = MaterialTheme.typography.titleMedium)
+                }
+                Section("Ya da listeden seç", searching = true) {
+                    Panel {
+                        if (usb) {
+                            ListRow(Icons.Rounded.Usb, "USB kablosu", "Kabloyla bağlı bilgisayar",
+                                onClick = { Talk.connect(Talk.usbTarget()) })
+                        }
+                        found.sortedBy { it.name }.forEachIndexed { i, f ->
+                            if (i > 0 || usb) RowDivider()
+                            FoundRow(f)
+                        }
+                        if (found.isEmpty() && !usb) {
+                            ListRow(Icons.Rounded.Wifi, "Aranıyor…",
+                                "Bilgisayar aynı Wi-Fi ağındaysa burada görünür. Görünmüyorsa karekodu kullan.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetupWizard(perms: PermActions, initialStep: Int = 0, onBack: (() -> Unit)? = null, onDone: () -> Unit) {
     var step by rememberSaveable { mutableIntStateOf(initialStep) }
+    var scanning by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) { Talk.messages.collect { snackbar.showSnackbar(it) } }
+    val state by Talk.state.collectAsState()
+    // Bağlanınca kendiliğinden izinlere geçilir (kullanıcı "oldu mu?" diye beklemesin).
+    LaunchedEffect(state is Talk.State.Connected) {
+        if (state is Talk.State.Connected && step == 1) {
+            kotlinx.coroutines.delay(1200)
+            if (step == 1) step = 2
+        }
+    }
+    if (scanning) {
+        QrScanScreen(onBack = { scanning = false }) { qr ->
+            scanning = false
+            Talk.connectQr(qr)
+        }
+        return
+    }
     BackHandler(enabled = step > 0 || onBack != null) { if (step > 0) step-- else onBack?.invoke() }
     val s = STEPS[step]
     val last = step == STEPS.lastIndex
@@ -351,9 +400,12 @@ fun SetupWizard(perms: PermActions, initialStep: Int = 0, onBack: (() -> Unit)? 
                 }
             }
             when (step) {
-                1 -> item { CheckPanel(notificationItems(perms)) }
-                2 -> item { CheckPanel(backgroundItems()) }
-                3 -> item { CheckPanel(connectionItems(perms)) }
+                1 -> item { ConnectStep(onScan = { scanning = true }) }
+                2 -> {
+                    // USB'deyse bilgisayar hepsini tek seferde açar; değilse her biri tek düğme.
+                    item { SetupSummary() }
+                    item { CheckPanel(notificationItems(perms) + backgroundItems(), collapseDone = true) }
+                }
             }
         }
     }

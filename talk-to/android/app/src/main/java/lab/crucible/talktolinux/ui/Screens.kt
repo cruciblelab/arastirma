@@ -339,7 +339,7 @@ private fun LazyListScope.disconnected(onManual: () -> Unit, onScan: () -> Unit,
 }
 
 @Composable
-private fun FoundRow(f: Discovery.Found) {
+internal fun FoundRow(f: Discovery.Found) {
     val paired = Talk.prefs.server(f.id)?.takeIf { it.fp == f.fp && it.token != null } != null
     val sub = buildString {
         append("Wi-Fi · ").append(f.host)
@@ -422,7 +422,7 @@ private fun PairedList() {
  * bilgisayarda "Numaralar aynı / Numaralar farklı" ile verilir (Uzun ve ark. 2007).
  */
 @Composable
-private fun ApprovalCard(s: Talk.State.Approval) {
+internal fun ApprovalCard(s: Talk.State.Approval) {
     Panel {
         Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -441,7 +441,7 @@ private fun ApprovalCard(s: Talk.State.Approval) {
 }
 
 @Composable
-private fun ConnectingCard(s: Talk.State.Connecting) {
+internal fun ConnectingCard(s: Talk.State.Connecting) {
     Panel {
         Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 3.dp)

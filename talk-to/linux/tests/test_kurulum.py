@@ -26,13 +26,19 @@ class SetupChecksTest(unittest.TestCase):
         return step(setup_checks.steps(status, dict({"adb": True, "apk": "/x.apk", "apk_version": "0.9.0"}, **usb),
                                        ufw=False, simple=simple), "telefon")
 
+    def test_qr_first_and_usb_optional(self):
+        """Hiçbir şey hazır değilken (adb yok, Wi-Fi kapalı) bile ilk satır karekod; USB satırları isteğe bağlı."""
+        tel = self.phone_step({"adb": False, "devices": []}, dict(STATUS, wireless=False))
+        self.assertEqual(tel.items[0].action, "show_qr")
+        self.assertTrue(all(i.optional for i in tel.items if i.action in ("install_adb", "enable_usb")))
+
     def test_fresh_computer(self):
         steps = setup_checks.steps(dict(STATUS, usb=False), {"adb": False, "apk": "/x.apk", "devices": []}, ufw=False)
         self.assertEqual([s.key for s in steps], ["hos-geldin", "telefon", "wifi", "ekler"])
         tel = step(steps, "telefon")
         adb = item(tel, "USB için adb")
         self.assertEqual((adb.ok, adb.action, adb.action_label), (False, "install_adb", "Kur"))
-        self.assertEqual(item(tel, "Wi-Fi ile bağlanmak").action, "enable_wireless")
+        self.assertEqual(item(tel, "Karekodla bağla").action, "show_qr")  # Wi-Fi kapalıysa karekod açar
         tel = self.phone_step({"devices": []}, dict(STATUS, usb=False))
         self.assertEqual(item(tel, "USB bağlantısı kapalı").action, "enable_usb")
 
@@ -69,13 +75,15 @@ class SetupChecksTest(unittest.TestCase):
         tel = self.phone_step({"devices": [dev]}, dict(STATUS, wireless=True))
         conn = item(tel, "POCO X6 Pro USB'de")
         self.assertEqual((conn.ok, conn.action, conn.action_label), (False, "connect_usb:S1", "Bağlan"))
-        self.assertIn("Wi-Fi ağında", item(tel, "Wi-Fi ile").text)  # kablo yoksa Wi-Fi yolu da yazıyor
+        # Karekod hep ilk ve önerilen yol (kablo varken de).
+        self.assertEqual((tel.items[0].title, tel.items[0].action, tel.items[0].action_label),
+                         ("Karekodla bağla (en kolayı)", "show_qr", "Karekodu göster"))
         st = dict(STATUS, sessions=[{"name": "Coşkun'un telefonu", "kind": "usb", "adb_serial": "S1",
                                      "phone": {"notif_access": True, "listener": True}}])
         tel = self.phone_step({"devices": [dev]}, st)
         self.assertTrue(item(tel, "Coşkun'un telefonu bağlı (USB)").ok)
         self.assertFalse(any(i.action and i.action.startswith("connect_usb") for i in tel.items))
-        self.assertFalse(any(i.title.startswith("Wi-Fi ile") for i in tel.items))
+        self.assertFalse(any(i.action == "show_qr" for i in tel.items))  # bağlıyken karekod önerilmez
 
     def test_permissions_given_on_phone_are_not_asked_again(self):
         """Telefonda elle verilen izinler adb'den okunur: bağlanmadan da "tamam" görünür, yeniden istenmez."""
@@ -167,10 +175,11 @@ class SetupChecksTest(unittest.TestCase):
         steps = setup_checks.steps(STATUS, {"adb": False, "devices": []}, ufw=False, simple=True)
         self.assertFalse(item(step(steps, "wifi"), "Kablosuz").optional)
         self.assertTrue(item(step(steps, "telefon"), "USB için adb").optional)
-        self.assertFalse(item(step(steps, "telefon"), "Wi-Fi ile bağlanmak").optional)
+        self.assertEqual(item(step(steps, "telefon"), "Karekodla bağla").action, "show_qr")
         self.assertIn("Özellikler", steps[0].text)
+        # Karekod varken USB her kipte isteğe bağlı: kablo ve geliştirici ayarı kurulumu "bitmemiş" göstermez.
         full = setup_checks.steps(STATUS, {"adb": False, "devices": []}, ufw=False)
-        self.assertFalse(item(step(full, "telefon"), "USB için adb").optional)
+        self.assertTrue(item(step(full, "telefon"), "USB için adb").optional)
 
     def test_ufw_conf(self):
         with tempfile.TemporaryDirectory() as d:

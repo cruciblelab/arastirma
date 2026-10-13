@@ -274,12 +274,18 @@ def _phone_step(status: dict, usb: dict, simple: bool) -> Step:
     connected = bool(sessions)
     st = Step("telefon", "Telefonu bağla",
               "Telefon bağlı. Bundan sonra kendiliğinden bağlanır." if connected else
-              "Telefon USB kablosuyla takılıysa “Bağlan” yeter, telefonda bir şey seçmen gerekmez. Kablo yoksa "
-              "aynı Wi-Fi ağında telefondan bağlanılır.", "phone-symbolic")
+              "En kolayı karekod: “Karekodu göster”e bas, telefonda Talk To'yu açıp “Karekodu tara”ya dokun. "
+              "Telefon USB kablosuyla takılıysa aşağıdaki “Bağlan” da olur.", "phone-symbolic")
+    if not connected:
+        # Karekod her zaman ilk ve önerilen yol: kablo, adb ya da geliştirici ayarı gerektirmez. Wi-Fi bağlantısı
+        # kapalıysa karekod açılınca açılır.
+        st.items.append(Item("Karekodla bağla (en kolayı)", f"Telefon ve bilgisayar aynı ağda olmalı. Telefonda "
+                             f"Talk To'yu aç, “Karekodu tara”ya dokun; listede “{host}” de görünür.", None,
+                             "show_qr", "Karekodu göster"))
     if not usb.get("apk"):
         st.items.append(Item("Telefon uygulaması bu pakette yok", "Talk To'yu GitHub'daki sürümler sayfasından "
                              "indirip telefona kur.", False, optional=True))
-    usb_optional = simple or connected
+    usb_optional = True  # karekod varken USB bir seçenek: eksik olması kurulumu "bitmemiş" göstermez
     if not usb.get("adb"):
         st.items.append(Item("USB için adb gerekli", "Telefonu kabloyla bağlamak ve uygulamayı tek tıkla kurmak "
                              "için; “Kur”a basınca bilgisayarın şifresi sorulur.", False, "install_adb", "Kur",
@@ -309,14 +315,6 @@ def _phone_step(status: dict, usb: dict, simple: bool) -> Step:
         perms = _phone_permissions(None, s)
         if perms:
             st.items.append(perms)
-    if not connected:
-        if status.get("wireless"):
-            st.items.append(Item("Wi-Fi ile", f"Telefon aynı Wi-Fi ağındaysa: telefonda Talk To'yu aç, “Karekodu "
-                                 f"tara”ya dokun ve karekodu okut (ya da listede “{host}”a dokun).", None,
-                                 "show_qr", "Karekodu göster"))
-        else:
-            st.items.append(Item("Wi-Fi ile bağlanmak için kablosuz bağlantıyı aç", "Açınca bu bilgisayar yerel ağda "
-                                 "görünür.", False, "enable_wireless", "Aç", optional=not simple))
     return st
 
 
@@ -342,7 +340,7 @@ def steps(status: dict, usb: dict, *, autostart: bool = False, ufw: bool | None 
 
     w = Step("wifi", "Wi-Fi (kablosuz)",
              "En kolay yol: kablo ve geliştirici ayarı gerekmez. Telefon ve bilgisayar aynı Wi-Fi ağında olmalı; "
-             "ilk bağlantıda iki ekrandaki numarayı karşılaştırırsın." if simple else
+             "karekodla eşleşince başka bir şey sorulmaz." if simple else
              "Kablo olmadan, aynı ağdaki telefon bağlanır. İsteğe bağlı.", "network-wireless-symbolic")
     w.items.append(Item("Kablosuz bağlantı açık", "Açıkken bu bilgisayar yerel ağda görünür.",
                         bool(status.get("wireless")), None if status.get("wireless") else "enable_wireless", "Aç",
