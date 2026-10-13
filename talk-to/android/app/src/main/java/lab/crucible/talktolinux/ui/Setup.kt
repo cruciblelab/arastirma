@@ -302,8 +302,10 @@ private val STEPS = listOf(
         "Birini hazırlaman yeterli. USB en hızlısı, Wi-Fi kablosuz, Bluetooth ağ olmadan da çalışır."),
     Step(Icons.Rounded.Computer, "Bilgisayar tarafı",
         "Bilgisayarda Talk To uygulaması kurulu ve açık olmalı (Ubuntu'da .deb dosyasına çift tıkla). " +
-            "Açıkken bu telefon onu Wi-Fi'de kendiliğinden bulur; USB'de kabloyu takman yeter. İlk bağlantıda " +
-            "iki ekranda aynı 6 haneli numara görünür; aynıysa bilgisayarda “Numaralar aynı”yı seçersin."),
+            "En kolayı: bilgisayarda “Telefon ekle”ye bas, burada “Karekodu tara” ile okut; başka bir şey " +
+            "sorulmaz. Ya da bu telefon bilgisayarı Wi-Fi'de kendiliğinden bulur, USB'de kabloyu takman yeter; " +
+            "o zaman ilk bağlantıda iki ekranda aynı 6 haneli numara görünür, aynıysa bilgisayarda “Numaralar " +
+            "aynı”yı seçersin."),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

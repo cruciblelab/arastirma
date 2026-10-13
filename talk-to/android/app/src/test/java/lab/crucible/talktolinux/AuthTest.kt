@@ -71,6 +71,41 @@ class AuthTest {
     }
 
     @Test
+    fun qrProofMatchesLinux() {
+        val arr = vec.getJSONArray("qr_proof")
+        for (i in 0 until arr.length()) {
+            val v = arr.getJSONObject(i)
+            assertEquals(v.getString("proof"),
+                Auth.qrProof(v.getString("key"), v.getString("nonce"), v.getString("fp"), v.getString("device_id")))
+        }
+    }
+
+    /** Linux'un çizdiği karekod (kareleri) ZXing ile çözülür ve QrPair alanları doğru çıkar. */
+    @Test
+    fun qrMatrixDecodes() {
+        val m = vec.getJSONObject("qr_matrix")
+        val rows = m.getJSONArray("rows")
+        val n = rows.length()
+        val scale = 4
+        val quiet = 4
+        val side = (n + 2 * quiet) * scale
+        val px = IntArray(side * side) { 0xFFFFFF }
+        for (y in 0 until n) for (x in 0 until n) if (rows.getString(y)[x] == '1') {
+            for (dy in 0 until scale) for (dx in 0 until scale)
+                px[((y + quiet) * scale + dy) * side + (x + quiet) * scale + dx] = 0
+        }
+        val bmp = com.google.zxing.BinaryBitmap(com.google.zxing.common.HybridBinarizer(
+            com.google.zxing.RGBLuminanceSource(side, side, px)))
+        val text = com.google.zxing.qrcode.QRCodeReader().decode(bmp).text
+        assertEquals(m.getString("text"), text)
+        val qr = lab.crucible.talktolinux.net.QrPair.parse(text)!!
+        assertEquals(listOf("192.168.1.34", "10.0.0.5"), qr.hosts)
+        assertEquals(47600, qr.port)
+        assertEquals("Ali'nin bilgisayarı", qr.name)
+        assertEquals("00112233445566778899aabbccddeeff", qr.key)
+    }
+
+    @Test
     fun shortFingerprint() {
         assertEquals("3F1C 9A0B 7D2E 4F6A", Auth.shortFingerprint("3f1c9a0b7d2e4f6a8b9c"))
     }

@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.19.0" date="2026-10-13">
+      <description><p>Karekodla eşleşme: bilgisayarda “Telefon ekle” karekod gösterir, telefonda “Karekodu tara” ile okutunca başka bir şey sorulmadan eşleşir. Karekod 10 dakika geçerli ve bir kez kullanılır.</p></description>
+    </release>
     <release version="0.18.0" date="2026-10-12">
       <description><p>Açık kaynak (GPL-3.0) ve tamamen yerel olduğu sade bir dille anlatılıyor; iki uygulamanın adı artık “Talk To”. Telefonda Google Play'e uygun yeni sürüm; bilgisayar USB'de bu sürümü görünce “Tam sürüme yükselt” der.</p></description>
     </release>

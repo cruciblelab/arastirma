@@ -34,7 +34,7 @@ from . import netinfo
 from .netinfo import interfaces
 from .protocol import CHUNK, ProtocolError, encode_binary, encode_json, read_frame
 from .transfers import Incoming
-from . import mirror, phone_setup
+from . import karekod, mirror, phone_setup
 from .usb import AdbWatcher
 
 log = logging.getLogger("talkto")
@@ -56,7 +56,7 @@ MAX_UNAUTHENTICATED = 16 # kimliği doğrulanmamış toplam bağlantı
 PREAUTH_MAX_JSON = 64 * 1024
 # Bilgisayarın desteklediği el sıkışma özellikleri (PROTOKOL.md): pair2 = taahhütlü onay kodu,
 # pw2 = PBKDF2'li şifre kanıtı.
-FEATURES = ("pair2", "pw2")
+FEATURES = ("pair2", "pw2", "qr1")
 _PKG = re.compile(r"^[A-Za-z0-9._]{1,200}$")
 _ART = re.compile(r"^[0-9a-f]{8,64}$")
 
@@ -131,6 +131,7 @@ class Hub:
         self.ui_screenshot = False  # masaüstü arayüzü ekran görüntüsünü portal ile alır
         self.ipc_path = ipc_path
         self.ipc = None
+        self.qr: dict | None = None  # gösterilen karekodun anahtarı ve son geçerlilik anı
 
     # ---- yaşam döngüsü -------------------------------------------------
 
@@ -375,6 +376,32 @@ class Hub:
                 for s in list(self.sessions.values()):
                     await s.send_profile()
             self.emit_status()
+
+    # ---- karekodla eşleşme --------------------------------------------------
+
+    async def qr_start(self) -> dict:
+        """Yeni karekod (eskisi geçersiz olur). Karekod Wi-Fi içindir: Wi-Fi bağlantısı kapalıysa açılır."""
+        turned_on = not self.config["wireless"]
+        if turned_on:
+            await self.set_option("wireless", True)
+        elif not self.addresses:
+            await self.apply()  # ağ sonradan bağlandıysa adresler henüz okunmamış olabilir
+        key = auth.new_qr_key()
+        self.qr = {"key": key, "until": time.monotonic() + karekod.SECONDS}
+        return {"link": karekod.link(self.addresses, self.config["port"], self.identity.fingerprint, key,
+                                     self.config["name"]),
+                "hosts": karekod.hosts(self.addresses), "port": self.config["port"], "seconds": karekod.SECONDS,
+                "wireless_turned_on": turned_on, "error": self.error,
+                "listening": bool(self.bound) and self.bound[0] == "0.0.0.0"}
+
+    def qr_stop(self):
+        self.qr = None
+
+    def qr_key(self) -> str | None:
+        if self.qr and time.monotonic() < self.qr["until"]:
+            return self.qr["key"]
+        self.qr = None
+        return None
 
     async def answer(self, rid: str, ok):
         fut = self.pending.get(rid)
@@ -866,7 +893,7 @@ class Session:
         self.hub.inflight[self.ip] = self.hub.inflight.get(self.ip, 0) + 1
         ok = False
         try:
-            chosen = await self._authenticate(fp, features, commit)
+            chosen = await self._authenticate(fp, features, commit, qr=hello.get("qr") is True)
             if chosen is False:
                 return False
             ok = True
@@ -882,9 +909,11 @@ class Session:
         await self.send({"type": "welcome", "token": token})
         return True
 
-    async def _authenticate(self, fp: str, features: list, commit: str | None):
-        """Şifre ya da onayla kimlik doğrular. False: başarısız; None ya da profil kimliği: başarılı."""
+    async def _authenticate(self, fp: str, features: list, commit: str | None, qr: bool = False):
+        """Karekod, şifre ya da onayla kimlik doğrular. False: başarısız; None ya da profil kimliği: başarılı."""
         nonce = auth.new_nonce()
+        if qr and "qr1" in features:
+            return await self._authenticate_qr(fp, nonce)
         password = self.config["password"]
         if self.kind == "wifi" and password:
             await self.send({"type": "auth_required", "method": "password", "nonce": nonce})
@@ -935,6 +964,26 @@ class Session:
             await self.send({"type": "auth_failed", "reason": "rejected"})
             return False
         return answer if isinstance(answer, str) and answer in self.config.profiles() else None
+
+    async def _authenticate_qr(self, fp: str, nonce: str):
+        """Telefon ekrandaki karekodu okudu: anahtarı bildiğini kanıtlarsa onay sorulmadan eşleşir
+        (şifre de sorulmaz; tek kullanımlık 128 bitlik anahtar şifreden güçlü). Varsayılan profil."""
+        key = self.hub.qr_key()
+        if not key:
+            await self.send({"type": "auth_failed", "reason": "qr_expired"})
+            return False
+        await self.send({"type": "auth_required", "method": "qr", "nonce": nonce})
+        msg = await self._read_json(30)
+        proof = msg.get("proof") if msg.get("type") == "auth_qr" else None
+        # Bu arada karekod kapatılmış ya da başka telefon kullanmış olabilir: anahtar hâlâ aynı olmalı.
+        if (self.hub.blocked(self.ip) or not isinstance(proof, str) or self.hub.qr_key() != key
+                or not auth.equal(proof, auth.qr_proof(key, nonce, fp, self.device_id))):
+            await self.send({"type": "auth_failed", "reason": "wrong_qr"})
+            return False
+        self.hub.qr_stop()  # bir kez geçer
+        self.hub.emit("paired_by_qr", {"name": self.name, "model": self.model, "ip": self.ip,
+                                       "transport": self.kind})
+        return None
 
     # ---- gelen iletiler -----------------------------------------------------
 

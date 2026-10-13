@@ -29,7 +29,8 @@ class FakePhone:
         self.code = None
         self.token = None
 
-    async def connect(self, host="127.0.0.1", port=TCP_PORT, password=None, token=None, expect_fp=None):
+    async def connect(self, host="127.0.0.1", port=TCP_PORT, password=None, token=None, expect_fp=None,
+                      qr_key=None):
         """Bağlanır ve kimlik doğrular. Sonuç: 'welcome' ya da auth_failed sebebi."""
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.check_hostname = False
@@ -43,14 +44,19 @@ class FakePhone:
         hello = {"type": "hello", "proto": PROTOCOL_VERSION, "device_id": self.device_id,
                  "name": self.name, "model": "Python", "platform": "test", "token": token}
         if not self.legacy:
-            hello.update(features=["pair2", "pw2"], commit=auth.commit_of(secret))
+            hello.update(features=["pair2", "pw2", "qr1"], commit=auth.commit_of(secret))
+        if qr_key:  # karekod okundu
+            hello["qr"] = True
         await self.send(hello)
         hello = await self.recv()
         assert hello["type"] == "hello", hello
         self.server_features = hello.get("features") or []
         msg = await self.recv()
         if msg["type"] == "auth_required":
-            if msg["method"] == "password":
+            if msg["method"] == "qr":
+                await self.send({"type": "auth_qr", "proof": auth.qr_proof(qr_key or "", msg["nonce"], self.fp,
+                                                                            self.device_id)})
+            elif msg["method"] == "password":
                 proof = (auth.password_proof(password or "", msg["nonce"], self.fp) if self.legacy
                          else auth.password_proof2(password or "", msg["nonce"], self.fp))
                 await self.send({"type": "auth_password", "proof": proof})

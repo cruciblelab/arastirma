@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import lab.crucible.talktolinux.net.ClientSession
+import lab.crucible.talktolinux.net.QrPair
 import lab.crucible.talktolinux.net.Discovery
 import lab.crucible.talktolinux.service.NotificationListener
 import lab.crucible.talktolinux.service.TalkService
@@ -41,8 +42,9 @@ object Talk {
         private set
 
     /** [knownOnly]: yalnızca güvenlik kodu kayıtlı (belirteci olan) bir bilgisayara bağlan (otomatik USB). */
+    /** [qrKey]: karekoddan; [fp] o zaman karekoddaki güvenlik kodudur ve bağlanılan bilgisayarınki onunla tutmalı. */
     data class Target(val host: String, val port: Int, val kind: String, val serverId: String?,
-                      val name: String, val fp: String?, val knownOnly: Boolean = false)
+                      val name: String, val fp: String?, val knownOnly: Boolean = false, val qrKey: String? = null)
 
     sealed class State {
         object Idle : State()
@@ -89,6 +91,9 @@ object Talk {
     val setupResult = MutableStateFlow<Pair<String, Boolean>?>(null)
     /** "Bilgisayar ayarlasın" isteği sürüyor. */
     val setupRunning = MutableStateFlow(false)
+
+    /** Başka bir uygulamadan (kamera) açılan karekod bağlantısı: arayüz önce sorar ("… ile eşleşilsin mi?"). */
+    val qrRequest = MutableStateFlow<QrPair?>(null)
 
     /** Telefonda izlenen oynatıcı (Spotify, YouTube...); yoksa null. */
     val phonePlayer = MutableStateFlow<String?>(null)
@@ -204,6 +209,30 @@ object Talk {
         connector.execute { doConnect(target, password) }
     }
 
+    /** Karekoddaki adreslerden ulaşılabilen ilkine bağlanır (ev ağı önce; karekod onları sıralı verir). */
+    fun connectQr(qr: QrPair) {
+        if (state.value !is State.Idle) {
+            say("Önce şu anki bağlantıyı kes (⋮ → Bağlantıyı kes), sonra karekodu yeniden okut.")
+            return
+        }
+        passwordFor.value = null
+        val first = Target(qr.hosts.first(), qr.port, "wifi", null, qr.name, qr.fp, qrKey = qr.key)
+        state.value = State.Connecting(first)
+        connector.execute {
+            val host = qr.hosts.firstOrNull { h ->
+                runCatching { java.net.Socket().use { it.connect(java.net.InetSocketAddress(h, qr.port), 1500) } }.isSuccess
+            }
+            if (host == null) {
+                fail("${qr.name}: bağlanılamadı. Telefon ve bilgisayar aynı Wi-Fi ağında mı? (Denenen: " +
+                    "${qr.hosts.joinToString()}.) Misafir ağları cihazların birbirini görmesini engelleyebilir.")
+                return@execute
+            }
+            val t = first.copy(host = host)
+            state.value = State.Connecting(t)
+            doConnect(t, null)
+        }
+    }
+
     @Volatile private var pending: ClientSession? = null
 
     /** Bağlanırken ya da onay beklerken vazgeç. */
@@ -220,6 +249,13 @@ object Talk {
                 val bt = BluetoothLink.connect(app, target.host)
                 s.openStreams(bt.inputStream, bt.outputStream) { runCatching { bt.close() } }
             } else s.open(target.host, target.port)
+            if (target.qrKey != null && fp != target.fp) {
+                // Karekoddaki güvenlik kodu tutmuyor: bu adreste başka bir bilgisayar (ya da araya giren biri) var.
+                s.close()
+                fail("Bu adresteki bilgisayar karekoddaki bilgisayar değil; bağlanılmadı. Bilgisayarda yeni karekod " +
+                    "açıp tekrar dene.")
+                return
+            }
             val stored = prefs.server(target.serverId)
             if (stored != null && stored.fp != fp) {
                 s.close()
@@ -245,7 +281,8 @@ object Talk {
             // kayıtlıysa güvenlik kodu (parmak izi) onunla da tutmalı; yoksa gerçek bilgisayarın
             // kaydı başka bir sertifikayla değiştirilebilirdi.
             val res = s.handshake(prefs.deviceId, prefs.deviceName, Build.MANUFACTURER + " " + Build.MODEL,
-                known?.token, password) { id -> prefs.server(id)?.takeIf { it.fp != fp }?.let { "fp_changed:${it.name}" } }
+                known?.token, password, target.qrKey) { id ->
+                    prefs.server(id)?.takeIf { it.fp != fp }?.let { "fp_changed:${it.name}" } }
             approvalTarget = null
             when (res) {
                 is ClientSession.AuthResult.Welcome -> {
@@ -288,6 +325,9 @@ object Talk {
                         }
                         "wrong_password" -> { state.value = State.Idle; say("Şifre yanlış"); passwordFor.value = target.copy(fp = fp) }
                         "rejected" -> fail("Bilgisayarda reddedildi ya da süre doldu", auto = false)
+                        "qr_expired" -> fail("Karekodun süresi dolmuş ya da kullanılmış. Bilgisayarda “Yeni " +
+                            "karekod”a basıp tekrar okut.")
+                        "wrong_qr" -> fail("Karekod tutmadı. Bilgisayardaki en son karekodu okut.")
                         "too_many_attempts" -> fail("Çok fazla hatalı deneme. 10 dakika sonra tekrar dene.", auto = false)
                         "server_outdated" -> fail("Bilgisayardaki Talk To eski. Güvenli eşleşme için " +
                             "bilgisayardaki uygulamayı güncelle (0.5 ya da daha yeni).", auto = false)

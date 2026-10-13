@@ -448,6 +448,10 @@ class Window(Adw.ApplicationWindow):
 
         # Her telefon tek satır: bağlantı, USB ve eşleşme aynı yerde (eskiden aynı telefon üç grupta görünüyordu).
         self.phones_group = DynamicGroup(title="Telefonlar")
+        qr = Gtk.Button(label="Telefon ekle", css_classes=["flat"], valign=Gtk.Align.CENTER,
+                        tooltip_text="Karekod gösterir: telefonda “Karekodu tara” ile okutunca eşleşir")
+        qr.connect("clicked", lambda *_: self.app.show_qr())
+        self.phones_group.set_header_suffix(qr)
         page.add(self.phones_group)
         self._trusted_open = False
         self.profile_group = DynamicGroup(
@@ -708,14 +712,15 @@ class Window(Adw.ApplicationWindow):
         elif ways:
             self.hero_icon.set_from_icon_name("computer-symbolic")
             self.hero_title.set_text("Telefon bekleniyor")
-            self.hero_sub.set_text(f"{st['name']} hazır: {', '.join(ways)}. Telefonda Talk To'yu açınca bu "
-                                   "bilgisayar listede görünür.")
+            self.hero_sub.set_text(f"{st['name']} hazır: {', '.join(ways)}. Telefonda Talk To'yu aç ve "
+                                   "“Karekodu tara”ya dokun; ya da listede bu bilgisayarı seç.")
         else:
             self.hero_icon.set_from_icon_name("network-offline-symbolic")
             self.hero_title.set_text("Bağlantı kapalı")
             self.hero_sub.set_text("Telefonun bağlanabilmesi için Wi-Fi, USB ya da Bluetooth'tan birini aç.")
         self.hero_button.set_visible(not sessions)
-        self.hero_button.set_label("Bağlan" if not sessions and self._usb_connectable() else "Bağlantı ayarları")
+        self.hero_button.set_label("Bağlan" if self._usb_connectable() else
+                                   "Karekodla telefon ekle" if ways else "Bağlantı ayarları")
         # Baloncuklar yalnızca yazıları değişince yeniden kurulur: açık bilgi penceresi her durum
         # güncellemesinde (pil, telefon bilgisi) kapanmasın.
         chips = [(s["device_id"], s["kind"], s.get("battery")) for s in sessions]
@@ -768,6 +773,8 @@ class Window(Adw.ApplicationWindow):
         d = self._usb_connectable()
         if d:
             self.app.connect_phone(d["serial"])
+        elif self.hero_button.get_label() == "Karekodla telefon ekle":
+            self.app.show_qr()
         else:
             self.open_preferences()
 

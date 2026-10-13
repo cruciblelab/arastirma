@@ -41,6 +41,7 @@ class App(Adw.Application):
         self.hub_factory = hub_factory
         self.window = None
         self.setup_window = None
+        self.qr_window = None
         self.dialogs = {}
         self.hub = None
         self._hidden_hint_shown = False
@@ -659,6 +660,32 @@ class App(Adw.Application):
         self.toast("Telefonda Talk To açılıyor…")
         self._after(self.hub.connect_phone(serial), lambda ok, msg: None if ok else self.toast(msg))
 
+    def show_qr(self, renew=False):
+        """Karekodla telefon ekle: yeni tek kullanımlık karekod (açık pencere varsa onu yeniler)."""
+        if self.qr_window and not renew:
+            self.qr_window.present()
+            return
+        fut = self.hub.submit(self.hub.qr_start())
+
+        def show(info):
+            from .karekod import QrWindow
+            if self.qr_window:
+                self.qr_window.update(info)
+            else:
+                parent = self.setup_window if self.setup_window and self.setup_window.get_visible() else self.window
+                self.qr_window = QrWindow(self, parent, info)
+            self.qr_window.present()
+            return False
+        fut.add_done_callback(lambda f: GLib.idle_add(show, f.result()))
+
+    def qr_closed(self, win):
+        if self.qr_window is win:
+            self.qr_window = None
+            self.hub.submit(self._qr_stop())
+
+    async def _qr_stop(self):
+        self.hub.qr_stop()
+
     def phone_setup(self, serial):
         """Telefondaki izinleri USB'den verir (bildirim erişimi, pil, bildirim ve Bluetooth izni)."""
         self.toast("Telefon ayarlanıyor…")
@@ -761,6 +788,10 @@ class App(Adw.Application):
             self._incoming_clipboard(d)
         elif event == "open_url":
             Gio.AppInfo.launch_default_for_uri(d["url"], None)
+        elif event == "paired_by_qr":
+            if self.qr_window:
+                self.qr_window.close()
+            self.toast(f"{d['name']} karekodla eşleşti")
         elif event == "paired_by_password":
             # Şifre doğru olunca onay penceresi çıkmaz; yine de kullanıcı haberdar olsun.
             self.notifier.show("Yeni telefon şifreyle eşleşti",

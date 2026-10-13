@@ -263,4 +263,30 @@ adb shell am broadcast -a android.intent.action.BOOT_COMPLETED -f 0x20 -n $PKG/.
 wait_for "açılıştan sonra uygulama açılmadan bağlandı" "len(of('connected')) > $C2" 90
 shot 06-acilistan-sonra
 
+log "8) karekodla eşleşme (onaysız)"
+# Emülatörde kamera yok: karekodun içindeki bağlantı, telefonun kamerası okumuş gibi uygulamaya verilir
+# (talkto://pair?…). El sıkışma, karekod anahtarının kanıtı ve eşleşme gerçek.
+C3=$(count connected)
+A3=$(count ask)
+echo '{"method": "forget_all"}' >> "$CMD"
+wait_for "bilgisayar telefonu unuttu, bağlantı kapandı" "len(of('disconnected')) > 0 and len(of('connected')) == $C3" 30
+sleep 2
+echo '{"method": "qr_start"}' >> "$CMD"
+wait_for "karekod hazır" "len(of('qr')) > 0" 20
+# Emülatör bilgisayara 10.0.2.2'den ulaşır (bilgisayarın kendi adresleri emülatörde başka ağ).
+LINK=$(python3 -c '
+import json, re, sys
+ev = [json.loads(l) for l in open(sys.argv[1], encoding="utf-8") if l.strip()]
+link = [e["data"]["link"] for e in ev if e["event"] == "qr"][-1]
+print(re.sub(r"([?&])h=[^&]*", r"\1h=10.0.2.2", link))
+' "$EV")
+echo "karekod: $LINK"
+adb shell "am start -W -a android.intent.action.VIEW -d '$LINK' $PKG" > /dev/null
+sleep 2
+shot 07-karekod-soru
+tap_text "Eşleş"
+wait_for "karekodla eşleşti: bilgisayarda onay sorulmadı" \
+    "len(of('paired_by_qr')) == 1 and len(of('connected')) > $C3 and len(of('ask')) == $A3" 40
+shot 08-karekodla-bagli
+
 log "EMÜLATÖR TESTİ GEÇTİ"

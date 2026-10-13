@@ -16,6 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import lab.crucible.talktolinux.core.Checks
 import lab.crucible.talktolinux.core.Talk
+import lab.crucible.talktolinux.net.QrPair
 import lab.crucible.talktolinux.core.Notifs
 
 class MainActivity : ComponentActivity() {
@@ -94,6 +95,11 @@ class MainActivity : ComponentActivity() {
     /** Bilgisayardaki "Bağlan" (adb ile, yalnızca adb'nin açabildiği .ui.UsbBaglan kapısından). */
     private fun handlePcIntent(intent: Intent?) {
         if (intent?.component?.className == "$packageName.ui.UsbBaglan") Talk.connectFromPc()
+        // Telefonun kendi kamerası/karekod okuyucusu "talkto://pair?…" bağlantısını açtı: önce sorulur.
+        if (intent?.action == Intent.ACTION_VIEW && intent.scheme == "talkto") {
+            QrPair.parse(intent.dataString ?: "")?.let { Talk.qrRequest.value = it }
+                ?: Talk.messages.tryEmit("Bu karekod okunamadı; bilgisayardaki Talk To'da yeni karekod aç.")
+        }
     }
 
     private fun askBluetoothPermission() {

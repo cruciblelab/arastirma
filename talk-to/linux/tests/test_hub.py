@@ -102,6 +102,41 @@ class HubTest(_Base):
         self.assertEqual(await p2.connect(port=self.cfg["port"], token="0" * 64), "rejected")
         await p2.close()
 
+    async def test_qr_pairs_without_asking_once(self):
+        """Karekod: anahtarı bilen telefon onay sorulmadan (şifre de sorulmadan) eşleşir; anahtar bir kez geçer."""
+        from urllib.parse import parse_qs, urlsplit
+        self.cfg.set("password", "şifre")
+        self.answer = None  # soru sorulursa test zaman aşımına düşer
+        info = await self.hub.qr_start()
+        self.assertTrue(info["wireless_turned_on"])  # karekod Wi-Fi içindir: kapalıysa açılır
+        self.assertTrue(self.cfg["wireless"])
+        q = {k: v[0] for k, v in parse_qs(urlsplit(info["link"]).query).items()}
+        self.assertTrue(info["link"].startswith("talkto://pair?v=1&"))
+        self.assertEqual((q["fp"], int(q["p"])), (self.hub.identity.fingerprint, self.cfg["port"]))
+        p = FakePhone()
+        self.assertEqual(await p.connect(port=self.cfg["port"], qr_key=q["k"]), "welcome")
+        self.assertEqual(self.of("ask"), [])
+        self.assertEqual([e["name"] for e in self.of("paired_by_qr")], ["Test Telefonu"])
+        self.assertIn(p.device_id, self.cfg.trusted())
+        await p.close()
+        again = FakePhone("telefon-test-0002")  # aynı karekod ikinci kez geçmez
+        self.assertEqual(await again.connect(port=self.cfg["port"], qr_key=q["k"]), "qr_expired")
+        await again.close()
+        self.assertNotIn("telefon-test-0002", self.cfg.trusted())
+
+    async def test_qr_wrong_or_expired_key(self):
+        self.answer = None
+        none = FakePhone("telefon-test-0003")  # karekod gösterilmiyor
+        self.assertEqual(await none.connect(port=self.cfg["port"], qr_key="0" * 32), "qr_expired")
+        await none.close()
+        await self.hub.qr_start()
+        bad = FakePhone("telefon-test-0004")
+        self.assertEqual(await bad.connect(port=self.cfg["port"], qr_key="0" * 32), "wrong_qr")
+        await bad.close()
+        self.hub.qr["until"] = 0  # süresi doldu
+        self.assertIsNone(self.hub.qr_key())
+        self.assertEqual(self.cfg.trusted(), {})
+
     async def test_wifi_password(self):
         self.cfg.set("password", "doğru-şifre")
         sess_kind = {}
@@ -773,6 +808,8 @@ class UnitTest(unittest.TestCase):
         for v in vec["pairing_code2"]:
             self.assertEqual(auth.commit_of(v["secret"]), v["commit"])
             self.assertEqual(auth.pairing_code2(v["nonce"], v["secret"], v["fp"], v["device_id"]), v["code"])
+        for v in vec["qr_proof"]:
+            self.assertEqual(auth.qr_proof(v["key"], v["nonce"], v["fp"], v["device_id"]), v["proof"])
         for v in vec["frames"]:
             from talkto.protocol import encode_binary, encode_json
             if "json" in v:

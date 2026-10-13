@@ -12,8 +12,8 @@ android {
         applicationId = "lab.crucible.talktolinux"
         minSdk = 29
         targetSdk = 35
-        versionCode = 25
-        versionName = "0.18.0"
+        versionCode = 26
+        versionName = "0.19.0"
     }
 
     // Üç sürüm, aynı uygulama kimliği (biri diğerinin üzerine kurulabilir):
@@ -93,6 +93,12 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    // Eşleşme karekodunu okumak: kamera (CameraX) ve çözücü (ZXing); ikisi de telefonda, internetsiz çalışır.
+    val camerax = "1.4.1"
+    implementation("androidx.camera:camera-camera2:$camerax")
+    implementation("androidx.camera:camera-lifecycle:$camerax")
+    implementation("androidx.camera:camera-view:$camerax")
+    implementation("com.google.zxing:core:3.5.3")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")

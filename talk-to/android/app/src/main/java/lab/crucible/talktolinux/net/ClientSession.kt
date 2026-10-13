@@ -154,24 +154,30 @@ class ClientSession(
      * kayıtlı ama güvenlik kodu farklı) şifre ya da onay adımına hiç geçilmez.
      */
     fun handshake(deviceId: String, name: String, model: String, token: String?, password: String?,
-                  verifyServer: (serverId: String) -> String? = { null }): AuthResult {
+                  qrKey: String? = null, verifyServer: (serverId: String) -> String? = { null }): AuthResult {
         val secret = Auth.newSecret()
-        send(JSONObject().put("type", "hello").put("proto", 1).put("device_id", deviceId)
+        val hello = JSONObject().put("type", "hello").put("proto", 1).put("device_id", deviceId)
             .put("name", name).put("model", model).put("platform", "android").put("app", "talk-to-linux")
             .put("token", token ?: JSONObject.NULL)
-            .put("features", org.json.JSONArray().put("pair2").put("pw2"))
-            .put("commit", Auth.commitOf(secret)))
-        val hello = readJson()
-        if (hello.optString("type") != "hello") return AuthResult.Failed("protocol")
-        val serverId = hello.optString("device_id")
-        val serverName = hello.optString("name", "Linux")
+            .put("features", org.json.JSONArray().put("pair2").put("pw2").put("qr1"))
+            .put("commit", Auth.commitOf(secret))
+        if (qrKey != null) hello.put("qr", true)  // karekod okundu: bilgisayar onay sormadan eşleşir
+        send(hello)
+        val reply = readJson()
+        if (reply.optString("type") != "hello") return AuthResult.Failed("protocol")
+        val serverId = reply.optString("device_id")
+        val serverName = reply.optString("name", "Linux")
         verifyServer(serverId)?.let { return AuthResult.Failed(it) }
-        val features = hello.optJSONArray("features")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
+        val features = reply.optJSONArray("features")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
         var msg = readJson()
         var authenticated = false
         if (msg.optString("type") == "auth_required") {
             val nonce = msg.getString("nonce")
-            if (msg.optString("method") == "password") {
+            if (qrKey != null && "qr1" !in features) return AuthResult.Failed("server_outdated")
+            if (msg.optString("method") == "qr") {
+                if (qrKey == null) return AuthResult.Failed("protocol")
+                send(JSONObject().put("type", "auth_qr").put("proof", Auth.qrProof(qrKey, nonce, fingerprint, deviceId)))
+            } else if (msg.optString("method") == "password") {
                 if (password == null) return AuthResult.Failed("password_needed")
                 // Eski bilgisayar PBKDF2'siz kanıt ister; sahte bir sunucu da bunu isteyip şifreyi
                 // çevrimdışı deneyebilirdi. Bu yüzden eski yönteme düşülmez.

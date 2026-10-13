@@ -5,7 +5,8 @@ eşleşme isteklerini kendiliğinden onaylar ve olayları JSON satırları olara
     python3 emulator_sunucu.py olaylar.jsonl [komutlar.jsonl]
 
 Komut dosyasına eklenen her satır ({"method": "call_action", "args": [...]}) hub'da çalıştırılır:
-bilgisayardaki bir düğmeye basmak gibi (ör. aramayı bilgisayardan reddetmek).
+bilgisayardaki bir düğmeye basmak gibi (ör. aramayı bilgisayardan reddetmek). Ayrıca "forget_all" (eşleşmiş
+bütün telefonları unut) ve "qr_start" (karekod: bağlantısı "qr" olayı olarak yazılır).
 """
 
 import asyncio
@@ -26,7 +27,7 @@ OUT = Path(sys.argv[1])
 COMMANDS = Path(sys.argv[2]) if len(sys.argv) > 2 else None
 
 
-async def run_commands(hub):
+async def run_commands(hub, emit):
     """Komut dosyasını izler; yeni satırları hub'ın yöntemleriyle çalıştırır."""
     done = 0
     while True:
@@ -34,7 +35,13 @@ async def run_commands(hub):
         for line in lines[done:]:
             if line.strip():
                 cmd = json.loads(line)
-                await getattr(hub, cmd["method"])(*cmd.get("args", []))
+                if cmd["method"] == "forget_all":
+                    for device_id in list(hub.config.trusted()):
+                        await hub.forget(device_id)
+                else:
+                    r = await getattr(hub, cmd["method"])(*cmd.get("args", []))
+                    if cmd["method"] == "qr_start":
+                        emit("qr", r)
                 print("komut:", cmd, flush=True)
         done = len(lines)
         await asyncio.sleep(0.3)
@@ -63,7 +70,7 @@ async def main():
     # adb izleyicisi açık: telefondaki "Bilgisayar ayarlasın" bilgisayarın adb ile izin vermesini ister.
     await hub.start()
     if COMMANDS:
-        asyncio.get_running_loop().create_task(run_commands(hub))
+        asyncio.get_running_loop().create_task(run_commands(hub, emit))
     print("hazir", flush=True)
     await asyncio.Event().wait()
 

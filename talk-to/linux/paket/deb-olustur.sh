@@ -63,6 +63,11 @@ License: GPL-3.0-or-later
  .
  On Debian systems, the complete text of the GNU General Public License version 3 can be found in
  /usr/share/common-licenses/GPL-3.
+
+Files: usr/lib/talk-to-android/talkto/ucuncu/qrcodegen.py
+Copyright: Project Nayuki
+License: MIT
+ The full license text is at the top of the file.
 EOF2
 SIZE=$(du -sk "$ROOT/usr" | cut -f1)
 cat > "$ROOT/DEBIAN/control" <<CTL

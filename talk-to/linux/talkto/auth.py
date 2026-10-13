@@ -70,6 +70,20 @@ def pairing_code2(nonce: str, secret: str, server_fp: str, device_id: str) -> st
     return f"{int.from_bytes(d[:4], 'big') % 1_000_000:06d}"
 
 
+def new_qr_key() -> str:
+    return secrets.token_hex(16)
+
+
+def qr_proof(key: str, nonce: str, server_fp: str, device_id: str) -> str:
+    """Karekodla eşleşme: HMAC-SHA256(anahtar=karekoddaki anahtar, ileti="qr:nonce:parmakizi:device_id").
+
+    Anahtar ağdan hiç gitmez. Parmak izi iletiye girdiği için araya giren biri (kendi sertifikasıyla)
+    aldığı kanıtı gerçek bilgisayara aktaramaz; nonce her bağlantıda yeni olduğu için tekrar oynatılamaz.
+    """
+    msg = f"qr:{nonce}:{server_fp}:{device_id}".encode("utf-8")
+    return hmac.new(key.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+
 def pairing_code(nonce: str, server_fp: str, device_id: str) -> str:
     """İki ekranda da gösterilen 6 haneli onay kodu.
 

@@ -54,5 +54,13 @@ object Auth {
         return "%06d".format(n % 1_000_000)
     }
 
+    /** Karekodla eşleşme: HMAC-SHA256(anahtar=karekoddaki anahtar, "qr:nonce:parmakizi:device_id").
+     *  Anahtar ağdan gitmez; parmak izi iletiye girdiği için kanıt başka bir sunucuya aktarılamaz. */
+    fun qrProof(key: String, nonce: String, serverFp: String, deviceId: String): String {
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(key.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+        return mac.doFinal("qr:$nonce:$serverFp:$deviceId".toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+    }
+
     fun shortFingerprint(fp: String): String = fp.take(16).uppercase().chunked(4).joinToString(" ")
 }

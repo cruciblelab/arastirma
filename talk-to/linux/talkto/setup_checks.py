@@ -311,8 +311,9 @@ def _phone_step(status: dict, usb: dict, simple: bool) -> Step:
             st.items.append(perms)
     if not connected:
         if status.get("wireless"):
-            st.items.append(Item("Wi-Fi ile", f"Telefon aynı Wi-Fi ağındaysa: telefonda Talk To'yu aç, listede "
-                                 f"“{host}”a dokun.", None))
+            st.items.append(Item("Wi-Fi ile", f"Telefon aynı Wi-Fi ağındaysa: telefonda Talk To'yu aç, “Karekodu "
+                                 f"tara”ya dokun ve karekodu okut (ya da listede “{host}”a dokun).", None,
+                                 "show_qr", "Karekodu göster"))
         else:
             st.items.append(Item("Wi-Fi ile bağlanmak için kablosuz bağlantıyı aç", "Açınca bu bilgisayar yerel ağda "
                                  "görünür.", False, "enable_wireless", "Aç", optional=not simple))

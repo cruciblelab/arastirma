@@ -139,6 +139,13 @@ fun TalkScreen(
             FeaturesScreen(onBack = { screen = "ana" })
             return
         }
+        "tara" -> {
+            QrScanScreen(onBack = { screen = "ana" }) { qr ->
+                screen = "ana"
+                Talk.connectQr(qr)
+            }
+            return
+        }
     }
     val state by Talk.state.collectAsState()
     val passwordFor by Talk.passwordFor.collectAsState()
@@ -231,12 +238,26 @@ fun TalkScreen(
                 }
                 is Talk.State.Approval -> item { ApprovalCard(s) }
                 is Talk.State.Connecting -> item { ConnectingCard(s) }
-                Talk.State.Idle -> disconnected(onManual = { manual = true }, onBluetoothPermission)
+                Talk.State.Idle -> disconnected(onManual = { manual = true }, onScan = { screen = "tara" },
+                    onBluetoothPermission)
             }
         }
     }
     passwordFor?.let { PasswordDialog(it) }
     if (manual) ManualDialog { manual = false }
+    // Kameradan (telefonun kendi karekod okuyucusundan) gelen bağlantı: başka bir uygulama da bu bağlantıyı
+    // açabilir, bu yüzden kullanıcıya sorulmadan eşleşilmez.
+    val qrRequest by Talk.qrRequest.collectAsState()
+    qrRequest?.let { qr ->
+        AlertDialog(
+            onDismissRequest = { Talk.qrRequest.value = null },
+            title = { Text("“${qr.name}” ile eşleşilsin mi?") },
+            text = { Text("Karekodu bilgisayardaki Talk To'da sen açtıysan “Eşleş”e dokun. Bildirimlerin ve " +
+                "müziğin bu bilgisayara gider.") },
+            confirmButton = { TextButton(onClick = { Talk.qrRequest.value = null; Talk.connectQr(qr) }) { Text("Eşleş") } },
+            dismissButton = { TextButton(onClick = { Talk.qrRequest.value = null }) { Text("Vazgeç") } },
+        )
+    }
     if (askDisconnect && connected != null) {
         AlertDialog(
             onDismissRequest = { askDisconnect = false },
@@ -272,12 +293,13 @@ private fun kindLabel(t: Talk.Target) = when (t.kind) {
 
 // ---- bağlı değilken ------------------------------------------------------------
 
-private fun LazyListScope.disconnected(onManual: () -> Unit, onBluetoothPermission: () -> Unit) {
+private fun LazyListScope.disconnected(onManual: () -> Unit, onScan: () -> Unit, onBluetoothPermission: () -> Unit) {
     item {
-        // "Bağlı değil" bir hata değil: nötr (T5).
+        // "Bağlı değil" bir hata değil: nötr (T5). En kolay yol (karekod) kartın düğmesi.
         StatusCard(Icons.Rounded.Computer, "Bir bilgisayara bağlı değil",
-            "Bilgisayarda Talk To açıkken aşağıda görünür. Bir kez eşleştirdiğin bilgisayara sonra " +
-                "kendiliğinden bağlanılır.")
+            "En kolayı: bilgisayardaki Talk To'da “Telefon ekle”ye bas ve karekodu okut. Bilgisayar aşağıdaki " +
+                "listede de görünür. Bir kez eşleştirdiğin bilgisayara sonra kendiliğinden bağlanılır.",
+            action = "Karekodu tara", onAction = onScan)
     }
     item {
         val found by Talk.found.collectAsState()

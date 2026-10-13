@@ -19,6 +19,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <!-- Bilgisayarın gösterdiği eşleşme karekodunu okumak (görüntü telefonda işlenir, kaydedilmez). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Android 11+: bildirim gönderen ve müzik çalan uygulamaların adı ve simgesi (paket adı yerine
          "Spotify", "WhatsApp") için başlatıcıda görünen uygulamalar görülebilir olmalı. -->
     <queries>
@@ -48,6 +51,14 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Bilgisayarın eşleşme karekodu telefonun kendi kamerasıyla okununca (talkto://pair?…).
+                 Uygulama önce sorar; karekodsuz kimse bu yolla eşleşemez (tek kullanımlık anahtar gerekir). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="talkto" android:host="pair" />
             </intent-filter>
         </activity>
 

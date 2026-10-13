@@ -166,6 +166,9 @@ class SetupAssistant(Adw.Window):
             app.call("set_option", "usb", True)
         elif action == "enable_wireless":
             app.call("set_option", "wireless", True)
+        elif action == "show_qr":
+            app.show_qr()
+            return
         elif action == "enable_bluetooth":
             app.set_bluetooth(True)
         elif action == "install_scrcpy":

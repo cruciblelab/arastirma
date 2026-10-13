@@ -34,9 +34,9 @@ Linux tarafı (Talk To Android): [`linux/talkto/`](linux/talkto/) · Android tar
 
 ```
 telefon → hello {proto:1, app:"talk-to-linux", device_id, name, model, platform, token|null,
-                 features:["pair2","pw2"], commit: SHA-256(gizli)}
+                 features:["pair2","pw2","qr1"], commit: SHA-256(gizli), qr: true (yalnızca karekod okunduysa)}
 bilgisayar → hello {proto:1, app:"talk-to-android", version, device_id, name, platform:"linux",
-                    features:["pair2","pw2"]}
+                    features:["pair2","pw2","qr1"]}
 ```
 
 `gizli`, telefonun her bağlantıda ürettiği 32 baytlık rastgele değerin hex hâlidir; `commit` onun
@@ -46,6 +46,14 @@ aynı olduğunu da denetler; değilse kimlik doğrulamaya hiç geçmez.
 1. `token` bilgisayarın kayıtlı belirteciyle (SHA-256'sı saklanır) eşleşirse → `welcome {}`.
    Telefon belirteç göndermediyse ve şifre/onay adımı olmadıysa gelen `welcome`'u kabul etmez.
 2. Değilse yöntem seçilir:
+   - **Karekod** (telefon `qr: true` ve iki taraf da `qr1`) → `auth_required {method:"qr", nonce}`; telefon
+     `auth_qr {proof}` yollar: `proof = HMAC-SHA256(anahtar=karekoddaki k, "qr:nonce:parmakizi:device_id")`.
+     Bilgisayar o an gösterdiği karekodun anahtarıyla denetler; tutarsa onay ve şifre sorulmadan eşleşir
+     (varsayılan profil, bilgisayarda "karekodla eşleşti" haberi), anahtar hemen geçersizleşir (bir kez geçer).
+     Karekod gösterilmiyorsa ya da süresi (10 dk) dolduysa `auth_failed {reason:"qr_expired"}`, kanıt
+     tutmazsa `wrong_qr` (hata sayılır). Telefon bağlanınca parmak izinin karekoddakiyle aynı olduğunu
+     denetler, değilse hiç kanıt göndermez. Anahtar ağdan hiç gitmez; araya giren biri kanıtı kendi
+     sertifikasının parmak iziyle alacağı için gerçek bilgisayara aktaramaz.
    - **USB**, **Bluetooth** ya da **Wi-Fi + şifre yok** → `auth_required {method:"approval", nonce, pair:2}`.
      Telefon `pair_reveal {secret: gizli}` yollar; bilgisayar `SHA-256(gizli) == commit` olduğunu denetler.
      İki taraf da `kod = SHA-256("nonce:gizli:parmakizi:device_id")` ilk 4 baytı mod 10⁶ (6 hane) hesaplar.
@@ -71,6 +79,11 @@ yoksa sahte bir sunucu eski yöntemi isteyerek korumayı atlatabilirdi.
 **Sınırlar.** Kimlik doğrulamadan önce JSON çerçevesi en çok 64 KiB, ikili çerçeve yok; aynı anda en çok
 16 doğrulanmamış bağlantı ve IP başına 2 süren el sıkışma; en çok 3 bekleyen onay penceresi.
 Bilgisayardaki yerel bir bağlantı ancak başka bir kullanıcıya ait değilse USB sayılır.
+
+**Karekod.** `talkto://pair?v=1&h=<IPv4,…>&p=<port>&fp=<parmak izi, 64 hex>&k=<anahtar, 32 hex>&n=<ad>`.
+Bilgisayar adresleri ev/iş ağı önce, Tailscale sonra, sanal köprüler (Docker) en son sıralar; telefon yalnızca
+yerel ağ adreslerini (10/8, 172.16/12, 192.168/16, 169.254/16, 100.64/10) kabul eder ve sırayla dener.
+Bağlantı telefonun kendi kamerasından da açılabilir; uygulama o zaman önce "… ile eşleşilsin mi?" diye sorar.
 
 Ortak test vektörleri: [`protokol-test-vektorleri.json`](protokol-test-vektorleri.json) (iki tarafın testleri de bu dosyayı okur).
 
