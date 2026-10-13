@@ -63,8 +63,8 @@ class FakeApp:
     def report_problem(self):
         self.calls.append(("report",))
 
-    def open_preferences(self, page=None):
-        self.calls.append(("prefs",))
+    def show_page(self, name):
+        self.calls.append(("page", name))
 
 
 SESS = {"device_id": "p", "name": "POCO", "battery": {"level": 64}}
@@ -275,7 +275,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(self.ada.state()["notifications"], [])
         self.ada.action({"do": "report"})
         self.ada.action({"do": "prefs"})
-        self.assertEqual(self.app.calls[-2:], [("report",), ("prefs",)])
+        self.assertEqual(self.app.calls[-2:], [("report",), ("page", "ada")])
 
     def test_report_url_has_versions_not_logs(self):
         from urllib.parse import parse_qs, urlparse
@@ -491,6 +491,22 @@ class BuildAndInstallTest(unittest.TestCase):
             self.assertTrue(ada.uninstall()[0])
             self.assertFalse(dest.exists())
             self.assertEqual(ada.running_state(), "absent")
+
+    def test_reinstall_while_shell_runs_old_copy(self):
+        """Dosyaları silinip (kabuk eskisini çalıştırırken) yeniden kurulunca "Açık" denmez: oturum yenilenmeli
+        (kullanıcı: ada stilsiz göründü, oturumu yenileyince düzeldi)."""
+        data = self.tmp / "data2"
+        with mock.patch.dict(os.environ, {"XDG_DATA_HOME": str(data)}), \
+                mock.patch.object(ada, "shell_version", return_value=46), \
+                mock.patch.object(ada, "source_dir", side_effect=lambda v: self.out / "45"), \
+                mock.patch.object(ada, "_shell_settings", return_value=None), \
+                mock.patch.object(ada, "_shell_knows", return_value=True):
+            ok, msg = ada.install()
+            self.assertTrue(ok)
+            self.assertIn("oturumu bir kez kapatıp aç", msg)
+            self.assertEqual(ada.running_state(), "pending")
+            ada.uninstall()
+        ada._relogin_needed = False
 
     def test_install_without_gnome(self):
         with mock.patch.object(ada, "shell_version", return_value=None):

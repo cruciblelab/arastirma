@@ -90,6 +90,27 @@
             </intent-filter>
         </activity>
 
+        <!-- Ana ekran widget'ı (bilgisayar: durum, pil, çalan, kilitle/uyut/pano). -->
+        <receiver
+            android:name=".ui.PcWidget"
+            android:exported="false"
+            android:label="Talk To · Bilgisayar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_pc_info" />
+        </receiver>
+        <!-- Widget'taki "Panoyu gönder": Android panoyu yalnızca öndeki ekrana okutur; görünmez, hemen kapanır. -->
+        <activity
+            android:name=".ui.ClipSendActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <receiver
             android:name=".service.BootReceiver"
             android:exported="true">

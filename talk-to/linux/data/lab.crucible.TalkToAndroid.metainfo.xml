@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.22.0" date="2026-10-13">
+      <description><p>Telefonun ana ekranına Talk To widget'ı: bilgisayar bağlı mı ve nasıl, dizüstüyse pili, bilgisayarda çalan (oynat/duraklat, sonraki), bilgisayarı kilitle, uyut ve panoyu gönder. Üst adanın ayarları ana pencerede kendi "Ada" sekmesinde. Kurulum yardımcısı artık ayrı bir pencere gibi durmuyor.</p></description>
+    </release>
     <release version="0.21.0" date="2026-10-13">
       <description><p>Daha kolay kurulum: telefondaki kurulum üç adıma indi (hoş geldin, karekodla bağlan, izinler) ve bağlanınca kendiliğinden ilerliyor. Bilgisayardaki kurulum yardımcısında karekod ilk ve önerilen yol; kablo ve geliştirici ayarları isteğe bağlı.</p></description>
     </release>

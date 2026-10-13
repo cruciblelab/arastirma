@@ -242,7 +242,9 @@ class Window(Adw.ApplicationWindow):
             "dosyalar": compat.add_page(self.stack, self._build_files(), "dosyalar", "Dosyalar", "folder-symbolic"),
             "bildirimler": compat.add_page(self.stack, self._build_notifications(), "bildirimler", "Bildirimler",
                                            "preferences-system-notifications-symbolic"),
+            "ada": compat.add_page(self.stack, self._build_ada_page(), "ada", "Ada", "video-display-symbolic"),
         }
+        self._ada_checked = 0.0  # Ada sekmesi açıkken eklentinin durumu birkaç saniyede bir yeniden okunur (_tick)
 
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
         drop.connect("drop", self._on_drop)
@@ -284,7 +286,6 @@ class Window(Adw.ApplicationWindow):
         if page is not None:
             self.prefs_window.set_visible_page(self.prefs_pages[page])
         self._update_data_rows()
-        self._update_ada_rows()
         self.prefs_window.present()
 
     # ---- basit mod -------------------------------------------------------------
@@ -310,7 +311,22 @@ class Window(Adw.ApplicationWindow):
             self.extras_group.add(sw)
             self.sw_extras[key] = sw
         page.add(self.extras_group)
+        return page
+
+    def _build_ada_page(self):
+        """Ana penceredeki "Ada" sekmesi (kullanıcı: Tercihler'in dibinde "çok ters yerde" duruyordu)."""
+        page = Adw.PreferencesPage()
         page.add(self._build_ada_group())
+        how = Adw.PreferencesGroup(title="Nasıl kullanılır")
+        for title, text in (
+                ("Tıkla", "Ada büyür ya da küçülür."),
+                ("Fare tekerleği", "Yukarı: küçülür (büyük → normal → ince şerit). Aşağı: geri büyür."),
+                ("Basılı tut ve yana sürükle", "Sayfa değişir: arama, çalan, bildirimler, zamanlayıcı, diğer."),
+                ("Diğer → Özelleştir", "Tema, kip, dokunma sesi ve adanın yeri (üst kenar boyunca kaydırılır).")):
+            r = Adw.ActionRow(title=title, subtitle=text)
+            r.set_subtitle_lines(2)
+            how.add(r)
+        page.add(how)
         return page
 
     def _build_ada_group(self):
@@ -380,7 +396,7 @@ class Window(Adw.ApplicationWindow):
     def _ada_toggle(self):
         from . import ada
         ok, msg = ada.install() if ada.running_state() == "absent" else ada.uninstall()
-        self._prefs_toast(msg if ok else f"Olmadı: {msg}")
+        self.toast(msg if ok else f"Olmadı: {msg}")
         self._update_ada_rows()
 
     def _set_feature_option(self, key, value):
@@ -1284,6 +1300,12 @@ class Window(Adw.ApplicationWindow):
         for c in self.media_cards.values():
             if c.get_visible():
                 c.tick()
+        # Sekme değişince bildirimle değil burada: yığının bildirimi pencere yıkılırken de geliyordu (GTK 4.6'da
+        # yarı yıkılmış nesneye dokunup süreci düşürebiliyordu).
+        if self.get_mapped() and self.stack.get_visible_child_name() == "ada" \
+                and time.monotonic() - self._ada_checked > 3:
+            self._ada_checked = time.monotonic()
+            self._update_ada_rows()
         return True
 
     # ---- Dosyalar -------------------------------------------------------------

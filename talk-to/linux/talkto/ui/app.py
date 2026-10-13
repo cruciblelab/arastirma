@@ -286,6 +286,12 @@ class App(Adw.Application):
             Gtk.IconTheme.get_for_display(display).add_search_path(str(icons))
         Gtk.StyleContext.add_provider_for_display(display, self._css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
+    def show_page(self, name: str):
+        """Ana pencereyi öne getirip bir sekmesini açar (ör. adadaki "Tüm ayarlar" → "ada")."""
+        self.activate()
+        if self.window and name in self.window.pages:
+            self.window.stack.set_visible_child_name(name)
+
     def open_preferences(self, page=None):
         self.activate()
         if self.window:

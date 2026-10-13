@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget zemini: bilgisayardaki adanın "Deniz" temasıyla aynı koyu mavi, yuvarlak köşe. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#E6162A44" />
+    <corners android:radius="24dp" />
+</shape>

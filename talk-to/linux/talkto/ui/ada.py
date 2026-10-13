@@ -282,7 +282,7 @@ class AdaService:
         elif what == "report":
             self.app.report_problem()
         elif what == "prefs":
-            self.app.open_preferences()
+            self.app.show_page("ada")  # adanın bütün ayarları ana penceredeki "Ada" sekmesinde
 
     # ---- zamanlayıcı ------------------------------------------------------------------------
 
@@ -363,10 +363,29 @@ def installed_version() -> int | None:
         return None
 
 
+# Kabuk eklentinin eski hâlini bellekte çalıştırırken yeniden kuruldu (ör. dosyaları elle silinip yeniden kuruldu):
+# kod bellekte eski, görünüm dosyası yeni ya da kayıp olabilir; ancak oturum yenilenince düzelir.
+_relogin_needed = False
+
+
+def _shell_knows() -> bool:
+    """Kabuk bu eklentiyi şu an tanıyor mu (bu oturumda yüklenmiş mi)?"""
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        res = bus.call_sync("org.gnome.Shell.Extensions", "/org/gnome/Shell/Extensions", "org.gnome.Shell.Extensions",
+                            "GetExtensionInfo", GLib.Variant("(s)", (UUID,)), GLib.VariantType("(a{sv})"),
+                            Gio.DBusCallFlags.NONE, 2000, None)
+        return bool(res.unpack()[0])
+    except GLib.Error:
+        return False
+
+
 def running_state() -> str:
     """"active" (kabukta çalışıyor), "pending" (kurulu ama oturum yenilenmeli), "absent" (kurulu değil)."""
     if installed_version() is None:
         return "absent"
+    if _relogin_needed:
+        return "pending"
     try:
         bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
         res = bus.call_sync("org.gnome.Shell.Extensions", "/org/gnome/Shell/Extensions", "org.gnome.Shell.Extensions",
@@ -388,6 +407,8 @@ def install() -> tuple[bool, str]:
     src = source_dir(version)
     if src is None:
         return False, "Eklenti dosyaları pakette bulunamadı."
+    global _relogin_needed
+    _relogin_needed = _shell_knows()
     _copy(src)
     settings = _shell_settings()
     if settings is not None:
@@ -405,6 +426,8 @@ def install() -> tuple[bool, str]:
     except GLib.Error:
         pass
     log.info("üst ada eklentisi kuruldu (GNOME %s)", version)
+    if _relogin_needed:
+        return True, "Kuruldu. GNOME eski hâlini hâlâ çalıştırıyor: düzgün görünmesi için oturumu bir kez kapatıp aç"
     return True, "Kuruldu"
 
 

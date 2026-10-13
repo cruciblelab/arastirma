@@ -4,7 +4,14 @@ Yeni sürümlerde libadwaita'nın kendi parçaları kullanılır; yoksa aynı ar
 sunan küçük yedekler devreye girer. Pencere kodu yalnızca bu modülü kullanır.
 """
 
+import warnings
+
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
+
+# GTK 4.6 (Ubuntu 22.04): simge nesneleri yok edilirken zararsız bir "bildirim kuyruğu" uyarısı basılıyor. Uyarı
+# Python'un uyarı makinesinden geçerken çöp toplayıcı bir başkasını yok ederse iç içe uyarı süreci düşürebiliyor
+# (pencere çok kez kurulup yıkılan testlerde görüldü). Bu uyarı hiçbir şey anlatmıyor: hiç basılmaz.
+warnings.filterwarnings("ignore", message="Attempting to (freeze|thaw) the notification queue")
 
 ADW = (Adw.get_major_version(), Adw.get_minor_version())
 HAS_USE_MARKUP = Adw.PreferencesRow.find_property("use-markup") is not None  # 1.2+

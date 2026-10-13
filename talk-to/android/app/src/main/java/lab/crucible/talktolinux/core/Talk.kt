@@ -20,6 +20,8 @@ import android.util.Base64
 import android.widget.Toast
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.launch
 import lab.crucible.talktolinux.BuildConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -130,9 +132,18 @@ object Talk {
     @Volatile var uiVisible = false
     private val iconsSent = HashSet<String>()
 
+    private val widgetScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
+
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
     fun init(context: Context) {
         app = context.applicationContext
         prefs = Prefs(app)
+        // Ana ekran widget'ı bağlantı, bilgisayardaki çalan, pil ve komutlar değişince yenilenir.
+        widgetScope.launch {
+            kotlinx.coroutines.flow.combine(state, pcMedia, sysinfo, commands, profile) { _, _, _, _, _ -> }
+                .debounce(400).collect { lab.crucible.talktolinux.ui.PcWidget.update(app) }
+        }
         Features.load(prefs)
     }
 

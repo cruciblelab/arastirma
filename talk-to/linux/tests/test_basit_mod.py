@@ -315,7 +315,8 @@ class WindowTest(unittest.TestCase):
 
         app.connect("activate", lambda *_: GLib.idle_add(check))
         app.run([])
-        self.assertEqual(seen["simple"], {"telefonlar": True, "medya": True, "dosyalar": False, "bildirimler": True})
+        self.assertEqual(seen["simple"], {"telefonlar": True, "medya": True, "dosyalar": False, "bildirimler": True,
+                                          "ada": True})
         # Bilgisayar komutları Tercihler → Araçlar'da: basit modda gizli, yerine nasıl açılacağı yazar.
         self.assertEqual(seen["simple_cmd"], (False, True))
         self.assertEqual(seen["extra_cmd"], (True, False))

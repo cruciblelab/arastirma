@@ -17,8 +17,10 @@ POLL_SECONDS = 3
 
 class SetupAssistant(Adw.Window):
     def __init__(self, app, parent=None):
+        # Ana pencereye bağlı ve önünde (modal): GNOME iki ayrı pencere yerine tek pencere gibi gösterir
+        # (kullanıcı: "iki pencere oluyor, dikkat dağıtıyor").
         super().__init__(title="Kurulum yardımcısı", default_width=620, default_height=680,
-                         transient_for=parent, modal=False)
+                         transient_for=parent, modal=parent is not None)
         self.app = app
         self.step = 0
         self.steps = []

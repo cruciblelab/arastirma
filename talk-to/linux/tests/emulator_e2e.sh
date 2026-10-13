@@ -295,6 +295,14 @@ wait_for "karekodla eşleşti: bilgisayarda onay sorulmadı" \
     "len(of('paired_by_qr')) == 1 and len(of('connected')) > $C3 and len(of('ask')) == $A3" 40
 shot 08-karekodla-bagli
 
+log "9) ana ekran widget'ı"
+adb shell dumpsys appwidget | grep -q "ui.PcWidget" || fail "widget sisteme kayıtlı değil"
+# Ana ekrana yerleştirmek kullanıcı ister; düğmeye basmak widget'ın gönderdiği haberle aynı (adb root: 7. adım).
+K0=$(count command_run)
+adb shell am broadcast -a lab.crucible.talktolinux.widget.LOCK -n $PKG/.ui.PcWidget > /dev/null
+wait_for "widget'taki “kilitle” bilgisayarda kilitleme komutunu çalıştırdı" \
+    "len(of('command_run')) > $K0 and of('command_run')[-1]['id'] == 'kilitle'" 20
+
 log "protokol: gerçek telefonun ve bilgisayarın bütün iletileri protocol/messages.json'a uymalı"
 python3 -c '
 import json, sys
