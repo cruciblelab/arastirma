@@ -478,6 +478,12 @@ class Ada {
                 `color: ${this.theme.text};`);
         }
         this.box.visible = st.enabled !== false;
+        // Açık zeminli tema (yazı koyu): uyarı kırmızısı koyulaşır, okunsun.
+        const [tr, tg, tb] = rgba(this.theme.text, 1);
+        if (0.2126 * tr + 0.7152 * tg + 0.0722 * tb < 0.4)
+            this.box.add_style_class_name('ada-acik-tema');
+        else
+            this.box.remove_style_class_name('ada-acik-tema');
         const media = st.media;
         const newTrack = !!(prev && media && prev.title && media.title !== prev.title);
         this._morph(() => {
@@ -1184,6 +1190,14 @@ class Ada {
         });
     }
 
+    // Pil azken: kırmızı zemin üstünde beyaz simge ve yüzde, bitişik (açık ya da koyu her temada okunur).
+    _batteryBadge(icon, level) {
+        const b = new St.BoxLayout({style_class: 'ada-pil-rozet', y_align: Clutter.ActorAlign.CENTER});
+        b.add_child(new St.Icon({icon_name: icon, icon_size: 12, y_align: Clutter.ActorAlign.CENTER}));
+        b.add_child(this._label(`%${level}`, 'ada-pil-rozet-yazi'));
+        return b;
+    }
+
     _label(text, cls) {
         return new St.Label({text: text || '', style_class: cls || '', y_align: Clutter.ActorAlign.CENTER});
     }
@@ -1281,10 +1295,13 @@ class Ada {
             }
             if (st.phone && st.battery !== undefined && st.battery !== null) {
                 const lvl = Math.max(0, Math.min(100, Math.round(st.battery / 10) * 10));
-                const low = st.low_battery ? ' ada-pil-az' : '';
-                this.compact.add_child(new St.Icon({icon_name: `battery-level-${lvl}${st.charging
-                    ? '-charging' : ''}-symbolic`, icon_size: 14, style_class: low.trim()}));
-                this.compact.add_child(this._label(`%${st.battery}`, `ada-soluk${low}`));
+                const icon = `battery-level-${lvl}${st.charging ? '-charging' : ''}-symbolic`;
+                if (st.low_battery) {  // azsa kırmızı rozet (her temada okunur)
+                    this.compact.add_child(this._batteryBadge(icon, st.battery));
+                } else {
+                    this.compact.add_child(new St.Icon({icon_name: icon, icon_size: 14}));
+                    this.compact.add_child(this._label(`%${st.battery}`, 'ada-soluk'));
+                }
             }
             return;
         }
@@ -1300,9 +1317,7 @@ class Ada {
         const lowTag = () => {  // pil azken küçük adanın sonunda kırmızı pil ve yüzde (şarja takılınca kalkar)
             if (!st.low_battery)
                 return;
-            this.compact.add_child(new St.Icon({icon_name: 'battery-caution-symbolic', icon_size: 13,
-                style_class: 'ada-pil-az'}));
-            this.compact.add_child(this._label(`%${st.low_battery.level}`, 'ada-pil-az ada-kucuk-metin'));
+            this.compact.add_child(this._batteryBadge('battery-caution-symbolic', st.low_battery.level));
         };
         if (st.timer && !media.playing) {
             lowTag();

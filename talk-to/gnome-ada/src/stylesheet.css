@@ -62,3 +62,8 @@
 /* Bir şey çalmazken normal hâl: dalga sol uçta kenara yaslı (adanın soldaki boşluğu ve üst/alt boşluğu yok). */
 .ada.ada-sol-su { padding: 0 12px 0 0; }
 .ada-sol-su .ada-compact { min-height: 29px; }
+/* Pil azken rozet: kırmızı zemin, beyaz simge ve yüzde, aralarında az boşluk. */
+.ada-pil-rozet { background-color: #c01c28; color: white; border-radius: 99px; padding: 1px 7px 1px 5px; spacing: 3px; }
+.ada-pil-rozet-yazi { font-weight: bold; font-size: 8.5pt; font-feature-settings: "tnum"; }
+/* Açık zeminli temalarda (Pamuk şeker, gündüz) uyarı kırmızısı koyu */
+.ada-acik-tema .ada-pil-az { color: #a51d2d; }
