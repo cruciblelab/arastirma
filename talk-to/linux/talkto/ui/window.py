@@ -318,7 +318,7 @@ class Window(Adw.ApplicationWindow):
         from .ada_place import AdaPlace
         page = Adw.PreferencesPage()
         page.add(self._build_ada_group())
-        self.ada_place = AdaPlace(self.app.config["ada_theme"], self._pick_ada_theme)
+        self.ada_place = AdaPlace(self.app.config["ada_theme"], self._pick_ada_theme, self.app.config["ada_cycle"])
         page.add(self.ada_place)
         how = Adw.PreferencesGroup(title="Nasıl kullanılır")
         for title, text in (
@@ -366,6 +366,18 @@ class Window(Adw.ApplicationWindow):
         self.ada_mode.set_selected(modes.index(cur) if cur in modes else 0)
         self.ada_mode.connect("notify::selected", lambda r, _: self._set("ada_mode", modes[r.get_selected()]))
         g.add(self.ada_mode)
+        self.sw_ada_battery = compat.SwitchRow(
+            title="Pildeyken yavaşla", subtitle="Dizüstü prize takılı değilken Canlı yerine Yavaş çalışır; prize "
+                                                "takılınca döner")
+        self.sw_ada_battery.set_active(self.app.config["ada_battery_slow"])
+        self.sw_ada_battery.connect("notify::active", lambda r, _: self._set("ada_battery_slow", r.get_active()))
+        g.add(self.sw_ada_battery)
+        self.sw_ada_cycle = compat.SwitchRow(
+            title="Saate göre değişsin", subtitle="Uyan temalarda (Deniz, Orman, Kar) şafak, gündüz, akşam ve gece "
+                                                  "renkleri; Gün döngüsü teması her zaman değişir")
+        self.sw_ada_cycle.set_active(self.app.config["ada_cycle"])
+        self.sw_ada_cycle.connect("notify::active", lambda r, _: self._set_cycle(r.get_active()))
+        g.add(self.sw_ada_cycle)
         self.sw_ada_timer = compat.SwitchRow(
             title="Zamanlayıcı sayfası", subtitle="Adada yana kaydırınca zamanlayıcı da çıksın (kurulu bir sayaç "
                                                   "varken her zaman görünür)")
@@ -381,6 +393,11 @@ class Window(Adw.ApplicationWindow):
         g.add(self.sw_ada_popup)
         self._update_ada_rows()
         return g
+
+    def _set_cycle(self, on):
+        self._set("ada_cycle", on)
+        if getattr(self, "ada_place", None) is not None:
+            self.ada_place.set_cycle(on)
 
     def _pick_ada_theme(self, key):
         """Ada Place'te bir karta tıklandı: tema seçilir, ada hemen değişir."""
@@ -419,7 +436,8 @@ class Window(Adw.ApplicationWindow):
         self.ada_btn.set_label("Kur" if state == "absent" else "Kaldır")
         self.ada_btn.set_css_classes(["suggested-action"] if state == "absent" else [])
         # Ada Place hep açık: eklenti kurulmadan da temalara bakılıp seçilebilir (kurulunca o temayla gelir).
-        for r in (self.sw_ada, self.ada_motion, self.ada_mode, self.sw_ada_timer, self.sw_ada_popup):
+        for r in (self.sw_ada, self.ada_motion, self.ada_mode, self.sw_ada_battery, self.sw_ada_timer,
+                  self.sw_ada_popup):
             r.set_sensitive(state != "absent")
 
     def _ada_toggle(self):

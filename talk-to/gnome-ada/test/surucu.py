@@ -243,7 +243,7 @@ steps = [
     # Bir şey çalmıyor: dalga adanın sol ucunda (Pamuk şeker: süsler yazının altında, yazı net)
     lambda: (tema("pamuk"), app.on_event("media", {"device_id": "p", "state": {"active": False}})),
     *[lambda: None] * 6,  # büyük hâlden küçüğe dönsün
-    lambda: (cek("Shot", f"{OUT}/23-bosta-pamuk.png"), olc("bosta"), olc_cls("ada-sol-su")),
+    lambda: (cek("Shot", f"{OUT}/23-bosta-pamuk.png"), olc("bosta"), olc_cls("ada-su")),
     lambda: app.quit(),
 ]
 i = [0]

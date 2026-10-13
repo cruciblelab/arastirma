@@ -37,8 +37,26 @@ THEMES = {
                       "#590d22", "#a4133c", "#ff758f", "#ffb3c1", "#fff0f3",
                       _fx("hearts", "#ffccd5", 0.7, count=5, size=4, speed=7)),
     # --- sakin ---
-    "deniz": _theme("Deniz", "sakin", "Süssüz, sade", "#0a2342", "#12436b", "#2ec4b6", "#8de4ff", "#eaf6ff"),
-    "orman": _theme("Orman", "sakin", "Süssüz, sade", "#0b2b1c", "#154734", "#52b788", "#b7e4c7", "#eefaf2"),
+    # Deniz, Orman ve Kar isteğe bağlı saate göre değişir (cycle_optional; Ada sekmesindeki "Saate göre değişsin").
+    # Gündüz hâlleri temanın kendi renkleri; akşam, gece ve şafak ona uygun.
+    "deniz": dict(_theme("Deniz", "sakin", "Sade deniz; saate göre gün batımı ve yıldızlı gece",
+                         "#0a2342", "#12436b", "#2ec4b6", "#8de4ff", "#eaf6ff"),
+                  cycle_optional=True,
+                  cycle=[(5.5, 6.5, {"bg1": "#1d2b53", "bg2": "#9e4f6a", "wave1": "#f67280", "wave2": "#f8b195"},
+                          [_fx("stars", "#ffffff", 0.3, count=5, size=0.9, speed=8)]),
+                         (8.0, 17.0, {"bg1": "#0a2342", "bg2": "#12436b", "wave1": "#2ec4b6", "wave2": "#8de4ff"}, []),
+                         (18.5, 19.5, {"bg1": "#2b1055", "bg2": "#a4471f", "wave1": "#ff9e5e", "wave2": "#ffd166"}, []),
+                         (21.0, 4.5, {"bg1": "#020b1c", "bg2": "#0a2342", "wave1": "#2ec4b6", "wave2": "#5390d9"},
+                          [_fx("stars", "#ffffff", 0.7, count=10, size=1, speed=10)])]),
+    "orman": dict(_theme("Orman", "sakin", "Sade orman; saate göre akşam ve ateş böcekli gece",
+                         "#0b2b1c", "#154734", "#52b788", "#b7e4c7", "#eefaf2"),
+                  cycle_optional=True,
+                  cycle=[(5.5, 6.5, {"bg1": "#1b2f26", "bg2": "#7a5233", "wave1": "#95d5b2", "wave2": "#f2cc8f"},
+                          [_fx("fog", "#ffffff", 0.2, count=2, speed=4)]),
+                         (8.0, 17.0, {"bg1": "#0b2b1c", "bg2": "#154734", "wave1": "#52b788", "wave2": "#b7e4c7"}, []),
+                         (18.5, 19.5, {"bg1": "#2b1d0e", "bg2": "#6b3e1f", "wave1": "#fb8500", "wave2": "#ffb703"}, []),
+                         (21.0, 4.5, {"bg1": "#03120c", "bg2": "#0b2b1c", "wave1": "#2d6a4f", "wave2": "#52b788"},
+                          [_fx("fireflies", "#ffe66d", 0.85, count=5, size=2.5, speed=10)])]),
     "gunbatimi": _theme("Gün batımı", "sakin", "Süssüz, sade", "#2b1055", "#7a2e5c", "#ff9e5e", "#ffd166", "#fff4e6"),
     "gece": _theme("Gece", "sakin", "Süssüz, sade", "#0f0f14", "#1d1b2e", "#7f5af0", "#2cb67d", "#f2f0ff"),
     "sis": _theme("Sisli sabah", "sakin", "Adanın üstünden ağır ağır geçen sis",
@@ -60,9 +78,19 @@ THEMES = {
     "atesbocegi": _theme("Ateş böceği", "sakin", "Karanlıkta yanıp sönen ışıklar",
                          "#081c15", "#1b4332", "#95d5b2", "#d8f3dc", "#effaf3",
                          _fx("fireflies", "#ffe66d", 0.9, count=5, size=2.5, speed=10)),
-    "kar": _theme("Kar", "sakin", "Yavaşça yağan kar",
-                  "#1b263b", "#415a77", "#e0e1dd", "#adb5bd", "#f8f9fa",
-                  _fx("snow", "#ffffff", 0.8, count=14, size=1.6, speed=10)),
+    "kar": dict(_theme("Kar", "sakin", "Yavaşça yağan kar; saate göre pembe akşam ve yıldızlı gece",
+                       "#1b263b", "#415a77", "#e0e1dd", "#adb5bd", "#f8f9fa",
+                       _fx("snow", "#ffffff", 0.8, count=14, size=1.6, speed=10)),
+                cycle_optional=True,
+                cycle=[(5.5, 6.5, {"bg1": "#3d3a5c", "bg2": "#8e5a6e", "wave1": "#e0e1dd", "wave2": "#ffc8dd"},
+                        [_fx("snow", "#ffffff", 0.8, count=12, size=1.6, speed=10)]),
+                       (8.0, 17.0, {"bg1": "#1b263b", "bg2": "#415a77", "wave1": "#e0e1dd", "wave2": "#adb5bd"},
+                        [_fx("snow", "#ffffff", 0.8, count=14, size=1.6, speed=10)]),
+                       (18.5, 19.5, {"bg1": "#2e2a4f", "bg2": "#7d4e6d", "wave1": "#e0e1dd", "wave2": "#ffafcc"},
+                        [_fx("snow", "#ffffff", 0.8, count=12, size=1.6, speed=10)]),
+                       (21.0, 4.5, {"bg1": "#0b1320", "bg2": "#1b263b", "wave1": "#adb5bd", "wave2": "#e0e1dd"},
+                        [_fx("snow", "#ffffff", 0.7, count=12, size=1.5, speed=9),
+                         _fx("stars", "#ffffff", 0.6, count=8, size=0.9, speed=10)])]),
     # --- havalı ---
     "kuzey": _theme("Kuzey ışıkları", "havali", "Yıldızların altında dalgalanan ışık perdeleri",
                     "#03071e", "#0b132b", "#64dfdf", "#80ffdb", "#e8fffb",
@@ -137,10 +165,11 @@ def _since(h, a):
     return (h - a) % 24
 
 
-def resolve(theme: dict, hour: float) -> dict:
-    """Gün döngüsü temasının o saatteki hâli (renkler ve süsler); öteki temalar olduğu gibi."""
+def resolve(theme: dict, hour: float, cycle_on: bool = True) -> dict:
+    """Saate göre değişen temanın o saatteki hâli (renkler ve süsler); öteki temalar olduğu gibi. Deniz, Orman ve
+    Kar'da değişim isteğe bağlı (cycle_on: Ada sekmesindeki "Saate göre değişsin")."""
     cycle = theme.get("cycle")
-    if not cycle:
+    if not cycle or (theme.get("cycle_optional") and not cycle_on):
         return theme
     hour %= 24
     n = len(cycle)

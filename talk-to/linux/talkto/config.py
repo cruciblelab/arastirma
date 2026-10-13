@@ -67,6 +67,8 @@ class Config:
         "ada_mode": "sakin",  # talkto.ui.ada.MODES: sakin | tasan (taşan dalgalar)
         "ada_motion": "canli",  # talkto.ada_temalar.MOTIONS: süslerin hareketi (canli | yavas | durgun)
         "ada_timer_page": False,  # adada yana kaydırınca zamanlayıcı sayfası da çıksın (isteğe bağlı)
+        "ada_battery_slow": True,  # dizüstü pildeyken ada Canlı yerine Yavaş çalışır
+        "ada_cycle": True,  # uyan temalar (Deniz, Orman, Kar) saate göre değişir
         "ada_idle_pause": 60,  # kullanıcı bu kadar saniye dokunmazsa ada canlandırmayı durdurur
         "ada_offset": 0,  # üst adanın ortadan yana kaydırılması (px; "Konumu değiştir")
         "ada_track_popup": False,

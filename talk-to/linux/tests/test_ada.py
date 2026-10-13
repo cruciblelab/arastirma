@@ -81,6 +81,8 @@ class StateTest(unittest.TestCase):
         self.ada.cancel_timer(quiet=True)
 
     def test_defaults_and_theme(self):
+        self.assertTrue(self.app.config["ada_cycle"])  # uyan temalar saate göre değişir (varsayılan)
+        self.app.config.set("ada_cycle", False)  # bu test saatten bağımsız: temanın kendi renkleri
         st = self.ada.state()
         self.assertTrue(st["enabled"])
         self.assertEqual(st["theme"], dict(ada.THEMES["deniz"]["colors"], fx=[]))
@@ -240,6 +242,21 @@ class StateTest(unittest.TestCase):
         self.assertTrue(self.ada._emit_id)  # eklentiye "değişti" gidecek (olay değil: ada büyümez)
         self.assertEqual(self.ada.seq, seq)
 
+    def test_theme_follows_the_hour(self):
+        """Saate göre: Deniz gece yıldızlı, öğlen kendi renkleri; anahtar kapalıyken hep kendisi."""
+        def at(hour):
+            return mock.patch.object(ada.time, "localtime", lambda *a: time.struct_time(
+                (2026, 10, 13, hour, 0, 0, 1, 286, 0)))
+        with at(23):
+            st = self.ada.state()
+            self.assertEqual([f["type"] for f in st["theme"]["fx"]], ["stars"])
+            self.assertNotEqual(st["theme"]["bg1"], ada.THEMES["deniz"]["colors"]["bg1"])
+        with at(12):
+            self.assertEqual(self.ada.state()["theme"]["bg1"], ada.THEMES["deniz"]["colors"]["bg1"])
+        self.app.config.set("ada_cycle", False)
+        with at(23):
+            self.assertEqual(self.ada.state()["theme"], dict(ada.THEMES["deniz"]["colors"], fx=[]))
+
     def test_same_state_not_sent_twice(self):
         """Durum değişmediyse eklentiye yeniden gönderilmez (adayı boşuna yeniden kurmasın)."""
         sent = []
@@ -256,6 +273,7 @@ class StateTest(unittest.TestCase):
         self.ada._emit()
         self.assertEqual(len(sent), 2)
         self.assertEqual(self.ada.state()["idle_pause"], 60)
+        self.assertTrue(self.ada.state()["battery_slow"])  # pildeyken yavaşla: varsayılan açık
 
     def test_customize_from_island(self):
         st = self.ada.state()

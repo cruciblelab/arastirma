@@ -34,6 +34,29 @@ FPS = 15
 SCALE = 1.35  # önizlemedeki ada gerçeğinden biraz büyük (süsler seçilsin)
 
 
+def water(cr, aw, ah, colors, radius, t, amp_level, sc=1.0):
+    """Adanın alt kenarındaki su (eklentideki Water ile aynı biçim): şerit, adanın biçimine kırpılmış."""
+    rgb = ada_sahne.rgb
+    h = min(11 * sc, round(ah * 0.4))
+    cr.save()
+    ada_sahne.shape(cr, aw, ah, radius)
+    cr.clip()
+    cr.translate(0, ah - h)
+    base, amp, phase = h * 0.6, h * 1.6 * amp_level, t * 4
+    for color, alpha, speed, shift in ((colors["wave2"], 0.45, 1.0, 0.0), (colors["wave1"], 0.8, 1.6, 1.7)):
+        cr.move_to(0, h)
+        x = 0.0
+        while x <= aw + 3:
+            cr.line_to(x, base + amp * (math.sin(x / (22 * sc) + phase * speed + shift) +
+                                        0.35 * math.sin(x / (9.5 * sc) - phase * speed * 1.3)))
+            x += 3
+        cr.line_to(aw, h)
+        cr.close_path()
+        cr.set_source_rgba(*rgb(color), alpha)
+        cr.fill()
+    cr.restore()
+
+
 def draw_card(cr, w, h, theme, t, playing=True, clock="13:15"):
     """Bir kartın resmi: masaüstü, üst çubuk ve sarkan ada (ada_sahne ile süsler)."""
     rgb = ada_sahne.rgb
@@ -61,34 +84,20 @@ def draw_card(cr, w, h, theme, t, playing=True, clock="13:15"):
     radius = min(18 * sc, ah / 2)
     cr.save()
     cr.translate(x0, y0)
+    # Adadaki sıra: zemin, süsler, alttaki su, en üstte yazı
     ada_sahne.background(cr, aw, ah, colors, radius)
-    # dalga (çalan şarkı): adadaki gibi iki kat
-    wx, ww, wh = 12 * sc, 22 * sc, ah - 10 * sc
-    amp = wh * (0.22 if playing else 0.05)
-    for color, alpha, speed, shift in ((colors["wave2"], 0.55, 1.0, 0.0), (colors["wave1"], 0.95, 1.6, 1.7)):
-        cr.move_to(wx, 5 * sc + wh)
-        x = 0.0
-        while x <= ww:
-            y = wh * 0.52 + amp * math.sin(x / ww * math.pi * 3 + t * 4 * speed + shift) + \
-                amp * 0.35 * math.sin(x / ww * math.pi * 7 - t * 4 * speed * 1.3)
-            cr.line_to(wx + x, 5 * sc + y)
-            x += 2
-        cr.line_to(wx + ww, 5 * sc + wh)
-        cr.close_path()
-        cr.set_source_rgba(*rgb(color), alpha)
-        cr.fill()
-    # yazı: şarkı ve pil
+    ada_sahne.paint(cr, aw, ah, t, theme["fx"], scale=sc, radius=radius)
+    water(cr, aw, ah, colors, radius, t, 0.22 if playing else 0.05, sc)
     cr.set_source_rgba(*rgb(colors["text"]), 1)
     cr.select_font_face("Sans", ada_sahne.cairo.FONT_SLANT_NORMAL, ada_sahne.cairo.FONT_WEIGHT_BOLD)
     cr.set_font_size(9.5 * sc)
-    cr.move_to(wx + ww + 8 * sc, ah / 2 + 3.3 * sc)
+    cr.move_to(14 * sc, ah / 2 + 3.3 * sc)
     cr.show_text("Firuze")
     cr.select_font_face("Sans", ada_sahne.cairo.FONT_SLANT_NORMAL, ada_sahne.cairo.FONT_WEIGHT_NORMAL)
     cr.set_source_rgba(*rgb(colors["text"]), 0.72)
     cr.set_font_size(8.5 * sc)
     cr.move_to(aw - 34 * sc, ah / 2 + 3 * sc)
     cr.show_text("%76")
-    ada_sahne.paint(cr, aw, ah, t, theme["fx"], scale=sc, radius=radius)
     cr.restore()
 
 
@@ -102,9 +111,9 @@ def _fallback_css(themes) -> str:
 
 
 class ThemeCard(Gtk.Button):
-    def __init__(self, key, theme, on_pick, on_hover):
+    def __init__(self, key, theme, on_pick, on_hover, place=None):
         super().__init__(css_classes=["flat", "ada-kart", f"ada-kart-{key}"], tooltip_text=theme["desc"])
-        self.key, self.theme = key, theme
+        self.key, self.theme, self.place = key, theme, place
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         if HAVE_CAIRO:
             self.area = Gtk.DrawingArea(content_width=CARD_W, content_height=CARD_H, css_classes=["ada-kart-resim"],
@@ -133,10 +142,12 @@ class ThemeCard(Gtk.Button):
 
     def _draw(self, _area, cr, w, h):
         theme, clock = self.theme, "13:15"
-        if "cycle" in theme:  # gün döngüsü: durgunken şimdiki saat, oynarken bütün gün 12 saniyede geçer
+        cycle_on = self.place.cycle if self.place is not None else True
+        if "cycle" in theme and (not theme.get("cycle_optional") or cycle_on):
+            # saate göre: durgunken şimdiki saat, oynarken (fare üstündeyken) bütün gün 12 saniyede geçer
             lt = time.localtime()
             hour = (lt.tm_hour + lt.tm_min / 60 + (self.t - 8.0) * 2) % 24
-            theme = ada_temalar.resolve(theme, hour)
+            theme = ada_temalar.resolve(theme, hour, cycle_on)
             clock = f"{int(hour):02d}:{int(hour % 1 * 60):02d}"
         draw_card(cr, w, h, theme, self.t, clock=clock)
 
@@ -156,11 +167,12 @@ class ThemeCard(Gtk.Button):
 class AdaPlace(Adw.PreferencesGroup):
     """Tema galerisi: gruplar (tatlı, sakin, havalı), her temanın canlı önizlemesi."""
 
-    def __init__(self, current: str, on_pick):
+    def __init__(self, current: str, on_pick, cycle: bool = True):
         super().__init__(title="Ada Place",
                          description="Adanın görünümleri, tatlıdan havalıya. Birine tıkla: ada hemen değişir. "
                                      "Süsler adanın üstünden saydam geçer; yazıları kapatmaz, aramada çekilir.")
         self.cards: dict[str, ThemeCard] = {}
+        self.cycle = cycle  # saate göre değişen temalar (Ada sekmesindeki anahtar)
         self._timer = 0
         self._t0 = time.monotonic()
         self.hovered = None
@@ -180,12 +192,18 @@ class AdaPlace(Adw.PreferencesGroup):
                                max_children_per_line=4, column_spacing=8, row_spacing=8)
             for key, th in ada_temalar.THEMES.items():
                 if th["group"] == group:
-                    card = self.cards[key] = ThemeCard(key, th, on_pick, self._hover)
+                    card = self.cards[key] = ThemeCard(key, th, on_pick, self._hover, self)
                     flow.append(card)
             self.add(flow)
         self.select(current)
         self.connect("map", lambda *_: self._mapped(True))
         self.connect("unmap", lambda *_: self._mapped(False))
+
+    def set_cycle(self, on):
+        self.cycle = on
+        for card in self.cards.values():
+            if card.area is not None and card.theme.get("cycle_optional"):
+                card.area.queue_draw()
 
     def select(self, key):
         self.selected = key

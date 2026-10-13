@@ -118,7 +118,8 @@ class AdaService:
         inv.return_value(None)
 
     def _cycle_tick(self):
-        if "cycle" in THEMES.get(self.app.config["ada_theme"], {}):
+        th = THEMES.get(self.app.config["ada_theme"], {})
+        if "cycle" in th and (not th.get("cycle_optional") or self.app.config["ada_cycle"]):
             self.changed()
         return True
 
@@ -176,7 +177,8 @@ class AdaService:
         theme_id = cfg["ada_theme"] if cfg["ada_theme"] in THEMES else ada_temalar.DEFAULT
         lt = time.localtime()
         hour = lt.tm_hour + lt.tm_min / 60
-        themes = {k: ada_temalar.resolve(t, hour) for k, t in THEMES.items()}  # gün döngüsü: o saatteki hâli
+        cycle_on = bool(cfg["ada_cycle"])  # saate göre değişen temalar: o saatteki hâli
+        themes = {k: ada_temalar.resolve(t, hour, cycle_on) for k, t in THEMES.items()}
         theme = themes[theme_id]
         return {
             "low_battery": {"device_id": low[0]["device_id"], "name": low[0].get("name") or "Telefon",
@@ -188,6 +190,7 @@ class AdaService:
             "themes": [dict(t["colors"], id=k, name=t["name"], group=t["group"], fx=t["fx"]) for k, t in themes.items()],
             "motion": cfg["ada_motion"] if cfg["ada_motion"] in MOTIONS else "canli",
             "idle_pause": max(5, int(cfg["ada_idle_pause"] or 60)),
+            "battery_slow": bool(cfg["ada_battery_slow"]),
             "mode": cfg["ada_mode"] if cfg["ada_mode"] in MODES else "sakin",
             "modes": [{"id": k, "name": name, "hint": hint} for k, (name, hint) in MODES.items()],
             "prefs": {k: bool(cfg[k]) for k in BOOL_PREFS},

@@ -198,9 +198,9 @@ class Spill {
 
 // SAHNE: build.py buraya src/sahne.js'i koyar (temaların süsleri: sahnePaint).
 
-// Süslü temalarda adanın zemini: renk geçişi ve süsler (bulut, sis, yıldız...) adanın tam altındaki bu katmanda
-// çizilir, ada saydamdır; yazılar ve düğmeler süslerin üstünde net kalır. Tıklamaları almaz. Süsler büyükken
-// soluklaşır, aramada ve ince şeritte çekilir (zemin kalır).
+// Adanın zemini: renk geçişi ve (temada varsa) süsler (bulut, sis, yıldız...) adanın tam altındaki bu katmanda
+// çizilir, ada saydamdır; su ve yazılar üstünde net kalır. Tıklamaları almaz. Süsler büyükken soluklaşır, aramada
+// ve ince şeritte çekilir (zemin kalır).
 class Sky {
     constructor(ada) {
         this.ada = ada;
@@ -225,12 +225,63 @@ class Sky {
     }
 }
 
+// Adanın alt kenarı su (normal hâlde ve ince şeritte): çalarken dalgalanır, çalmazken sakin bir çizgi. Ayrı bir
+// kutu değil; adanın biçimine (yuvarlak alt köşeler) göre kırpılır, zeminle yazıların arasında durur.
+class Water {
+    constructor(ada) {
+        this.ada = ada;
+        this.bh = 29;  // adanın o anki yüksekliği (şerit adanın altına yaslı)
+        this.actor = new St.DrawingArea({reactive: false, visible: false, style_class: 'ada-su'});
+        this.actor.connect('repaint', area => this._paint(area));
+    }
+
+    _paint(area) {
+        const cr = area.get_context();
+        const [w, h] = area.get_surface_size();
+        const ada = this.ada, t = ada.theme;
+        // Adanın biçimi, bu şeridin yerine göre kaydırılmış: su köşelerden taşmaz.
+        cr.save();
+        cr.translate(0, h - this.bh);
+        sahneShape(cr, w, this.bh, ada.sky.radius || 18);
+        cr.restore();
+        cr.clip();
+        const thin = ada.thin && !ada.peek && !ada.expanded;
+        const base = thin ? h * 0.3 : h * 0.6;  // su seviyesi
+        const amp = (thin ? h * 0.6 : h * 1.6) * ada.amp;  // çalarken yüksek, çalmazken neredeyse düz
+        for (const [color, alpha, speed, shift] of [[t.wave2, 0.45, 1.0, 0.0], [t.wave1, 0.8, 1.6, 1.7]]) {
+            cr.moveTo(0, h);
+            for (let x = 0; x <= w + 3; x += 3) {
+                cr.lineTo(x, base + amp * (Math.sin(x / 22 + ada.phase * speed + shift) +
+                    0.35 * Math.sin(x / 9.5 - ada.phase * speed * 1.3)));
+            }
+            cr.lineTo(w, h);
+            cr.closePath();
+            cr.setSourceRGBA(...rgba(color, alpha));
+            cr.fill();
+        }
+        if (ada.loading) {  // şarkılar arası: suyun üstünde kayan parıltı ("yükleniyor")
+            const span = w * 0.35;
+            const x = ((Date.now() / 1100) % 1.6 - 0.3) * w;
+            const g = new Cairo.LinearGradient(x - span / 2, 0, x + span / 2, 0);
+            g.addColorStopRGBA(0, 1, 1, 1, 0);
+            g.addColorStopRGBA(0.5, 1, 1, 1, 0.45);
+            g.addColorStopRGBA(1, 1, 1, 1, 0);
+            cr.rectangle(0, 0, w, h);
+            cr.setSource(g);
+            cr.fill();
+        }
+        cr.$dispose();
+    }
+
+    repaint() {
+        this.actor.queue_repaint();
+    }
+}
+
 // Deniz: iki katlı dalga; çalarken akar, duraklayınca neredeyse durgun.
 class Wave {
-    // edge: adanın sol ucunda; sol alt köşesi adanınki gibi yuvarlak kırpılır, su ucu doldurur.
-    constructor(width, height, ada, edge = false) {
+    constructor(width, height, ada) {
         this.ada = ada;
-        this.edge = edge;
         this.actor = new St.DrawingArea({width, height, style_class: 'ada-wave'});
         this.actor.connect('repaint', area => this._paint(area));
     }
@@ -240,16 +291,7 @@ class Wave {
         const [w, h] = area.get_surface_size();
         const t = this.ada.theme;
         const amp = h * this.ada.amp;
-        if (this.edge) {
-            const r = Math.min(h / 2, this.ada.sky.radius || 18);
-            cr.moveTo(0, 0);
-            cr.lineTo(w, 0);
-            cr.lineTo(w, h);
-            cr.lineTo(r, h);
-            cr.arc(r, h - r, r, Math.PI / 2, Math.PI);
-            cr.closePath();
-            cr.clip();
-        }  // çalarken 0.22, duraklayınca 0.05; arada yumuşak geçer
+  // çalarken 0.22, duraklayınca 0.05; arada yumuşak geçer
         const phase = this.ada.phase;
         const layers = [[t.wave2, 0.55, 1.0, 0.0], [t.wave1, 0.95, 1.6, 1.7]];
         for (const [color, alpha, speed, shift] of layers) {
@@ -261,16 +303,7 @@ class Wave {
             }
             cr.lineTo(w, h);
             cr.closePath();
-            if (this.edge) {  // uçtaki su sağa doğru erir: adaya eklenmiş değil, adanın içinde gibi
-                const [r, g, b] = rgba(color, 1);
-                const grad = new Cairo.LinearGradient(0, 0, w, 0);
-                grad.addColorStopRGBA(0, r, g, b, alpha);
-                grad.addColorStopRGBA(0.55, r, g, b, alpha * 0.75);
-                grad.addColorStopRGBA(1, r, g, b, 0);
-                cr.setSource(grad);
-            } else {
-                cr.setSourceRGBA(...rgba(color, alpha));
-            }
+            cr.setSourceRGBA(...rgba(color, alpha));
             cr.fill();
         }
         if (this.ada.loading) {  // şarkılar arası: suyun üstünde kayan hafif bir parıltı ("yükleniyor")
@@ -334,19 +367,22 @@ class Ada {
         Main.layoutManager.addTopChrome(this.spill.actor, {affectsInputRegion: false, trackFullscreen: true});
         this.sky = new Sky(this);
         Main.layoutManager.addTopChrome(this.sky.actor, {affectsInputRegion: false, trackFullscreen: true});
+        this.water = new Water(this);
+        this.waves.push(this.water);
+        Main.layoutManager.addTopChrome(this.water.actor, {affectsInputRegion: false, trackFullscreen: true});
         // GNOME bildirimleri de ekranın üst ortasında çıkar: adanın altında kalmasınlar, üstünde görünsünler.
-        // Sıra (alttan): taşan su, süslü zemin, ada, bildirimler.
-        for (const actor of [this.spill.actor, this.sky.actor, this.box])
+        // Sıra (alttan): taşan su, zemin (süsler), adanın suyu, ada (yazılar), bildirimler.
+        for (const actor of [this.spill.actor, this.sky.actor, this.water.actor, this.box])
             this._belowTray(actor);
         this._sigs = [
             [this.box, this.box.connect('notify::width', () => this._place())],
             [this.box, this.box.connect('notify::height', () => this._place())],
             [this.box, this.box.connect('notify::scale-x', () => this._place())],
             [this.box, this.box.connect('notify::opacity', () => {
-                this.sky.actor.opacity = this.box.opacity;
+                this.sky.actor.opacity = this.water.actor.opacity = this.box.opacity;
             })],
-            [this.box, this.box.connect('notify::translation-x', () => {  // sallanınca zemin de sallansın
-                this.sky.actor.translation_x = this.box.translation_x;
+            [this.box, this.box.connect('notify::translation-x', () => {  // sallanınca zemin ve su da sallansın
+                this.sky.actor.translation_x = this.water.actor.translation_x = this.box.translation_x;
             })],
             // Tam ekran uygulamada ada gizlenir (görünmez): saat durur. Kilitlenince de.
             [this.box, this.box.connect('notify::mapped', () => this._anim())],
@@ -363,6 +399,7 @@ class Ada {
             () => this._connect(), () => this._lost());
         this._idleSetup();
         this._powerSetup();
+        this._batterySetup();
     }
 
     destroy() {
@@ -377,6 +414,9 @@ class Ada {
         if (this._power && this._powerSig)
             this._power.disconnect(this._powerSig);
         this._power = null;
+        if (this._upower && this._upowerSig)
+            this._upower.disconnect(this._upowerSig);
+        this._upower = null;
         for (const id of Object.values(this._timers))
             GLib.source_remove(id);
         this._timers = {};
@@ -390,6 +430,8 @@ class Ada {
         this.spill.actor.destroy();
         Main.layoutManager.removeChrome(this.sky.actor);
         this.sky.actor.destroy();
+        Main.layoutManager.removeChrome(this.water.actor);
+        this.water.actor.destroy();
         Main.layoutManager.removeChrome(this.box);
         this.box.destroy();
     }
@@ -470,13 +512,8 @@ class Ada {
             this.offset = st.offset || 0;
         this.playing = !!(st.media && st.media.active && st.media.playing);
         this.loading = !!(st.media && st.media.active && st.media.loading);
-        if ((this.theme.fx || []).length) {  // zemini alttaki katman çizer (süsler yazının altında kalsın)
-            this.box.set_style(`background-color: transparent; color: ${this.theme.text};`);
-        } else {
-            this.box.set_style(`background-gradient-direction: vertical; background-color: ${this.theme.bg1};` +
-                `background-gradient-start: ${this.theme.bg1}; background-gradient-end: ${this.theme.bg2};` +
-                `color: ${this.theme.text};`);
-        }
+        // Zemini alttaki katman çizer (süsler ve su yazıların altında kalsın): ada saydam.
+        this.box.set_style(`background-color: transparent; color: ${this.theme.text};`);
         this.box.visible = st.enabled !== false;
         // Açık zeminli tema (yazı koyu): uyarı kırmızısı koyulaşır, okunsun.
         const [tr, tg, tb] = rgba(this.theme.text, 1);
@@ -561,6 +598,14 @@ class Ada {
         if (node)
             this.sky.radius = node.get_border_radius(St.Corner.BOTTOMLEFT) * this.box.scale_x;
         this.sky.repaint();
+        // Su: adanın alt kenarında bir şerit (ince şeritte şeridin tamamı)
+        const thin = this.thin && !this.peek && !this.expanded;
+        const wh = thin ? bh : Math.min(11, Math.round(bh * 0.4));
+        const wa = this.water.actor;
+        this.water.bh = bh;
+        wa.set_size(k.width, Math.max(1, wh));
+        wa.set_position(k.x, m.y + top + bh - wh);
+        this.water.repaint();
     }
 
     // ---- temanın süsleri ----------------------------------------------------------------
@@ -576,7 +621,11 @@ class Ada {
         }
         if (!anim || this._powerSaver())
             return 'durgun';  // GNOME'da canlandırmalar kapalı ya da güç tasarrufu kipi: ada kıpırdamaz
-        return st.motion || 'canli';
+        const motion = st.motion || 'canli';
+        // Dizüstü pildeyken Canlı kendiliğinden Yavaş olur (prize takılınca döner); Talk To'dan kapatılabilir.
+        if (motion === 'canli' && st.battery_slow !== false && this._onBattery())
+            return 'yavas';
+        return motion;
     }
 
     fxTime() {
@@ -587,16 +636,18 @@ class Ada {
         return 8 + (m === 'yavas' ? t * 0.5 : t);
     }
 
-    // Süslü temada zemin katmanı ada görünürken hep görünür; süsler aramada ve ince şeritte çekilir (dikkat
-    // dağıtmasın), zemin kalır.
+    // Zemin katmanı ada görünürken hep görünür; süsler aramada ve ince şeritte çekilir (dikkat dağıtmasın).
     _skyUpdate() {
         const st = this.state || {};
         const fx = (this.theme && this.theme.fx) || [];
         const thinShown = this.thin && !this.peek && !this.expanded;
-        this.sky.actor.visible = fx.length > 0 && this.box.visible;
-        this.skyOn = this.sky.actor.visible && !st.call && !thinShown;
-        this.sky.actor.opacity = this.box.opacity;
+        this.sky.actor.visible = this.box.visible;
+        this.skyOn = fx.length > 0 && this.box.visible && !st.call && !thinShown;
+        this.sky.actor.opacity = this.water.actor.opacity = this.box.opacity;
         this.sky.repaint();
+        // Su normal hâlde ve ince şeritte (büyükken çalan sayfasının kendi dalgası var)
+        this.water.actor.visible = this.box.visible && !this.expanded && !this.moving;
+        this._place();
         this._anim();
     }
 
@@ -728,6 +779,26 @@ class Ada {
                     this._power = null;
                 }
             });
+    }
+
+    // Bilgisayar pilde mi (UPower). Masaüstünde ya da UPower yoksa hiç pilde sayılmaz.
+    _batterySetup() {
+        Gio.DBusProxy.new_for_bus(Gio.BusType.SYSTEM, Gio.DBusProxyFlags.DO_NOT_AUTO_START, null,
+            'org.freedesktop.UPower', '/org/freedesktop/UPower', 'org.freedesktop.UPower', null,
+            (_o, res) => {
+                try {
+                    this._upower = Gio.DBusProxy.new_for_bus_finish(res);
+                    this._upowerSig = this._upower.connect('g-properties-changed', () => this._skyUpdate());
+                    this._skyUpdate();
+                } catch (e) {
+                    this._upower = null;
+                }
+            });
+    }
+
+    _onBattery() {
+        const v = this._upower ? this._upower.get_cached_property('OnBattery') : null;
+        return v ? v.unpack() === true : false;
     }
 
     _powerSaver() {
@@ -977,8 +1048,8 @@ class Ada {
         actor.ease({opacity: 255, translation_y: 0, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
-    _wave(width, height, edge = false) {
-        const w = new Wave(width, height, this, edge);
+    _wave(width, height) {
+        const w = new Wave(width, height, this);
         this.waves.push(w);
         w.actor.connect('destroy', () => {
             this.waves = this.waves.filter(x => x !== w);
@@ -1258,7 +1329,6 @@ class Ada {
 
     _buildCompact() {
         this._clear(this.compact);
-        this.box.remove_style_class_name('ada-sol-su');
         const st = this.state || {};
         const media = st.media || {};
         const call = st.call;
@@ -1269,8 +1339,7 @@ class Ada {
             if (st.low_battery)  // pil azken şeritte de kırmızı pil
                 this.compact.add_child(new St.Icon({icon_name: 'battery-caution-symbolic', icon_size: 8,
                     style_class: 'ada-pil-az'}));
-            this.compact.add_child(this._wave(64, 6));
-            return;
+            return;  // şerit suyun kendisi (Water)
         }
         if (this.moving) {  // kilit açık: sürükleyerek kaydır, ortala, bitti
             this.compact.add_child(new St.Icon({icon_name: 'object-flip-horizontal-symbolic', icon_size: 14}));
@@ -1332,15 +1401,11 @@ class Ada {
             if (this.loading)  // sıradaki şarkı bekleniyor: yazı hafifçe söner, parıltı dalgada
                 title.opacity = 150;
             this.compact.add_child(title);
-            this.compact.add_child(this._wave(44, 14));
             this.compact.add_child(this._button(media.playing ? 'media-playback-pause-symbolic'
                 : 'media-playback-start-symbolic', () => this.act({do: 'media', action: 'play_pause'})));
             lowTag();
             return;
         }
-        // Bir şey çalmıyor: dalga adanın sol ucunda, kenara yaslı; ucu dolduran durgun su gibi (adanın parçası).
-        this.box.add_style_class_name('ada-sol-su');
-        this.compact.add_child(this._wave(30, 29, true));
         this.compact.add_child(new St.Icon({icon_name: st.phone ? 'phone-symbolic' : 'phone-disabled-symbolic',
             icon_size: 14}));
         const pct = st.battery !== undefined && st.battery !== null && !st.low_battery  // azsa sonda kırmızı yazar

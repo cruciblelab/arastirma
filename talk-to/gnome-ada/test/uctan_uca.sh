@@ -70,7 +70,11 @@ k, g = json.load(open(sys.argv[1]))["kuzey"], json.load(open(sys.argv[1]))["ada-
 assert all(abs(k[i] - g[i]) <= 2 for i in range(4)), f"süsler adanın tam üstünde olmalı: ada {k}, süs {g}"
 assert b["suslu_tik"] > b["normal"] + 20, "süslerin altındaki ada tıklamayı almalı (süsler tepkisiz)"
 assert b["ada-kapat-ozel"] > 0, "Özelleştir açılmadı"
-assert b["ada-sol-su"] > 0 and abs(b["bosta"] - b["normal"]) <= 2, "bir şey çalmazken ada normal boyda, su solda olmalı"
+assert abs(b["bosta"] - b["normal"]) <= 2, "bir şey çalmazken ada normal boyda olmalı"
+d = json.load(open(sys.argv[1]))
+a, su = d["bosta"], d["ada-su"]
+assert su[3] > 0 and abs((su[1] + su[3]) - (a[1] + a[3])) <= 1 and abs(su[2] - a[2]) <= 2, \
+    f"su adanın alt kenarında, ada genişliğinde olmalı: ada {a}, su {su}"
 x, y, w, h = json.load(open(sys.argv[1]))["konum"]
 assert 820 <= x + w / 2 <= 860, f"sağa sürüklenen adanın ortası ~840 olmalı: {x + w / 2}"
 PYEOF

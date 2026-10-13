@@ -50,9 +50,12 @@ class ThemeTableTest(unittest.TestCase):
                 continue
             c = th["colors"]
             self.assertGreaterEqual(ada_temalar.contrast(c["text"], ada_temalar.middle(c)), 4.5, key)
-        for i in range(24 * 6):
-            c = ada_temalar.resolve(ada_temalar.THEMES["dongu"], i / 6)["colors"]
-            self.assertGreaterEqual(ada_temalar.contrast(c["text"], ada_temalar.middle(c)), 3.5, i / 6)
+        for key, th in ada_temalar.THEMES.items():
+            if "cycle" not in th:
+                continue
+            for i in range(24 * 6):
+                c = ada_temalar.resolve(th, i / 6)["colors"]
+                self.assertGreaterEqual(ada_temalar.contrast(c["text"], ada_temalar.middle(c)), 3.5, (key, i / 6))
 
     def test_day_cycle(self):
         th = ada_temalar.THEMES["dongu"]
@@ -68,6 +71,15 @@ class ThemeTableTest(unittest.TestCase):
         self.assertNotIn(dusk["colors"]["bg1"], ("#3a0ca3", "#03045e"))
         # Sabit temalar saatten etkilenmez
         self.assertIs(ada_temalar.resolve(ada_temalar.THEMES["kuzey"], 3), ada_temalar.THEMES["kuzey"])
+        # Deniz, Orman, Kar: isteğe bağlı; kapalıyken hep kendi renkleri, açıkken gece yıldız / ateş böceği
+        for key, night_fx in (("deniz", ["stars"]), ("orman", ["fireflies"]), ("kar", ["snow", "stars"])):
+            t = ada_temalar.THEMES[key]
+            self.assertIs(ada_temalar.resolve(t, 23, cycle_on=False), t)
+            self.assertEqual([f["type"] for f in ada_temalar.resolve(t, 23)["fx"]], night_fx, key)
+            self.assertEqual(ada_temalar.resolve(t, 12)["colors"]["bg1"], t["colors"]["bg1"], key)  # gündüz = kendisi
+        # Pembe/tatlı ve havalı temalar saate göre değişmez
+        for key in ("pamuk", "sakura", "kuzey", "neon", "gunbatimi", "gece"):
+            self.assertNotIn("cycle", ada_temalar.THEMES[key], key)
 
     def test_every_fx_type_drawn_on_both_sides(self):
         js = SAHNE_JS.read_text(encoding="utf-8")
