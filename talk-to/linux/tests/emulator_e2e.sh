@@ -7,7 +7,7 @@
 # Emülatör açık ve `adb` onu görüyor olmalı. Ekran görüntüleri ve günlükler sonuç klasörüne yazılır.
 set -euo pipefail
 APK=$(realpath "$1")
-FIRST=$APK FIRST_FLAVOR=tam
+FIRST=$APK FIRST_FLAVOR=full
 if [ -n "${3:-}" ]; then FIRST=$(realpath "$3") FIRST_FLAVOR=play; fi
 OUT=$(realpath -m "${2:-emulator-sonuc}")
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -204,7 +204,7 @@ wait_for "kendiliğinden yeniden bağlandı (onaysız, uygulama açılmadan)" \
     "len(of('connected')) > $C0 and len(of('ask')) == $A0" 60
 adb shell am start -W -n $PKG/.ui.MainActivity > /dev/null
 wait_for "güncellemeden sonra da dinleyici bağlı (tam sürüm)" \
-    'phone().get("listener") is True and phone().get("flavor") == "tam"' 40
+    'phone().get("listener") is True and phone().get("flavor") == "full"' 40
 adb shell "cmd notification post -S bigtext -t 'Guncelleme sonrasi' e2e2 'Hala geliyor mu'"
 wait_for "güncellemeden sonra bildirim ulaştı" 'any(n["title"] == "Guncelleme sonrasi" for n in of("notification"))' 30
 shot 04-guncelleme-sonrasi
