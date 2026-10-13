@@ -156,7 +156,7 @@ class AdaService:
         if m is not None:  # şarkılar arası geçiş: çalmıyor gibi değil, hafif "yükleniyor" görünsün
             m["loading"] = self.app.now.loading(m.get("device_id"))
         cutoff = time.time() - NOTIF_KEEP
-        apps = [{"app": a, "count": len(v["keys"]), "last": v["last"],
+        apps = [{"app": a, "count": len(v["keys"]), "last": v["last"], "time": v["time"],
                  "icon": v.get("icon") if v.get("icon") and os.path.exists(v["icon"]) else None} for a, v in
                 sorted(self.notifs.items(), key=lambda kv: -kv[1]["time"]) if v["keys"] and v["time"] >= cutoff]
         timer = None

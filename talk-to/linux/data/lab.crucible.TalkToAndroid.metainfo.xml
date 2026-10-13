@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.24.0" date="2026-10-13">
+      <description><p>Üst adanın bildirimler sayfasında her bildirimin ne zaman geldiği yazıyor: “şimdi”, “3 dk önce”, “2 sa önce”. Süre ekran açıkken kendiliğinden ilerliyor.</p></description>
+    </release>
     <release version="0.23.0" date="2026-10-13">
       <description><p>Üst ada ekrandayken telefon bildirimleri ve aramalar yalnızca adada görünür; masaüstü bildirimi adanın üstünü kapatmaz (Ada sekmesinden değiştirilebilir). Ada çalışmıyorsa bildirimler yine masaüstüne gelir. Masaüstü bildirimindeki arama düğmeleri işaretli: önce “✓ Cevapla”, sonra “✕ Reddet”.</p></description>
     </release>

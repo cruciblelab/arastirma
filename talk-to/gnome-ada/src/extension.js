@@ -60,6 +60,18 @@ function callToggle(title) {
     return null;
 }
 
+// Bildirim ne zaman geldi: "şimdi", "3 dk önce", "2 sa önce", "1 gün önce".
+function ago(t) {
+    const sec = Math.max(0, Date.now() / 1000 - (t || 0));
+    if (sec < 60)
+        return 'şimdi';
+    if (sec < 3600)
+        return `${Math.floor(sec / 60)} dk önce`;
+    if (sec < 86400)
+        return `${Math.floor(sec / 3600)} sa önce`;
+    return `${Math.floor(sec / 86400)} gün önce`;
+}
+
 function mmss(sec) {
     sec = Math.max(0, Math.round(sec));
     const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60;
@@ -1260,7 +1272,9 @@ class Ada {
             const last = this._label(n.last || '', 'ada-soluk');
             last.clutter_text.ellipsize = 3;
             last.x_expand = true;
-            this.page.add_child(this._row(icon, line, last));
+            // Ne kadar önce geldiği (her saniye yenilenir; dakikada bir değişir).
+            const when = this._liveLabel(() => ago(n.time), 'ada-soluk ada-zaman');
+            this.page.add_child(this._row(icon, line, last, when));
         }
     }
 

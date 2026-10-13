@@ -190,6 +190,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(st["event"]["kind"], "notification")
         self.assertEqual([(n["app"], n["count"]) for n in st["notifications"]], [("Gmail", 1), ("WhatsApp", 2)])
         self.assertEqual(st["notifications"][1]["last"], "T: b")
+        self.assertLess(abs(st["notifications"][1]["time"] - time.time()), 5)  # adada "şimdi" / "3 dk önce"
         self.ada.on_event("notification_removed", {"device_id": "p", "key": "3"})
         self.assertEqual([n["app"] for n in self.ada.state()["notifications"]], ["WhatsApp"])
         self.ada.notifs["WhatsApp"]["time"] -= ada.NOTIF_KEEP + 1  # bir saatten eski: gösterilmez
