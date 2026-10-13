@@ -756,8 +756,9 @@ class App(Adw.Application):
                 dlg.close()
                 self.toast("İsteğin süresi doldu ya da telefon vazgeçti")
         elif event == "notification":
-            self.notifier.show(d["title"] or d["app"], d["text"], key=f"{d['device_id']}|{d['key']}",
-                               app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"))
+            if not (self.ada and self.ada.takes_notifications()):  # ada ekrandaysa yalnızca adada
+                self.notifier.show(d["title"] or d["app"], d["text"], key=f"{d['device_id']}|{d['key']}",
+                                   app_name=f"{d['app']} · {d['device']}", icon=d.get("icon"))
             if w:
                 w.add_notification(d)
         elif event == "call":
@@ -961,11 +962,18 @@ class App(Adw.Application):
             self._ringing[(did, key)] = dict(d, answer_failed=failed)
         else:
             self._ringing.pop((did, key), None)
+        if self.ada and self.ada.takes_notifications():
+            # Ada ekranda: arama yalnızca adada (yeşil Cevapla, kırmızı Reddet). Masaüstü bildirimi adanın
+            # üstünü kapatıyordu ve düğmeleri birbirinden ayırt edilmiyordu.
+            self.notifier.close(f"call|{did}|{key}")
+            return
         actions = {}
-        for a in d["actions"][:3]:
+        # GNOME bildirimin düğmelerini hep aynı çizer: ayırt edilsin diye işaretli ve "Cevapla" önce.
+        for a in sorted(d["actions"][:3], key=lambda a: not arama.is_answer(a["title"])):
             if failed and arama.is_answer(a["title"]):
                 continue  # işe yaramadığı görüldü: yerine "telefondan cevapla" yazar
-            actions[f"a{a['i']}"] = (a["title"], lambda i=a["i"]: self.call("call_action", did, key, i))
+            label = ("✓ " if arama.is_answer(a["title"]) else "✕ " if arama.is_decline(a["title"]) else "") + a["title"]
+            actions[f"a{a['i']}"] = (label, lambda i=a["i"]: self.call("call_action", did, key, i))
         if not ringing and len(actions) <= 1:  # bildirim en çok 3 düğme: ses ancak ikisi birden sığarsa
             for k, label, up in (("ses_azalt", "Ses −", False), ("ses_artir", "Ses +", True)):
                 actions[k] = (label, lambda up=up: self.call("call_volume", did, up))

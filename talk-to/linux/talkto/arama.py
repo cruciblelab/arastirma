@@ -10,3 +10,11 @@ FAILED = "Bilgisayardan cevaplanamadı · telefondan cevapla"
 
 def is_answer(title) -> bool:
     return bool(title and ANSWER.search(title))
+
+
+DECLINE = re.compile(r"reddet|kapat|sonlandır|bitir|decline|reject|hang|end call", re.IGNORECASE)
+
+
+def is_decline(title) -> bool:
+    """Reddet / Kapat gibi düğmeler (masaüstü bildiriminde "✕" ile işaretlenir; adada kırmızı)."""
+    return bool(title and DECLINE.search(title))

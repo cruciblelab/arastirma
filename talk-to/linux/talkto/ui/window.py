@@ -359,6 +359,13 @@ class Window(Adw.ApplicationWindow):
         self.ada_mode.set_selected(modes.index(cur) if cur in modes else 0)
         self.ada_mode.connect("notify::selected", lambda r, _: self._set("ada_mode", modes[r.get_selected()]))
         g.add(self.ada_mode)
+        self.sw_ada_popup = compat.SwitchRow(
+            title="Masaüstü bildirimi de göster",
+            subtitle="Kapalıyken telefon bildirimleri ve aramalar yalnızca adada görünür (masaüstü bildirimi "
+                     "ekranın üst ortasında çıkıp adanın üstünü kapatır). Ada çalışmıyorsa her zaman masaüstüne gelir.")
+        self.sw_ada_popup.set_active(self.app.config["ada_notif_popup"])
+        self.sw_ada_popup.connect("notify::active", lambda r, _: self._set("ada_notif_popup", r.get_active()))
+        g.add(self.sw_ada_popup)
         self._update_ada_rows()
         return g
 
@@ -390,7 +397,7 @@ class Window(Adw.ApplicationWindow):
         self.ada_row.set_subtitle(text)
         self.ada_btn.set_label("Kur" if state == "absent" else "Kaldır")
         self.ada_btn.set_css_classes(["suggested-action"] if state == "absent" else [])
-        for r in (self.sw_ada, self.ada_theme, self.ada_mode):
+        for r in (self.sw_ada, self.ada_theme, self.ada_mode, self.sw_ada_popup):
             r.set_sensitive(state != "absent")
 
     def _ada_toggle(self):

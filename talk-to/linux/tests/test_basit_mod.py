@@ -354,11 +354,13 @@ class WindowTest(unittest.TestCase):
         self.assertIn("Sezen Aksu", body)
         self.assertEqual(set(kw["actions"]), {"default", "play_pause", "next"})
         ring, ongoing = seen["calls"]
-        self.assertEqual(ring, ("WhatsApp araması: Ayşe", True, False, {"a0": "Reddet", "a1": "Cevapla"}))
+        # Masaüstü bildiriminde düğmeler işaretli ve "Cevapla" önce (GNOME hepsini aynı çiziyor).
+        self.assertEqual(ring[:3], ("WhatsApp araması: Ayşe", True, False))
+        self.assertEqual(list(ring[3].items()), [("a1", "✓ Cevapla"), ("a0", "✕ Reddet")])
         self.assertEqual(ongoing, ("WhatsApp görüşmesi: Ayşe", False, True,
-                                   {"a0": "Kapat", "ses_azalt": "Ses −", "ses_artir": "Ses +"}))
+                                   {"a0": "✕ Kapat", "ses_azalt": "Ses −", "ses_artir": "Ses +"}))
         # Uygulama iki düğme koyarsa (Kapat, Hoparlör) ses düğmeleri sığmaz: yarım "Ses −" çıkmaz.
-        self.assertEqual(seen["call_two"], {"a0": "Hang up", "a1": "Turn speaker off"})
+        self.assertEqual(seen["call_two"], {"a0": "✕ Hang up", "a1": "Turn speaker off"})
         self.assertEqual(seen["call_sent"], [("call_action", "p", "k", 1), ("call_volume", "p", True)])
 
 

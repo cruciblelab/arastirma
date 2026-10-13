@@ -69,6 +69,7 @@ class AdaService:
         self._last_media = None  # son gösterilen çalan (şarkılar arası boşlukta gösterilir)
         self._grace_id = 0
         self.seen = False  # eklenti bu çalışmada Talk To'ya bağlandı (durumu istedi): ada ekranda
+        self._active, self._active_checked = False, -1e9  # kabuktaki eklenti çalışıyor mu (15 sn önbellek)
         self._emit_id = 0
         self._reg = 0
         self.conn = app.get_dbus_connection()
@@ -83,6 +84,17 @@ class AdaService:
     def showing(self) -> bool:
         """Üst ada ekranda mı (eklenti bağlandı ve "Göster" açık): mini oynatıcı kendiliğinden açılmaz."""
         return self.seen and bool(self.app.config["ada_enabled"])
+
+    def takes_notifications(self) -> bool:
+        """Telefon bildirimleri ve aramalar yalnızca adada mı gösterilsin (masaüstü bildirimi çıkmaz). Eklenti
+        gerçekten çalışmıyorsa (kapatıldı, oturum yenilenmedi) hayır: bildirim kaybolmasın, masaüstüne gitsin."""
+        if not self.showing() or self.app.config["ada_notif_popup"]:
+            return False
+        now = time.monotonic()
+        if now - self._active_checked > 15:
+            self._active_checked = now
+            self._active = running_state() == "active"
+        return self._active
 
     def stop(self):
         if self._grace_id:

@@ -295,6 +295,26 @@ class StateTest(unittest.TestCase):
         self.app.config.set("ada_enabled", False)
         self.assertFalse(self.ada.showing())
 
+    def test_notifications_only_on_island_when_it_really_runs(self):
+        """Ada ekrandaysa telefon bildirimleri ve aramalar yalnızca adada (masaüstü bildirimi adanın üstünü
+        kapatıyordu). Eklenti gerçekten çalışmıyorsa ya da kullanıcı isterse masaüstüne de gider."""
+        inv = type("Inv", (), {"return_value": lambda self, v: None})()
+        self.assertFalse(self.ada.takes_notifications())  # eklenti hiç bağlanmadı
+        self.ada._method(None, None, None, None, "GetState", None, inv)
+        with mock.patch.object(ada, "running_state", return_value="active"):
+            self.assertTrue(self.ada.takes_notifications())
+            self.app.config.set("ada_notif_popup", True)
+            self.assertFalse(self.ada.takes_notifications())
+            self.app.config.set("ada_notif_popup", False)
+        self.ada._active_checked = -1e9  # önbellek süresi doldu
+        with mock.patch.object(ada, "running_state", return_value="pending"):  # kapatıldı / oturum yenilenmedi
+            self.assertFalse(self.ada.takes_notifications())
+
+    def test_call_buttons_marked(self):
+        from talkto import arama
+        self.assertTrue(arama.is_decline("Reddet") and arama.is_decline("Kapat") and arama.is_decline("Decline"))
+        self.assertFalse(arama.is_decline("Cevapla") or arama.is_decline("Hoparlör"))
+
     def test_actions(self):
         self.ada.on_event("status", {"sessions": [SESS]})
         self.app.now.update("p", {"active": True, "title": "x", "playing": True})
@@ -379,7 +399,7 @@ class AnswerFallbackTest(unittest.TestCase):
         self.assertEqual(len(h.notifier.shown), 2)
         (title, body), kw = h.notifier.shown[-1]
         self.assertIn("telefondan cevapla", body)
-        self.assertEqual([t for t, _ in kw["actions"].values()], ["Reddet"])
+        self.assertEqual([t for t, _ in kw["actions"].values()], ["✕ Reddet"])
         h._call(d)  # telefon aynı aramayı yeniden bildirdi: uyarı kalır
         self.assertIn("telefondan cevapla", h.notifier.shown[-1][0][1])
 

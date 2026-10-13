@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.23.0" date="2026-10-13">
+      <description><p>Üst ada ekrandayken telefon bildirimleri ve aramalar yalnızca adada görünür; masaüstü bildirimi adanın üstünü kapatmaz (Ada sekmesinden değiştirilebilir). Ada çalışmıyorsa bildirimler yine masaüstüne gelir. Masaüstü bildirimindeki arama düğmeleri işaretli: önce “✓ Cevapla”, sonra “✕ Reddet”.</p></description>
+    </release>
     <release version="0.22.0" date="2026-10-13">
       <description><p>Telefonun ana ekranına Talk To widget'ı: bilgisayar bağlı mı ve nasıl, dizüstüyse pili, bilgisayarda çalan (oynat/duraklat, sonraki), bilgisayarı kilitle, uyut ve panoyu gönder. Üst adanın ayarları ana pencerede kendi "Ada" sekmesinde. Kurulum yardımcısı artık ayrı bir pencere gibi durmuyor.</p></description>
     </release>
