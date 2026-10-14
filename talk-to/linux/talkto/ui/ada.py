@@ -189,6 +189,7 @@ class AdaService:
             "theme_id": theme_id,
             "themes": [dict(t["colors"], id=k, name=t["name"], group=t["group"], fx=t["fx"]) for k, t in themes.items()],
             "motion": cfg["ada_motion"] if cfg["ada_motion"] in MOTIONS else "canli",
+            "motions": [{"id": k, "name": name} for k, (name, _hint) in MOTIONS.items()],
             "idle_pause": max(5, int(cfg["ada_idle_pause"] or 60)),
             "battery_slow": bool(cfg["ada_battery_slow"]),
             "mode": cfg["ada_mode"] if cfg["ada_mode"] in MODES else "sakin",

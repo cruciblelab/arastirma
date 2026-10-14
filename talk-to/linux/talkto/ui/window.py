@@ -352,8 +352,10 @@ class Window(Adw.ApplicationWindow):
         g.add(self.sw_ada)
         motions = list(ada.MOTIONS)
         self.ada_motion = Adw.ComboRow(
-            title="Hareket", subtitle="Dalga ve süsler. Yavaş yarı yarıya az iş yapar, Durgun hiç kıpırdamaz. Bir "
-                                      "dakika dokunulmazsa, tam ekranda, kilitte ve güç tasarrufunda ada zaten durur.",
+            title="Hareket", subtitle="Dalga ve süsler. Yavaş yarı yarıya az iş yapar; Olaylarda yalnızca şarkı "
+                                      "değişince, üstüne gelince ya da büyüyünce birkaç saniye canlanır (eski ekran "
+                                      "kartlarında önerilen); Durgun hiç kıpırdamaz. Bir dakika dokunulmazsa, tam "
+                                      "ekranda, kilitte ve güç tasarrufunda ada zaten durur.",
             model=Gtk.StringList.new([ada.MOTIONS[k][0] for k in motions]))
         cur = self.app.config["ada_motion"]
         self.ada_motion.set_selected(motions.index(cur) if cur in motions else 0)

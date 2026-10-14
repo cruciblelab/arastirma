@@ -89,6 +89,7 @@ SCENES = [
     ("bos_kuzey", lambda: (tema("kuzey"), phone(None)), True),
     ("muzik_kar", lambda: (tema("kar"), phone(True)), True),
     ("muzik_kuzey_yavas", lambda: (tema("kuzey"), phone(True), hareket("yavas")), True),
+    ("muzik_kuzey_olaylarda", lambda: (tema("kuzey"), phone(True), hareket("olaylarda")), True),
     ("muzik_kuzey_uzakta", lambda: (hareket("canli"), tema("kuzey"), phone(True)), False),
     # Talk To'nun Ada sekmesi açık; fare pencerenin dışında (ekranın sol alt köşesi), sonra bir kartın üstünde
     ("pencere_ada_sekmesi", lambda: (at(4.0, 790.0), tema("deniz"), phone(None), app.present(),

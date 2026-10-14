@@ -38,6 +38,9 @@
   <url type="bugtracker">https://github.com/cruciblelab/arastirma/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.28.0" date="2026-10-14">
+      <description><p>Eski ekran kartlarında daha az iş: üst ada daha az kare çizer, zemin ve süsler kendi hızında; yeni hareket seçeneği "Olaylarda" (yalnızca şarkı değişince, üstüne gelince ya da büyüyünce birkaç saniye canlanır). Hareket artık adanın Özelleştir sayfasından de seçilir. Deniz teması gerçek bir manzara: ufuk, perspektifli dalgalar, saate göre gökte ilerleyen güneş ya da ay ve suda yansıması. Yeni destekçi teması konsepti: Prizma. Taşan dalgaların yan akıntıları yumuşadı.</p></description>
+    </release>
     <release version="0.27.0" date="2026-10-13">
       <description><p>Adanın dalgası artık ayrı bir kutu değil: normal hâlde adanın alt kenarı su (çalarken dalgalanır, çalmazken sakin), ince şeritte şeridin kendisi su. Deniz, Orman ve Kar saate göre değişir (şafak, gündüz, akşam, gece; Ada sekmesinden kapatılabilir). Dizüstü pildeyken ada kendiliğinden Yavaş çalışır, prize takılınca Canlı'ya döner.</p></description>
     </release>

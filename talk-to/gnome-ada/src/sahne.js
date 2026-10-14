@@ -1,5 +1,6 @@
 // Talk To · Üst ada: temaların süsleri (bulut, sis, yıldız, kar, yaprak, baloncuk, ateş böceği, kuzey ışıkları,
-// yağmur, neon, parıltı, kalp, şimşek). Adanın üstünden geçen saydam katman; tıklamaları almaz.
+// yağmur, neon, parıltı, kalp, şimşek), deniz manzarası ve destekçi temasının prizması. Adanın zemin katmanında,
+// yazıların altında çizilir; tıklamaları almaz.
 //
 // Bu dosya build.py ile extension.js'in içine konur (SAHNE işaretinin yerine). Aynı çizim Talk To'daki
 // Ada Place önizlemesinde de var (linux/talkto/ui/ada_sahne.py); ikisi aynı resmi çizmeli (test/sahne_ciz.js ile
@@ -77,6 +78,224 @@ function sahneBackground(cr, w, h, theme, r) {
     g.addColorStopRGBA(1, b[0], b[1], b[2], 1);
     cr.setSource(g);
     cr.fill();
+}
+
+function sahneClamp(v, a, b) {
+    return Math.max(a, Math.min(b, v));
+}
+
+function sahneMix(a, b, u) {
+    return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+}
+
+// Renk çarkı: h derece, s ve l 0–1 (prizmanın gökkuşağı için).
+function sahneHsl(h, s, l) {
+    h = sahneWrap(h, 360) / 360;
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const f = x => {
+        x = sahneWrap(x, 1);
+        if (x < 1 / 6)
+            return p + (q - p) * 6 * x;
+        if (x < 1 / 2)
+            return q;
+        if (x < 2 / 3)
+            return p + (q - p) * (2 / 3 - x) * 6;
+        return p;
+    };
+    return [f(h + 1 / 3), f(h), f(h - 1 / 3)];
+}
+
+// Gecenin ne kadarı: 0 gündüz, 1 gece (şafakta ve akşamda arada).
+function sahneNight(hour) {
+    if (hour < 5.5 || hour >= 20.5)
+        return 1;
+    if (hour < 7)
+        return (7 - hour) / 1.5;
+    if (hour > 19)
+        return (hour - 19) / 1.5;
+    return 0;
+}
+
+// Deniz manzarası: gök (zemin), ufuk ve pus, saate göre gökte yay çizen güneş ya da ay, suda yansıma yolu,
+// ufka doğru incelip sıklaşan dalga çizgileri (perspektif). fx: hour (güneşin/ayın yeri), color (uzak deniz),
+// color2 (yakın deniz). Gök, temanın zemini (bg1/bg2).
+function sahneSea(cr, w, h, t, fx, sc, A) {
+    const hour = fx.hour === undefined ? 13 : fx.hour;
+    const hz = Math.round(h * (h < 60 ? 0.42 : 0.38));
+    const far = sahneRgb(fx.color), near = sahneRgb(fx.color2 || fx.color);
+    const night = sahneNight(hour);
+    // Yıldızlar yalnızca gökte
+    if (night > 0) {
+        const n = h < 60 ? 9 : 26;
+        for (let i = 0; i < n; i++) {
+            const x = sahneRnd(i, 11) * w, y = sahneRnd(i, 12) * hz * 0.92;
+            const tw = 0.5 + 0.5 * Math.sin(t * (0.6 + sahneRnd(i, 13)) + sahneRnd(i, 14) * SAHNE_TAU);
+            cr.setSourceRGBA(1, 1, 1, A * night * (0.25 + 0.55 * tw));
+            cr.arc(x, y, sc * (0.45 + 0.5 * sahneRnd(i, 15)), 0, SAHNE_TAU);
+            cr.fill();
+        }
+    }
+    // Güneş (06–19) ya da ay (19–06): ufkun bir ucundan öbürüne yay çizer
+    const day = hour >= 6 && hour < 19;
+    const p = day ? (hour - 6) / 13 : sahneWrap(hour - 19, 24) / 11;
+    const bx = w * (0.12 + 0.76 * p);
+    // Tepe noktası alçak: güneş/ay başlığın ve yazıların arkasına çıkmasın
+    const by = hz - hz * (h < 60 ? 0.55 : 0.6) * Math.sin(Math.PI * p) + Math.max(1.5, hz * 0.08);
+    const br = sahneClamp(h * 0.17, 3.2 * sc, 14 * sc);
+    const body = day ? sahneMix([1, 0.62, 0.3], [1, 0.93, 0.66], sahneClamp(Math.sin(Math.PI * p) * 1.6, 0, 1))
+        : [0.91, 0.94, 0.98];
+    const glow = new Cairo.RadialGradient(bx, by, 0, bx, by, br * (day ? 3.4 : 2.6));
+    glow.addColorStopRGBA(0, body[0], body[1], body[2], A * (day ? 0.45 : 0.25));
+    glow.addColorStopRGBA(1, body[0], body[1], body[2], 0);
+    cr.setSource(glow);
+    cr.arc(bx, by, br * (day ? 3.4 : 2.6), 0, SAHNE_TAU);
+    cr.fill();
+    // Gök cismi; ay hilal (gölge ayrı bir katmanda ayın kendisinden silinir, göğe değmez). Küçük adada soluk.
+    cr.pushGroup();
+    cr.setSourceRGBA(body[0], body[1], body[2], 1);
+    cr.arc(bx, by, br, 0, SAHNE_TAU);
+    cr.fill();
+    if (!day) {
+        cr.setOperator(Cairo.Operator.DEST_OUT);
+        cr.arc(bx + br * 0.45, by - br * 0.18, br * 0.92, 0, SAHNE_TAU);
+        cr.fill();
+        cr.setOperator(Cairo.Operator.OVER);
+    }
+    cr.popGroupToSource();
+    cr.paintWithAlpha(A * (h < 60 ? 0.75 : 1));
+    // Martılar (gündüz, büyük adada): uzakta iki küçük "v"
+    if (day && h >= 60) {
+        cr.setLineWidth(1.1 * sc);
+        cr.setLineCap(Cairo.LineCap.ROUND);
+        for (let i = 0; i < 2; i++) {
+            const gx = sahneWrap(w * (0.25 + 0.35 * i) + t * 4 * sc * (1 + 0.3 * i), w + 40) - 20;
+            const gy = hz * (0.35 + 0.18 * i) + Math.sin(t * 0.8 + i) * 3 * sc;
+            const s2 = (4 + 1.5 * i) * sc, flap = 0.35 + 0.25 * Math.sin(t * 5 + i * 2);
+            cr.setSourceRGBA(0.12, 0.16, 0.22, A * 0.55);
+            cr.moveTo(gx - s2, gy - s2 * flap);
+            cr.curveTo(gx - s2 * 0.5, gy - s2 * flap * 1.2, gx - s2 * 0.2, gy, gx, gy + s2 * 0.15);
+            cr.curveTo(gx + s2 * 0.2, gy, gx + s2 * 0.5, gy - s2 * flap * 1.2, gx + s2, gy - s2 * flap);
+            cr.stroke();
+        }
+    }
+    // Deniz: ufukta açık, yakında koyu
+    const sea = new Cairo.LinearGradient(0, hz, 0, h);
+    sea.addColorStopRGBA(0, far[0], far[1], far[2], A);
+    sea.addColorStopRGBA(1, near[0], near[1], near[2], A);
+    cr.setSource(sea);
+    cr.rectangle(0, hz, w, h - hz);
+    cr.fill();
+    // Ufuk pusu
+    const hb = Math.max(1.5 * sc, h * 0.05);
+    const haze = new Cairo.LinearGradient(0, hz - hb, 0, hz + hb);
+    haze.addColorStopRGBA(0, 1, 1, 1, 0);
+    haze.addColorStopRGBA(0.5, 1, 1, 1, A * (0.22 - 0.1 * night));
+    haze.addColorStopRGBA(1, 1, 1, 1, 0);
+    cr.setSource(haze);
+    cr.rectangle(0, hz - hb, w, 2 * hb);
+    cr.fill();
+    // Dalga çizgileri: ufka yaklaştıkça incelir, sıklaşır, yavaşlar (perspektif)
+    const m = h < 60 ? 3 : 9;
+    cr.setLineCap(Cairo.LineCap.ROUND);
+    for (let j = 1; j <= m; j++) {
+        const u = j / (m + 1);
+        const y0 = hz + (h - hz) * Math.pow(u, 1.6);
+        const amp = (0.35 + 2.2 * u) * sc, len = (16 + 60 * u) * sc, ph = t * (0.25 + 0.6 * u) + j * 1.7;
+        for (let x = 0; x <= w + 4; x += 4) {
+            const y = y0 + amp * Math.sin(x / len * SAHNE_TAU + ph);
+            if (x === 0)
+                cr.moveTo(x, y);
+            else
+                cr.lineTo(x, y);
+        }
+        cr.setLineWidth((0.5 + 1.1 * u) * sc);
+        cr.setSourceRGBA(1, 1, 1, A * (0.05 + 0.13 * u) * (1 - 0.5 * night));
+        cr.stroke();
+    }
+    // Yansıma yolu: gök cisminin altında, uzakta dar ve sık, yakında geniş; her sırada birkaç kısa, düzensiz,
+    // ayrı ayrı yanıp sönen pırıltı
+    const up = sahneClamp((hz - by) / Math.max(1, hz * 0.25), 0, 1);  // ufka inince söner
+    if (up > 0) {
+        const n = h < 60 ? 6 : 22;
+        for (let i = 0; i < n; i++) {
+            const u = (i + 1) / n;
+            const y = hz + (h - hz) * Math.pow(u, 1.5);
+            const spread = br * (0.4 + 2.4 * u);  // yolun o sıradaki yarı genişliği
+            const k = 1 + (u > 0.35 ? 1 : 0) + (u > 0.7 ? 1 : 0);
+            cr.setLineWidth(Math.max(0.5 * sc, (h - hz) * 0.012 * (1 + 2 * u)));
+            for (let j = 0; j < k; j++) {
+                const len = spread * (0.25 + 0.45 * sahneRnd(i * 3 + j, 41));
+                const x = bx + (sahneRnd(i * 3 + j, 42) * 2 - 1) * spread * 0.75 +
+                    Math.sin(t * (0.6 + sahneRnd(i * 3 + j, 43)) + i) * br * 0.3 * u;
+                const a = A * up * (day ? 0.6 : 0.5) * (1 - 0.4 * u) *
+                    (0.35 + 0.65 * Math.max(0, Math.sin(t * (1.4 + sahneRnd(i * 3 + j, 44) * 1.6) + i * 1.9 + j)));
+                cr.setSourceRGBA(body[0], body[1], body[2], a);
+                cr.moveTo(x - len / 2, y);
+                cr.lineTo(x + len / 2, y);
+                cr.stroke();
+            }
+        }
+    }
+}
+
+// Prizma (destekçi teması): renkleri ağır ağır dönen hologram yüzey ve süzülen ışık demetleri.
+function sahnePrism(cr, w, h, t, fx, sc, A) {
+    const a = (fx.alpha === undefined ? 0.35 : fx.alpha) * A;
+    const h0 = t * 12 * (fx.speed || 10) / 10;
+    const g = new Cairo.LinearGradient(0, 0, w, h * 0.6);
+    for (let i = 0; i <= 6; i++) {
+        const c = sahneHsl(h0 + i * 55, 0.85, 0.62);
+        g.addColorStopRGBA(i / 6, c[0], c[1], c[2], a * (0.55 + 0.45 * Math.sin(t * 0.7 + i)));
+    }
+    cr.setSource(g);
+    cr.rectangle(0, 0, w, h);
+    cr.fill();
+    for (let i = 0; i < 3; i++) {  // ışık demetleri: çapraz, ağır ağır kayar
+        const x = sahneWrap(sahneRnd(i, 21) * w * 1.6 + t * (6 + 4 * i) * sc, w * 1.6) - w * 0.3;
+        const bw = (8 + 10 * sahneRnd(i, 22)) * sc;
+        const beam = new Cairo.LinearGradient(x - bw, 0, x + bw, 0);
+        beam.addColorStopRGBA(0, 1, 1, 1, 0);
+        beam.addColorStopRGBA(0.5, 1, 1, 1, a * 0.5);
+        beam.addColorStopRGBA(1, 1, 1, 1, 0);
+        const k = 0.45 * h;  // eğik demet: alt ucu sola kayık
+        cr.moveTo(x - bw, 0);
+        cr.lineTo(x + bw, 0);
+        cr.lineTo(x + bw - k, h);
+        cr.lineTo(x - bw - k, h);
+        cr.closePath();
+        cr.setSource(beam);
+        cr.fill();
+    }
+}
+
+// Kristal parçaları (destekçi teması): dönerek yükselen, kenarı parlayan baklava dilimleri.
+function sahneShards(cr, w, h, t, fx, sc, A) {
+    const n = fx.count || 0, s = (fx.size || 4) * sc, v = (fx.speed || 10) * sc;
+    const a = (fx.alpha === undefined ? 0.6 : fx.alpha) * A;
+    for (let i = 0; i < n; i++) {
+        const r = s * (0.7 + 0.8 * sahneRnd(i, 31));
+        const span = h + 4 * r;
+        const y = h + 2 * r - sahneWrap(sahneRnd(i, 32) * span + t * v * (0.5 + 0.6 * sahneRnd(i, 33)), span);
+        const x = sahneRnd(i, 34) * w + Math.sin(t * 0.9 + i * 1.7) * s;
+        const c = sahneHsl(t * 30 + i * 47, 0.8, 0.7);
+        cr.save();
+        cr.translate(x, y);
+        cr.rotate(t * (0.6 + sahneRnd(i, 35)) * (sahneRnd(i, 36) > 0.5 ? 1 : -1) + i);
+        cr.moveTo(0, -r);
+        cr.lineTo(r * 0.55, 0);
+        cr.lineTo(0, r);
+        cr.lineTo(-r * 0.55, 0);
+        cr.closePath();
+        const g = new Cairo.LinearGradient(-r * 0.55, -r, r * 0.55, r);
+        g.addColorStopRGBA(0, 1, 1, 1, a);
+        g.addColorStopRGBA(1, c[0], c[1], c[2], a * 0.5);
+        cr.setSource(g);
+        cr.fillPreserve();
+        cr.setLineWidth(0.7 * sc);
+        cr.setSourceRGBA(1, 1, 1, a * 0.9);
+        cr.stroke();
+        cr.restore();
+    }
 }
 
 function sahneFx(cr, w, h, t, fx, sc, A, R) {
@@ -284,6 +503,15 @@ function sahneFx(cr, w, h, t, fx, sc, A, R) {
         }
         break;
     }
+    case 'sea':
+        sahneSea(cr, w, h, t, fx, sc, A);
+        break;
+    case 'prism':
+        sahnePrism(cr, w, h, t, fx, sc, A);
+        break;
+    case 'shards':
+        sahneShards(cr, w, h, t, fx, sc, A);
+        break;
     case 'lightning': {  // speed: kaç saniyede bir (her seferinde değil); iki kısa çakma
         const P = Math.max(3, fx.speed || 9), k = Math.floor(t / P), p = t - k * P;
         if (sahneRnd(k, 3) > 0.35) {

@@ -18,7 +18,7 @@ UUID = "talkto-ada@crucible.lab"
 META = {"uuid": UUID, "name": "Talk To · Üst ada",
         "description": "Telefonda çalan, gelen arama, bildirimler ve zamanlayıcı ekranın üst ortasında. "
                        "Talk To ile çalışır.",
-        "url": "https://github.com/cruciblelab/arastirma", "version": 17}
+        "url": "https://github.com/cruciblelab/arastirma", "version": 18}
 LEGACY_IMPORTS = """const {GLib, Gio, St, Clutter, Meta} = imports.gi;
 const Cairo = imports.cairo;
 const Main = imports.ui.main;"""

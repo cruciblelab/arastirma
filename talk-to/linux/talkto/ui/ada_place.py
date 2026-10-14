@@ -187,7 +187,11 @@ class AdaPlace(Adw.PreferencesGroup):
             self.add(Gtk.Label(label="Canlı önizleme için python3-gi-cairo paketi gerekli (yalnızca renkler "
                                      "gösteriliyor).", wrap=True, xalign=0, css_classes=["dim-label", "caption"]))
         for group, label in ada_temalar.GROUPS.items():
-            self.add(Gtk.Label(label=label, xalign=0, css_classes=["heading"], margin_top=10, margin_bottom=4))
+            self.add(Gtk.Label(label=label + (" ♥" if group == "destekci" else ""), xalign=0, css_classes=["heading"],
+                               margin_top=10, margin_bottom=4))
+            if group == "destekci":
+                self.add(Gtk.Label(label="Konsept: destek alanı gelince destekçilere teşekkür olarak; şimdilik herkes "
+                                         "deneyebilir.", xalign=0, wrap=True, css_classes=["dim-label", "caption"]))
             flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, min_children_per_line=1,
                                max_children_per_line=4, column_spacing=8, row_spacing=8)
             for key, th in ada_temalar.THEMES.items():

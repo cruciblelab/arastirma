@@ -7,9 +7,9 @@ talkto/ui/ada_sahne.py (önizlemede). Süs alanları: type, color, color2 (yaln�
 size (px), speed (px/sn; glint ve lightning'de kaç saniyede bir), shoot (stars: kayan yıldız).
 """
 
-GROUPS = {"tatli": "Tatlı", "sakin": "Sakin", "havali": "Havalı"}
+GROUPS = {"tatli": "Tatlı", "sakin": "Sakin", "havali": "Havalı", "destekci": "Destekçi"}
 FX_TYPES = ("clouds", "fog", "stars", "snow", "petals", "bubbles", "hearts", "fireflies", "aurora", "rain", "neon",
-            "glint", "lightning")
+            "glint", "lightning", "sea", "prism", "shards")
 COLOR_KEYS = ("bg1", "bg2", "wave1", "wave2", "text")
 
 
@@ -20,6 +20,11 @@ def _theme(name, group, desc, bg1, bg2, wave1, wave2, text, *fx):
 
 def _fx(type, color, alpha, count=0, size=4, speed=10, **extra):  # noqa: A002 (alan adı "type")
     return dict({"type": type, "color": color, "alpha": alpha, "count": count, "size": size, "speed": speed}, **extra)
+
+
+def _sea(sea1, sea2, hour=13.0):
+    """Deniz manzarası: uzak ve yakın deniz, saat (güneşin/ayın yeri); gök temanın zemini."""
+    return _fx("sea", sea1, 1.0, color2=sea2, hour=hour)
 
 
 THEMES = {
@@ -39,15 +44,19 @@ THEMES = {
     # --- sakin ---
     # Deniz, Orman ve Kar isteğe bağlı saate göre değişir (cycle_optional; Ada sekmesindeki "Saate göre değişsin").
     # Gündüz hâlleri temanın kendi renkleri; akşam, gece ve şafak ona uygun.
-    "deniz": dict(_theme("Deniz", "sakin", "Sade deniz; saate göre gün batımı ve yıldızlı gece",
-                         "#0a2342", "#12436b", "#2ec4b6", "#8de4ff", "#eaf6ff"),
-                  cycle_optional=True,
-                  cycle=[(5.5, 6.5, {"bg1": "#1d2b53", "bg2": "#9e4f6a", "wave1": "#f67280", "wave2": "#f8b195"},
-                          [_fx("stars", "#ffffff", 0.3, count=5, size=0.9, speed=8)]),
-                         (8.0, 17.0, {"bg1": "#0a2342", "bg2": "#12436b", "wave1": "#2ec4b6", "wave2": "#8de4ff"}, []),
-                         (18.5, 19.5, {"bg1": "#2b1055", "bg2": "#a4471f", "wave1": "#ff9e5e", "wave2": "#ffd166"}, []),
-                         (21.0, 4.5, {"bg1": "#020b1c", "bg2": "#0a2342", "wave1": "#2ec4b6", "wave2": "#5390d9"},
-                          [_fx("stars", "#ffffff", 0.7, count=10, size=1, speed=10)])]),
+    "deniz": dict(_theme("Deniz", "sakin", "Ufuk, dalgalar ve suda güneşin ya da ayın yansıması; saate göre akşam "
+                                           "ve gece",
+                         "#1f5f8b", "#3a86b4", "#48cae4", "#ade8f4", "#f4fbff",
+                         _sea("#0b6e99", "#034d73")),
+                  scene="sea", cycle_optional=True,  # renkler saate göre; manzara (sea) resolve'da kurulur
+                  cycle=[(5.5, 6.5, {"bg1": "#2b2d55", "bg2": "#b5523b", "sea1": "#3d3a63", "sea2": "#1d2340",
+                                     "wave1": "#f67280", "wave2": "#f8b195"}, []),
+                         (8.0, 17.0, {"bg1": "#1f5f8b", "bg2": "#3a86b4", "sea1": "#0b6e99", "sea2": "#034d73",
+                                      "wave1": "#48cae4", "wave2": "#ade8f4"}, []),
+                         (18.5, 19.5, {"bg1": "#3a1c5c", "bg2": "#c0542a", "sea1": "#6a2c40", "sea2": "#2a1840",
+                                       "wave1": "#ff9e5e", "wave2": "#ffd166"}, []),
+                         (21.0, 4.5, {"bg1": "#050b1f", "bg2": "#0d1b3a", "sea1": "#0e2a4a", "sea2": "#061a33",
+                                      "wave1": "#2ec4b6", "wave2": "#5390d9"}, [])]),
     "orman": dict(_theme("Orman", "sakin", "Sade orman; saate göre akşam ve ateş böcekli gece",
                          "#0b2b1c", "#154734", "#52b788", "#b7e4c7", "#eefaf2"),
                   cycle_optional=True,
@@ -63,14 +72,16 @@ THEMES = {
                   "#2f3e46", "#52796f", "#cad2c5", "#84a98c", "#f4f7f2",
                   _fx("fog", "#ffffff", 0.3, count=3, speed=6)),
     "dongu": dict(_theme("Gün döngüsü", "sakin", "Saate göre: şafak, gündüz, gün batımı, gece",
-                         "#8ecae6", "#d8f1ff", "#219ebc", "#ffffff", "#0b2545"),
+                         "#1f5f8b", "#2f7aa3", "#a9d6e5", "#ffffff", "#f4f8ff"),
                   # (başlangıç, bitiş saati, renkler, süsler): arada renkler yavaşça geçer, süsler biri solarken
                   # öteki belirir
                   cycle=[(5.5, 6.5, {"bg1": "#2b2d55", "bg2": "#b5523b", "wave1": "#f2cc8f", "wave2": "#ffe8d6"},
                           [_fx("fog", "#ffffff", 0.22, count=2, speed=5),
                            _fx("stars", "#ffffff", 0.35, count=6, size=0.9, speed=8)]),
-                         (8.0, 16.5, {"bg1": "#8ecae6", "bg2": "#d8f1ff", "wave1": "#219ebc", "wave2": "#ffffff"},
-                          [_fx("clouds", "#ffffff", 0.75, count=3, size=8, speed=8)]),
+                         # gündüz gök orta mavi: yazı gün boyu açık kalır (açık gökten koyuya geçerken arada
+                         # okunmayan bir an oluyordu; gerçek piksel testi yakaladı)
+                         (8.0, 16.5, {"bg1": "#1f5f8b", "bg2": "#2f7aa3", "wave1": "#a9d6e5", "wave2": "#ffffff"},
+                          [_fx("clouds", "#ffffff", 0.15, count=3, size=8, speed=8)]),  # beyaz yazının arkasında hafif
                          (18.0, 19.0, {"bg1": "#3a0ca3", "bg2": "#c2410c", "wave1": "#fcbf49", "wave2": "#ffd6a5"},
                           [_fx("clouds", "#ffd6a5", 0.3, count=2, size=10, speed=8)]),
                          (21.0, 4.5, {"bg1": "#03045e", "bg2": "#0b132b", "wave1": "#48cae4", "wave2": "#90e0ef"},
@@ -113,12 +124,20 @@ THEMES = {
                     "#141414", "#2b2b2b", "#d4af37", "#f9e79f", "#fff8e1",
                     _fx("stars", "#f9e79f", 0.7, count=8, size=1.2, speed=8),
                     _fx("glint", "#fff3c4", 0.35, speed=5)),
+    # --- destekçi (konsept: destek alanı gelince destekçilere teşekkür olarak; şimdilik herkes deneyebilir) ---
+    "prizma": _theme("Prizma", "destekci", "Dönen hologram renkleri, ışık kırılması ve süzülen kristaller",
+                     "#120e2e", "#2a1a5e", "#9b5de5", "#00bbf9", "#f8f7ff",
+                     _fx("prism", "#ffffff", 0.32, speed=10),
+                     _fx("shards", "#ffffff", 0.6, count=6, size=3.5, speed=7),
+                     _fx("glint", "#ffffff", 0.3, speed=6)),
 }
 DEFAULT = "deniz"
 
 MOTIONS = {  # dalga ve süsler birlikte
     "canli": ("Canlı", "Dalga ve süsler akıcı hareket eder."),
     "yavas": ("Yavaş", "Yarı hızda ve yarı yarıya seyrek çizilir (daha az iş)."),
+    "olaylarda": ("Olaylarda", "Şarkı değişince, üstüne gelince ya da büyüyünce birkaç saniye canlanır; gerisinde "
+                               "durur (eski ekran kartlarında önerilen)."),
     "durgun": ("Durgun", "Hiç kıpırdamaz (resim gibi); çalarken dalga yüksek durur."),
 }
 
@@ -185,6 +204,8 @@ def resolve(theme: dict, hour: float, cycle_on: bool = True) -> dict:
             fxs = [dict(f, alpha=f["alpha"] * (1 - u)) for f in fx] + [dict(f, alpha=f["alpha"] * u) for f in nxt[3]]
             fxs = [f for f in fxs if f["alpha"] >= 0.02]
             break
+    if theme.get("scene") == "sea":  # manzara o saatin renkleriyle ve güneşin/ayın o saatteki yeriyle
+        fxs = [_sea(c["sea1"], c["sea2"], hour)] + fxs
     # Yazı: o anki zeminde (yazının durduğu orta renk) en okunur olan, açık ya da koyu
     c["text"] = max((LIGHT_TEXT, DARK_TEXT), key=lambda t: contrast(t, middle(c)))
     return dict(theme, colors=c, fx=fxs)

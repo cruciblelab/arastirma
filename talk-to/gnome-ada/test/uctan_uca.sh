@@ -80,6 +80,9 @@ assert 820 <= x + w / 2 <= 860, f"sağa sürüklenen adanın ortası ~840 olmal�
 PYEOF
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert (d['theme_id'], d['mode']) == ('gece', 'tasan'), d" \
     "$OUT/durum2.json" || fail "adadan seçilen tema/kip Talk To'ya yazılmadı"
+python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['motion'] == 'olaylarda', d['motion']" \
+    "$OUT/durum2c.json" || fail "adadaki Hareket düğmesi (Olaylarda) Talk To'ya yazılmadı"
+grep -q "Talk To ada: canland" "$OUT/shell.log" || fail "canlandırma saatinin değişimleri GNOME kaydına yazılmıyor"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['ozel_bos_tik'] and d['ozel_disari_tik'], d" \
     "$OUT/yoklar.json" || fail "Özelleştir adadaki boş yere ya da adanın dışına tıklayınca kapanmadı"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['theme_id'] == 'kuzey' and d['theme']['fx'], d['theme']" \
@@ -99,5 +102,5 @@ python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_batte
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_battery']['weak'] and d['event']['kind'] == 'pil', d" \
     "$OUT/durum7.json" || fail "takılı ama pil düşerken ada uyarmadı"
 for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 4b-gorusme 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal \
-         10-ozellestir 11-tasan 11b-kuzey-ozel 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az 16-sarj-yetmiyor 18-pamuk 19-sis 20-kuzey 21-neon 22-neon-buyuk 23-bosta-pamuk; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
+         10-ozellestir 11-tasan 11b-kuzey-ozel 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az 16-sarj-yetmiyor 18-pamuk 19-sis 20-kuzey 21-neon 22-neon-buyuk 23-bosta-pamuk 24-deniz-buyuk; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
 echo "ÜST ADA UÇTAN UCA TESTİ GEÇTİ"

@@ -83,6 +83,201 @@ def background(cr, w, h, colors, r):
     cr.fill()
 
 
+def clamp(v, a, b):
+    return max(a, min(b, v))
+
+
+def mix(a, b, u):
+    return (a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u)
+
+
+def hsl(h, s, l):  # noqa: E741
+    h = wrap(h, 360) / 360
+    q = l * (1 + s) if l < 0.5 else l + s - l * s
+    p = 2 * l - q
+
+    def f(x):
+        x = wrap(x, 1)
+        if x < 1 / 6:
+            return p + (q - p) * 6 * x
+        if x < 1 / 2:
+            return q
+        if x < 2 / 3:
+            return p + (q - p) * (2 / 3 - x) * 6
+        return p
+    return f(h + 1 / 3), f(h), f(h - 1 / 3)
+
+
+def night_of(hour):
+    if hour < 5.5 or hour >= 20.5:
+        return 1
+    if hour < 7:
+        return (7 - hour) / 1.5
+    if hour > 19:
+        return (hour - 19) / 1.5
+    return 0
+
+
+def sea(cr, w, h, t, fx, sc, A):
+    """Deniz manzarası (sahne.js sahneSea)."""
+    hour = 13 if fx.get("hour") is None else fx["hour"]
+    hz = round(h * (0.42 if h < 60 else 0.38))
+    far, near = rgb(fx.get("color")), rgb(fx.get("color2") or fx.get("color"))
+    night = night_of(hour)
+    if night > 0:
+        n = 9 if h < 60 else 26
+        for i in range(n):
+            x, y = rnd(i, 11) * w, rnd(i, 12) * hz * 0.92
+            tw = 0.5 + 0.5 * math.sin(t * (0.6 + rnd(i, 13)) + rnd(i, 14) * TAU)
+            cr.set_source_rgba(1, 1, 1, A * night * (0.25 + 0.55 * tw))
+            cr.arc(x, y, sc * (0.45 + 0.5 * rnd(i, 15)), 0, TAU)
+            cr.fill()
+    day = 6 <= hour < 19
+    p = (hour - 6) / 13 if day else wrap(hour - 19, 24) / 11
+    bx = w * (0.12 + 0.76 * p)
+    by = hz - hz * (0.55 if h < 60 else 0.6) * math.sin(math.pi * p) + max(1.5, hz * 0.08)
+    br = clamp(h * 0.17, 3.2 * sc, 14 * sc)
+    body = mix((1, 0.62, 0.3), (1, 0.93, 0.66), clamp(math.sin(math.pi * p) * 1.6, 0, 1)) if day \
+        else (0.91, 0.94, 0.98)
+    gr = br * (3.4 if day else 2.6)
+    glow = cairo.RadialGradient(bx, by, 0, bx, by, gr)
+    glow.add_color_stop_rgba(0, *body, A * (0.45 if day else 0.25))
+    glow.add_color_stop_rgba(1, *body, 0)
+    cr.set_source(glow)
+    cr.arc(bx, by, gr, 0, TAU)
+    cr.fill()
+    cr.push_group()
+    cr.set_source_rgba(*body, 1)
+    cr.arc(bx, by, br, 0, TAU)
+    cr.fill()
+    if not day:
+        cr.set_operator(cairo.OPERATOR_DEST_OUT)
+        cr.arc(bx + br * 0.45, by - br * 0.18, br * 0.92, 0, TAU)
+        cr.fill()
+        cr.set_operator(cairo.OPERATOR_OVER)
+    cr.pop_group_to_source()
+    cr.paint_with_alpha(A * (0.75 if h < 60 else 1))
+    if day and h >= 60:
+        cr.set_line_width(1.1 * sc)
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        for i in range(2):
+            gx = wrap(w * (0.25 + 0.35 * i) + t * 4 * sc * (1 + 0.3 * i), w + 40) - 20
+            gy = hz * (0.35 + 0.18 * i) + math.sin(t * 0.8 + i) * 3 * sc
+            s2, flap = (4 + 1.5 * i) * sc, 0.35 + 0.25 * math.sin(t * 5 + i * 2)
+            cr.set_source_rgba(0.12, 0.16, 0.22, A * 0.55)
+            cr.move_to(gx - s2, gy - s2 * flap)
+            cr.curve_to(gx - s2 * 0.5, gy - s2 * flap * 1.2, gx - s2 * 0.2, gy, gx, gy + s2 * 0.15)
+            cr.curve_to(gx + s2 * 0.2, gy, gx + s2 * 0.5, gy - s2 * flap * 1.2, gx + s2, gy - s2 * flap)
+            cr.stroke()
+    g = cairo.LinearGradient(0, hz, 0, h)
+    g.add_color_stop_rgba(0, *far, A)
+    g.add_color_stop_rgba(1, *near, A)
+    cr.set_source(g)
+    cr.rectangle(0, hz, w, h - hz)
+    cr.fill()
+    hb = max(1.5 * sc, h * 0.05)
+    haze = cairo.LinearGradient(0, hz - hb, 0, hz + hb)
+    haze.add_color_stop_rgba(0, 1, 1, 1, 0)
+    haze.add_color_stop_rgba(0.5, 1, 1, 1, A * (0.22 - 0.1 * night))
+    haze.add_color_stop_rgba(1, 1, 1, 1, 0)
+    cr.set_source(haze)
+    cr.rectangle(0, hz - hb, w, 2 * hb)
+    cr.fill()
+    m = 3 if h < 60 else 9
+    cr.set_line_cap(cairo.LINE_CAP_ROUND)
+    for j in range(1, m + 1):
+        u = j / (m + 1)
+        y0 = hz + (h - hz) * u ** 1.6
+        amp, length, ph = (0.35 + 2.2 * u) * sc, (16 + 60 * u) * sc, t * (0.25 + 0.6 * u) + j * 1.7
+        x = 0
+        while x <= w + 4:
+            y = y0 + amp * math.sin(x / length * TAU + ph)
+            if x == 0:
+                cr.move_to(x, y)
+            else:
+                cr.line_to(x, y)
+            x += 4
+        cr.set_line_width((0.5 + 1.1 * u) * sc)
+        cr.set_source_rgba(1, 1, 1, A * (0.05 + 0.13 * u) * (1 - 0.5 * night))
+        cr.stroke()
+    up = clamp((hz - by) / max(1, hz * 0.25), 0, 1)
+    if up > 0:
+        n = 6 if h < 60 else 22
+        for i in range(n):
+            u = (i + 1) / n
+            y = hz + (h - hz) * u ** 1.5
+            spread = br * (0.4 + 2.4 * u)
+            k = 1 + (1 if u > 0.35 else 0) + (1 if u > 0.7 else 0)
+            cr.set_line_width(max(0.5 * sc, (h - hz) * 0.012 * (1 + 2 * u)))
+            for j in range(k):
+                q = i * 3 + j
+                length = spread * (0.25 + 0.45 * rnd(q, 41))
+                x = bx + (rnd(q, 42) * 2 - 1) * spread * 0.75 + math.sin(t * (0.6 + rnd(q, 43)) + i) * br * 0.3 * u
+                a = A * up * (0.6 if day else 0.5) * (1 - 0.4 * u) * \
+                    (0.35 + 0.65 * max(0, math.sin(t * (1.4 + rnd(q, 44) * 1.6) + i * 1.9 + j)))
+                cr.set_source_rgba(*body, a)
+                cr.move_to(x - length / 2, y)
+                cr.line_to(x + length / 2, y)
+                cr.stroke()
+
+
+def prism(cr, w, h, t, fx, sc, A):
+    """Prizma (destekçi teması): dönen hologram renkleri ve ışık demetleri (sahne.js sahnePrism)."""
+    a = fx.get("alpha", 0.35) * A
+    h0 = t * 12 * (fx.get("speed") or 10) / 10
+    g = cairo.LinearGradient(0, 0, w, h * 0.6)
+    for i in range(7):
+        c = hsl(h0 + i * 55, 0.85, 0.62)
+        g.add_color_stop_rgba(i / 6, *c, a * (0.55 + 0.45 * math.sin(t * 0.7 + i)))
+    cr.set_source(g)
+    cr.rectangle(0, 0, w, h)
+    cr.fill()
+    for i in range(3):
+        x = wrap(rnd(i, 21) * w * 1.6 + t * (6 + 4 * i) * sc, w * 1.6) - w * 0.3
+        bw = (8 + 10 * rnd(i, 22)) * sc
+        beam = cairo.LinearGradient(x - bw, 0, x + bw, 0)
+        beam.add_color_stop_rgba(0, 1, 1, 1, 0)
+        beam.add_color_stop_rgba(0.5, 1, 1, 1, a * 0.5)
+        beam.add_color_stop_rgba(1, 1, 1, 1, 0)
+        k = 0.45 * h
+        cr.move_to(x - bw, 0)
+        cr.line_to(x + bw, 0)
+        cr.line_to(x + bw - k, h)
+        cr.line_to(x - bw - k, h)
+        cr.close_path()
+        cr.set_source(beam)
+        cr.fill()
+
+
+def shards(cr, w, h, t, fx, sc, A):
+    """Kristal parçaları (sahne.js sahneShards)."""
+    n, s, v = fx.get("count") or 0, (fx.get("size") or 4) * sc, (fx.get("speed") or 10) * sc
+    a = fx.get("alpha", 0.6) * A
+    for i in range(n):
+        r = s * (0.7 + 0.8 * rnd(i, 31))
+        span = h + 4 * r
+        y = h + 2 * r - wrap(rnd(i, 32) * span + t * v * (0.5 + 0.6 * rnd(i, 33)), span)
+        x = rnd(i, 34) * w + math.sin(t * 0.9 + i * 1.7) * s
+        c = hsl(t * 30 + i * 47, 0.8, 0.7)
+        cr.save()
+        cr.translate(x, y)
+        cr.rotate(t * (0.6 + rnd(i, 35)) * (1 if rnd(i, 36) > 0.5 else -1) + i)
+        cr.move_to(0, -r)
+        cr.line_to(r * 0.55, 0)
+        cr.line_to(0, r)
+        cr.line_to(-r * 0.55, 0)
+        cr.close_path()
+        g = cairo.LinearGradient(-r * 0.55, -r, r * 0.55, r)
+        g.add_color_stop_rgba(0, 1, 1, 1, a)
+        g.add_color_stop_rgba(1, *c, a * 0.5)
+        cr.set_source(g)
+        cr.fill_preserve()
+        cr.set_line_width(0.7 * sc)
+        cr.set_source_rgba(1, 1, 1, a * 0.9)
+        cr.stroke()
+        cr.restore()
+
+
 def _fx(cr, w, h, t, fx, sc, A, R):  # noqa: C901 (her süs bir dal)
     c = rgb(fx.get("color"))
     c2 = rgb(fx.get("color2") or fx.get("color"))
@@ -262,6 +457,12 @@ def _fx(cr, w, h, t, fx, sc, A, R):  # noqa: C901 (her süs bir dal)
             cr.set_source(g)
             cr.rectangle(0, 0, w, h)
             cr.fill()
+    elif kind == "sea":
+        sea(cr, w, h, t, fx, sc, A)
+    elif kind == "prism":
+        prism(cr, w, h, t, fx, sc, A)
+    elif kind == "shards":
+        shards(cr, w, h, t, fx, sc, A)
     elif kind == "lightning":
         P = max(3, fx.get("speed") or 9)
         k = math.floor(t / P)

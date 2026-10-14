@@ -173,6 +173,8 @@ steps = [
     # Ada Place: adanın içindeki küçük temalardan süslü olanı seç (süsler hemen görünür)
     lambda: click("ada-tema-kuzey"),
     lambda: (cek("Shot", f"{OUT}/11b-kuzey-ozel.png"), kaydet("durum2b")),
+    lambda: click("ada-hareket-olaylarda"),  # Hareket adadan da seçilir
+    lambda: (kaydet("durum2c"), app.ada.action({"do": "set", "key": "ada_motion", "value": "canli"})),
     # Konumu değiştir: kilit açılır, ada sağa sürüklenir, "Bitti" ile kilitlenir.
     lambda: click("ada-konum"),
     lambda: (olc("kilitsiz"), cek("Shot", f"{OUT}/12-kilitsiz.png")),
@@ -244,6 +246,10 @@ steps = [
     lambda: (tema("pamuk"), app.on_event("media", {"device_id": "p", "state": {"active": False}})),
     *[lambda: None] * 6,  # büyük hâlden küçüğe dönsün
     lambda: (cek("Shot", f"{OUT}/23-bosta-pamuk.png"), olc("bosta"), olc_cls("ada-su")),
+    # Deniz manzarası büyük adada (çalarken)
+    lambda: (tema("deniz"), app.on_event("media", {"device_id": "p", "state": song("Firuze")})),
+    lambda: ensure_expanded(),
+    lambda: cek("Shot", f"{OUT}/24-deniz-buyuk.png"),
     lambda: app.quit(),
 ]
 i = [0]

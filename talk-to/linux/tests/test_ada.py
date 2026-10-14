@@ -85,7 +85,9 @@ class StateTest(unittest.TestCase):
         self.app.config.set("ada_cycle", False)  # bu test saatten bağımsız: temanın kendi renkleri
         st = self.ada.state()
         self.assertTrue(st["enabled"])
-        self.assertEqual(st["theme"], dict(ada.THEMES["deniz"]["colors"], fx=[]))
+        # Deniz bir manzara: saate göre kapalıyken güneş öğleden sonraki yerinde (13:00)
+        self.assertEqual(st["theme"], dict(ada.THEMES["deniz"]["colors"], fx=ada.THEMES["deniz"]["fx"]))
+        self.assertEqual([(f["type"], f["hour"]) for f in st["theme"]["fx"]], [("sea", 13.0)])
         self.assertIsNone(st["phone"])
         self.assertIsNone(st["media"])
         self.app.config.set("ada_theme", "gece")
@@ -243,19 +245,20 @@ class StateTest(unittest.TestCase):
         self.assertEqual(self.ada.seq, seq)
 
     def test_theme_follows_the_hour(self):
-        """Saate göre: Deniz gece yıldızlı, öğlen kendi renkleri; anahtar kapalıyken hep kendisi."""
+        """Saate göre: Deniz gece ayla, öğlen kendi renkleri; anahtar kapalıyken hep kendisi."""
         def at(hour):
             return mock.patch.object(ada.time, "localtime", lambda *a: time.struct_time(
                 (2026, 10, 13, hour, 0, 0, 1, 286, 0)))
         with at(23):
             st = self.ada.state()
-            self.assertEqual([f["type"] for f in st["theme"]["fx"]], ["stars"])
+            self.assertEqual([(f["type"], f["hour"]) for f in st["theme"]["fx"]], [("sea", 23.0)])
             self.assertNotEqual(st["theme"]["bg1"], ada.THEMES["deniz"]["colors"]["bg1"])
         with at(12):
             self.assertEqual(self.ada.state()["theme"]["bg1"], ada.THEMES["deniz"]["colors"]["bg1"])
         self.app.config.set("ada_cycle", False)
         with at(23):
-            self.assertEqual(self.ada.state()["theme"], dict(ada.THEMES["deniz"]["colors"], fx=[]))
+            self.assertEqual(self.ada.state()["theme"], dict(ada.THEMES["deniz"]["colors"],
+                                                              fx=ada.THEMES["deniz"]["fx"]))
 
     def test_same_state_not_sent_twice(self):
         """Durum değişmediyse eklentiye yeniden gönderilmez (adayı boşuna yeniden kurmasın)."""

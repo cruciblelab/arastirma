@@ -39,7 +39,8 @@ class ThemeTableTest(unittest.TestCase):
             self.assertIn(old, ada_temalar.THEMES)
         # tatlıdan havalıya: her grupta en az üç tema; kullanıcının istediği bulut ve sis var
         for g in ada_temalar.GROUPS:
-            self.assertGreaterEqual(sum(t["group"] == g for t in ada_temalar.THEMES.values()), 3, g)
+            if g != "destekci":  # destekçi şimdilik bir konsept tema
+                self.assertGreaterEqual(sum(t["group"] == g for t in ada_temalar.THEMES.values()), 3, g)
         used = {fx["type"] for t in ada_temalar.THEMES.values() for fx in t["fx"]}
         self.assertTrue({"clouds", "fog"} <= used)
 
@@ -57,10 +58,39 @@ class ThemeTableTest(unittest.TestCase):
                 c = ada_temalar.resolve(th, i / 6)["colors"]
                 self.assertGreaterEqual(ada_temalar.contrast(c["text"], ada_temalar.middle(c)), 3.5, (key, i / 6))
 
+    @unittest.skipUnless(HAVE_CAIRO, "pycairo yok")
+    def test_text_readable_on_real_pixels(self):
+        """Küçük adada yazının durduğu bölgedeki gerçek pikseller (zemin + süsler + manzara): en az %95'inde yazı
+        karşıtlığı ≥ 3. Saate göre değişenlerde günün her yarım saati."""
+        cairo = ada_sahne.cairo
+
+        def lum(c):
+            f = [v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4 for v in c]
+            return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]
+        for key, th0 in ada_temalar.THEMES.items():
+            hours = [i / 2 for i in range(48)] if "cycle" in th0 else [12]
+            for hour in hours:
+                th = ada_temalar.resolve(th0, hour)
+                c = th["colors"]
+                surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 300, 29)
+                cr = cairo.Context(surf)
+                ada_sahne.background(cr, 300, 29, c, 14.5)
+                ada_sahne.paint(cr, 300, 29, 9.3, th["fx"], radius=14.5)
+                surf.flush()
+                data, stride, tl = surf.get_data(), surf.get_stride(), lum(ada_sahne.rgb(c["text"]))
+                ok = tot = 0
+                for y in range(8, 22):
+                    for x in range(30, 250):
+                        i = y * stride + x * 4
+                        pl = lum((data[i + 2] / 255, data[i + 1] / 255, data[i] / 255))
+                        tot += 1
+                        ok += (max(tl, pl) + 0.05) / (min(tl, pl) + 0.05) >= 3
+                self.assertGreaterEqual(ok / tot, 0.95, (key, hour))
+
     def test_day_cycle(self):
         th = ada_temalar.THEMES["dongu"]
         noon, night = ada_temalar.resolve(th, 12), ada_temalar.resolve(th, 23.5)
-        self.assertEqual(noon["colors"]["bg1"], "#8ecae6")
+        self.assertEqual(noon["colors"]["bg1"], "#1f5f8b")
         self.assertEqual([f["type"] for f in noon["fx"]], ["clouds"])
         self.assertEqual(night["colors"]["bg1"], "#03045e")
         self.assertEqual([f["type"] for f in night["fx"]], ["stars"])
@@ -72,11 +102,13 @@ class ThemeTableTest(unittest.TestCase):
         # Sabit temalar saatten etkilenmez
         self.assertIs(ada_temalar.resolve(ada_temalar.THEMES["kuzey"], 3), ada_temalar.THEMES["kuzey"])
         # Deniz, Orman, Kar: isteğe bağlı; kapalıyken hep kendi renkleri, açıkken gece yıldız / ateş böceği
-        for key, night_fx in (("deniz", ["stars"]), ("orman", ["fireflies"]), ("kar", ["snow", "stars"])):
+        for key, night_fx in (("deniz", ["sea"]), ("orman", ["fireflies"]), ("kar", ["snow", "stars"])):
             t = ada_temalar.THEMES[key]
             self.assertIs(ada_temalar.resolve(t, 23, cycle_on=False), t)
             self.assertEqual([f["type"] for f in ada_temalar.resolve(t, 23)["fx"]], night_fx, key)
             self.assertEqual(ada_temalar.resolve(t, 12)["colors"]["bg1"], t["colors"]["bg1"], key)  # gündüz = kendisi
+        night = ada_temalar.resolve(ada_temalar.THEMES["deniz"], 23)["fx"][0]
+        self.assertEqual((night["type"], night["hour"]), ("sea", 23))  # manzarada ay, gece saatine göre
         # Pembe/tatlı ve havalı temalar saate göre değişmez
         for key in ("pamuk", "sakura", "kuzey", "neon", "gunbatimi", "gece"):
             self.assertNotIn("cycle", ada_temalar.THEMES[key], key)
