@@ -5,12 +5,15 @@ Gün döngüsü temasında (cycle) renkler ve süsler saate göre değişir: res
 Süsler (fx) adanın üstünden geçen saydam katmandır; çizimi gnome-ada/src/sahne.js (adada) ve
 talkto/ui/ada_sahne.py (önizlemede). Süs alanları: type, color, color2 (yalnızca aurora), alpha (0–1), count,
 size (px), speed (px/sn; glint ve lightning'de kaç saniyede bir), shoot (stars: kayan yıldız).
+touch: adaya dokununca dokunulan yerde beliren iz (yalnızca bazı temalarda): ripple (suda halkalar), burst (ışık
+patlaması ve saçılan kristaller).
 """
 
 GROUPS = {"tatli": "Tatlı", "sakin": "Sakin", "havali": "Havalı", "destekci": "Destekçi"}
 FX_TYPES = ("clouds", "fog", "stars", "snow", "petals", "bubbles", "hearts", "fireflies", "aurora", "rain", "neon",
             "glint", "lightning", "sea", "prism", "shards")
 COLOR_KEYS = ("bg1", "bg2", "wave1", "wave2", "text")
+TOUCH_TYPES = ("ripple", "burst")
 
 
 def _theme(name, group, desc, bg1, bg2, wave1, wave2, text, *fx):
@@ -45,10 +48,10 @@ THEMES = {
     # Deniz, Orman ve Kar isteğe bağlı saate göre değişir (cycle_optional; Ada sekmesindeki "Saate göre değişsin").
     # Gündüz hâlleri temanın kendi renkleri; akşam, gece ve şafak ona uygun.
     "deniz": dict(_theme("Deniz", "sakin", "Ufuk, dalgalar ve suda güneşin ya da ayın yansıması; saate göre akşam "
-                                           "ve gece",
+                                           "ve gece; dokununca suda halkalar",
                          "#1f5f8b", "#3a86b4", "#48cae4", "#ade8f4", "#f4fbff",
                          _sea("#0b6e99", "#034d73")),
-                  scene="sea", cycle_optional=True,  # renkler saate göre; manzara (sea) resolve'da kurulur
+                  scene="sea", touch="ripple", cycle_optional=True,  # renkler saate göre; manzara (sea) resolve'da kurulur
                   cycle=[(5.5, 6.5, {"bg1": "#2b2d55", "bg2": "#b5523b", "sea1": "#3d3a63", "sea2": "#1d2340",
                                      "wave1": "#f67280", "wave2": "#f8b195"}, []),
                          (8.0, 17.0, {"bg1": "#1f5f8b", "bg2": "#3a86b4", "sea1": "#0b6e99", "sea2": "#034d73",
@@ -125,11 +128,13 @@ THEMES = {
                     _fx("stars", "#f9e79f", 0.7, count=8, size=1.2, speed=8),
                     _fx("glint", "#fff3c4", 0.35, speed=5)),
     # --- destekçi (konsept: destek alanı gelince destekçilere teşekkür olarak; şimdilik herkes deneyebilir) ---
-    "prizma": _theme("Prizma", "destekci", "Dönen hologram renkleri, ışık kırılması ve süzülen kristaller",
-                     "#120e2e", "#2a1a5e", "#9b5de5", "#00bbf9", "#f8f7ff",
-                     _fx("prism", "#ffffff", 0.32, speed=10),
-                     _fx("shards", "#ffffff", 0.6, count=6, size=3.5, speed=7),
-                     _fx("glint", "#ffffff", 0.3, speed=6)),
+    "prizma": dict(_theme("Prizma", "destekci", "Dönen hologram renkleri, ışık kırılması ve süzülen kristaller; "
+                                                "dokununca ışık patlaması",
+                          "#120e2e", "#2a1a5e", "#9b5de5", "#00bbf9", "#f8f7ff",
+                          _fx("prism", "#ffffff", 0.32, speed=10),
+                          _fx("shards", "#ffffff", 0.6, count=6, size=3.5, speed=7),
+                          _fx("glint", "#ffffff", 0.3, speed=6)),
+                   touch="burst"),
 }
 DEFAULT = "deniz"
 
@@ -226,4 +231,6 @@ def problems():
                 out.append(f"{key}: süs {fx['type']}")
             if not 0 < fx["alpha"] <= 1 or not 0 <= fx["count"] <= 24 or not 0 < fx["size"] <= 16:
                 out.append(f"{key}: süs ölçüsü {fx}")
+        if th.get("touch", "") not in ("",) + TOUCH_TYPES:
+            out.append(f"{key}: dokunma {th['touch']}")
     return out

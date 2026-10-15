@@ -128,6 +128,9 @@ class ThemeTableTest(unittest.TestCase):
             names = re.findall(r"^    (?:static )?(\w+)\(.*\) \{$", cls, re.M)
             dup = {n for n in names if names.count(n) > 1}
             self.assertEqual(dup, set(), cls.split("\n", 1)[0])
+            # Alan adı da yöntemi ezer (saatin alanı _clock, saniye sayan _clock() yöntemini ezmişti)
+            fields = set(re.findall(r"this\.(\w+) = ", cls))
+            self.assertEqual(fields & set(names), set(), cls.split("\n", 1)[0])
 
     def test_build_puts_scene_into_extension(self):
         import importlib.util

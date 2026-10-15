@@ -67,6 +67,7 @@ class AdaService:
         self._active, self._active_checked = False, -1e9  # kabuktaki eklenti çalışıyor mu (15 sn önbellek)
         self._emit_id = 0
         self._sent = None  # eklentiye son gönderilen durum (aynısı yeniden gönderilmez)
+        self.motion_override = None  # ölçüm sırasında geçici hareket (ayara yazılmaz)
         # Gün döngüsü teması saate göre değişir: beş dakikada bir durum yeniden hesaplanır (değişmediyse
         # eklentiye bir şey gitmez).
         GLib.timeout_add_seconds(300, self._cycle_tick)
@@ -185,10 +186,10 @@ class AdaService:
                             "level": low[0]["battery"]["level"], "weak": weak[low[0]["device_id"]]}
             if low else None,
             "enabled": bool(cfg["ada_enabled"]),
-            "theme": dict(theme["colors"], fx=theme["fx"]),
+            "theme": dict(theme["colors"], fx=theme["fx"], touch=theme.get("touch", "")),
             "theme_id": theme_id,
             "themes": [dict(t["colors"], id=k, name=t["name"], group=t["group"], fx=t["fx"]) for k, t in themes.items()],
-            "motion": cfg["ada_motion"] if cfg["ada_motion"] in MOTIONS else "canli",
+            "motion": self.motion_override or (cfg["ada_motion"] if cfg["ada_motion"] in MOTIONS else "canli"),
             "motions": [{"id": k, "name": name} for k, (name, _hint) in MOTIONS.items()],
             "idle_pause": max(5, int(cfg["ada_idle_pause"] or 60)),
             "battery_slow": bool(cfg["ada_battery_slow"]),

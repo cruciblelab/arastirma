@@ -217,8 +217,11 @@ class Sky {
         const [w, h] = area.get_surface_size();
         sahneBackground(cr, w, h, this.ada.theme, this.radius);
         if (this.ada.skyOn) {
-            sahnePaint(cr, w, h, this.ada.fxTime(), this.ada.theme.fx || [],
-                {radius: this.radius, alpha: this.ada.expanded ? 0.55 : 1});
+            const fx = this.ada.theme.fx || [], A = this.ada.skyAlpha();
+            if (this.ada.scene.ready)  // kıpırdayanlar kendi katmanlarında (Scene)
+                sceneBack(cr, w, h, fx, this.radius, A);
+            else
+                sahnePaint(cr, w, h, this.ada.fxTime(), fx, {radius: this.radius, alpha: A});
         }
         cr.$dispose();
     }
@@ -278,6 +281,451 @@ class Water {
 
     repaint() {
         this.actor.queue_repaint();
+    }
+}
+
+// Katmanlı sahne (Deniz, Prizma): ağır çizim bir kez yapılır (Deniz'de gök cismi ve deniz zeminde, Sky); kıpırdayan
+// parçalar (dalga sıraları, pırıltılar, yıldızlar, martılar; Prizma'da renk geçişleri, ışık demetleri, kristaller,
+// parıltı) ayrı küçük katmanlardır. Her karede yeniden çizilmezler: ekran kartı yerlerini, saydamlıklarını, açılarını
+// değiştirir; kabuğa düşen iş birkaç sayı. Dalgayla aynı karede, saniyede 15 kare (eskiden Deniz 4, büyükken 2 kare
+// çiziliyordu: takılıyor, duruyor gibi görünüyordu).
+// Dokununca (temanın "touch" alanı): Deniz'de suda halkalar, Prizma'da ışık patlaması.
+const SCENE_FPS = 15;
+const SCENE_IDLE_FPS = 10;  // bir şey çalmazken (dalga durgun) sahne daha seyrek
+const SCENE_TYPES = ['sea', 'prism', 'shards', 'glint'];
+const SCENE_ALPHA_BIG = 0.85;  // büyük adada manzara az soluk (öteki temaların süsleri 0.55)
+
+function sceneTheme(theme) {  // bütün süsleri katman olarak çizilebiliyor mu
+    const fx = (theme && theme.fx) || [];
+    return fx.length > 0 && fx.every(f => SCENE_TYPES.includes(f.type));
+}
+
+// Sahnenin zemine (Sky) bir kez çizilen kısmı.
+function sceneBack(cr, w, h, fxList, R, A) {
+    cr.save();
+    sahneShape(cr, w, h, R);
+    cr.clip();
+    for (const fx of fxList) {
+        if (fx.type === 'sea') {
+            const g = sahneSeaGeo(w, h, fx, 1);
+            sahneSeaBody(cr, h, g, A);
+            sahneSeaWater(cr, w, h, g, fx, 1, A);
+        }
+    }
+    cr.restore();
+}
+
+// Bir kez çizilen katman (Cairo); boyutu değişmedikçe yeniden çizilmez.
+function sceneLayer(parent, x, y, w, h, paint, cls) {
+    const a = new St.DrawingArea({x: Math.round(x), y: Math.round(y), width: Math.max(1, Math.ceil(w)),
+        height: Math.max(1, Math.ceil(h)), reactive: false});
+    if (cls)
+        a.add_style_class_name(cls);
+    a.connect('repaint', area => {
+        const cr = area.get_context();
+        paint(cr);
+        cr.$dispose();
+    });
+    parent.add_child(a);
+    return a;
+}
+
+// Alt kenarı yuvarlaktan yumuşakça silinen katman (yalnızca yana kayanlar için: köşelerden taşmasın).
+function sceneFadeBottom(cr, h, R, draw) {
+    cr.pushGroup();
+    draw();
+    cr.popGroupToSource();
+    const m = new Cairo.LinearGradient(0, h - R, 0, h);
+    m.addColorStopRGBA(0, 0, 0, 0, 1);
+    m.addColorStopRGBA(0.6, 0, 0, 0, 0.15);
+    m.addColorStopRGBA(1, 0, 0, 0, 0);
+    cr.mask(m);
+}
+
+class Scene {
+    constructor(ada) {
+        this.ada = ada;
+        this.actor = new St.Widget({reactive: false, visible: false, clip_to_allocation: true,
+            style_class: 'ada-sahne'});
+        this.parts = new St.Widget();    // kıpırdayan katmanlar
+        this.touches = new St.Widget();  // dokunma izleri
+        this.actor.add_child(this.parts);
+        this.actor.add_child(this.touches);
+        this.steps = [];
+        this.effects = [];   // süren dokunma izleri
+        this.key = '';
+        this.on = false;     // tema katmanlı ve ada süslü hâlde
+        this.ready = false;  // katmanlar kuruldu (kurulana dek zemin bütün resmi çizer)
+    }
+
+    destroy() {
+        this.ada._cancel('scene');
+        if (this._fxTimer)
+            GLib.source_remove(this._fxTimer);
+        this._fxTimer = 0;
+        this.actor.destroy();
+    }
+
+    // Tema ya da boyut değişti: katmanları yeniden kur. Ada büyüyüp küçülürken boyut her karede değişir: durulunca
+    // kurulur (o arada zemin bütün resmi çizer).
+    update() {
+        const ada = this.ada;
+        const w = Math.round(this.actor.width), h = Math.round(this.actor.height);
+        this.on = !!ada.skyOn && sceneTheme(ada.theme);
+        const key = this.on ? JSON.stringify([ada.theme.fx, w, h, ada.sky.radius, ada.skyAlpha()]) : '';
+        if (key === this.key)
+            return;
+        this.key = key;
+        const was = this.ready;
+        this.ready = false;
+        this.steps = [];
+        this.parts.destroy_all_children();
+        ada._cancel('scene');
+        if (was)
+            ada.sky.repaint();
+        if (!this.on || w < 8 || h < 8)
+            return;
+        ada._timers.scene = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 180, () => {
+            delete ada._timers.scene;
+            this._build(w, h);
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _build(w, h) {
+        const ada = this.ada;
+        const R = Math.max(0, Math.min(ada.sky.radius || 18, h / 2, w / 2));
+        const A = ada.skyAlpha();
+        this.parts.set_size(w, h);
+        this.touches.set_size(w, h);
+        this.hz = 0;
+        for (const fx of ada.theme.fx || []) {
+            if (fx.type === 'sea')
+                this._sea(w, h, R, fx, A);
+            else if (fx.type === 'prism')
+                this._prism(w, h, R, fx, A);
+            else if (fx.type === 'shards')
+                this._shards(w, h, R, fx, A);
+            else if (fx.type === 'glint')
+                this._glint(w, h, R, fx, A);
+        }
+        this.ready = true;
+        this.step(ada.fxTime());
+        ada.sky.repaint();  // zemin artık yalnızca kıpırdamayan kısmı çizer
+        log(`Talk To ada: sahne kuruldu (${(ada.theme.fx || []).map(f => f.type).join(', ')}; ` +
+            `${this.parts.get_n_children()} katman, ${w}×${h})`);
+        ada._anim();
+    }
+
+    step(t) {
+        if (!this.ready)
+            return;
+        for (const f of this.steps)
+            f(t);
+    }
+
+    _layer(x, y, w, h, paint, parent = this.parts) {
+        return sceneLayer(parent, x, y, w, h, paint);
+    }
+
+    // Alt köşeler yuvarlak: y yüksekliğinde kenardan ne kadar içeride kalınmalı.
+    _inset(y, h, R) {
+        const d = y - (h - R);
+        return d <= 0 ? 0 : R - Math.sqrt(Math.max(0, R * R - d * d));
+    }
+
+    _sea(w, h, R, fx, A) {
+        const g = sahneSeaGeo(w, h, fx, 1);
+        this.hz = g.hz;
+        // Yıldızlar (gece): üç küme ayrı ayrı yanıp söner; ayın/güneşin üstüne düşenler yok
+        if (g.night > 0) {
+            for (let k = 0; k < 3; k++) {
+                const a = this._layer(0, 0, w, g.hz + 2, cr => {
+                    for (let i = k; i < g.stars; i += 3) {
+                        const dx = sahneRnd(i, 11) * w - g.bx, dy = sahneRnd(i, 12) * g.hz * 0.92 - g.by;
+                        if (Math.hypot(dx, dy) > g.br * 1.4)
+                            sahneSeaStar(cr, w, g, i, 1, A, 1);
+                    }
+                });
+                this.steps.push(t => {
+                    a.opacity = Math.round(255 * (0.25 + 0.55 * sahneSeaStarTw(k * 5 + 2, t)) / 0.8);
+                });
+            }
+        }
+        // Martılar (gündüz, büyük adada): uçar, kanat çırpar
+        if (g.day && h >= 60) {
+            for (let i = 0; i < 2; i++) {
+                const s = Math.ceil(2 * (4 + 1.5 * i) + 6);
+                const a = this._layer(0, 0, s, s, cr => sahneSeaGull(cr, s / 2, s / 2, i, 0.45, 1, A));
+                a.set_pivot_point(0.5, 0.5);
+                this.steps.push(t => {
+                    const [gx, gy, flap] = sahneSeaGullAt(w, g, i, t, 1);
+                    a.translation_x = gx - s / 2;
+                    a.translation_y = gy - s / 2;
+                    a.scale_y = flap / 0.45;
+                });
+            }
+        }
+        // Dalga sıraları: her biri kendi hızında kayar (yakındakiler hızlı, ufuktakiler ağır: derinlik)
+        for (let j = 1; j <= g.rows; j++) {
+            const r = sahneSeaRowGeo(h, g, j, 1);
+            const top = Math.floor(r.y0 - r.amp - r.lw - 1), bot = Math.ceil(r.y0 + r.amp + r.lw + 1);
+            const ins = Math.ceil(this._inset(bot, h, R));
+            const W = w - 2 * ins, L = r.len;
+            if (W < 4 || bot - top < 2)
+                continue;
+            const box = new St.Widget({x: ins, y: top, width: W, height: bot - top, clip_to_allocation: true});
+            this.parts.add_child(box);
+            const tex = this._layer(0, 0, W + L + 6, bot - top, cr => {
+                cr.translate(-ins, -top);
+                sahneSeaRow(cr, r, ins, ins + W + L + 6, j * 1.7, A);
+            }, box);
+            this.steps.push(t => {
+                tex.translation_x = -sahneWrap(t * r.speed * L / SAHNE_TAU, L);
+            });
+        }
+        // Yansıma yolu: dört küme ayrı ayrı yanıp söner, hafifçe yana salınır
+        if (g.up > 0) {
+            const half = g.br * 2.8 * 1.15 + 3;
+            const x0 = Math.max(0, Math.floor(g.bx - half)), x1 = Math.min(w, Math.ceil(g.bx + half));
+            const y0 = Math.max(0, Math.floor(g.hz - 2));
+            for (let k = 0; k < 4; k++) {
+                const a = this._layer(x0, y0, x1 - x0, h - y0, cr => {
+                    cr.translate(-x0, -y0);
+                    sahneShape(cr, w, h, R);
+                    cr.clip();
+                    for (let i = 0; i < g.glints; i++) {
+                        for (let j = 0, n = sahneSeaGlintCount(g, i); j < n; j++) {
+                            if ((i * 3 + j) % 4 === k)
+                                sahneSeaGlint(cr, h, g, i, j, 0, 1, 1, A);
+                        }
+                    }
+                });
+                this.steps.push(t => {
+                    a.opacity = Math.round(255 * (0.35 + 0.65 * Math.max(0, Math.sin(t * (1.4 + 0.45 * k) + k * 1.9))));
+                    a.translation_x = Math.sin(t * (0.6 + 0.25 * k) + k) * g.br * 0.12;
+                });
+            }
+        }
+    }
+
+    _prism(w, h, R, fx, A) {
+        const a = (fx.alpha === undefined ? 0.35 : fx.alpha) * A;
+        const K = 6, deg = 12 * (fx.speed || 10) / 10;  // renkler saniyede kaç derece döner
+        // Renk geçişleri: altı hazır resim sırayla birbirine karışır (renkler akıyor gibi)
+        const frames = [];
+        for (let k = 0; k < K; k++) {
+            frames.push(this._layer(0, 0, w, h, cr => {
+                sahneShape(cr, w, h, R);
+                cr.clip();
+                sahnePrismWash(cr, w, h, k * 360 / K, 0, a, false);
+            }));
+        }
+        let top = -1;
+        this.steps.push(t => {
+            const q = sahneWrap(t * deg / (360 / K), K), i0 = Math.floor(q) % K, i1 = (i0 + 1) % K;
+            if (top !== i1) {
+                top = i1;
+                this.parts.set_child_above_sibling(frames[i1], frames[i0]);
+                frames.forEach((f, i) => {
+                    f.visible = i === i0 || i === i1;
+                });
+            }
+            frames[i0].opacity = 255;
+            frames[i1].opacity = Math.round(255 * (q - Math.floor(q)));
+        });
+        // Işık demetleri: çapraz, ağır ağır kayar
+        for (let i = 0; i < 3; i++) {
+            const bw = sahnePrismBeamAt(w, i, 0, 1)[1], k = 0.45 * h, cx = k + bw + 2;
+            const b = this._layer(0, 0, 2 * bw + k + 4, h, cr => {
+                sceneFadeBottom(cr, h, R, () => sahnePrismBeam(cr, cx, bw, k, h, a));
+            });
+            this.steps.push(t => {
+                b.translation_x = sahnePrismBeamAt(w, i, t, 1)[0] - cx;
+            });
+        }
+    }
+
+    _shards(w, h, R, fx, A) {
+        const n = fx.count || 0, s = fx.size || 4, v = fx.speed || 10;
+        const a = (fx.alpha === undefined ? 0.6 : fx.alpha) * A;
+        for (let i = 0; i < n; i++) {
+            const r = s * (0.7 + 0.8 * sahneRnd(i, 31)), z = Math.ceil(2 * r + 4);
+            const lo = R + r + s, room = Math.max(0, w - 2 * lo);
+            const x0 = lo + sahneRnd(i, 34) * room;  // yuvarlak köşelere değmesin
+            const c = sahneHsl(i * 47 + 200, 0.8, 0.7);
+            const d = this._layer(0, 0, z, z, cr => {
+                cr.translate(z / 2, z / 2);
+                sahneShard(cr, r, c, a, 1);
+            });
+            d.set_pivot_point(0.5, 0.5);
+            const dir = sahneRnd(i, 36) > 0.5 ? 1 : -1, spin = 0.6 + sahneRnd(i, 35);
+            this.steps.push(t => {
+                const span = h + 4 * r;
+                const y = h + 2 * r - sahneWrap(sahneRnd(i, 32) * span + t * v * (0.5 + 0.6 * sahneRnd(i, 33)), span);
+                d.translation_x = x0 + Math.sin(t * 0.9 + i * 1.7) * s - z / 2;
+                d.translation_y = y - z / 2;
+                d.rotation_angle_z = (t * spin * dir + i) * 180 / Math.PI;
+            });
+        }
+    }
+
+    _glint(w, h, R, fx, A) {
+        const P = Math.max(2, fx.speed || 5), bw = w * 0.18, rgb = sahneRgb(fx.color);
+        const a = (fx.alpha === undefined ? 0.5 : fx.alpha) * A;
+        const left = bw + 0.3 * h * h / bw + 1, W = 2 * bw + 0.48 * h * h / bw + 2;
+        const gl = this._layer(0, 0, W, h, cr => {
+            sceneFadeBottom(cr, h, R, () => sahneGlint(cr, W, h, left, bw, rgb, a));
+        });
+        this.steps.push(t => {
+            const p = sahneWrap(t, P) / 1.4;
+            gl.visible = p < 1;
+            if (p < 1)
+                gl.translation_x = -w * 0.3 + p * w * 1.6 - left;
+        });
+    }
+
+    // ---- dokunma izi ----
+
+    // x, y sahnenin içinde. Adanın biçiminden taşmaz: kenara ya da yuvarlak köşeye yakınsa küçülür.
+    touch(x, y) {
+        const kind = this.ada.theme.touch;
+        if (!kind || !this.actor.visible || !this.on)
+            return;
+        const w = this.actor.width, h = this.actor.height;
+        const R = Math.max(0, Math.min(this.ada.sky.radius || 18, h / 2, w / 2));
+        let corner = Infinity;
+        if (y > h - R && (x < R || x > w - R))
+            corner = R - Math.hypot(x - (x < R ? R : w - R), y - (h - R));
+        const room = {x: Math.min(x, w - x) - 1, y: h - y - 1, c: corner - 1};
+        if (kind === 'ripple')
+            this._ripple(x, y, room, h);
+        else if (kind === 'burst')
+            this._burst(x, y, room);
+    }
+
+    _spawn(x, y, s, paint) {
+        const a = sceneLayer(this.touches, x - s / 2, y - s / 2, s, s, paint, 'ada-dokunma');
+        a.set_pivot_point(0.5, 0.5);
+        return a;
+    }
+
+    // İzin canlandırması kendi kısa saatiyle (saniyede 40 kare, iz bitince durur). GNOME'un ease'i yeni eklenen
+    // katmanda kimi zaman hiç başlamıyordu: iz ya hemen siliniyor ya da yarıda kalıp ekranda asılı duruyordu.
+    // step(u): u 0'dan 1'e; bitince katman silinir.
+    _play(actor, ms, delay, step) {
+        step(0);
+        this.effects.push({actor, step, ms, t0: GLib.get_monotonic_time() / 1000 + delay});
+        if (!this._fxTimer)
+            this._fxTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 25, () => this._effectsTick());
+    }
+
+    _effectsTick() {
+        const now = GLib.get_monotonic_time() / 1000;
+        this.effects = this.effects.filter(e => {
+            const u = Math.max(0, Math.min(1, (now - e.t0) / e.ms));
+            e.step(u);
+            if (u < 1)
+                return true;
+            e.actor.destroy();
+            return false;
+        });
+        if (this.effects.length)
+            return GLib.SOURCE_CONTINUE;
+        this._fxTimer = 0;
+        return GLib.SOURCE_REMOVE;
+    }
+
+    // Deniz: dokunulan yerde suda genişleyip sönen halkalar (gökte yuvarlak, suda yassı: perspektif)
+    _ripple(x, y, room, h) {
+        const flat = y > (this.hz || h * 0.38) ? 0.42 : 1;
+        const rx = Math.min(34, room.x, room.y / flat, room.c);
+        if (rx < 4)
+            return;
+        const ry = rx * flat, s = Math.ceil(2 * rx + 6);
+        for (let k = 0; k < 3; k++) {
+            const ring = this._spawn(x, y, s, cr => {
+                cr.save();
+                cr.translate(s / 2, s / 2);
+                cr.scale(rx, ry);
+                cr.arc(0, 0, 1, 0, SAHNE_TAU);
+                cr.restore();
+                cr.setLineWidth(2.2 - k * 0.4);
+                cr.setSourceRGBA(1, 1, 1, 0.95 - k * 0.2);
+                cr.strokePreserve();
+                cr.setSourceRGBA(1, 1, 1, 0.07);  // halkanın içi hafifçe parlar
+                cr.fill();
+            });
+            this._play(ring, 1100, k * 170, u => {
+                const e = 1 - (1 - u) * (1 - u), sc = 0.12 + 0.88 * e;
+                ring.set_scale(sc, sc);
+                ring.opacity = Math.round(255 * (1 - u));
+            });
+        }
+        const dot = this._spawn(x, y, 10, cr => {
+            const g = new Cairo.RadialGradient(5, 5, 0, 5, 5, 5);
+            g.addColorStopRGBA(0, 1, 1, 1, 0.9);
+            g.addColorStopRGBA(1, 1, 1, 1, 0);
+            cr.setSource(g);
+            cr.paint();
+        });
+        this._play(dot, 380, 0, u => {
+            dot.set_scale(1 + 0.6 * u, (1 + 0.6 * u) * flat);
+            dot.opacity = Math.round(255 * (1 - u));
+        });
+    }
+
+    // Prizma: dokunulan yerde dönerek açılan gökkuşağı halkalı ışık ve dört yana saçılan kristaller
+    _burst(x, y, room) {
+        const lim = Math.min(room.x, room.y, room.c);
+        const F = Math.min(22, lim);
+        if (F < 5)
+            return;
+        const s = Math.ceil(2 * F + 4);
+        const flare = this._spawn(x, y, s, cr => {
+            const c0 = s / 2;
+            const core = new Cairo.RadialGradient(c0, c0, 0, c0, c0, F * 0.5);
+            core.addColorStopRGBA(0, 1, 1, 1, 0.95);
+            core.addColorStopRGBA(1, 1, 1, 1, 0);
+            cr.setSource(core);
+            cr.paint();
+            cr.setLineWidth(F * 0.16);
+            for (let i = 0; i < 6; i++) {
+                const c = sahneHsl(i * 60, 0.9, 0.65);
+                cr.setSourceRGBA(c[0], c[1], c[2], 0.75);
+                cr.arc(c0, c0, F * 0.72, i * Math.PI / 3, (i + 1) * Math.PI / 3);
+                cr.stroke();
+            }
+            cr.setLineWidth(1);
+            cr.setSourceRGBA(1, 1, 1, 0.6);
+            for (let i = 0; i < 4; i++) {
+                const q = i * Math.PI / 2 + Math.PI / 4;
+                cr.moveTo(c0 + Math.cos(q) * F * 0.15, c0 + Math.sin(q) * F * 0.15);
+                cr.lineTo(c0 + Math.cos(q) * F, c0 + Math.sin(q) * F);
+                cr.stroke();
+            }
+        });
+        this._play(flare, 720, 0, u => {
+            const e = 1 - Math.pow(1 - u, 3), sc = 0.2 + 0.8 * e;
+            flare.set_scale(sc, sc);
+            flare.rotation_angle_z = 70 * e;
+            flare.opacity = Math.round(255 * (1 - u * u));
+        });
+        const D = Math.max(0, Math.min(30, lim - 4));
+        for (let i = 0; i < 6; i++) {
+            const q = (i * 60 + 20) * Math.PI / 180, c = sahneHsl(i * 60, 0.85, 0.7);
+            const sp = this._spawn(x, y, 10, cr => {
+                cr.translate(5, 5);
+                sahneShard(cr, 3.4, c, 0.95, 1);
+            });
+            this._play(sp, 680, 0, u => {
+                const e = 1 - (1 - u) * (1 - u);
+                sp.translation_x = Math.cos(q) * D * e;
+                sp.translation_y = Math.sin(q) * D * e;
+                sp.rotation_angle_z = 200 * e;
+                sp.opacity = Math.round(255 * (1 - u));
+            });
+        }
     }
 }
 
@@ -370,22 +818,25 @@ class Ada {
         Main.layoutManager.addTopChrome(this.spill.actor, {affectsInputRegion: false, trackFullscreen: true});
         this.sky = new Sky(this);
         Main.layoutManager.addTopChrome(this.sky.actor, {affectsInputRegion: false, trackFullscreen: true});
+        this.scene = new Scene(this);
+        Main.layoutManager.addTopChrome(this.scene.actor, {affectsInputRegion: false, trackFullscreen: true});
         this.water = new Water(this);
         this.waves.push(this.water);
         Main.layoutManager.addTopChrome(this.water.actor, {affectsInputRegion: false, trackFullscreen: true});
         // GNOME bildirimleri de ekranın üst ortasında çıkar: adanın altında kalmasınlar, üstünde görünsünler.
-        // Sıra (alttan): taşan su, zemin (süsler), adanın suyu, ada (yazılar), bildirimler.
-        for (const actor of [this.spill.actor, this.sky.actor, this.water.actor, this.box])
+        // Sıra (alttan): taşan su, zemin (süsler), sahnenin katmanları, adanın suyu, ada (yazılar), bildirimler.
+        for (const actor of [this.spill.actor, this.sky.actor, this.scene.actor, this.water.actor, this.box])
             this._belowTray(actor);
         this._sigs = [
             [this.box, this.box.connect('notify::width', () => this._place())],
             [this.box, this.box.connect('notify::height', () => this._place())],
             [this.box, this.box.connect('notify::scale-x', () => this._place())],
             [this.box, this.box.connect('notify::opacity', () => {
-                this.sky.actor.opacity = this.water.actor.opacity = this.box.opacity;
+                this.sky.actor.opacity = this.scene.actor.opacity = this.water.actor.opacity = this.box.opacity;
             })],
             [this.box, this.box.connect('notify::translation-x', () => {  // sallanınca zemin ve su da sallansın
-                this.sky.actor.translation_x = this.water.actor.translation_x = this.box.translation_x;
+                this.sky.actor.translation_x = this.scene.actor.translation_x = this.water.actor.translation_x =
+                    this.box.translation_x;
             })],
             // Tam ekran uygulamada ada gizlenir (görünmez): saat durur. Kilitlenince de.
             [this.box, this.box.connect('notify::mapped', () => this._anim())],
@@ -420,6 +871,7 @@ class Ada {
         if (this._upower && this._upowerSig)
             this._upower.disconnect(this._upowerSig);
         this._upower = null;
+        this._clockStop();
         for (const id of Object.values(this._timers))
             GLib.source_remove(id);
         this._timers = {};
@@ -433,6 +885,8 @@ class Ada {
         this.spill.actor.destroy();
         Main.layoutManager.removeChrome(this.sky.actor);
         this.sky.actor.destroy();
+        Main.layoutManager.removeChrome(this.scene.actor);
+        this.scene.destroy();
         Main.layoutManager.removeChrome(this.water.actor);
         this.water.actor.destroy();
         Main.layoutManager.removeChrome(this.box);
@@ -605,6 +1059,10 @@ class Ada {
         if (node)
             this.sky.radius = node.get_border_radius(St.Corner.BOTTOMLEFT) * this.box.scale_x;
         this.sky.repaint();
+        const sa = this.scene.actor;
+        sa.set_size(k.width, k.height);
+        sa.set_position(k.x, k.y);
+        this.scene.update();
         // Su: adanın alt kenarında bir şerit (ince şeritte şeridin tamamı)
         const thin = this.thin && !this.peek && !this.expanded;
         const wh = thin ? bh : Math.min(11, Math.round(bh * 0.4));
@@ -635,6 +1093,13 @@ class Ada {
         return motion;
     }
 
+    // Büyük adada süsler soluk (yazılar okunsun); katmanlı manzara (Deniz, Prizma) az soluk.
+    skyAlpha() {
+        if (!this.expanded)
+            return 1;
+        return sceneTheme(this.theme) ? SCENE_ALPHA_BIG : 0.55;
+    }
+
     fxTime() {
         const m = this._fxMotion();
         if (m === 'durgun')
@@ -648,9 +1113,10 @@ class Ada {
         const st = this.state || {};
         const fx = (this.theme && this.theme.fx) || [];
         const thinShown = this.thin && !this.peek && !this.expanded;
-        this.sky.actor.visible = this.box.visible;
+        this.sky.actor.visible = this.scene.actor.visible = this.box.visible;
         this.skyOn = fx.length > 0 && this.box.visible && !st.call && !thinShown;
-        this.sky.actor.opacity = this.water.actor.opacity = this.box.opacity;
+        this.sky.actor.opacity = this.scene.actor.opacity = this.water.actor.opacity = this.box.opacity;
+        this.scene.update();
         this.sky.repaint();
         // Su normal hâlde ve ince şeritte (büyükken çalan sayfasının kendi dalgası var)
         this.water.actor.visible = this.box.visible && !this.expanded && !this.moving;
@@ -683,17 +1149,20 @@ class Ada {
         const target = this.loading ? 0.1 : this.waveOn ? 0.22 : 0.05;
         const wave = this.waveOn || Math.abs(this.amp - target) > 0.002 ? WAVE_FPS : 0;
         let fx = 0;
-        if (this.skyOn) {
+        const scene = this.scene.on && this.scene.ready ? (wave ? SCENE_FPS : SCENE_IDLE_FPS) : 0;
+        if (this.skyOn && !this.scene.on) {
             for (const f of this.theme.fx || [])
                 fx = Math.max(fx, FX_FPS[f.type] || 12);
             if (this.expanded)  // büyükken süslerin alanı büyük, kendileri soluk: daha seyrek çizilir
                 fx = Math.round(fx / 2);
         }
         const swatch = this.custom && this.expanded && this.swatches.length ? SWATCH_FPS : 0;
-        const fps = Math.max(wave, fx, swatch);
+        const fps = Math.max(wave, fx, swatch, scene);
+        this._slow = motion === 'yavas' ? 2 : 1;
         // Zemin (süsler, manzara) kendi hızında çizilir: dalga 15 kare isterken deniz manzarası 4 karede kalır
         this._skyEvery = fx ? 1 / (motion === 'yavas' ? Math.max(1, fx / 2) : fx) : 0;
-        this._why = `${motion}${wave ? ', dalga' : ''}${fx ? ', süsler' : ''}${swatch ? ', mini adalar' : ''}`;
+        this._why = `${motion}${wave ? ', dalga' : ''}${fx ? ', süsler' : ''}${scene ? ', sahne' : ''}` +
+            `${swatch ? ', mini adalar' : ''}`;
         if (!fps)
             this._why = 'canlanacak bir şey yok';
         return motion === 'yavas' ? Math.round(fps / 2) : fps;
@@ -719,25 +1188,47 @@ class Ada {
         }
         if (this._timers.anim && fps === this._animFps)
             return;
-        if (this._timers.anim) {
-            GLib.source_remove(this._timers.anim);
-            delete this._timers.anim;
-        }
+        this._clockStop();
         this._animFps = fps;
         if (!fps) {
             this._settleWave();
+            this.scene.step(this.fxTime());
             return;
         }
-        this._animLast = GLib.get_monotonic_time() / 1e6;
-        this._timers.anim = GLib.timeout_add(GLib.PRIORITY_DEFAULT, Math.round(1000 / fps), () => this._frame());
+        // Tek zamanlayıcı: dalga, zemin, sahne aynı karede güncellenir; kabuk her karede bir kez çizer. (Ekranın
+        // kendi kare saatine, Clutter.Timeline'a bağlamak denendi: kabuk durmadan çizdi, sanal ekranda işlemci
+        // %7'den %80'e çıktı.)
+        this._last = {};
+        this._waveLast = GLib.get_monotonic_time() / 1e6;
+        this._timers.anim = GLib.timeout_add(GLib.PRIORITY_DEFAULT, Math.round(1000 / fps), () => {
+            this._tick();
+            return GLib.SOURCE_CONTINUE;
+        });
     }
 
-    _frame() {
+    _clockStop() {
+        this._cancel('anim');
+    }
+
+    // Parçanın sırası geldi mi (every saniyede bir); gecikse de tempo kaymaz.
+    _due(name, every, now) {
+        const last = this._last[name];
+        if (last !== undefined && now - last < every - 0.01)
+            return false;
+        this._last[name] = last !== undefined && now - last < 2 * every ? last + every : now;
+        return true;
+    }
+
+    _tick() {
         const now = GLib.get_monotonic_time() / 1e6;
-        const k = Math.min(6, (now - this._animLast) / 0.04);  // eski 40 ms'lik adımlara göre
-        this._animLast = now;
+        const slow = this._slow || 1;
+        let ran = false;
         const target = this.loading ? 0.1 : this.waveOn ? 0.22 : 0.05;
-        if (this.waveOn || Math.abs(this.amp - target) > 0.002) {
+        const waving = this.waveOn || Math.abs(this.amp - target) > 0.002;
+        if (waving && this._due('wave', slow / WAVE_FPS, now)) {
+            const dt = now - this._waveLast;
+            const k = Math.min(6, (dt > 0.25 ? 1 / WAVE_FPS : dt) / 0.04);  // eski 40 ms'lik adımlara göre
+            this._waveLast = now;
             // Çalarken dalga akar; duraklayınca yavaşlayıp durulur (birden donmaz).
             this.amp += (target - this.amp) * (1 - Math.pow(0.92, k));
             this.phase += (0.03 + 0.09 * ((this.amp - 0.05) / 0.17)) * k;
@@ -746,20 +1237,24 @@ class Ada {
             for (const w of this.waves)
                 w.repaint();
             this._spillUpdate();
+            ran = true;
         }
-        if (this.skyOn && now - (this._skyLast || 0) >= this._skyEvery - 0.01) {
-            this._skyLast = now;
+        if (this.skyOn && this._skyEvery && this._due('sky', this._skyEvery, now)) {
             this.sky.repaint();
+            ran = true;
         }
-        for (const a of this.swatches)
-            a.queue_repaint();
-        if (this._fps() !== this._animFps) {
-            delete this._timers.anim;
-            this._animFps = -1;
+        const sceneEvery = slow / (waving ? SCENE_FPS : SCENE_IDLE_FPS);
+        if (this.scene.on && this.scene.ready && this._due('scene', sceneEvery, now)) {
+            this.scene.step(this.fxTime());
+            ran = true;
+        }
+        if (this.custom && this.expanded && this.swatches.length && this._due('swatch', 1 / SWATCH_FPS, now)) {
+            for (const a of this.swatches)
+                a.queue_repaint();
+            ran = true;
+        }
+        if (ran && this._fps() !== this._animFps)
             this._anim();
-            return GLib.SOURCE_REMOVE;
-        }
-        return GLib.SOURCE_CONTINUE;
     }
 
     // Saat durunca (Durgun, boşta...) dalga bulunduğu yerde değil, çalıp çalmamasına uygun yükseklikte durur.
@@ -1040,6 +1535,15 @@ class Ada {
 
     // Boyut değişimi (büyüme, küçülme, ince şerit, sayfa) yumuşak olsun: önce eski boyutta sabitlenir,
     // içerik yenilenir, sonra yeni doğal boyuta kayar.
+    // Temanın dokunma izi (Deniz: suda halkalar, Prizma: ışık patlaması). Durgun'da ve canlandırmalar kapalıyken yok.
+    _touchFx(x, y) {
+        if (!this.theme.touch || this._fxMotion() === 'durgun')
+            return;
+        const [ok, lx, ly] = this.scene.actor.transform_stage_point(x, y);
+        if (ok)
+            this.scene.touch(lx, ly);
+    }
+
     _morph(fn) {
         if (this._morphing)  // iç içe çağrıda dıştaki canlandırır
             return fn();
@@ -1112,7 +1616,12 @@ class Ada {
             if (event.get_button() === 1) {
                 [this._dragX, this._dragY] = event.get_coords();
                 this._dragged = false;
+                this._touchFx(this._dragX, this._dragY);
             }
+            return Clutter.EVENT_PROPAGATE;
+        }
+        if (type === Clutter.EventType.TOUCH_BEGIN) {
+            this._touchFx(...event.get_coords());
             return Clutter.EVENT_PROPAGATE;
         }
         if (type === Clutter.EventType.MOTION) {

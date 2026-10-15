@@ -86,7 +86,8 @@ class StateTest(unittest.TestCase):
         st = self.ada.state()
         self.assertTrue(st["enabled"])
         # Deniz bir manzara: saate göre kapalıyken güneş öğleden sonraki yerinde (13:00)
-        self.assertEqual(st["theme"], dict(ada.THEMES["deniz"]["colors"], fx=ada.THEMES["deniz"]["fx"]))
+        self.assertEqual(st["theme"], dict(ada.THEMES["deniz"]["colors"], fx=ada.THEMES["deniz"]["fx"],
+                                           touch="ripple"))
         self.assertEqual([(f["type"], f["hour"]) for f in st["theme"]["fx"]], [("sea", 13.0)])
         self.assertIsNone(st["phone"])
         self.assertIsNone(st["media"])
@@ -258,7 +259,7 @@ class StateTest(unittest.TestCase):
         self.app.config.set("ada_cycle", False)
         with at(23):
             self.assertEqual(self.ada.state()["theme"], dict(ada.THEMES["deniz"]["colors"],
-                                                              fx=ada.THEMES["deniz"]["fx"]))
+                                                              fx=ada.THEMES["deniz"]["fx"], touch="ripple"))
 
     def test_same_state_not_sent_twice(self):
         """Durum değişmediyse eklentiye yeniden gönderilmez (adayı boşuna yeniden kurmasın)."""
@@ -290,7 +291,7 @@ class StateTest(unittest.TestCase):
         self.ada.action({"do": "set", "key": "ada_motion", "value": "yavas"})
         st = self.ada.state()
         self.assertEqual((st["theme_id"], st["mode"], st["motion"]), ("gece", "tasan", "yavas"))
-        self.assertEqual(st["theme"], dict(ada.THEMES["gece"]["colors"], fx=[]))
+        self.assertEqual(st["theme"], dict(ada.THEMES["gece"]["colors"], fx=[], touch=""))
         # Yalnızca bilinen ayarlar ve değerler: ada başka bir ayarı değiştiremez.
         for bad in ({"key": "ada_theme", "value": "yok"}, {"key": "port", "value": 1},
                     {"key": "ada_mode", "value": ["tasan"]}, {"key": "run_in_background", "value": False},
@@ -299,6 +300,20 @@ class StateTest(unittest.TestCase):
         st = self.ada.state()
         self.assertEqual((st["theme_id"], st["mode"], st["motion"]), ("gece", "tasan", "yavas"))
         self.assertTrue(self.app.config["run_in_background"])
+
+    def test_touch_effect_and_measure_override(self):
+        """Deniz ve Prizma'da dokunma izi (adada çizilir); ölçüm sırasında hareket geçici olarak değişir, ayara
+        yazılmaz."""
+        self.assertEqual(self.ada.state()["theme"]["touch"], "ripple")
+        self.ada.action({"do": "set", "key": "ada_theme", "value": "prizma"})
+        self.assertEqual(self.ada.state()["theme"]["touch"], "burst")
+        self.ada.action({"do": "set", "key": "ada_theme", "value": "kuzey"})
+        self.assertEqual(self.ada.state()["theme"]["touch"], "")
+        self.ada.motion_override = "durgun"
+        self.assertEqual(self.ada.state()["motion"], "durgun")
+        self.assertEqual(self.app.config["ada_motion"], "canli")
+        self.ada.motion_override = None
+        self.assertEqual(self.ada.state()["motion"], "canli")
 
     def test_quick_settings_offset_and_actions(self):
         self.ada.on_event("status", {"sessions": [dict(SESS, battery={"level": 64, "charging": True})]})

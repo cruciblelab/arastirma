@@ -25,9 +25,10 @@ app.call = lambda *a: calls.append(a) or open(f"{OUT}/eylemler.txt", "a").write(
 bus = None
 
 def cek(method, *args):
-    sig = {"Shot": "(s)", "Click": "(dd)", "Drag": "(dddd)", "Move": "(dd)", "Scroll": "(ddd)", "Find": "(s)",
+    sig = {"Shot": "(s)", "Click": "(dd)", "Press": "(dd)", "Release": None, "Drag": "(dddd)", "Move": "(dd)", "Scroll": "(ddd)", "Find": "(s)",
            "Banners": "(b)"}[method]
-    r = bus.call_sync("test.Cek", "/test/Cek", "test.Cek", method, GLib.Variant(sig, args), None, 0, 10000, None)
+    r = bus.call_sync("test.Cek", "/test/Cek", "test.Cek", method, GLib.Variant(sig, args) if sig else None, None, 0,
+                      10000, None)
     return r.unpack() if r else None
 
 def find(cls):
@@ -47,8 +48,8 @@ def drag_left(far=False):
 
 def ensure_expanded():
     x, y, w, h = find("ada")
-    if h < 60:
-        cek("Click", x + w / 2, y + h / 2)
+    if h < 60:  # ortada oynat/duraklat düğmesi var: şarkının adına tıkla
+        cek("Click", x + w * 0.3, y + h / 2)
 
 def drag_right():
     x, y, w, h = find("ada")
@@ -75,6 +76,19 @@ def bos_yere():
     """Adanın içinde düğme olmayan bir yer: alt kenarın hemen üstü, ortada."""
     x, y, w, h = find("ada")
     cek("Click", x + w / 2, y + h - 4)
+
+def dokun():
+    """Büyük adada düğme olmayan, denize düşen bir yer (sol alt çeyrek)."""
+    x, y, w, h = find("ada")
+    return x + w * 0.22, y + h * 0.62
+
+def iz(name):
+    for _ in range(12):  # basma kabukta bir sonraki karelerde işlenir (kabuk meşgulse biraz sonra)
+        time.sleep(0.1)
+        boy[name] = list(cek("Find", "ada-dokunma"))
+        if boy[name][2] > 0:
+            break
+    open(f"{OUT}/boyutlar.json", "w").write(json.dumps(boy))
 
 yoklar = {}
 def yok(name, cls):
@@ -249,7 +263,17 @@ steps = [
     # Deniz manzarası büyük adada (çalarken)
     lambda: (tema("deniz"), app.on_event("media", {"device_id": "p", "state": song("Firuze")})),
     lambda: ensure_expanded(),
-    lambda: cek("Shot", f"{OUT}/24-deniz-buyuk.png"),
+    lambda: (cek("Shot", f"{OUT}/24-deniz-buyuk.png"), olc_cls("ada-sahne")),
+    # Dokunma izi: Deniz'de suda halkalar (bırakınca ada küçülür; iz yine görünür)
+    lambda: (cek("Press", *dokun()), iz("dokunma_deniz"), cek("Shot", f"{OUT}/25-deniz-dokunma.png"),
+             cek("Release")),
+    # Destekçi konsepti Prizma büyük adada ve dokununca ışık patlaması (bırakınca küçülmüştü: yeniden büyüt)
+    lambda: tema("prizma"),
+    lambda: ensure_expanded(),
+    lambda: None,
+    lambda: (cek("Shot", f"{OUT}/26-prizma-buyuk.png"), olc("prizma_buyuk")),
+    lambda: (cek("Press", *dokun()), iz("dokunma_prizma"), cek("Shot", f"{OUT}/27-prizma-dokunma.png"),
+             cek("Release")),
     lambda: app.quit(),
 ]
 i = [0]

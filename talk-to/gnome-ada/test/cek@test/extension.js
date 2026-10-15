@@ -14,6 +14,8 @@ const XML = `<node><interface name="test.Cek">
 <method name="Click"><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
 <method name="Drag"><arg type="d" direction="in"/><arg type="d" direction="in"/><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
 <method name="Move"><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
+<method name="Press"><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
+<method name="Release"/>
 <method name="Scroll"><arg type="d" direction="in"/><arg type="d" direction="in"/><arg type="d" direction="in"/></method>
 <method name="Win"><arg type="s" direction="in"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/><arg type="d" direction="out"/></method>
 <method name="Banners"><arg type="b" direction="in"/></method>
@@ -58,6 +60,13 @@ export default class Cek extends Extension {
             this._dev.notify_button(this._t(), Clutter.BUTTON_PRIMARY, Clutter.ButtonState.RELEASED);
             return GLib.SOURCE_REMOVE;
         });
+    }
+    Press(x, y) {  // basılı tut (bırakmak için Release)
+        this._dev.notify_absolute_motion(this._t(), x, y);
+        this._dev.notify_button(this._t(), Clutter.BUTTON_PRIMARY, Clutter.ButtonState.PRESSED);
+    }
+    Release() {
+        this._dev.notify_button(this._t(), Clutter.BUTTON_PRIMARY, Clutter.ButtonState.RELEASED);
     }
     Move(x, y) {
         this._dev.notify_absolute_motion(this._t(), x, y);

@@ -36,6 +36,11 @@ def icon_button(icon, tooltip, cb, *classes):
     return b
 
 
+ADA_OLCUM = ("Adanın GNOME Shell'e getirdiği yük: 10 sn seçili hareketle, 10 sn Durgun ölçülür, fark adanın payıdır "
+             "(top'tan daha sağlam). Ölçerken müzik çalsın ve fare adanın üstünde dursun; büyük adayı ölçmek için "
+             "önce tıklayıp büyüt.")
+
+
 class DynamicGroup(Adw.PreferencesGroup):
     """Satırları sık sık baştan kurulan grup."""
 
@@ -393,8 +398,51 @@ class Window(Adw.ApplicationWindow):
         self.sw_ada_popup.set_active(self.app.config["ada_notif_popup"])
         self.sw_ada_popup.connect("notify::active", lambda r, _: self._set("ada_notif_popup", r.get_active()))
         g.add(self.sw_ada_popup)
+        self.ada_olc = Adw.ActionRow(title="İşlemci ölçümü", subtitle=ADA_OLCUM)
+        self.ada_olc.set_subtitle_lines(4)
+        self.ada_olc_btn = Gtk.Button(label="Ölç", valign=Gtk.Align.CENTER)
+        self.ada_olc_btn.connect("clicked", lambda *_: self._ada_measure())
+        self.ada_olc.add_suffix(self.ada_olc_btn)
+        g.add(self.ada_olc)
         self._update_ada_rows()
         return g
+
+    def _ada_measure(self, seconds=10):
+        """Adanın kabuğa getirdiği yük: önce seçili hareketle, sonra (geçici olarak, ayara yazmadan) Durgun'da
+        aynı süre; aradaki fark adanın payı (bkz. talkto.olcum)."""
+        from .. import olcum
+        from .ada import MOTIONS
+        service = self.app.ada
+        motion = self.app.config["ada_motion"]
+        if motion == "durgun":
+            self.ada_olc.set_subtitle("Hareket Durgun: karşılaştıracak bir şey yok. Önce Canlı, Yavaş ya da Olaylarda "
+                                      "seçip yeniden ölç.")
+            return
+        pid = olcum.shell_pid()
+        if service is None or pid is None:
+            self.ada_olc.set_subtitle("GNOME Shell bulunamadı: yalnızca GNOME oturumunda ölçülebilir.")
+            return
+        name = MOTIONS[motion][0]
+        self.ada_olc_btn.set_sensitive(False)
+        self.ada_olc.set_subtitle(f"1/2: {name} ölçülüyor ({seconds} sn)… Müzik çalsın, fare adanın üstünde dursun.")
+        first = olcum.Sampler(pid)
+
+        def still():
+            moving = first.percent()
+            service.motion_override = "durgun"
+            service.changed()
+            self.ada_olc.set_subtitle(f"2/2: Durgun ölçülüyor ({seconds} sn)… Aynı şekilde kalsın.")
+            second = olcum.Sampler(pid)
+
+            def done():
+                service.motion_override = None
+                service.changed()
+                self.ada_olc_btn.set_sensitive(True)
+                self.ada_olc.set_subtitle(olcum.summary(name, moving, second.percent()))
+                return False
+            GLib.timeout_add(int(seconds * 1000), done)
+            return False
+        GLib.timeout_add(int(seconds * 1000), still)
 
     def _set_cycle(self, on):
         self._set("ada_cycle", on)

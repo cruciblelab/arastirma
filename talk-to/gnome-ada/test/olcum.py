@@ -81,6 +81,15 @@ def wiggle():  # kullanıcı fareyi oynatıyor (boşta sayılmasın)
 def at(x, y):
     POS.update(x=x, y=y)
 
+def buyut(key):
+    """Büyük ada (çalarken), fare üstünde: tıklayıp büyüt, fare adada kalsın (kapanmasın)."""
+    tema(key)
+    hareket("canli")
+    phone(True)
+    x, y, w, h = cek("Find", "ada")
+    at(x + w / 2 - 15, y + h / 2)
+    cek("Click", x + w / 2, y + h / 2)
+
 # (ad, hazırlık, ölçerken fare oynasın mı)
 SCENES = [
     ("bos_deniz", lambda: (tema("deniz"), phone(None)), True),
@@ -88,9 +97,13 @@ SCENES = [
     ("muzik_kuzey", lambda: (tema("kuzey"), phone(True)), True),
     ("bos_kuzey", lambda: (tema("kuzey"), phone(None)), True),
     ("muzik_kar", lambda: (tema("kar"), phone(True)), True),
+    ("muzik_prizma", lambda: (tema("prizma"), phone(True)), True),
     ("muzik_kuzey_yavas", lambda: (tema("kuzey"), phone(True), hareket("yavas")), True),
     ("muzik_kuzey_olaylarda", lambda: (tema("kuzey"), phone(True), hareket("olaylarda")), True),
     ("muzik_kuzey_uzakta", lambda: (hareket("canli"), tema("kuzey"), phone(True)), False),
+    # Büyük ada: katmanlı manzara (Deniz) ve Prizma, fare adanın üstünde
+    ("buyuk_deniz", lambda: buyut("deniz"), True),
+    ("buyuk_prizma", lambda: (tema("prizma"), phone(True)), True),
     # Talk To'nun Ada sekmesi açık; fare pencerenin dışında (ekranın sol alt köşesi), sonra bir kartın üstünde
     ("pencere_ada_sekmesi", lambda: (at(4.0, 790.0), tema("deniz"), phone(None), app.present(),
                                     app.window.stack.set_visible_child_name("ada")), True),

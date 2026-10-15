@@ -27,7 +27,7 @@ gnome-shell --headless --wayland --no-x11 --virtual-monitor 1280x800 > "$OUT/she
 SH=$!
 for i in $(seq 1 120); do gdbus introspect --session --dest test.Cek --object-path /test/Cek > /dev/null 2>&1 && break; sleep 0.5; done
 sleep 1
-WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland GSK_RENDERER=cairo timeout 330 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
+WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland GSK_RENDERER=cairo timeout 360 "$PY" "$HERE/surucu.py" "$HERE/../../linux" "$OUT" "$OUT/kapak.png" \
     > "$OUT/talkto.log" 2>&1
 kill $SH; wait $SH 2> /dev/null'
 rm -rf "$H" 2> /dev/null || true
@@ -75,6 +75,11 @@ d = json.load(open(sys.argv[1]))
 a, su = d["bosta"], d["ada-su"]
 assert su[3] > 0 and abs((su[1] + su[3]) - (a[1] + a[3])) <= 1 and abs(su[2] - a[2]) <= 2, \
     f"su adanın alt kenarında, ada genişliğinde olmalı: ada {a}, su {su}"
+sa = d["ada-sahne"]
+assert sa[2] > 300 and sa[3] > 100, f"Deniz büyük adada katmanlı çizilmeli (sahne): {sa}"
+assert b["prizma_buyuk"] > b["normal"] + 20, "Prizma büyük adada görünmeli"
+for n in ("dokunma_deniz", "dokunma_prizma"):
+    assert d[n][2] > 0, f"dokununca iz çıkmadı ({n}): {d[n]}"
 x, y, w, h = json.load(open(sys.argv[1]))["konum"]
 assert 820 <= x + w / 2 <= 860, f"sağa sürüklenen adanın ortası ~840 olmalı: {x + w / 2}"
 PYEOF
@@ -83,6 +88,9 @@ python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert (d['theme_id
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['motion'] == 'olaylarda', d['motion']" \
     "$OUT/durum2c.json" || fail "adadaki Hareket düğmesi (Olaylarda) Talk To'ya yazılmadı"
 grep -q "Talk To ada: canland" "$OUT/shell.log" || fail "canlandırma saatinin değişimleri GNOME kaydına yazılmıyor"
+grep -q "Talk To ada: sahne kuruldu (sea" "$OUT/shell.log" || fail "Deniz katmanlı sahne olarak kurulmadı"
+grep -q "Talk To ada: sahne kuruldu (prism, shards, glint" "$OUT/shell.log" || fail "Prizma katmanlı sahne olarak kurulmadı"
+grep "Talk To ada: sahne kuruldu" "$OUT/shell.log" | tail -4
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['ozel_bos_tik'] and d['ozel_disari_tik'], d" \
     "$OUT/yoklar.json" || fail "Özelleştir adadaki boş yere ya da adanın dışına tıklayınca kapanmadı"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['theme_id'] == 'kuzey' and d['theme']['fx'], d['theme']" \
@@ -102,5 +110,5 @@ python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_batte
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['low_battery']['weak'] and d['event']['kind'] == 'pil', d" \
     "$OUT/durum7.json" || fail "takılı ama pil düşerken ada uyarmadı"
 for f in 1-kucuk 2-sarki-degisti 3-bildirim 4-arama 4b-gorusme 5-zamanlayici 6-sayac 7-ince 8-bakis 9-normal \
-         10-ozellestir 11-tasan 11b-kuzey-ozel 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az 16-sarj-yetmiyor 18-pamuk 19-sis 20-kuzey 21-neon 22-neon-buyuk 23-bosta-pamuk 24-deniz-buyuk; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
+         10-ozellestir 11-tasan 11b-kuzey-ozel 12-kilitsiz 12-kapandi 13-bildirimler 14-sistem-bildirimi 15-pil-az 16-sarj-yetmiyor 18-pamuk 19-sis 20-kuzey 21-neon 22-neon-buyuk 23-bosta-pamuk 24-deniz-buyuk 25-deniz-dokunma 26-prizma-buyuk 27-prizma-dokunma; do [ -s "$OUT/$f.png" ] || fail "$f.png yok"; done
 echo "ÜST ADA UÇTAN UCA TESTİ GEÇTİ"
