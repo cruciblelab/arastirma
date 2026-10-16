@@ -18,7 +18,7 @@ sürümler eklenir.
 | [omurga-buyumesi](omurga-buyumesi/) | Omurga uzamasını etkileyen kaldıraçlar, evde ölçüm protokolü ve notlu animasyon | [4 · referansla düzeltilmiş anatomi](omurga-buyumesi/4-referansla-duzeltilmis-anatomi/) |
 | [kreatin-psikoloji-ve-tavuk](kreatin-psikoloji-ve-tavuk/) | 17 yaşta kreatin, stres ve "bilinçaltı", çok tavuk yemek: boy potansiyeline etkisi | [1 · literatür ve simülasyon](kreatin-psikoloji-ve-tavuk/1-literatur-ve-simulasyon/) |
 | [algilanan-boy-ve-vucut-yapisi](algilanan-boy-ve-vucut-yapisi/) | Kaslı biri neden daha uzun görünür: gerçek fark, herkesin algısı, yoksa bakanın algısı mı? Omuz-göğüs-bel oranları ve sporun görünüşe etkisi | [3 · vücut oranları ve spor](algilanan-boy-ve-vucut-yapisi/3-vucut-oranlari-ve-spor/) |
-| [yas-farki-tercihleri](yas-farki-tercihleri/) | Kadınlar ve erkekler partnerde hangi yaş farkını tercih ediyor, kabul ediyor, gerçekte yaşıyor? Türkiye dahil | [1 · literatür ve gerçek veri (taslak)](yas-farki-tercihleri/1-literatur-ve-gercek-veri/) |
+| [yas-farki-tercihleri](yas-farki-tercihleri/) | Kadınlar ve erkekler partnerde hangi yaş farkını tercih ediyor, kabul ediyor, gerçekte yaşıyor? Türkiye dahil | [1 · literatür ve gerçek veri](yas-farki-tercihleri/1-literatur-ve-gercek-veri/) |
 
 **Bütün boy araştırmalarının tek sayfalık özeti: [Boy araştırmaları genel özeti](BOY-ARASTIRMALARI-OZETI.md)**.
 
