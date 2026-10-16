@@ -140,6 +140,14 @@ c4 = {"kadın 3-4 büyük": fark_boot(kadin_bakis, "eslesme", "küçük 3-4"),
       "erkek 3-4 büyük": fark_boot(kadin_bakis, "eslesme", "büyük 3-4")}
 OZET["C4_eslesme"] = c4
 
+# Keşif (ön kayıtta yok, sonuçlar görüldükten sonra eklendi): yıl yıl "evet" oranı ve kişi içi sapma, −8…+8
+kesif = (h[h.fark.between(-8, 8)].assign(cinsiyet=lambda x: x.gender.map({"female": "kadın", "male": "erkek"}))
+         .groupby(["cinsiyet", "fark"]).agg(n=("evet", "size"), evet_orani=("evet", "mean"), kisi_ici_sapma=("sapma", "mean"))
+         .reset_index())
+kesif.to_csv(CIKTI / "kesif_yil_yil.csv", index=False, float_format="%.4f")
+OZET["ham_evet_oranlari"] = {c: {b: float(h[(h.gender == kod) & bolme(h, b)].evet.mean()) for b in BOLME}
+                             for c, kod in CINS.items()}
+
 min_n = min(min(v["n_hedef"], v["n_ref"]) for c in c12.values() for v in c.values())
 test("T3", "C1 ve C2'deki her bölmede buluşma sayısı", f"en küçük = {min_n}", "≥ 150", min_n >= 150)
 max_se = max(v["se"] for c in c12.values() for v in c.values())

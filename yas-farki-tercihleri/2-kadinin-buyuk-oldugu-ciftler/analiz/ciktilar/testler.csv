@@ -1,0 +1,6 @@
+test,aciklama,deger,olcut,sonuc
+T1,Veri bütünlüğü: iki dosyanın SHA-256 özeti (sürüm 1 ile aynı),"walter: eşleşti, hizli: eşleşti",ikisi de eşleşir,GEÇTİ
+T2,"Sürüm 1 ile tutarlılık: kadınlarda yaşıt bölmesinin ""evet"" oranı",0.3738,0.3738 ± 0.0001,GEÇTİ
+T3,C1 ve C2'deki her bölmede buluşma sayısı,en küçük = 420,≥ 150,GEÇTİ
+T4,C1 ve C2 farklarının bootstrap standart hatası,en büyük SE = 2.48 puan,< 3 puan,GEÇTİ
+T5,C5'te ülke sayısı (cinsiyet eşitliği endeksi dolu),41 ülke,≥ 35,GEÇTİ
