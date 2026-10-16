@@ -1,3 +1,5 @@
+> **Güncel sürüm:** [2-kadinin-buyuk-oldugu-ciftler](../2-kadinin-buyuk-oldugu-ciftler/). Bu sürüm dondurulmuştur.
+
 # Yaş Farkı Tercihleri · Sürüm 1: Literatür ve Gerçek Veri
 
 > **Sürüm:** 1 · **Tarih:** 2026-10-16 · **Durum:** güncel
