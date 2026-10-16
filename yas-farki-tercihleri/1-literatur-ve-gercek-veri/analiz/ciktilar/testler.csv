@@ -1,0 +1,7 @@
+test,aciklama,deger,olcut,sonuc
+T1,Veri bütünlüğü: iki dosyanın SHA-256 özeti,"walter: eşleşti, hizli: eşleşti",ikisi de eşleşir,GEÇTİ
+T2,"Replikasyon (Walter 2020): yaş farkı ortalaması kadın +2.43, erkek −2.26; n = 8920","kadın +1.51, erkek -3.07; n = 8920",±0.05 ve n = 8920,KALDI
+T3,Hızlı tanışma verisi: satır sayısı ve cinsiyet değerleri,"8378 satır; ['female', 'male']","8378; ['female', 'male']",GEÇTİ
+T6,"Sapma testi: yeniden kurulan kişilerin satır sayısı, dalgadaki karşı cinsten kişi sayısıyla uyumlu (mod)",549 kişi; %99.6 kişide satır sayısı = dalga-cinsiyet modu,≥ %90,GEÇTİ
+T4,Kişi içi merkezleme: her kişinin ortalama sapması 0,en büyük |ortalama| = 5.8e-17,< 1e-9,GEÇTİ
+T5,B2 eğimlerinin bootstrap standart hatası,en büyük SE = 0.0046,< 0.01,GEÇTİ

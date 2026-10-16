@@ -129,7 +129,8 @@ def d1_analiz(d, etiket):
 d_tum = w[w.mate_age.notna()].copy()
 ana, ulke, tr = d1_analiz(d_tum, "tum")
 d_10 = d_tum[d_tum.mate_age > 10].copy()
-duy, _, _ = d1_analiz(d_10, "10dan_buyuk")
+duy, ulke10, tr10 = d1_analiz(d_10, "10dan_buyuk")
+ulke10.to_csv(CIKTI / "ulkeler_partner_yasi_10dan_buyuk.csv", index=False, float_format="%.3f")
 OZET["D1_ana"], OZET["D1_A5_duyarlilik_partner_yasi_10dan_buyuk"] = ana, duy
 ulke.to_csv(CIKTI / "ulkeler.csv", index=False, float_format="%.3f")
 a1 = ana["A1_genel"]
@@ -150,7 +151,7 @@ KIMLIK = ["wave", "gender", "age", "race", "field", "attractive_important", "sin
           "funny_important", "ambtition_important", "shared_interests_important", "attractive", "sincere", "intelligence",
           "funny", "ambition", "sports", "tvsports", "exercise", "dining", "museums", "art", "hiking", "gaming", "clubbing",
           "reading", "tv", "theater", "movies", "concerts", "music", "shopping", "yoga", "expected_happy_with_sd_people"]
-s["kisi"] = s[KIMLIK].astype(str).agg("|".join, axis=1).factorize()[0]
+s["kisi"] = s.groupby(KIMLIK, dropna=False, sort=False).ngroup()
 say = s.groupby("kisi").size()
 kisi_grup = s.groupby("kisi")[["wave", "gender"]].first()
 modal = say.groupby([kisi_grup.wave, kisi_grup.gender]).agg(lambda v: v.mode().iloc[0])
@@ -232,30 +233,30 @@ for k, v in OZET["karar"].items():
     log(k, v)
 
 # ---------------------------------------------------------------------------
-# Grafikler
+# Grafikler (sapma: temizlenmiş veriyle, partner yaşı > 10; ana veride geçersiz kayıtlar var)
 # ---------------------------------------------------------------------------
 fig, axs = plt.subplots(1, 3, figsize=(15, 4.6), facecolor=YUZEY)
 ax = axs[0]
 bins = np.arange(-15.5, 16.5, 1)
 for c, rk in (("kadın", KADIN), ("erkek", ERKEK)):
-    x = tr.loc[tr.cins == c, "fark"].clip(-15, 15)
+    x = tr10.loc[tr10.cins == c, "fark"].clip(-15, 15)
     ax.hist(x, bins=bins, color=rk, alpha=0.55, label=f"{c} (n = {len(x)}; ort. {x.mean():+.1f})", edgecolor=YUZEY, lw=0.6)
 ax.axvline(0, color=MUR2, lw=1)
 ax.set_xlabel("Partnerin yaşı − kendi yaşı (yıl; ±15'te kırpıldı)")
 ax.set_ylabel("Kişi sayısı")
-ax.set_title("Türkiye: gerçek partnerle yaş farkı", loc="left", fontsize=11)
+ax.set_title("Türkiye: gerçek partnerle yaş farkı\n(partner yaşı > 10 olan kayıtlar)", loc="left", fontsize=11)
 ax.legend(frameon=False, fontsize=9)
 
 ax = axs[1]
 for c, rk in (("kadın", KADIN), ("erkek", ERKEK)):
-    g = d_tum[d_tum.cins == c]
+    g = d_10[d_10.cins == c]
     gr = g.groupby(pd.cut(g.age, [17, 24, 29, 34, 39, 49, 59, 100])).fark.mean()
     orta = [21, 27, 32, 37, 44, 54, 65]
     ax.plot(orta, gr.to_numpy(), "o-", color=rk, lw=2, ms=6, label=c)
 ax.axhline(0, color=MUR2, lw=1)
 ax.set_xlabel("Katılımcının yaşı")
 ax.set_ylabel("Partner − kendi (yıl, ortalama)")
-ax.set_title("45 ülke: yaş ilerledikçe fark", loc="left", fontsize=11)
+ax.set_title("41 ülke: yaş ilerledikçe fark\n(partner yaşı > 10 olan kayıtlar)", loc="left", fontsize=11)
 ax.legend(frameon=False, fontsize=9)
 
 ax = axs[2]
@@ -267,7 +268,7 @@ ax.set_xticks(x)
 ax.set_xticklabels([a for _, _, a in SINIR])
 ax.set_xlabel("Partner − kendi (yıl)")
 ax.set_ylabel("\"Evet\" oranı (%)")
-ax.set_title("Hızlı tanışma: partnerin yaşına göre \"evet\"", loc="left", fontsize=11)
+ax.set_title("Hızlı tanışma (ABD, ort. yaş ~26):\npartnerin yaşına göre \"evet\"", loc="left", fontsize=11)
 ax.legend(frameon=False, fontsize=9)
 for a in axs:
     a.set_facecolor(YUZEY)
