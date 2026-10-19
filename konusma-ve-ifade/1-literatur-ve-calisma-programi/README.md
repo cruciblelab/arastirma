@@ -113,6 +113,14 @@ Bunlar Schachter'in bulgusuyla örtüşüyor: Yapı ve kelime önceden belli olu
 
 **Kayıt yöntemi neden önemli?** Kişiler kendi takılmalarını konuşurken duymaz. Kayıt dinlemek, önceki araştırmamızdaki ölçüm günlüğü gibi, "hissetmek" yerine ölçmeyi sağlar.
 
+### 9. Ek: "eee" değil de kelimeyi yutmak, yanlış söylemek
+
+Bazı insanlarda sorun ne diyeceğini bulmak değil; cümle hazır olduğu halde kelimeler yutuluyor, heceler atlanıyor, kelime yanlış ya da başka bir kelimeyle söyleniyor.
+
+- **Ara sıra dil sürçmesi herkeste olur;** yorgunluk, heyecan ve hızlı konuşma bunu artırır. (C)
+- **Sürekli ve belirginse** bunun adı **hızlı-bozuk konuşma** (İngilizcede *cluttering*) olabilir. Kekemelikten ayrı bir akıcılık bozukluğu: Konuşma hızı yüksek ya da düzensiz, heceler ve kelimeler yutuluyor ya da birleşiyor, bazen cümle düzeni karışıyor. Kişi çoğu zaman bunun farkında değil. Tedavinin merkezinde **konuşma hızını kontrol etmek,** kendini dinlemek ve heceleri net söylemek var. Değerlendirmeyi bir dil ve konuşma terapisti yapar. (C)
+- **Acil durum işareti:** Konuşma bozukluğu **aniden** başladıysa (bugün, birkaç saat ya da gün içinde), özellikle yüzde kayma, kolda ya da bacakta güçsüzlük, uyuşma, görme bozukluğu, ani ve şiddetli baş ağrısı ya da denge kaybıyla birlikteyse bu bir inme belirtisi olabilir. Belirtiler geçse bile **hemen 112 aranmalı.** Genç yaşta da olabilir. (C)
+
 ## Sonuçlar
 
 1. **Takılmak normal;** asıl neden planlama zorluğu. Zor ve soyut konularda ve seçenek fazla olduğunda artıyor. (B)
@@ -123,6 +131,7 @@ Bunlar Schachter'in bulgusuyla örtüşüyor: Yapı ve kelime önceden belli olu
 6. **İkna için hikâye ve karşı görüşü çürütmek işe yarıyor;** ama mesaj tasarımının etkisi ortalamada küçük. (A)
 7. **Konuşma kaygısı yapılandırılmış çalışmayla belirgin azalıyor;** etki program bittikten sonra da sürüyor. (A)
 8. **Disiplin öğrenilebilir:** önce sonuç, sabit yapı, sesli prova, kısa cümle. Ölçerek çalışmak ilerlemeyi görünür kılar. (D)
+9. **Kelimeyi yutmak, heceleri atlamak ya da yanlış söylemek** sürekliyse "hızlı-bozuk konuşma" olabilir; bir dil ve konuşma terapistince değerlendirilmeli. Aniden başladıysa acil durumdur. (C)
 
 ## Sınırlamalar
 
@@ -143,6 +152,8 @@ Bunlar Schachter'in bulgusuyla örtüşüyor: Yapı ve kelime önceden belli olu
 - [van Laer ve ark. 2014: Hikâyeye taşınma meta-analizi](https://openaccess.city.ac.uk/id/eprint/6755/)
 - [O'Keefe: İki taraflı mesajlar (ikincil özet)](https://www.spring.org.uk/?p=12521) · [O'Keefe ve Hoeken 2021 (Frontiers)](https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2021.664160/pdf)
 - [Ebrahimi ve ark. 2019: Konuşma korkusuna psikolojik müdahaleler, meta-analiz](https://pubmed.ncbi.nlm.nih.gov/30930813/)
+- Hızlı-bozuk konuşma: [Toronto Speech Therapy: kekemelik ve hızlı-bozuk konuşma](https://torontospeechtherapy.com/ask-me-anything/2020/8/05/stuttering-versus-cluttering) · [Scaler Scott karşılaştırma tablosu](https://westutter.org/wp-content/uploads/stutteringcluttering.pdf) · [St. Louis ve Myers (MNSU)](https://www.mnsu.edu/comdis/isad/papers/stlouis.html) · [Hızlı-Bozuk Konuşma (Akademisyen Kitabevi)](https://books.akademisyen.net/index.php/akya/catalog/book/3859/chapter/1370)
+- İnme belirtileri ve konuşma: [Acıbadem: Gençlerde inme belirtileri](https://acibademinternational.com/health-library/stroke-in-younger-adults-causes-warning-signs-and-specialist-care/)
 - Dolgu seslerinin algısı (ikincil): [eScholarship](https://escholarship.org/uc/item/8579j2fh) · [Next Big Idea Club](https://nextbigideaclub.com/magazine/susan-cain-dont-need-drop-um-great-speaker/7105/) · [Behaviorist Book Club](https://behavioristbookclub.com/aba-research/aba-fundamentals/um--so--like--do-speech-disfluencies-matter--a-parametric-evaluation-o/)
 
 ## En basit özet
