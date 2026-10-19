@@ -6,4 +6,7 @@ Bir erkek ilk tanışmada neden beğenilir ya da beğenilmez? Görünüşün ve 
 
 | Sürüm | Ad | Tarih | Ne yapıldı |
 |---|---|---|---|
-| **1 (taslak)** | [1-literatur-ve-hizli-tanisma-analizi](1-literatur-ve-hizli-tanisma-analizi/) | 2026-10-19 | Ön kayıt: hızlı tanışma verisinde kişi içi analiz (6 özellik, iki cinsiyet), söylenen ve gerçek tercih, nesnel ve algılanan ortak ilgi; 45 ülke verisi. Analiz kodu bu kayıttan sonra yazılacak |
+| **1 (güncel)** | [1-literatur-ve-hizli-tanisma-analizi](1-literatur-ve-hizli-tanisma-analizi/) | 2026-10-19 | Literatür (soru sormak, takip sorusu, takdir, mizah, kendinden emin + iyi niyetli; söylenen ve gerçek tercih; konuşma sesi hataları) ve hızlı tanışma verisinde kişi içi analiz. Kadınların "evet" kararında görünüş +12.9 puan, ortak ilgi +8.4, komiklik +5.9, zekâ +3.2; erkekler görünüşe ~4 puan daha çok ağırlık veriyor. Hobi benzerliği kararı etkilemiyor (+0.6), algılanan ortak ilgi güçlü (+18.8). Söylenen önem gerçek kararı çoğunlukla öngörmüyor (zekâ istisna). 45 ülkede kadınlar 31 ülkede en çok iyi kalpliliği önemsiyor; Türkiye'de zekâ. 6 testten 5'i geçti (biri ölçüt hatasıyla kaldı, kayıtlı) |
+
+**Hızlı cevap için:** [Sürüm 1 → En basit özet](1-literatur-ve-hizli-tanisma-analizi/README.md#en-basit-özet)
+
