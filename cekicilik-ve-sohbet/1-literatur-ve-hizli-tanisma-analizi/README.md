@@ -14,7 +14,7 @@
 | **B** | Tek büyük, iyi tasarlanmış çalışma |
 | **C** | Küçük çalışma, vaka serisi, ikincil kaynak |
 | **V** | Bu çalışmanın kendi gerçek veri analizi |
-| **D** | Model, varsayım ya da yapay zekâ ile yazılmış örnek |
+| **D** | Model ya da varsayım |
 
 ---
 
@@ -32,7 +32,7 @@
 
 ## Yöntem
 
-**1. Literatür.** Sohbet davranışları, ilk izlenim, söylenen ve gerçek tercih, konuşma sesi hataları. Bulgular yayın özetlerinden, yazarların ya da üniversitelerin duyurularından kontrol edildi. Yalnız başka bir yazarın aktarımıyla doğrulanabilenler `[ikincil]` diye işaretlendi.
+**1. Literatür.** Sohbet davranışları, ilk izlenim, söylenen ve gerçek tercih, konuşma sesi hataları. Bulgular yayın özetlerinden, yazarların ya da üniversitelerin duyurularından kontrol edildi. Yalnız başka bir yazarın aktarımıyla doğrulanabilenler `[ikincil]` diye işaretlendi. **Yapay zekâ ile üretilmiş örnek kanıt olarak kabul edilmedi ve rapora konmadı;** örnek cümleler yalnız çalışmaların kendi aktardıklarıdır (ör. McFarland ve ark. 2013'teki "Bu harika", "Bu zor olmalı").
 
 **2. Gerçek veri (V).** Analiz planı ve karar kuralları kod yazılmadan önce commit edildi; kod da çalıştırılmadan önce ayrıca commit edildi.
 
@@ -51,7 +51,7 @@
 | A4 | **Kâğıt üzerindeki benzerlik ve algılanan ortak ilgi (kadınlar):** İki ayrı tek yordayıcılı model, aynı satırlarda: hobi listelerinin nesnel korelasyonu ve algılanan ortak ilgi |
 | A5, A6 | **D2:** Her ülkede kadınların (A5) ve erkeklerin (A6) 5 özelliğe verdiği ortalama önem; hangi özellik kaç ülkede birinci; Türkiye |
 
-**Karar kuralları (K1-K6) ve teknik testler (T1-T5)** ön kayıtta yazıldığı gibi uygulandı; ayrıntıları [ön kayıt commit'inde](https://github.com/cruciblelab/arastirma/commit/54ed807) bulunuyor. Sonuçları [Bulgular › Testler ve kararlar](#8-testler-ve-kararlar) bölümünde.
+**Karar kuralları (K1-K6) ve teknik testler (T1-T5)** ön kayıtta yazıldığı gibi uygulandı; ayrıntıları [ön kayıt commit'inde](https://github.com/cruciblelab/arastirma/commit/54ed807) bulunuyor. Sonuçları [Bulgular › Testler ve kararlar](#7-testler-ve-kararlar) bölümünde.
 
 **Şeffaflık notu:** Plan yazılmadan önce, bir sohbet sırasında A1'in kaba bir sürümü ve A5 görüldü. Bu yüzden **K1, K6 ve T5 kör değildir**. **A2, A3, A4, A6 ve K2-K5 görülmeden** önceden kaydedildi.
 
@@ -165,21 +165,7 @@ Bu bir **söylenen** tercih ölçüsü. Bölüm 3, söylenen tercihin gerçek ka
 - Kalıcı ses hataları ergenlikte ve yetişkinlikte de bir **dil ve konuşma terapistiyle** çalışılabiliyor; ama ileri yaşlar için kanıt vaka serisi düzeyinde.
 - Ses hatası çocukluktan beri süren sabit bir durum değil de **yeni başlamış** ya da kötüleşen bir konuşma değişikliğiyse, bu bir hekim değerlendirmesi gerektirir. Bu rapor bunun yerine geçmez.
 
-### 7. Örnek diyaloglar (yapay zekâ ile yazıldı, kanıt değil) (D)
-
-Aşağıdaki örnekler bu rapor için **yapay zekâ ile yazıldı.** Hiçbir şey kanıtlamazlar; yalnız yukarıdaki bulguların sohbette neye benzediğini gösterirler. Kanıt, ilgili satırdaki çalışmadır.
-
-| Bulgu | Zayıf cevap | Bulguya uyan cevap |
-|---|---|---|
-| Takip sorusu (Huang 2017) | O: "Hafta sonu resim kursuna başladım." → "Güzel. Ben de hafta sonu maç izledim." | "Resim kursu mu? Ne çiziyorsun, nasıl başladın?" |
-| Takdir ve anlayış (McFarland 2013) | O: "Sınavdan iyi not aldım, çok çalışmıştım." → "Hmm, tamam." | "Helal olsun, emeğinin karşılığını almışsın." |
-| Anladığını gösteren araya girme (McFarland 2013) | O: "Otobüs gelmedi, yürüdüm, yağmur başladı ve…" → "Bizim orada da otobüsler hep geç." | "…ve tabii şemsiye yanında değildi, değil mi?" |
-| Konuyu onun üzerine kurmak (McFarland 2013) | Uzun uzun kendi hobini anlatmak | Kısa anlatıp topu geri atmak: "Peki sen boş zamanında ne yaparsın?" |
-| Ortak nokta bulmak (bu çalışma, bölüm 4) | "Ben o diziyi izlemedim." diyip geçmek | "İzlemedim ama sevdiğin türe benzer başka bir şey izledim. Sende ne tutmuştu?" |
-| Mizah (Bressler 2006) | Başkasıyla dalga geçen espri | Durumdan çıkan hafif espri ya da kendinle hafifçe dalga geçmek |
-| Kendinden emin + iyi niyetli (Jensen-Campbell 1995) | "Haklısın, haklısın, nasıl istersen." (her şeye evet) | "Ben farklı düşünüyorum, ama senin bakışını da merak ettim. Neden öyle düşünüyorsun?" |
-
-### 8. Testler ve kararlar
+### 7. Testler ve kararlar
 
 **Teknik testler:** 6 testin 5'i geçti. Tablo: [testler.csv](analiz/ciktilar/testler.csv).
 
@@ -226,7 +212,6 @@ Aşağıdaki örnekler bu rapor için **yapay zekâ ile yazıldı.** Hiçbir şe
 - **Kör olmayan kararlar:** K1, K6 ve T5'in sonuçları plandan önce kabaca görülmüştü. T2'nin ölçütü yanlış alt kümeden alınmıştı.
 - **Literatür:** Bulguların çoğu yayın özetlerinden ve yazar duyurularından kontrol edildi; tam metinler okunmadı. Birnbaum ve Reis, Mowrer ve ark. ile Syrett ve Brorson ikincil kaynaktan.
 - **Ses hataları:** Türkçede "r"yi "l" gibi söyleyen gençlerle yapılmış bir algı çalışması bulunamadı. İngilizce çalışmalar /r/ ve /s/ için.
-- **Örnek diyaloglar** yapay zekâ ile yazıldı ve hiçbir şey kanıtlamaz.
 
 ## Kaynaklar
 
