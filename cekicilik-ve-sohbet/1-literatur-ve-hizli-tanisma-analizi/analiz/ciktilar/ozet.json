@@ -1,0 +1,372 @@
+{
+ "A1_A2": {
+  "kat": [
+   {
+    "karar_veren": "kadın",
+    "ozellik": "çekicilik",
+    "puan": 12.88,
+    "lo": 11.18,
+    "hi": 14.51,
+    "n_degerlendirme": 3457,
+    "n_kisi": 267
+   },
+   {
+    "karar_veren": "kadın",
+    "ozellik": "samimiyet",
+    "puan": 0.11,
+    "lo": -1.45,
+    "hi": 1.72,
+    "n_degerlendirme": 3457,
+    "n_kisi": 267
+   },
+   {
+    "karar_veren": "kadın",
+    "ozellik": "zekâ",
+    "puan": 3.15,
+    "lo": 1.56,
+    "hi": 4.92,
+    "n_degerlendirme": 3457,
+    "n_kisi": 267
+   },
+   {
+    "karar_veren": "kadın",
+    "ozellik": "komiklik",
+    "puan": 5.88,
+    "lo": 4.18,
+    "hi": 7.62,
+    "n_degerlendirme": 3457,
+    "n_kisi": 267
+   },
+   {
+    "karar_veren": "kadın",
+    "ozellik": "hırs",
+    "puan": 0.1,
+    "lo": -1.24,
+    "hi": 1.46,
+    "n_degerlendirme": 3457,
+    "n_kisi": 267
+   },
+   {
+    "karar_veren": "kadın",
+    "ozellik": "ortak ilgi",
+    "puan": 8.43,
+    "lo": 6.89,
+    "hi": 10.11,
+    "n_degerlendirme": 3457,
+    "n_kisi": 267
+   },
+   {
+    "karar_veren": "erkek",
+    "ozellik": "çekicilik",
+    "puan": 16.98,
+    "lo": 15.31,
+    "hi": 18.78,
+    "n_degerlendirme": 3583,
+    "n_kisi": 268
+   },
+   {
+    "karar_veren": "erkek",
+    "ozellik": "samimiyet",
+    "puan": 0.18,
+    "lo": -1.42,
+    "hi": 1.71,
+    "n_degerlendirme": 3583,
+    "n_kisi": 268
+   },
+   {
+    "karar_veren": "erkek",
+    "ozellik": "zekâ",
+    "puan": 0.95,
+    "lo": -0.64,
+    "hi": 2.55,
+    "n_degerlendirme": 3583,
+    "n_kisi": 268
+   },
+   {
+    "karar_veren": "erkek",
+    "ozellik": "komiklik",
+    "puan": 7.98,
+    "lo": 6.46,
+    "hi": 9.51,
+    "n_degerlendirme": 3583,
+    "n_kisi": 268
+   },
+   {
+    "karar_veren": "erkek",
+    "ozellik": "hırs",
+    "puan": -1.01,
+    "lo": -2.45,
+    "hi": 0.41,
+    "n_degerlendirme": 3583,
+    "n_kisi": 268
+   },
+   {
+    "karar_veren": "erkek",
+    "ozellik": "ortak ilgi",
+    "puan": 6.15,
+    "lo": 4.46,
+    "hi": 7.84,
+    "n_degerlendirme": 3583,
+    "n_kisi": 268
+   }
+  ],
+  "fark": [
+   {
+    "ozellik": "çekicilik",
+    "erkek_eksi_kadin": 4.1,
+    "lo": 1.66,
+    "hi": 6.51
+   },
+   {
+    "ozellik": "samimiyet",
+    "erkek_eksi_kadin": 0.07,
+    "lo": -2.05,
+    "hi": 2.24
+   },
+   {
+    "ozellik": "zekâ",
+    "erkek_eksi_kadin": -2.21,
+    "lo": -4.61,
+    "hi": 0.1
+   },
+   {
+    "ozellik": "komiklik",
+    "erkek_eksi_kadin": 2.11,
+    "lo": -0.3,
+    "hi": 4.36
+   },
+   {
+    "ozellik": "hırs",
+    "erkek_eksi_kadin": -1.11,
+    "lo": -3.08,
+    "hi": 0.9
+   },
+   {
+    "ozellik": "ortak ilgi",
+    "erkek_eksi_kadin": -2.29,
+    "lo": -4.65,
+    "hi": 0.01
+   }
+  ]
+ },
+ "A3": {
+  "n": 3407,
+  "kisi": 263,
+  "terimler": [
+   {
+    "terim": "attractive_partner",
+    "puan": 12.73,
+    "lo": 11.08,
+    "hi": 14.49
+   },
+   {
+    "terim": "sincere_partner",
+    "puan": 0.3,
+    "lo": -1.26,
+    "hi": 1.91
+   },
+   {
+    "terim": "intelligence_partner",
+    "puan": 2.97,
+    "lo": 1.34,
+    "hi": 4.62
+   },
+   {
+    "terim": "funny_partner",
+    "puan": 6.28,
+    "lo": 4.64,
+    "hi": 8.03
+   },
+   {
+    "terim": "ambition_partner",
+    "puan": 0.14,
+    "lo": -1.25,
+    "hi": 1.46
+   },
+   {
+    "terim": "shared_interests_partner",
+    "puan": 8.14,
+    "lo": 6.46,
+    "hi": 9.81
+   },
+   {
+    "terim": "çekicilik × önem",
+    "puan": -0.58,
+    "lo": -2.23,
+    "hi": 1.07
+   },
+   {
+    "terim": "komiklik × önem",
+    "puan": -0.04,
+    "lo": -1.71,
+    "hi": 1.57
+   },
+   {
+    "terim": "zekâ × önem",
+    "puan": 2.09,
+    "lo": 0.59,
+    "hi": 3.47
+   }
+  ]
+ },
+ "A4": {
+  "n": 3392,
+  "kisi": 263,
+  "nesnel": [
+   0.6289254395460339,
+   -0.9030840456942814,
+   2.1243947276496957
+  ],
+  "algilanan": [
+   18.78089074709459,
+   17.094463678674508,
+   20.58636359862254
+  ],
+  "fark": [
+   18.151965307548554,
+   15.970343888940317,
+   20.426752324836883
+  ]
+ },
+ "A5": {
+  "birinci_sayilari": {
+   "iyi kalplilik": 31,
+   "sağlık": 10,
+   "zekâ": 4
+  },
+  "turkiye": {
+   "iyi kalplilik": 5.72,
+   "zekâ": 6.01,
+   "sağlık": 5.9,
+   "fiziksel çekicilik": 5.54,
+   "kaynak": 5.5
+  },
+  "turkiye_birinci": "zekâ",
+  "iyi_kalplilik_cekicilikten_yuksek": 45
+ },
+ "A6": {
+  "birinci_sayilari": {
+   "iyi kalplilik": 25,
+   "sağlık": 12,
+   "zekâ": 7,
+   "fiziksel çekicilik": 1
+  },
+  "turkiye": {
+   "iyi kalplilik": 5.77,
+   "zekâ": 5.77,
+   "sağlık": 5.84,
+   "fiziksel çekicilik": 5.81,
+   "kaynak": 4.99
+  },
+  "turkiye_birinci": "sağlık",
+  "iyi_kalplilik_cekicilikten_yuksek": 38
+ },
+ "testler": [
+  {
+   "test": "T1",
+   "aciklama": "Veri bütünlüğü: iki dosyanın SHA-256 özeti (yaş-farkı araştırmasıyla aynı)",
+   "deger": "hizli: eşleşti, walter: eşleşti",
+   "olcut": "ikisi de eşleşir",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T2",
+   "aciklama": "Kişi sayısı yaş-farkı sürüm 1 ile aynı",
+   "deger": "kadın 273, erkek 276",
+   "olcut": "kadın 269, erkek 274",
+   "sonuc": "KALDI"
+  },
+  {
+   "test": "T2b",
+   "aciklama": "(sonradan eklendi) Aynı alt kümede kişi sayısı: yaşı, partner yaşı ve kararı dolu satırlar",
+   "deger": "kadın 269, erkek 274",
+   "olcut": "kadın 269, erkek 274",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T4",
+   "aciklama": "Kişi içi merkezleme: merkezlenmiş kararın kişi ortalamalarının mutlak en büyüğü",
+   "deger": "5.29e-17",
+   "olcut": "< 1e-9",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T3",
+   "aciklama": "Çekicilik katsayısının %95 aralık alt sınırı iki cinsiyette de > 0",
+   "deger": "kadın 11.2, erkek 15.3",
+   "olcut": "ikisi de > 0",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T5",
+   "aciklama": "D2: ülke sayısı ve cinsiyet kodu (sex=0 kadın: kaynak ortalaması daha yüksek)",
+   "deger": "45 ülke; kaynak ort. sex0 5.48, sex1 5.11",
+   "olcut": "45 ülke ve sex0 > sex1",
+   "sonuc": "GEÇTİ"
+  }
+ ],
+ "kararlar": [
+  {
+   "kural": "K1",
+   "soru": "Kadınlarda en büyük katsayı çekicilik; komiklik ve ortak ilgi pozitif mi? (kör değil)",
+   "deger": "çekicilik 12.9 [11.2, 14.5]; samimiyet 0.1 [-1.4, 1.7]; zekâ 3.2 [1.6, 4.9]; komiklik 5.9 [4.2, 7.6]; hırs 0.1 [-1.2, 1.5]; ortak ilgi 8.4 [6.9, 10.1]",
+   "karar": "evet"
+  },
+  {
+   "kural": "K2",
+   "soru": "Erkekler görünüşe kadınlardan daha mı çok ağırlık veriyor? (erkek − kadın)",
+   "deger": "4.1 [1.7, 6.5]",
+   "karar": "evet"
+  },
+  {
+   "kural": "K3",
+   "soru": "Kadınlar komiklik özelliğine erkeklerden daha mı çok ağırlık veriyor? (kadın − erkek)",
+   "deger": "-2.1 [-4.4, 0.3]",
+   "karar": "belirgin fark yok"
+  },
+  {
+   "kural": "K3b",
+   "soru": "Kadınlar zekâ özelliğine erkeklerden daha mı çok ağırlık veriyor? (kadın − erkek)",
+   "deger": "2.2 [-0.1, 4.6]",
+   "karar": "belirgin fark yok"
+  },
+  {
+   "kural": "K4",
+   "soru": "Söylenen önem gerçek kararı öngörüyor mu? (çekicilik × önem)",
+   "deger": "-0.6 [-2.2, 1.1]",
+   "karar": "öngörmüyor"
+  },
+  {
+   "kural": "K4",
+   "soru": "Söylenen önem gerçek kararı öngörüyor mu? (komiklik × önem)",
+   "deger": "-0.0 [-1.7, 1.6]",
+   "karar": "öngörmüyor"
+  },
+  {
+   "kural": "K4",
+   "soru": "Söylenen önem gerçek kararı öngörüyor mu? (zekâ × önem)",
+   "deger": "2.1 [0.6, 3.5]",
+   "karar": "öngörüyor"
+  },
+  {
+   "kural": "K4 genel",
+   "soru": "En az 2 etkileşim 'öngörmüyor' mu?",
+   "deger": "2/3",
+   "karar": "söylenen ve gerçek tercih örtüşmüyor"
+  },
+  {
+   "kural": "K5",
+   "soru": "Ortak ilgi sohbette mi oluşuyor? (nesnel benzerlik / algılanan ortak ilgi)",
+   "deger": "nesnel 0.6 [-0.9, 2.1]; algılanan 18.8 [17.1, 20.6]; fark 18.2 [16.0, 20.4]",
+   "karar": "kâğıt üzerindeki benzerlik az etkili, ortak ilgi sohbette algılanıyor"
+  },
+  {
+   "kural": "K6",
+   "soru": "45 ülkede kadınlar en çok iyi kalpliliği mi önemsiyor? (kör değil)",
+   "deger": "31/45 ülkede birinci",
+   "karar": "evet"
+  }
+ ],
+ "tohum": 20261019,
+ "bootstrap": 2000
+}

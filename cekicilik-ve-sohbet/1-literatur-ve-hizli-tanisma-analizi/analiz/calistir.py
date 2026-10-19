@@ -97,6 +97,11 @@ s["kisi"] = s.groupby(KIMLIK, dropna=False, sort=False).ngroup()
 say = s.groupby("gender").kisi.nunique().to_dict()
 test("T2", "Kişi sayısı yaş-farkı sürüm 1 ile aynı", f"kadın {say.get('female')}, erkek {say.get('male')}",
      "kadın 269, erkek 274", say.get("female") == 269 and say.get("male") == 274)
+# Sonradan eklendi (README "Plandan sapmalar"): yaş-farkı sürüm 1'deki 269/274, yaşı ve kararı dolu satırlarda sayılmıştı.
+say_b = s.dropna(subset=["age", "age_o", "decision"]).groupby("gender").kisi.nunique().to_dict()
+test("T2b", "(sonradan eklendi) Aynı alt kümede kişi sayısı: yaşı, partner yaşı ve kararı dolu satırlar",
+     f"kadın {say_b.get('female')}, erkek {say_b.get('male')}", "kadın 269, erkek 274",
+     say_b.get("female") == 269 and say_b.get("male") == 274)
 
 X6 = list(OZELLIK)
 d = s.dropna(subset=X6 + ["decision"]).copy()

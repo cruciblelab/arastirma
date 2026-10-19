@@ -1,0 +1,7 @@
+test,aciklama,deger,olcut,sonuc
+T1,Veri bütünlüğü: iki dosyanın SHA-256 özeti (yaş-farkı araştırmasıyla aynı),"hizli: eşleşti, walter: eşleşti",ikisi de eşleşir,GEÇTİ
+T2,Kişi sayısı yaş-farkı sürüm 1 ile aynı,"kadın 273, erkek 276","kadın 269, erkek 274",KALDI
+T2b,"(sonradan eklendi) Aynı alt kümede kişi sayısı: yaşı, partner yaşı ve kararı dolu satırlar","kadın 269, erkek 274","kadın 269, erkek 274",GEÇTİ
+T4,Kişi içi merkezleme: merkezlenmiş kararın kişi ortalamalarının mutlak en büyüğü,5.29e-17,< 1e-9,GEÇTİ
+T3,Çekicilik katsayısının %95 aralık alt sınırı iki cinsiyette de > 0,"kadın 11.2, erkek 15.3",ikisi de > 0,GEÇTİ
+T5,D2: ülke sayısı ve cinsiyet kodu (sex=0 kadın: kaynak ortalaması daha yüksek),"45 ülke; kaynak ort. sex0 5.48, sex1 5.11",45 ülke ve sex0 > sex1,GEÇTİ

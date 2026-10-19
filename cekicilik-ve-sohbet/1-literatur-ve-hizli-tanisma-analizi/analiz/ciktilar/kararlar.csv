@@ -1,0 +1,11 @@
+kural,soru,deger,karar
+K1,Kadınlarda en büyük katsayı çekicilik; komiklik ve ortak ilgi pozitif mi? (kör değil),"çekicilik 12.9 [11.2, 14.5]; samimiyet 0.1 [-1.4, 1.7]; zekâ 3.2 [1.6, 4.9]; komiklik 5.9 [4.2, 7.6]; hırs 0.1 [-1.2, 1.5]; ortak ilgi 8.4 [6.9, 10.1]",evet
+K2,Erkekler görünüşe kadınlardan daha mı çok ağırlık veriyor? (erkek − kadın),"4.1 [1.7, 6.5]",evet
+K3,Kadınlar komiklik özelliğine erkeklerden daha mı çok ağırlık veriyor? (kadın − erkek),"-2.1 [-4.4, 0.3]",belirgin fark yok
+K3b,Kadınlar zekâ özelliğine erkeklerden daha mı çok ağırlık veriyor? (kadın − erkek),"2.2 [-0.1, 4.6]",belirgin fark yok
+K4,Söylenen önem gerçek kararı öngörüyor mu? (çekicilik × önem),"-0.6 [-2.2, 1.1]",öngörmüyor
+K4,Söylenen önem gerçek kararı öngörüyor mu? (komiklik × önem),"-0.0 [-1.7, 1.6]",öngörmüyor
+K4,Söylenen önem gerçek kararı öngörüyor mu? (zekâ × önem),"2.1 [0.6, 3.5]",öngörüyor
+K4 genel,En az 2 etkileşim 'öngörmüyor' mu?,2/3,söylenen ve gerçek tercih örtüşmüyor
+K5,Ortak ilgi sohbette mi oluşuyor? (nesnel benzerlik / algılanan ortak ilgi),"nesnel 0.6 [-0.9, 2.1]; algılanan 18.8 [17.1, 20.6]; fark 18.2 [16.0, 20.4]","kâğıt üzerindeki benzerlik az etkili, ortak ilgi sohbette algılanıyor"
+K6,45 ülkede kadınlar en çok iyi kalpliliği mi önemsiyor? (kör değil),31/45 ülkede birinci,evet
