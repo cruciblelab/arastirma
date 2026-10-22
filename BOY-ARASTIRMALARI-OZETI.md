@@ -1,6 +1,6 @@
 # Boy Araştırmaları: Genel Özet
 
-> **Tarih:** 2026-10-10 · 8 araştırma, toplam 17 sürüm
+> **Tarih:** 2026-10-22 (ilk hali 2026-10-10) · 9 araştırma, toplam 18 sürüm
 >
 > Bu özet **tıbbi tavsiye değildir.** Sayıların çoğu model tahminidir ve hata içerebilir. [Sorumluluk Reddi Beyanı](SORUMLULUK-REDDI.md) geçerlidir. Her maddenin ayrıntısı, kaynağı ve belirsizliği bağlantı verilen raporda.
 
@@ -23,6 +23,8 @@ Boyu iki katlı bir bina gibi düşün:
 | 16 yaşından sonraki uzamanın ~%90'ı gövdeden, yani omurgadan gelir. | Aynı yer; [16-18 yaş, sürüm 3](boy-uzamasi-16-18-yas/3-mekanistik-simulasyon-ve-on-kayit/) |
 | El ya da ayağın plakları kapandı diye boy durmaz. El röntgeni "bitti" derken diz açık olabilir. | [Büyüme plakları](buyume-plaklari-kapanma-sirasi/1-literatur-ve-berkeley-analizi/) |
 | 17 yaşından sonra tipik bir erkekte omurga ~1-2 cm daha uzar; kendiliğinden olur. | [Omurga büyümesi](omurga-buyumesi/) |
+| **Güncel referanslarda 17 yaşından sonra kalan uzama ortanca ~1-1.6 cm, 18'den sonra ~0.5-1 cm.** Avusturya askerlik verisinde 17 ve 18 yaşındakilerin farkı son kuşaklarda 0.1 cm'ye inmiş: Gençler son boylarına eskisinden erken ulaşıyor. Geç olgunlaşanlarda büyüme 20'li yaşların başına kadar sürebilir. | [Gözden kaçanlar](boy-potansiyeli-gozden-kacanlar/1-literatur-taramasi/) |
+| "16 yaştan sonraki uzamanın ~%90'ı gövdeden" bulgusu Berkeley'de **ölçüldü**, ama ölçümler ~18.5 yaşında bitiyor. Bundan sonraki son uzamanın da omurgadan geldiği **makul bir çıkarım**, doğrudan ölçülmedi. | Aynı yer |
 | 16 yaşından sonra çoğu erkeğin önünde 2-4 cm, çoğu kızın önünde 1 cm'den az var. Geç gelişen bazı erkekler 10 cm'den fazla uzayabiliyor. | [16-18 yaş, sürüm 2](boy-uzamasi-16-18-yas/2-gercek-veriyle-dogrulama/) |
 | Omuz kemiği (köprücük) daha geç olgunlaşıyor: büyüme plağı ortalama ~21-22 yaşında kapanıyor. Omuz genişliği bu yaşa kadar biraz artabilir. | [Algılanan boy, sürüm 3](algilanan-boy-ve-vucut-yapisi/3-vucut-oranlari-ve-spor/) |
 
@@ -32,6 +34,7 @@ Boyu iki katlı bir bina gibi düşün:
 - **Ama yalnız büyümen yavaşlıyorsa geçerli.** Bunu anlamak için 3 ölçüm gerekir: 2 yıl önce, 1 yıl önce, şimdi. Bu yıl geçen yıldan çok uzadıysan atak bitmemiş; önünde kuralın söylediğinden fazlası olabilir. Sanal modelde 16 yaşındaki erkeklerin ~7'de 1'i böyle.
 - **Ölçüm disiplini her şeyden önemli:**
   - Akşam ~1.4 cm kısa ölçülürsün; ertesi sabah geri gelir. **Hep sabah ölç.**
+  - **Ama hep kalktıktan sonra aynı dakikada** (ör. 15. dakika). Gün içindeki kaybın %54'ü kalkıştan sonraki ilk saatte oluyor; "ilk saat içinde" demek ~1 cm'ye varan fark bırakır (2026-10-22 düzeltmesi). Alternatif: öğleden sonra hep aynı saatte.
   - Aynı yerde ölç, 3 kez ölçüp ortalamasını al.
   - Örnek veride iki akşam ölçümü belirsizliği 1.6 kat artırdı.
 - **Ne kadar sürede net cevap alırsın:** Haftada bir sabah ölçümüyle ~1 yıl, ayda bir ~1.5 yıl. Bunun için çevrimdışı bir ölçüm günlüğü uygulaması yapıldı; veriler bilgisayardan çıkmıyor.
@@ -78,6 +81,11 @@ Bu bir tavan değil, taban. Taban sağlanınca boy genetiğe kalıyor.
 - sık karın ağrısı, ishal, halsizlik varsa (çölyak ve tiroid boyu sinsice çalabilir).
 
 **Vitamin hapları boy uzatmaz.** D vitamini, çinko ve kalsiyum yalnız eksiksen işe yarar. Eksik olup olmadığını tahlil söyler; takviye ve dozu hekim kararı.
+- D vitamini, çocukların %95'inin eksik olduğu 8.851 kişilik bir RKÇ'de bile boyu etkilemedi.
+- Gambiya'da kalsiyum takviyesi erkeklerde ergenliği öne çekti; yetişkinlikte 3.5 cm daha kısa kaldılar. "Fazlası daha iyi" değil.
+- İnternetteki "boy uzatıcı" takviyeler: ABD FTC 2026'da birinin iddialarını kanıtsız buldu.
+
+**Gizli hastalıklar** de boy çalabilir ve basit tahlillerle bulunabilir: çölyak (açıklanamayan kısa boyda 9'da 1), tedavisiz tiroid yetersizliği, Crohn, kötü kontrollü tip 1 diyabet (erkekte −2.9 cm). **Baş ağrısı ya da görme sorunuyla birlikte büyümenin durması** da hekime gitme nedeni. Ayrıntı: [Gözden kaçanlar](boy-potansiyeli-gozden-kacanlar/1-literatur-taramasi/).
 
 ## 5. Görünüş ve algı: "Kaslı biri neden daha uzun görünür?"
 
@@ -97,6 +105,9 @@ Bu bir tavan değil, taban. Taban sağlanınca boy genetiğe kalıyor.
 | Ne | Ne kadar | Kalıcı mı? |
 |---|---|---|
 | 16 yaştan sonra erkekte kalan büyüme (tipik) | 2-4 cm (çoğu omurgadan) | Evet |
+| 17 yaştan sonra kalan büyüme, güncel referanslar (ortanca) | ~1-1.6 cm; 18'den sonra ~0.5-1 cm | Evet |
+| Gün içi boy kaybının kalkıştan sonraki ilk saatteki payı | %54 | Hayır, her gün geri gelir |
+| Ters asılma sonrası uzama | ~5 mm, 30 dakikada kaybolur | Hayır |
 | Sabah ile akşam arasındaki fark | ~1.4 cm | Hayır, her gün geri gelir |
 | Asıldıktan sonra uzama | ~3 mm | Hayır, saatler içinde gider |
 | Egzersizin gerçek boya etkisi (16+) | < 0.5 mm | – |
@@ -118,6 +129,8 @@ Bu bir tavan değil, taban. Taban sağlanınca boy genetiğe kalıyor.
   - "Duruşla 1-2 cm uzun görünürsün" ifadesi spor araştırmasında hesaplanınca abartı çıktı ve düzeltildi. Ölçülen boy için milimetre düzeyinde bir etki.
   - "Geçen yıl kadar kaldı" kuralı yalnız yavaşlayanlarda geçerli diye daraltıldı.
   - Omurga animasyonundaki iskelet bir anatomi atlasıyla karşılaştırılıp düzeltildi.
+  - Ölçüm kuralı "kalktıktan sonraki ilk saat içinde" fazla genişti: Günlük kaybın yarısından fazlası o saatte oluyor. "Hep aynı dakikada" diye daraltıldı (2026-10-22). Ölçüm günlüğü uygulaması dakikayı zaten kaydediyordu.
+  - Sohbet içinde verilen "17 yaşından sonra ortanca ~2 cm" tahmini (Berkeley'in 19 yaş sonrası izlenen alt grubu) yüksek çıktı; güncel referanslar ~1-1.6 cm veriyor. Repodaki raporlardaki 1.5-1.7 cm tahminleri ise doğruydu.
 - **Araştırmalar arasında bir tutarsızlık (yeni fark edildi):**
   - Algı araştırmalarında (sürüm 1 ve 3) dik duruşun etkisi **+1.3 cm** alındı. Kaynak, gevşek duruştan dik duruşa geçişi ölçen bir çalışma.
   - Spor araştırmasının modelinde ise ölçülen boyda 2-4 mm, günlük kamburluktan dike 0.3-0.65 cm çıktı.
@@ -132,7 +145,22 @@ Bu bir tavan değil, taban. Taban sağlanınca boy genetiğe kalıyor.
   - Büyüme verisi büyük ölçüde Berkeley ve İngiliz kohortlarından.
   - Türk gençlerine aktarımda belirsizlik var.
 
-## 8. Bekleyen işler
+## 8. Gözden kaçanlar (2026-10-22 taraması)
+
+Dört alanda 150'den fazla kaynak tarandı. Ayrıntı: [Boy potansiyelinde gözden kaçanlar](boy-potansiyeli-gozden-kacanlar/1-literatur-taramasi/).
+
+| Gözden kaçan | Neden önemli |
+|---|---|
+| **Kemik yaşı** | 17 yaşında kalan büyümeyi en iyi gösteren tek test. Geç olgunlaşan biri hâlâ büyüyor olabilir |
+| **Gizli hastalıklar** (çölyak, tiroid, Crohn, kötü kontrollü diyabet) | Boy kaybı yapabilir, basit tahlillerle bulunur |
+| **Antrenmanda enerji açığı** | 16 yaşındaki erkeklerde kilo kaybı olmadan bile IGF-I'i %12 düşürdü |
+| **Ağır kaldırışta omurga halka büyüme bölgesi** | 16 yaşında yaralanma vakaları var. Nadir; teknik ve denetim önemli |
+| **Uyku** | Tek gece uykusuzlukta 24 saatlik büyüme hormonu korunuyor. Ergenlerde uyku ile boy arasında gösterilmiş bir ilişki yok |
+| **Takviyeler** | Eksik olmayanda boy uzatmıyor; Gambiya'da kalsiyumla −3.5 cm |
+| **İlaçlar** | İnhale kortikosteroid (çocuklukta) −1.2 cm, DEHB ilaçlarında çelişkili kanıt, izotretinoinle nadir plak kapanması. Hiçbiri hekime danışılmadan bırakılmaz |
+| **Ölçüm zamanı** | Hep kalktıktan sonra aynı dakikada ölç |
+
+## 9. Bekleyen işler
 
 Ayrıntılar: [Bekleyen işler](BEKLEYEN-ISLER.md).
 - Fotoğraf deneyini gerçekten yapmak ve deney için tarayıcıda çalışan bir değerlendirme sayfası.
@@ -145,6 +173,8 @@ Ayrıntılar: [Bekleyen işler](BEKLEYEN-ISLER.md).
 - **16 yaşından sonra kalan birkaç santimetre çoğunlukla omurgadan gelir** ve kendiliğinden olur. Hiçbir egzersiz, yemek ya da hap bunu artırmaz.
 - **Asıl tehlike kısaltan şeyler:** steroid ve "boy uzatan" hap ya da iğneler, çok spor yapıp az yemek, tedavi edilmeyen hastalıklar. Şüphe varsa 18 yaşından önce hekime git.
 - **Kalan boyu anlamak için sabah, düzenli ölç.** "Geçen yıl kadar kaldı" kuralı, yalnız büyümen yavaşlıyorsa geçerli. Akşam ölçümü seni kandırır.
+- **17 yaşından sonra genelde 1-1.5 cm kalıyor** (güncel veriler); geç gelişenlerde daha fazla. Kesin cevap kemik yaşı grafisinde.
+- **Gözden kaçan asıl risk gizli hastalıklar:** çölyak, tiroid, Crohn. Basit tahlillerle bulunurlar. Baş ağrısı ya da görme sorunuyla birlikte büyüme durduysa hekime git.
 - **Kaslı biri daha uzun görünüyorsa, bunun bir kısmı göz yanılgısı, bir kısmı bakanın kendini nasıl hissettiği.** Kesin cevap için deney hazır.
 - **Görünüşü asıl değiştiren şey boy değil, orantı:** omuz ve göğüs, dar bel, dik duruş. Spor boyu değil, görüntüyü değiştirir.
 - **Benzetme:** Bina projeden yükseğe çıkmaz (genetik). Malzeme eksik kalırsa alçak kalır (beslenme, uyku, sağlık). Dik durursa olduğu boyda görünür (duruş). Cephesi güzelse daha heybetli görünür (kas ve orantı).
