@@ -6,6 +6,8 @@
 >
 > Bu doküman **tıbbi tavsiye değildir.** Evde ölçülen eğilim bir tahmindir; hekim değerlendirmesinin ve görüntülemenin (kemik yaşı röntgeni) yerini tutmaz.
 >
+> **Düzeltme notu (2026-10-22):** Ölçüm zamanı kuralı daraltıldı. Günlük boy kaybının %54'ü kalkıştan sonraki ilk saatte oluyor; "ilk saat içinde" ölçmek ~1 cm'ye varan fark yaratabilir. Yeni kural: **hep kalktıktan sonra aynı dakikada** (ör. 15. dakika) ya da öğleden sonra hep aynı saatte. Uygulama "kalktıktan sonra kaç dakika?" alanını zaten kaydediyor; yönerge metni güncellendi. Ayrıntı: [Boy potansiyelinde gözden kaçanlar, sürüm 1](../../boy-potansiyeli-gozden-kacanlar/1-literatur-taramasi/README.md) (bölüm 7).
+>
 > **Gizlilik:** Bu sürümdeki bütün veriler **uydurmadır** (test ve örnek). Gerçek ölçümler kullanıcının bilgisayarında kalır; analiz çıktıları `.kisisel/` klasörüne yazılır ve repoya girmez.
 
 **Kanıt seviyeleri:**
@@ -57,7 +59,7 @@ Sürüm 1 eski, belirsiz ölçümlerle "hâlâ uzuyor muyum?" sorusunu cevaplaya
 **Yedek uyarısı:** Tarayıcı geçmişi "site verileriyle birlikte" silinirse ölçümler de silinir. Bu yüzden uygulama ayda bir yedek dosyası indirmeyi hatırlatır. Yedeği başka bir yere (USB, bulut klasörü) kopyalamak kullanıcıya kalmış.
 
 **Ölçüm protokolü** ([omurga büyümesi, sürüm 1](../../omurga-buyumesi/1-kaldiraclar-protokol-ve-animasyon/README.md)):
-- Sabah, kalktıktan sonraki ilk saat içinde.
+- Sabah, kalktıktan sonraki ilk saat içinde, **ama hep aynı dakikada** (ör. 15. dakika; 2026-10-22 düzeltmesi, yukarıdaki nota bakınız).
 - Çıplak ayak, aynı duvar, kafada gönye ya da kitap.
 - Boy ve oturma boyu 3'er kez. Bacak = boy − oturma boyu.
 
