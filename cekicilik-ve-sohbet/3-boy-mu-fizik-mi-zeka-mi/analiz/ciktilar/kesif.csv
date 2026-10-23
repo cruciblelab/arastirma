@@ -1,0 +1,20 @@
+analiz,terim,deger,lo,hi,n,not_
+E1,"5 cm boy, kadın boyu < 163 cm",-0.842,-2.258,0.582,57,taban %15.0
+E1,"5 cm boy, kadın boyu 163-169 cm",1.092,-0.288,2.620,85,taban %20.0
+E1,"5 cm boy, kadın boyu >= 170 cm",1.862,0.499,3.257,82,taban %21.5
+E1,"5 cm boy, kadın boyu >= 175 cm",3.862,1.593,6.311,30,taban %20.6
+E2,profil kadından uzun (doğrusal boy sabit),6.690,1.627,11.825,224,profillerin %8.5'i kadından uzun değil
+E3,1 SS fotoğraf çekiciliği (yp),11.787,10.428,13.172,224,
+E3,7 cm boy (yp),1.224,0.039,2.375,224,
+E3,15 IQ (yp),2.262,1.237,3.351,224,
+E3,oran: fotoğraf / 7 cm boy (yalnız boy > 0 örnekler),9.632,4.791,62.570,224,bootstrap örneklerinin %98'inde boy > 0
+E4,omuz-kalça: en düşük → en yüksek düzey (puan),3.021,2.709,3.312,105,
+E4,boy: 163 → 187 cm (puan),0.829,0.662,0.995,105,
+E4,oran: omuz-kalça / boy (uçtan uca),3.646,3.000,4.550,105,
+E4,boy: 175 → 187 cm (puan),0.281,0.131,0.427,105,
+E4,boy: 163 → 175 cm (puan),0.548,0.398,0.692,105,
+E5,"SOI-R davranış ~ boy (+ yaş), SS",0.140,-0.003,0.285,164,
+E5,"SOI-R davranış ~ yüz çekiciliği (+ yaş), SS",0.191,0.028,0.344,163,
+E5,"SOI-R davranış ~ beden çekiciliği (+ yaş), SS",0.005,-0.152,0.163,151,
+E5,"SOI-R davranış ~ kuvvet (+ yaş), SS",0.180,0.007,0.333,164,
+E5,"SOI-R davranış ~ üst beden büyüklüğü (3B tarama) (+ yaş), SS",0.279,0.134,0.433,164,

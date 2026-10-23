@@ -1,5 +1,7 @@
 # Çekicilik ve Sohbet · Sürüm 2: Hoşlandığını Göstermek mi, Söylemek mi?
 
+> **Güncel sürüm:** [3-boy-mu-fizik-mi-zeka-mi](../3-boy-mu-fizik-mi-zeka-mi/). Bu sürüm dondurulmuştur.
+
 > **Sürüm:** 2 · **Tarih:** 2026-10-23 · **Durum:** güncel
 >
 > **Acelen varsa:** en alttaki [En basit özet](#en-basit-özet) bölümüne atla.

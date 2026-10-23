@@ -1,6 +1,6 @@
 # Boy Araştırmaları: Genel Özet
 
-> **Tarih:** 2026-10-22 (ilk hali 2026-10-10) · 9 araştırma, toplam 18 sürüm
+> **Tarih:** 2026-10-23 (ilk hali 2026-10-10) · 9 araştırma, toplam 18 sürüm
 >
 > Bu özet **tıbbi tavsiye değildir.** Sayıların çoğu model tahminidir ve hata içerebilir. [Sorumluluk Reddi Beyanı](SORUMLULUK-REDDI.md) geçerlidir. Her maddenin ayrıntısı, kaynağı ve belirsizliği bağlantı verilen raporda.
 
@@ -99,6 +99,7 @@ Bu bir tavan değil, taban. Taban sağlanınca boy genetiğe kalıyor.
 | **Kalıplı görünümün çoğu kemikten değil, kas ve yağdan geliyor.** Omzun en geniş yerinin yalnız %47'si kemikle açıklanıyor. Kemik yapısı aynı gençler arasında omuzda 8 cm, göğüste 23 cm fark var. | [Sürüm 3](algilanan-boy-ve-vucut-yapisi/3-vucut-oranlari-ve-spor/) |
 | **Görünüşte en çok işe yarayan orantı:** geniş omuz ve göğüs, dar bel. Güç izlenimi vücut çekiciliğinin %70'inden fazlasını açıklıyor; bel/göğüs oranı kilodan önemli. Erkekler, kadınların beğendiği kaslılığı abartıyor. | Aynı yer |
 | **Spor orantıyı değiştiriyor.** Modelde bir yıllık antrenman ve hafif yağ kaybıyla akranlar arasında "V" sırası 30'dan 47-69'a çıkıyor (gerçekçisi alt kısım). Antrenmansız kilo almak sırayı düşürüyor. Algılanan boya etkisi model tahmini: +0.7 ile +1.7 cm. | Aynı yer |
+| **Ortalama boydan sonra boy, görünüş ve fizikten çok daha az fark yaratıyor.** Rastgele profilli bir seçim deneyinde (224 kadın) 1 SS fotoğraf çekiciliği seçilme olasılığını +11.8 puan, 7 cm boy +1.2 puan artırdı; 180 cm üstünde +5 cm +0.5 (belirsiz). Boyun değeri kadının kendi boyuna göre göreli: önemli olan kadından uzun olmak. Gerçek boyutlu figürlerde omuz-kalça görünümü boydan ~3.6 kat etkili; gerçek eşleşmede kas/güç boydan tutarlı. | [Çekicilik ve Sohbet, sürüm 3](cekicilik-ve-sohbet/3-boy-mu-fizik-mi-zeka-mi/) |
 
 ## 6. Sayılarla tek bakış
 
