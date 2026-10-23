@@ -1,0 +1,35 @@
+karar_veren,model,terim,puan,lo,hi,n,kisi
+kadın,B1,çekicilik,12.61,11.03,14.23,3415,265
+kadın,B1,samimiyet,-1.06,-2.72,0.51,3415,265
+kadın,B1,zekâ,2.94,1.42,4.61,3415,265
+kadın,B1,komiklik,4.68,2.97,6.43,3415,265
+kadın,B1,hırs,0.25,-1.10,1.61,3415,265
+kadın,B1,ortak ilgi,6.87,5.16,8.62,3415,265
+kadın,B1,"""benden hoşlanıyor"" hissi",6.58,5.06,8.15,3415,265
+kadın,B2,çekicilik,12.73,11.12,14.42,3457,267
+kadın,B2,samimiyet,0.15,-1.42,1.72,3457,267
+kadın,B2,zekâ,3.16,1.51,4.85,3457,267
+kadın,B2,komiklik,5.79,4.06,7.50,3457,267
+kadın,B2,hırs,0.06,-1.26,1.41,3457,267
+kadın,B2,ortak ilgi,8.37,6.78,9.94,3457,267
+kadın,B2,karşısındaki onu özellikle seçti,0.78,-0.48,2.00,3457,267
+kadın,B2,karşısındaki herkese evet diyor,-1.04,-2.21,0.10,3457,267
+kadın,B3,karşısındaki onu özellikle seçti,3.84,2.55,5.11,4184,273
+kadın,B3,karşısındaki herkese evet diyor,-4.30,-5.69,-2.97,4184,273
+erkek,B1,çekicilik,16.65,14.92,18.38,3555,267
+erkek,B1,samimiyet,-1.07,-2.68,0.53,3555,267
+erkek,B1,zekâ,0.99,-0.53,2.53,3555,267
+erkek,B1,komiklik,6.82,5.34,8.28,3555,267
+erkek,B1,hırs,-1.13,-2.67,0.31,3555,267
+erkek,B1,ortak ilgi,4.35,2.70,6.03,3555,267
+erkek,B1,"""benden hoşlanıyor"" hissi",6.87,5.17,8.63,3555,267
+erkek,B2,çekicilik,16.86,15.11,18.60,3583,268
+erkek,B2,samimiyet,0.19,-1.32,1.70,3583,268
+erkek,B2,zekâ,0.93,-0.55,2.43,3583,268
+erkek,B2,komiklik,7.95,6.50,9.50,3583,268
+erkek,B2,hırs,-1.03,-2.39,0.44,3583,268
+erkek,B2,ortak ilgi,6.06,4.44,7.82,3583,268
+erkek,B2,karşısındaki onu özellikle seçti,1.39,0.15,2.61,3583,268
+erkek,B2,karşısındaki herkese evet diyor,-0.67,-1.85,0.46,3583,268
+erkek,B3,karşısındaki onu özellikle seçti,3.90,2.52,5.24,4194,276
+erkek,B3,karşısındaki herkese evet diyor,-3.90,-5.41,-2.52,4194,276

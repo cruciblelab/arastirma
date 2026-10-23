@@ -1,0 +1,6 @@
+test,aciklama,deger,olcut,sonuc
+T1,Veri bütünlüğü: SHA-256 (sürüm 1 ile aynı),eşleşti,eşleşir,GEÇTİ
+T2,Karşı taraf kimliği: |karşı kimlik sayısı − karar veren sayısı| toplamı / karar veren toplamı,1/549 = 0.002,< 0.05,GEÇTİ
+T3,Karşı tarafların 'evet' oranı en az 5 buluşmadan hesaplanan payı,1.000,>= 0.90,GEÇTİ
+T4,"Kişi içi merkezleme (B1, kadın)",5.29e-17,< 1e-9,GEÇTİ
+T5,Kodlama kontrolü: B1'de çekicilik katsayısı alt sınırı iki cinsiyette > 0,"kadın 11.0, erkek 14.9",ikisi de > 0,GEÇTİ

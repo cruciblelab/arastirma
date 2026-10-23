@@ -1,0 +1,9 @@
+kural,soru,deger,karar
+K1 (kadın),'Benden hoşlanıyor' hissi kadın karar verenin evet'ini artırıyor mu?,"6.6 [5.1, 8.2]",evet
+K2 (kadın),Seçici ilgi karşılık görüyor mu?,"0.8 [-0.5, 2.0]",belirgin fark yok
+K3 (kadın),Herkese ilgi gösteren daha az mı ilgi görüyor?,"-1.0 [-2.2, 0.1]",belirgin fark yok
+K1 (erkek),'Benden hoşlanıyor' hissi erkek karar verenin evet'ini artırıyor mu?,"6.9 [5.2, 8.6]",evet
+K2 (erkek),Seçici ilgi karşılık görüyor mu?,"1.4 [0.2, 2.6]",evet
+K3 (erkek),Herkese ilgi gösteren daha az mı ilgi görüyor?,"-0.7 [-1.9, 0.5]",belirgin fark yok
+K4 (kadın),kadın karar verenler karşısındakinin ilgisini doğru okuyor mu?,"r = 0.12 [0.09, 0.15]","okuyor, zayıf"
+K4 (erkek),erkek karar verenler karşısındakinin ilgisini doğru okuyor mu?,"r = 0.15 [0.12, 0.18]","okuyor, zayıf"

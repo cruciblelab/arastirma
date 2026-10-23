@@ -1,0 +1,447 @@
+{
+ "katsayilar": [
+  {
+   "karar_veren": "kadın",
+   "model": "B1",
+   "terim": "çekicilik",
+   "puan": 12.61,
+   "lo": 11.03,
+   "hi": 14.23,
+   "n": 3415,
+   "kisi": 265
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B1",
+   "terim": "samimiyet",
+   "puan": -1.06,
+   "lo": -2.72,
+   "hi": 0.51,
+   "n": 3415,
+   "kisi": 265
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B1",
+   "terim": "zekâ",
+   "puan": 2.94,
+   "lo": 1.42,
+   "hi": 4.61,
+   "n": 3415,
+   "kisi": 265
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B1",
+   "terim": "komiklik",
+   "puan": 4.68,
+   "lo": 2.97,
+   "hi": 6.43,
+   "n": 3415,
+   "kisi": 265
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B1",
+   "terim": "hırs",
+   "puan": 0.25,
+   "lo": -1.1,
+   "hi": 1.61,
+   "n": 3415,
+   "kisi": 265
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B1",
+   "terim": "ortak ilgi",
+   "puan": 6.87,
+   "lo": 5.16,
+   "hi": 8.62,
+   "n": 3415,
+   "kisi": 265
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B1",
+   "terim": "\"benden hoşlanıyor\" hissi",
+   "puan": 6.58,
+   "lo": 5.06,
+   "hi": 8.15,
+   "n": 3415,
+   "kisi": 265
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B2",
+   "terim": "çekicilik",
+   "puan": 12.73,
+   "lo": 11.12,
+   "hi": 14.42,
+   "n": 3457,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B2",
+   "terim": "samimiyet",
+   "puan": 0.15,
+   "lo": -1.42,
+   "hi": 1.72,
+   "n": 3457,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B2",
+   "terim": "zekâ",
+   "puan": 3.16,
+   "lo": 1.51,
+   "hi": 4.85,
+   "n": 3457,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B2",
+   "terim": "komiklik",
+   "puan": 5.79,
+   "lo": 4.06,
+   "hi": 7.5,
+   "n": 3457,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B2",
+   "terim": "hırs",
+   "puan": 0.06,
+   "lo": -1.26,
+   "hi": 1.41,
+   "n": 3457,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B2",
+   "terim": "ortak ilgi",
+   "puan": 8.37,
+   "lo": 6.78,
+   "hi": 9.94,
+   "n": 3457,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B2",
+   "terim": "karşısındaki onu özellikle seçti",
+   "puan": 0.78,
+   "lo": -0.48,
+   "hi": 2.0,
+   "n": 3457,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B2",
+   "terim": "karşısındaki herkese evet diyor",
+   "puan": -1.04,
+   "lo": -2.21,
+   "hi": 0.1,
+   "n": 3457,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B3",
+   "terim": "karşısındaki onu özellikle seçti",
+   "puan": 3.84,
+   "lo": 2.55,
+   "hi": 5.11,
+   "n": 4184,
+   "kisi": 273
+  },
+  {
+   "karar_veren": "kadın",
+   "model": "B3",
+   "terim": "karşısındaki herkese evet diyor",
+   "puan": -4.3,
+   "lo": -5.69,
+   "hi": -2.97,
+   "n": 4184,
+   "kisi": 273
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B1",
+   "terim": "çekicilik",
+   "puan": 16.65,
+   "lo": 14.92,
+   "hi": 18.38,
+   "n": 3555,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B1",
+   "terim": "samimiyet",
+   "puan": -1.07,
+   "lo": -2.68,
+   "hi": 0.53,
+   "n": 3555,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B1",
+   "terim": "zekâ",
+   "puan": 0.99,
+   "lo": -0.53,
+   "hi": 2.53,
+   "n": 3555,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B1",
+   "terim": "komiklik",
+   "puan": 6.82,
+   "lo": 5.34,
+   "hi": 8.28,
+   "n": 3555,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B1",
+   "terim": "hırs",
+   "puan": -1.13,
+   "lo": -2.67,
+   "hi": 0.31,
+   "n": 3555,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B1",
+   "terim": "ortak ilgi",
+   "puan": 4.35,
+   "lo": 2.7,
+   "hi": 6.03,
+   "n": 3555,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B1",
+   "terim": "\"benden hoşlanıyor\" hissi",
+   "puan": 6.87,
+   "lo": 5.17,
+   "hi": 8.63,
+   "n": 3555,
+   "kisi": 267
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B2",
+   "terim": "çekicilik",
+   "puan": 16.86,
+   "lo": 15.11,
+   "hi": 18.6,
+   "n": 3583,
+   "kisi": 268
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B2",
+   "terim": "samimiyet",
+   "puan": 0.19,
+   "lo": -1.32,
+   "hi": 1.7,
+   "n": 3583,
+   "kisi": 268
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B2",
+   "terim": "zekâ",
+   "puan": 0.93,
+   "lo": -0.55,
+   "hi": 2.43,
+   "n": 3583,
+   "kisi": 268
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B2",
+   "terim": "komiklik",
+   "puan": 7.95,
+   "lo": 6.5,
+   "hi": 9.5,
+   "n": 3583,
+   "kisi": 268
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B2",
+   "terim": "hırs",
+   "puan": -1.03,
+   "lo": -2.39,
+   "hi": 0.44,
+   "n": 3583,
+   "kisi": 268
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B2",
+   "terim": "ortak ilgi",
+   "puan": 6.06,
+   "lo": 4.44,
+   "hi": 7.82,
+   "n": 3583,
+   "kisi": 268
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B2",
+   "terim": "karşısındaki onu özellikle seçti",
+   "puan": 1.39,
+   "lo": 0.15,
+   "hi": 2.61,
+   "n": 3583,
+   "kisi": 268
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B2",
+   "terim": "karşısındaki herkese evet diyor",
+   "puan": -0.67,
+   "lo": -1.85,
+   "hi": 0.46,
+   "n": 3583,
+   "kisi": 268
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B3",
+   "terim": "karşısındaki onu özellikle seçti",
+   "puan": 3.9,
+   "lo": 2.52,
+   "hi": 5.24,
+   "n": 4194,
+   "kisi": 276
+  },
+  {
+   "karar_veren": "erkek",
+   "model": "B3",
+   "terim": "karşısındaki herkese evet diyor",
+   "puan": -3.9,
+   "lo": -5.41,
+   "hi": -2.52,
+   "n": 4194,
+   "kisi": 276
+  }
+ ],
+ "B4_kadın": {
+  "r": 0.12116429800666922,
+  "lo": 0.09039493587176524,
+  "hi": 0.15226746554240667,
+  "n": 4020,
+  "kisi": 272
+ },
+ "B4_erkek": {
+  "r": 0.15023740332593732,
+  "lo": 0.11649179929491764,
+  "hi": 0.18482541866680108,
+  "n": 4049,
+  "kisi": 276
+ },
+ "testler": [
+  {
+   "test": "T1",
+   "aciklama": "Veri bütünlüğü: SHA-256 (sürüm 1 ile aynı)",
+   "deger": "eşleşti",
+   "olcut": "eşleşir",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T2",
+   "aciklama": "Karşı taraf kimliği: |karşı kimlik sayısı − karar veren sayısı| toplamı / karar veren toplamı",
+   "deger": "1/549 = 0.002",
+   "olcut": "< 0.05",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T3",
+   "aciklama": "Karşı tarafların 'evet' oranı en az 5 buluşmadan hesaplanan payı",
+   "deger": "1.000",
+   "olcut": ">= 0.90",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T4",
+   "aciklama": "Kişi içi merkezleme (B1, kadın)",
+   "deger": "5.29e-17",
+   "olcut": "< 1e-9",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T5",
+   "aciklama": "Kodlama kontrolü: B1'de çekicilik katsayısı alt sınırı iki cinsiyette > 0",
+   "deger": "kadın 11.0, erkek 14.9",
+   "olcut": "ikisi de > 0",
+   "sonuc": "GEÇTİ"
+  }
+ ],
+ "kararlar": [
+  {
+   "kural": "K1 (kadın)",
+   "soru": "'Benden hoşlanıyor' hissi kadın karar verenin evet'ini artırıyor mu?",
+   "deger": "6.6 [5.1, 8.2]",
+   "karar": "evet"
+  },
+  {
+   "kural": "K2 (kadın)",
+   "soru": "Seçici ilgi karşılık görüyor mu?",
+   "deger": "0.8 [-0.5, 2.0]",
+   "karar": "belirgin fark yok"
+  },
+  {
+   "kural": "K3 (kadın)",
+   "soru": "Herkese ilgi gösteren daha az mı ilgi görüyor?",
+   "deger": "-1.0 [-2.2, 0.1]",
+   "karar": "belirgin fark yok"
+  },
+  {
+   "kural": "K1 (erkek)",
+   "soru": "'Benden hoşlanıyor' hissi erkek karar verenin evet'ini artırıyor mu?",
+   "deger": "6.9 [5.2, 8.6]",
+   "karar": "evet"
+  },
+  {
+   "kural": "K2 (erkek)",
+   "soru": "Seçici ilgi karşılık görüyor mu?",
+   "deger": "1.4 [0.2, 2.6]",
+   "karar": "evet"
+  },
+  {
+   "kural": "K3 (erkek)",
+   "soru": "Herkese ilgi gösteren daha az mı ilgi görüyor?",
+   "deger": "-0.7 [-1.9, 0.5]",
+   "karar": "belirgin fark yok"
+  },
+  {
+   "kural": "K4 (kadın)",
+   "soru": "kadın karar verenler karşısındakinin ilgisini doğru okuyor mu?",
+   "deger": "r = 0.12 [0.09, 0.15]",
+   "karar": "okuyor, zayıf"
+  },
+  {
+   "kural": "K4 (erkek)",
+   "soru": "erkek karar verenler karşısındakinin ilgisini doğru okuyor mu?",
+   "deger": "r = 0.15 [0.12, 0.18]",
+   "karar": "okuyor, zayıf"
+  }
+ ],
+ "tohum": 20261023,
+ "bootstrap": 2000
+}
