@@ -1,5 +1,7 @@
 # Çekicilik ve Sohbet · Sürüm 1: Literatür ve Hızlı Tanışma Analizi
 
+> **Güncel sürüm:** [2-hoslandigini-gostermek-mi-soylemek-mi](../2-hoslandigini-gostermek-mi-soylemek-mi/). Bu sürüm dondurulmuştur.
+
 > **Sürüm:** 1 · **Tarih:** 2026-10-19 · **Durum:** güncel
 >
 > **Acelen varsa:** en alttaki [En basit özet](#en-basit-özet) bölümüne atla.
