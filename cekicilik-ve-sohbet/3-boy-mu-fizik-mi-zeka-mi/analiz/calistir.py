@@ -251,6 +251,7 @@ test("T6", "MA: kadın × puan, figür boyu düzeyi; KO: satır sayısı ve boy 
      ma.participant.nunique() == 105 and (satir_ma == 49).all() and ma.figheight.nunique() == 7
      and len(ko) == 164 and ko.height.between(150, 210).all())
 
+ma = ma.dropna(subset=["rating"]).copy()  # 3 boş puan (çalıştırmada görüldü; Plandan sapmalar)
 ma["puan"] = ma.rating.astype(float)
 ma["fh"] = ma.figheight.astype(float)
 ma["fh_alt"], ma["fh_ust"] = np.minimum(ma.fh, 0), np.maximum(ma.fh, 0)
@@ -290,6 +291,8 @@ test("T5", "Kodlama kontrolü: UvA çekicilik (U2) ve MA omuz-kalça (M2) doğru
 
 # ---------------------------------------------------------------- KO: G1, G2 (keşif)
 G = ["height", "facial.attract", "bodily.attract", "physicalstrength_mean", "AgeT1"]
+for c in G + ["SOIbehaviour", "relationship.status"]:  # bazı hücreler " " ya da "-,636" biçiminde (Plandan sapmalar)
+    ko[c] = pd.to_numeric(ko[c].astype(str).str.strip().str.replace(",", ".", regex=False), errors="coerce")
 g = ko.dropna(subset=G + ["SOIbehaviour", "relationship.status"]).copy()
 zad = {"height": "z_boy", "facial.attract": "z_yuz", "bodily.attract": "z_beden", "physicalstrength_mean": "z_kuvvet",
        "AgeT1": "z_yas"}
