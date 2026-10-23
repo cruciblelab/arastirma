@@ -1,0 +1,74 @@
+veri,model,terim,deger,lo,hi,birim,n,kisi
+UvA,U1,cek_alt,8.424,6.341,10.599,yp / 1 SS (ortalamanın altı),8064,224
+UvA,U1,cek_ust,14.710,11.922,17.290,yp / 1 SS (ortalamanın üstü),8064,224
+UvA,U1,boy_alt,1.209,-0.413,2.778,yp / 5 cm (180 altı),8064,224
+UvA,U1,boy_ust,0.491,-1.284,2.203,yp / 5 cm (180 üstü),8064,224
+UvA,U1,iq_alt,1.960,-0.214,4.147,yp / 15 IQ (100 altı),8064,224
+UvA,U1,iq_ust,2.561,0.437,4.768,yp / 15 IQ (100 üstü),8064,224
+UvA,U1,bio,2.037,1.172,2.940,yp / 1 SS,8064,224
+UvA,U1,mes,0.395,-0.553,1.258,yp / 1 SS,8064,224
+UvA,U2,cek,11.793,10.523,13.141,yp / 1 SS,8064,224
+UvA,U2,boy5,0.874,0.063,1.694,yp / 5 cm,8064,224
+UvA,U2,iq15,2.260,1.271,3.396,yp / 15 IQ,8064,224
+UvA,U2,bio,2.051,1.173,2.899,yp / 1 SS,8064,224
+UvA,U2,mes,0.365,-0.549,1.295,yp / 1 SS,8064,224
+UvA,U2,boy5_x_kendi5,0.907,0.279,1.549,"yp / 5 cm boy, kadın 5 cm uzunken",8064,224
+UvA,U3,cek,11.749,10.377,13.047,yp / 1 SS,8064,224
+UvA,U3,boy5,0.879,0.085,1.723,yp / 5 cm,8064,224
+UvA,U3,iq15,2.267,1.284,3.224,yp / 15 IQ,8064,224
+UvA,U3,bio,2.052,1.220,2.963,yp / 1 SS,8064,224
+UvA,U3,mes,0.383,-0.557,1.306,yp / 1 SS,8064,224
+UvA,U3,boy5_x_cek,-0.458,-1.187,0.296,"yp / 5 cm boy, 1 SS çekicilikte",8064,224
+UvA,U3,iq15_x_cek,-0.334,-1.433,0.728,"yp / 15 IQ, 1 SS çekicilikte",8064,224
+UvA,U4-U1,cek_alt,1.024,0.809,1.279,log-odds / 1 SS (ortalamanın altı),1552,202
+UvA,U4-U1,cek_ust,0.691,0.533,0.866,log-odds / 1 SS (ortalamanın üstü),1552,202
+UvA,U4-U1,boy_alt,0.087,-0.054,0.225,log-odds / 5 cm (180 altı),1552,202
+UvA,U4-U1,boy_ust,0.064,-0.083,0.218,log-odds / 5 cm (180 üstü),1552,202
+UvA,U4-U1,iq_alt,0.116,-0.062,0.304,log-odds / 15 IQ (100 altı),1552,202
+UvA,U4-U1,iq_ust,0.202,0.032,0.371,log-odds / 15 IQ (100 üstü),1552,202
+UvA,U4-U1,bio,0.151,0.074,0.232,log-odds / 1 SS,1552,202
+UvA,U4-U1,mes,0.010,-0.064,0.090,log-odds / 1 SS,1552,202
+UvA,U4-U2,cek,0.816,0.719,0.927,log-odds / 1 SS,1552,202
+UvA,U4-U2,boy5,0.061,-0.008,0.127,log-odds / 5 cm,1552,202
+UvA,U4-U2,iq15,0.163,0.077,0.249,log-odds / 15 IQ,1552,202
+UvA,U4-U2,bio,0.149,0.075,0.226,log-odds / 1 SS,1552,202
+UvA,U4-U2,mes,0.010,-0.065,0.091,log-odds / 1 SS,1552,202
+UvA,U4-U2,boy5_x_kendi5,0.061,0.002,0.123,"log-odds / 5 cm boy, kadın 5 cm uzunken",1552,202
+UvA,U4-U3,cek,0.819,0.717,0.930,log-odds / 1 SS,1552,202
+UvA,U4-U3,boy5,0.092,0.021,0.167,log-odds / 5 cm,1552,202
+UvA,U4-U3,iq15,0.195,0.108,0.283,log-odds / 15 IQ,1552,202
+UvA,U4-U3,bio,0.149,0.075,0.224,log-odds / 1 SS,1552,202
+UvA,U4-U3,mes,0.009,-0.069,0.087,log-odds / 1 SS,1552,202
+UvA,U4-U3,boy5_x_cek,-0.050,-0.116,0.015,"log-odds / 5 cm boy, 1 SS çekicilikte",1552,202
+UvA,U4-U3,iq15_x_cek,-0.095,-0.186,-0.006,"log-odds / 15 IQ, 1 SS çekicilikte",1552,202
+MA,M1,zShape,1.081,0.977,1.183,puan / 1 SS omuz-kalça,5142,105
+MA,M1,qshape,-0.149,-0.197,-0.096,puan (kare terim),5142,105
+MA,M1,zpenis,0.250,0.184,0.318,puan / 1 SS,5142,105
+MA,M1,qpenis,-0.053,-0.093,-0.012,puan (kare terim),5142,105
+MA,M1,fh_alt,0.274,0.200,0.342,puan / 1 nüfus SS boy (ortalamanın altı),5142,105
+MA,M1,fh_ust,0.141,0.066,0.212,puan / 1 nüfus SS boy (ortalamanın üstü),5142,105
+MA,M2,zShape,1.081,0.971,1.183,puan / 1 SS omuz-kalça,5142,105
+MA,M2,qshape,-0.150,-0.200,-0.097,puan (kare terim),5142,105
+MA,M2,zpenis,0.249,0.185,0.316,puan / 1 SS,5142,105
+MA,M2,qpenis,-0.052,-0.092,-0.010,puan (kare terim),5142,105
+MA,M2,fh,0.208,0.165,0.248,puan / 1 nüfus SS boy,5142,105
+MA,M2,fh2,-0.032,-0.057,-0.006,puan (kare terim),5142,105
+MA,M2,fh_x_kendi5,0.043,0.008,0.079,"puan / 1 SS boy, puanlayan 5 cm uzunken",5142,105
+MA,M3,zShape,1.081,0.972,1.185,puan / 1 SS omuz-kalça,5142,105
+MA,M3,qshape,-0.150,-0.200,-0.097,puan (kare terim),5142,105
+MA,M3,zpenis,0.250,0.185,0.320,puan / 1 SS,5142,105
+MA,M3,qpenis,-0.052,-0.093,-0.012,puan (kare terim),5142,105
+MA,M3,fh,0.208,0.165,0.247,puan / 1 nüfus SS boy,5142,105
+MA,M3,fh2,-0.032,-0.058,-0.006,puan (kare terim),5142,105
+MA,M3,fh_x_kendi5,0.045,0.010,0.079,"puan / 1 SS boy, puanlayan 5 cm uzunken",5142,105
+MA,M3,fh_x_sekil,0.065,0.035,0.092,"puan / 1 SS boy, 1 SS omuz-kalçada",5142,105
+KO,G1,z_boy,0.058,-0.095,0.222,SS (SOI-R davranış) / 1 SS,151,151
+KO,G1,z_yuz,0.151,-0.047,0.342,SS (SOI-R davranış) / 1 SS,151,151
+KO,G1,z_beden,-0.048,-0.210,0.127,SS (SOI-R davranış) / 1 SS,151,151
+KO,G1,z_kuvvet,0.139,-0.049,0.310,SS (SOI-R davranış) / 1 SS,151,151
+KO,G1,z_yas,0.253,0.088,0.423,SS (SOI-R davranış) / 1 SS,151,151
+KO,G2,z_boy,-1.050,-9.320,6.857,yp (ilişkide olma) / 1 SS,151,151
+KO,G2,z_yuz,-1.176,-10.273,8.185,yp (ilişkide olma) / 1 SS,151,151
+KO,G2,z_beden,-1.330,-9.856,6.829,yp (ilişkide olma) / 1 SS,151,151
+KO,G2,z_kuvvet,1.898,-5.782,10.467,yp (ilişkide olma) / 1 SS,151,151
+KO,G2,z_yas,9.420,0.399,18.195,yp (ilişkide olma) / 1 SS,151,151

@@ -1,0 +1,1034 @@
+{
+ "UvA": {
+  "kadin": 224,
+  "karar": 8064,
+  "secilme_orani": 0.19246031746031747,
+  "kadin_boyu_ort": 166.85714285714286,
+  "kadin_boyu_ss": 6.629675293007274,
+  "cekicilik_havuz_ss": 0.846710512394255
+ },
+ "MA": {
+  "kadin": 105,
+  "puan": 5142,
+  "puanlayan_boyu_ort": 166.05714285714285,
+  "puanlayan_boyu_ss": 6.825107172205277
+ },
+ "KO": {
+  "n": 151,
+  "iliskide_orani": 0.4503311258278146,
+  "boy_ort": 180.8751655629139,
+  "boy_ss": 7.322374100823187
+ },
+ "senaryo": [
+  {
+   "degisiklik": "+5 cm boy (180 → 185)",
+   "yp": 0.49,
+   "lo": -1.28,
+   "hi": 2.2
+  },
+  {
+   "degisiklik": "+1 SS fotoğraf çekiciliği",
+   "yp": 14.71,
+   "lo": 11.92,
+   "hi": 17.29
+  },
+  {
+   "degisiklik": "+15 IQ (100 → 115)",
+   "yp": 2.56,
+   "lo": 0.44,
+   "hi": 4.77
+  },
+  {
+   "degisiklik": "+1 SS biyografi",
+   "yp": 2.04,
+   "lo": 1.17,
+   "hi": 2.94
+  },
+  {
+   "degisiklik": "+1 SS meslek prestiji",
+   "yp": 0.39,
+   "lo": -0.55,
+   "hi": 1.26
+  }
+ ],
+ "katsayilar": [
+  {
+   "veri": "UvA",
+   "model": "U1",
+   "terim": "cek_alt",
+   "deger": 8.424,
+   "lo": 6.341,
+   "hi": 10.599,
+   "birim": "yp / 1 SS (ortalamanın altı)",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U1",
+   "terim": "cek_ust",
+   "deger": 14.71,
+   "lo": 11.922,
+   "hi": 17.29,
+   "birim": "yp / 1 SS (ortalamanın üstü)",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U1",
+   "terim": "boy_alt",
+   "deger": 1.209,
+   "lo": -0.413,
+   "hi": 2.778,
+   "birim": "yp / 5 cm (180 altı)",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U1",
+   "terim": "boy_ust",
+   "deger": 0.491,
+   "lo": -1.284,
+   "hi": 2.203,
+   "birim": "yp / 5 cm (180 üstü)",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U1",
+   "terim": "iq_alt",
+   "deger": 1.96,
+   "lo": -0.214,
+   "hi": 4.147,
+   "birim": "yp / 15 IQ (100 altı)",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U1",
+   "terim": "iq_ust",
+   "deger": 2.561,
+   "lo": 0.437,
+   "hi": 4.768,
+   "birim": "yp / 15 IQ (100 üstü)",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U1",
+   "terim": "bio",
+   "deger": 2.037,
+   "lo": 1.172,
+   "hi": 2.94,
+   "birim": "yp / 1 SS",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U1",
+   "terim": "mes",
+   "deger": 0.395,
+   "lo": -0.553,
+   "hi": 1.258,
+   "birim": "yp / 1 SS",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U2",
+   "terim": "cek",
+   "deger": 11.793,
+   "lo": 10.523,
+   "hi": 13.141,
+   "birim": "yp / 1 SS",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U2",
+   "terim": "boy5",
+   "deger": 0.874,
+   "lo": 0.063,
+   "hi": 1.694,
+   "birim": "yp / 5 cm",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U2",
+   "terim": "iq15",
+   "deger": 2.26,
+   "lo": 1.271,
+   "hi": 3.396,
+   "birim": "yp / 15 IQ",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U2",
+   "terim": "bio",
+   "deger": 2.051,
+   "lo": 1.173,
+   "hi": 2.899,
+   "birim": "yp / 1 SS",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U2",
+   "terim": "mes",
+   "deger": 0.365,
+   "lo": -0.549,
+   "hi": 1.295,
+   "birim": "yp / 1 SS",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U2",
+   "terim": "boy5_x_kendi5",
+   "deger": 0.907,
+   "lo": 0.279,
+   "hi": 1.549,
+   "birim": "yp / 5 cm boy, kadın 5 cm uzunken",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U3",
+   "terim": "cek",
+   "deger": 11.749,
+   "lo": 10.377,
+   "hi": 13.047,
+   "birim": "yp / 1 SS",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U3",
+   "terim": "boy5",
+   "deger": 0.879,
+   "lo": 0.085,
+   "hi": 1.723,
+   "birim": "yp / 5 cm",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U3",
+   "terim": "iq15",
+   "deger": 2.267,
+   "lo": 1.284,
+   "hi": 3.224,
+   "birim": "yp / 15 IQ",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U3",
+   "terim": "bio",
+   "deger": 2.052,
+   "lo": 1.22,
+   "hi": 2.963,
+   "birim": "yp / 1 SS",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U3",
+   "terim": "mes",
+   "deger": 0.383,
+   "lo": -0.557,
+   "hi": 1.306,
+   "birim": "yp / 1 SS",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U3",
+   "terim": "boy5_x_cek",
+   "deger": -0.458,
+   "lo": -1.187,
+   "hi": 0.296,
+   "birim": "yp / 5 cm boy, 1 SS çekicilikte",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U3",
+   "terim": "iq15_x_cek",
+   "deger": -0.334,
+   "lo": -1.433,
+   "hi": 0.728,
+   "birim": "yp / 15 IQ, 1 SS çekicilikte",
+   "n": 8064,
+   "kisi": 224
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U1",
+   "terim": "cek_alt",
+   "deger": 1.024,
+   "lo": 0.809,
+   "hi": 1.279,
+   "birim": "log-odds / 1 SS (ortalamanın altı)",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U1",
+   "terim": "cek_ust",
+   "deger": 0.691,
+   "lo": 0.533,
+   "hi": 0.866,
+   "birim": "log-odds / 1 SS (ortalamanın üstü)",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U1",
+   "terim": "boy_alt",
+   "deger": 0.087,
+   "lo": -0.054,
+   "hi": 0.225,
+   "birim": "log-odds / 5 cm (180 altı)",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U1",
+   "terim": "boy_ust",
+   "deger": 0.064,
+   "lo": -0.083,
+   "hi": 0.218,
+   "birim": "log-odds / 5 cm (180 üstü)",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U1",
+   "terim": "iq_alt",
+   "deger": 0.116,
+   "lo": -0.062,
+   "hi": 0.304,
+   "birim": "log-odds / 15 IQ (100 altı)",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U1",
+   "terim": "iq_ust",
+   "deger": 0.202,
+   "lo": 0.032,
+   "hi": 0.371,
+   "birim": "log-odds / 15 IQ (100 üstü)",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U1",
+   "terim": "bio",
+   "deger": 0.151,
+   "lo": 0.074,
+   "hi": 0.232,
+   "birim": "log-odds / 1 SS",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U1",
+   "terim": "mes",
+   "deger": 0.01,
+   "lo": -0.064,
+   "hi": 0.09,
+   "birim": "log-odds / 1 SS",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U2",
+   "terim": "cek",
+   "deger": 0.816,
+   "lo": 0.719,
+   "hi": 0.927,
+   "birim": "log-odds / 1 SS",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U2",
+   "terim": "boy5",
+   "deger": 0.061,
+   "lo": -0.008,
+   "hi": 0.127,
+   "birim": "log-odds / 5 cm",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U2",
+   "terim": "iq15",
+   "deger": 0.163,
+   "lo": 0.077,
+   "hi": 0.249,
+   "birim": "log-odds / 15 IQ",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U2",
+   "terim": "bio",
+   "deger": 0.149,
+   "lo": 0.075,
+   "hi": 0.226,
+   "birim": "log-odds / 1 SS",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U2",
+   "terim": "mes",
+   "deger": 0.01,
+   "lo": -0.065,
+   "hi": 0.091,
+   "birim": "log-odds / 1 SS",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U2",
+   "terim": "boy5_x_kendi5",
+   "deger": 0.061,
+   "lo": 0.002,
+   "hi": 0.123,
+   "birim": "log-odds / 5 cm boy, kadın 5 cm uzunken",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U3",
+   "terim": "cek",
+   "deger": 0.819,
+   "lo": 0.717,
+   "hi": 0.93,
+   "birim": "log-odds / 1 SS",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U3",
+   "terim": "boy5",
+   "deger": 0.092,
+   "lo": 0.021,
+   "hi": 0.167,
+   "birim": "log-odds / 5 cm",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U3",
+   "terim": "iq15",
+   "deger": 0.195,
+   "lo": 0.108,
+   "hi": 0.283,
+   "birim": "log-odds / 15 IQ",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U3",
+   "terim": "bio",
+   "deger": 0.149,
+   "lo": 0.075,
+   "hi": 0.224,
+   "birim": "log-odds / 1 SS",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U3",
+   "terim": "mes",
+   "deger": 0.009,
+   "lo": -0.069,
+   "hi": 0.087,
+   "birim": "log-odds / 1 SS",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U3",
+   "terim": "boy5_x_cek",
+   "deger": -0.05,
+   "lo": -0.116,
+   "hi": 0.015,
+   "birim": "log-odds / 5 cm boy, 1 SS çekicilikte",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "UvA",
+   "model": "U4-U3",
+   "terim": "iq15_x_cek",
+   "deger": -0.095,
+   "lo": -0.186,
+   "hi": -0.006,
+   "birim": "log-odds / 15 IQ, 1 SS çekicilikte",
+   "n": 1552,
+   "kisi": 202
+  },
+  {
+   "veri": "MA",
+   "model": "M1",
+   "terim": "zShape",
+   "deger": 1.081,
+   "lo": 0.977,
+   "hi": 1.183,
+   "birim": "puan / 1 SS omuz-kalça",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M1",
+   "terim": "qshape",
+   "deger": -0.149,
+   "lo": -0.197,
+   "hi": -0.096,
+   "birim": "puan (kare terim)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M1",
+   "terim": "zpenis",
+   "deger": 0.25,
+   "lo": 0.184,
+   "hi": 0.318,
+   "birim": "puan / 1 SS",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M1",
+   "terim": "qpenis",
+   "deger": -0.053,
+   "lo": -0.093,
+   "hi": -0.012,
+   "birim": "puan (kare terim)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M1",
+   "terim": "fh_alt",
+   "deger": 0.274,
+   "lo": 0.2,
+   "hi": 0.342,
+   "birim": "puan / 1 nüfus SS boy (ortalamanın altı)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M1",
+   "terim": "fh_ust",
+   "deger": 0.141,
+   "lo": 0.066,
+   "hi": 0.212,
+   "birim": "puan / 1 nüfus SS boy (ortalamanın üstü)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M2",
+   "terim": "zShape",
+   "deger": 1.081,
+   "lo": 0.971,
+   "hi": 1.183,
+   "birim": "puan / 1 SS omuz-kalça",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M2",
+   "terim": "qshape",
+   "deger": -0.15,
+   "lo": -0.2,
+   "hi": -0.097,
+   "birim": "puan (kare terim)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M2",
+   "terim": "zpenis",
+   "deger": 0.249,
+   "lo": 0.185,
+   "hi": 0.316,
+   "birim": "puan / 1 SS",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M2",
+   "terim": "qpenis",
+   "deger": -0.052,
+   "lo": -0.092,
+   "hi": -0.01,
+   "birim": "puan (kare terim)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M2",
+   "terim": "fh",
+   "deger": 0.208,
+   "lo": 0.165,
+   "hi": 0.248,
+   "birim": "puan / 1 nüfus SS boy",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M2",
+   "terim": "fh2",
+   "deger": -0.032,
+   "lo": -0.057,
+   "hi": -0.006,
+   "birim": "puan (kare terim)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M2",
+   "terim": "fh_x_kendi5",
+   "deger": 0.043,
+   "lo": 0.008,
+   "hi": 0.079,
+   "birim": "puan / 1 SS boy, puanlayan 5 cm uzunken",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M3",
+   "terim": "zShape",
+   "deger": 1.081,
+   "lo": 0.972,
+   "hi": 1.185,
+   "birim": "puan / 1 SS omuz-kalça",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M3",
+   "terim": "qshape",
+   "deger": -0.15,
+   "lo": -0.2,
+   "hi": -0.097,
+   "birim": "puan (kare terim)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M3",
+   "terim": "zpenis",
+   "deger": 0.25,
+   "lo": 0.185,
+   "hi": 0.32,
+   "birim": "puan / 1 SS",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M3",
+   "terim": "qpenis",
+   "deger": -0.052,
+   "lo": -0.093,
+   "hi": -0.012,
+   "birim": "puan (kare terim)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M3",
+   "terim": "fh",
+   "deger": 0.208,
+   "lo": 0.165,
+   "hi": 0.247,
+   "birim": "puan / 1 nüfus SS boy",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M3",
+   "terim": "fh2",
+   "deger": -0.032,
+   "lo": -0.058,
+   "hi": -0.006,
+   "birim": "puan (kare terim)",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M3",
+   "terim": "fh_x_kendi5",
+   "deger": 0.045,
+   "lo": 0.01,
+   "hi": 0.079,
+   "birim": "puan / 1 SS boy, puanlayan 5 cm uzunken",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "MA",
+   "model": "M3",
+   "terim": "fh_x_sekil",
+   "deger": 0.065,
+   "lo": 0.035,
+   "hi": 0.092,
+   "birim": "puan / 1 SS boy, 1 SS omuz-kalçada",
+   "n": 5142,
+   "kisi": 105
+  },
+  {
+   "veri": "KO",
+   "model": "G1",
+   "terim": "z_boy",
+   "deger": 0.058,
+   "lo": -0.095,
+   "hi": 0.222,
+   "birim": "SS (SOI-R davranış) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G1",
+   "terim": "z_yuz",
+   "deger": 0.151,
+   "lo": -0.047,
+   "hi": 0.342,
+   "birim": "SS (SOI-R davranış) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G1",
+   "terim": "z_beden",
+   "deger": -0.048,
+   "lo": -0.21,
+   "hi": 0.127,
+   "birim": "SS (SOI-R davranış) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G1",
+   "terim": "z_kuvvet",
+   "deger": 0.139,
+   "lo": -0.049,
+   "hi": 0.31,
+   "birim": "SS (SOI-R davranış) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G1",
+   "terim": "z_yas",
+   "deger": 0.253,
+   "lo": 0.088,
+   "hi": 0.423,
+   "birim": "SS (SOI-R davranış) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G2",
+   "terim": "z_boy",
+   "deger": -1.05,
+   "lo": -9.32,
+   "hi": 6.857,
+   "birim": "yp (ilişkide olma) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G2",
+   "terim": "z_yuz",
+   "deger": -1.176,
+   "lo": -10.273,
+   "hi": 8.185,
+   "birim": "yp (ilişkide olma) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G2",
+   "terim": "z_beden",
+   "deger": -1.33,
+   "lo": -9.856,
+   "hi": 6.829,
+   "birim": "yp (ilişkide olma) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G2",
+   "terim": "z_kuvvet",
+   "deger": 1.898,
+   "lo": -5.782,
+   "hi": 10.467,
+   "birim": "yp (ilişkide olma) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  },
+  {
+   "veri": "KO",
+   "model": "G2",
+   "terim": "z_yas",
+   "deger": 9.42,
+   "lo": 0.399,
+   "hi": 18.195,
+   "birim": "yp (ilişkide olma) / 1 SS",
+   "n": 151,
+   "kisi": 151
+  }
+ ],
+ "testler": [
+  {
+   "test": "T1",
+   "aciklama": "Veri bütünlüğü: üç dosyanın SHA-256 özeti",
+   "deger": "UvA eşleşti, MA eşleşti, KO eşleşti",
+   "olcut": "üçü de eşleşir",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T2",
+   "aciklama": "UvA yapısı: kadın sayısı × satır; 3'lü sette en fazla 1 seçim",
+   "deger": "224 kadın, satır/kadın 36-36, set başına en fazla 1 seçim",
+   "olcut": "224 × 36; en fazla 1",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T3",
+   "aciklama": "UvA rastgeleleştirme: profil özellikleri arası |r| en büyüğü",
+   "deger": "0.015",
+   "olcut": "< 0.05",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T7",
+   "aciklama": "U4 koşullu logit yakınsadı: gradyan normu (en büyük)",
+   "deger": "2.8e-13",
+   "olcut": "< 1e-6",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T6",
+   "aciklama": "MA: kadın × puan, figür boyu düzeyi; KO: satır sayısı ve boy aralığı",
+   "deger": "MA 105 × 49-49, 7 düzey; KO 164 satır, boy 160.5-202.0",
+   "olcut": "105 × 49, 7 düzey; 164 satır, 150-210 cm",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T4",
+   "aciklama": "Kişi içi merkezleme (U1 ve M1)",
+   "deger": "4.74e-15",
+   "olcut": "< 1e-9",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T5",
+   "aciklama": "Kodlama kontrolü: UvA çekicilik (U2) ve MA omuz-kalça (M2) doğrusal katsayısı alt sınırı",
+   "deger": "UvA 10.52, MA 0.97",
+   "olcut": "ikisi de > 0",
+   "sonuc": "GEÇTİ"
+  }
+ ],
+ "kararlar": [
+  {
+   "kural": "K1",
+   "soru": "Ortalamanın üstünde +1 SS çekicilik mi, +5 cm boy mu? (yp farkı)",
+   "deger": "14.2 [10.9, 17.4]",
+   "karar": "çekicilik"
+  },
+  {
+   "kural": "K2",
+   "soru": "Ortalamanın üstünde +15 IQ mı, +5 cm boy mu? (yp farkı)",
+   "deger": "2.1 [-0.7, 5.0]",
+   "karar": "ayırt edilemiyor"
+  },
+  {
+   "kural": "K3",
+   "soru": "Boyun getirisi 180 cm üstünde azalıyor mu? (alt − üst eğim, yp / 5 cm)",
+   "deger": "0.72 [-2.13, 3.61]; üst eğim 0.49 [-1.28, 2.20]",
+   "karar": "fark gösterilemedi · 180 cm üstünde belirgin etki yok"
+  },
+  {
+   "kural": "K4",
+   "soru": "IQ'nun getirisi 100'ün üstünde azalıyor mu? (alt − üst eğim, yp / 15 IQ)",
+   "deger": "-0.60 [-4.55, 3.22]; üst eğim 2.56 [0.44, 4.77]",
+   "karar": "fark gösterilemedi"
+  },
+  {
+   "kural": "K5",
+   "soru": "Çekiciliğin getirisi ortalamanın üstünde değişiyor mu? (üst − alt eğim, yp / 1 SS)",
+   "deger": "6.29 [2.09, 10.27]",
+   "karar": "üstte daha dik"
+  },
+  {
+   "kural": "K6",
+   "soru": "Uzun kadınlar boya daha çok mu önem veriyor? (UvA; boy × kendi boyu)",
+   "deger": "0.91 [0.28, 1.55]",
+   "karar": "evet"
+  },
+  {
+   "kural": "K7",
+   "soru": "K6 bağımsız veride (MA) tekrarlanıyor mu? (boy × puanlayanın boyu)",
+   "deger": "0.043 [0.008, 0.079]",
+   "karar": "evet · tekrarlandı"
+  },
+  {
+   "kural": "K8",
+   "soru": "Boy × çekicilik (UvA)",
+   "deger": "-0.46 [-1.19, 0.30]",
+   "karar": "toplanıyor (etkileşim yok)"
+  },
+  {
+   "kural": "K9",
+   "soru": "IQ × çekicilik (UvA)",
+   "deger": "-0.33 [-1.43, 0.73]",
+   "karar": "toplanıyor (etkileşim yok)"
+  },
+  {
+   "kural": "K10",
+   "soru": "Boy × omuz-kalça (MA)",
+   "deger": "0.065 [0.035, 0.092]",
+   "karar": "çarpımsal: çekicilikle birlikte artıyor"
+  },
+  {
+   "kural": "K11 (K3)",
+   "soru": "K3 ölçek denetimi",
+   "deger": "—",
+   "karar": "uygulanmaz (boş karar)"
+  },
+  {
+   "kural": "K11 (K4)",
+   "soru": "K4 ölçek denetimi",
+   "deger": "—",
+   "karar": "uygulanmaz (boş karar)"
+  },
+  {
+   "kural": "K11 (K5)",
+   "soru": "K5 kararı koşullu logitte de aynı mı?",
+   "deger": "log-odds -0.333 [-0.672, -0.018]",
+   "karar": "ölçeğe bağlı"
+  },
+  {
+   "kural": "K11 (K6)",
+   "soru": "K6 kararı koşullu logitte de aynı mı?",
+   "deger": "log-odds 0.061 [0.002, 0.123]",
+   "karar": "sağlam"
+  },
+  {
+   "kural": "K11 (K8)",
+   "soru": "K8 ölçek denetimi",
+   "deger": "—",
+   "karar": "uygulanmaz (boş karar)"
+  },
+  {
+   "kural": "K11 (K9)",
+   "soru": "K9 ölçek denetimi",
+   "deger": "—",
+   "karar": "uygulanmaz (boş karar)"
+  },
+  {
+   "kural": "K11 (K7)",
+   "soru": "K7 ölçek denetimi",
+   "deger": "—",
+   "karar": "uygulanmaz (MA puan ölçeği; koşullu logit karşılığı yok)"
+  },
+  {
+   "kural": "K11 (K10)",
+   "soru": "K10 ölçek denetimi",
+   "deger": "—",
+   "karar": "uygulanmaz (MA puan ölçeği; koşullu logit karşılığı yok)"
+  },
+  {
+   "kural": "K12 (G1)",
+   "soru": "SOI-R davranış (SS)",
+   "deger": "z_boy 0.06 [-0.09, 0.22]; z_yuz 0.15 [-0.05, 0.34]; z_beden -0.05 [-0.21, 0.13]; z_kuvvet 0.14 [-0.05, 0.31]; z_yas 0.25 [0.09, 0.42]*; yüz − boy 0.09 [-0.19, 0.36]; beden − boy -0.11 [-0.31, 0.10]",
+   "karar": "keşif: * = aralık 0'ı dışlıyor"
+  },
+  {
+   "kural": "K12 (G2)",
+   "soru": "İlişkide olma (yp)",
+   "deger": "z_boy -1.05 [-9.32, 6.86]; z_yuz -1.18 [-10.27, 8.19]; z_beden -1.33 [-9.86, 6.83]; z_kuvvet 1.90 [-5.78, 10.47]; z_yas 9.42 [0.40, 18.20]*; yüz − boy -0.13 [-13.18, 12.47]; beden − boy -0.28 [-11.61, 10.51]",
+   "karar": "keşif: * = aralık 0'ı dışlıyor"
+  }
+ ],
+ "tohum": 20261023,
+ "bootstrap": 2000
+}

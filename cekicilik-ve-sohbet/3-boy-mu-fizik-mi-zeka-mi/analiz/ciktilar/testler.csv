@@ -1,0 +1,8 @@
+test,aciklama,deger,olcut,sonuc
+T1,Veri bütünlüğü: üç dosyanın SHA-256 özeti,"UvA eşleşti, MA eşleşti, KO eşleşti",üçü de eşleşir,GEÇTİ
+T2,UvA yapısı: kadın sayısı × satır; 3'lü sette en fazla 1 seçim,"224 kadın, satır/kadın 36-36, set başına en fazla 1 seçim",224 × 36; en fazla 1,GEÇTİ
+T3,UvA rastgeleleştirme: profil özellikleri arası |r| en büyüğü,0.015,< 0.05,GEÇTİ
+T7,U4 koşullu logit yakınsadı: gradyan normu (en büyük),2.8e-13,< 1e-6,GEÇTİ
+T6,"MA: kadın × puan, figür boyu düzeyi; KO: satır sayısı ve boy aralığı","MA 105 × 49-49, 7 düzey; KO 164 satır, boy 160.5-202.0","105 × 49, 7 düzey; 164 satır, 150-210 cm",GEÇTİ
+T4,Kişi içi merkezleme (U1 ve M1),4.74e-15,< 1e-9,GEÇTİ
+T5,Kodlama kontrolü: UvA çekicilik (U2) ve MA omuz-kalça (M2) doğrusal katsayısı alt sınırı,"UvA 10.52, MA 0.97",ikisi de > 0,GEÇTİ

@@ -1,0 +1,21 @@
+kural,soru,deger,karar
+K1,"Ortalamanın üstünde +1 SS çekicilik mi, +5 cm boy mu? (yp farkı)","14.2 [10.9, 17.4]",çekicilik
+K2,"Ortalamanın üstünde +15 IQ mı, +5 cm boy mu? (yp farkı)","2.1 [-0.7, 5.0]",ayırt edilemiyor
+K3,"Boyun getirisi 180 cm üstünde azalıyor mu? (alt − üst eğim, yp / 5 cm)","0.72 [-2.13, 3.61]; üst eğim 0.49 [-1.28, 2.20]",fark gösterilemedi · 180 cm üstünde belirgin etki yok
+K4,"IQ'nun getirisi 100'ün üstünde azalıyor mu? (alt − üst eğim, yp / 15 IQ)","-0.60 [-4.55, 3.22]; üst eğim 2.56 [0.44, 4.77]",fark gösterilemedi
+K5,"Çekiciliğin getirisi ortalamanın üstünde değişiyor mu? (üst − alt eğim, yp / 1 SS)","6.29 [2.09, 10.27]",üstte daha dik
+K6,Uzun kadınlar boya daha çok mu önem veriyor? (UvA; boy × kendi boyu),"0.91 [0.28, 1.55]",evet
+K7,K6 bağımsız veride (MA) tekrarlanıyor mu? (boy × puanlayanın boyu),"0.043 [0.008, 0.079]",evet · tekrarlandı
+K8,Boy × çekicilik (UvA),"-0.46 [-1.19, 0.30]",toplanıyor (etkileşim yok)
+K9,IQ × çekicilik (UvA),"-0.33 [-1.43, 0.73]",toplanıyor (etkileşim yok)
+K10,Boy × omuz-kalça (MA),"0.065 [0.035, 0.092]",çarpımsal: çekicilikle birlikte artıyor
+K11 (K3),K3 ölçek denetimi,—,uygulanmaz (boş karar)
+K11 (K4),K4 ölçek denetimi,—,uygulanmaz (boş karar)
+K11 (K5),K5 kararı koşullu logitte de aynı mı?,"log-odds -0.333 [-0.672, -0.018]",ölçeğe bağlı
+K11 (K6),K6 kararı koşullu logitte de aynı mı?,"log-odds 0.061 [0.002, 0.123]",sağlam
+K11 (K8),K8 ölçek denetimi,—,uygulanmaz (boş karar)
+K11 (K9),K9 ölçek denetimi,—,uygulanmaz (boş karar)
+K11 (K7),K7 ölçek denetimi,—,uygulanmaz (MA puan ölçeği; koşullu logit karşılığı yok)
+K11 (K10),K10 ölçek denetimi,—,uygulanmaz (MA puan ölçeği; koşullu logit karşılığı yok)
+K12 (G1),SOI-R davranış (SS),"z_boy 0.06 [-0.09, 0.22]; z_yuz 0.15 [-0.05, 0.34]; z_beden -0.05 [-0.21, 0.13]; z_kuvvet 0.14 [-0.05, 0.31]; z_yas 0.25 [0.09, 0.42]*; yüz − boy 0.09 [-0.19, 0.36]; beden − boy -0.11 [-0.31, 0.10]",keşif: * = aralık 0'ı dışlıyor
+K12 (G2),İlişkide olma (yp),"z_boy -1.05 [-9.32, 6.86]; z_yuz -1.18 [-10.27, 8.19]; z_beden -1.33 [-9.86, 6.83]; z_kuvvet 1.90 [-5.78, 10.47]; z_yas 9.42 [0.40, 18.20]*; yüz − boy -0.13 [-13.18, 12.47]; beden − boy -0.28 [-11.61, 10.51]",keşif: * = aralık 0'ı dışlıyor
