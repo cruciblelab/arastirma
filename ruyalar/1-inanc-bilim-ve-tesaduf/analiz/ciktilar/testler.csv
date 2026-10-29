@@ -1,0 +1,4 @@
+test,aciklama,deger,olcut,sonuc
+T5,Veri bütünlüğü: SHA-256,eşleşti,eşleşir,GEÇTİ
+T7,Düzenli ifade kontrolü (sabit örnek cümleler),hata yok,hata yok,GEÇTİ
+T6,Temizlikten sonra rapor sayısı (boş ve birebir tekrarlar atıldı),27952 → 27941,>= 27000,GEÇTİ

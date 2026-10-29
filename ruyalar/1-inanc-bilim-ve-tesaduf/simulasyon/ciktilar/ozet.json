@@ -1,0 +1,141 @@
+{
+ "temel": {
+  "r": 1.0,
+  "p_neg": 0.33,
+  "p_e": 0.1,
+  "W": 7,
+  "s": 1.0,
+  "N": 100000,
+  "O1": 5.74507,
+  "O2": 0.99386,
+  "O3": 15739.917808219177,
+  "O4": 0.5214583512671555,
+  "O5": 0.7248108459721319,
+  "ruya": 1719284
+ },
+ "birebir_s01": {
+  "r": 1.0,
+  "p_neg": 0.33,
+  "p_e": 0.1,
+  "W": 7,
+  "s": 0.1,
+  "N": 100000,
+  "O1": 0.62,
+  "O2": 0.45591,
+  "O3": 1698.6301369863013,
+  "O4": 0.06783223897429637,
+  "O5": 0.15015908352131127,
+  "ruya": 1720185
+ },
+ "dreambank": {
+  "r": 1.0,
+  "p_neg": 0.4788,
+  "p_e": 0.1,
+  "W": 7,
+  "s": 1.0,
+  "N": 100000,
+  "O1": 8.0369,
+  "O2": 0.99933,
+  "O3": 22018.90410958904,
+  "O4": 0.5216949214989292,
+  "O5": 0.7255959264730089,
+  "ruya": 2497036
+ },
+ "K2_parametreye_gore": {
+  "r": {
+   "0.25": 0.5,
+   "1.0": 0.8333333333333334,
+   "2.0": 0.9166666666666666,
+   "5.0": 0.9791666666666666
+  },
+  "p_neg": {
+   "0.2": 0.7083333333333334,
+   "0.33": 0.7708333333333334,
+   "0.5": 0.8541666666666666,
+   "0.72": 0.8958333333333334
+  },
+  "p_e": {
+   "0.03": 0.5416666666666666,
+   "0.1": 0.8333333333333334,
+   "0.2": 0.8958333333333334,
+   "0.4": 0.9583333333333334
+  },
+  "s": {
+   "0.1": 0.625,
+   "0.3": 0.84375,
+   "1.0": 0.953125
+  }
+ },
+ "testler": [
+  {
+   "test": "T1",
+   "aciklama": "Gerçek isabet oranı: simülasyon ile analitik farkı (temel)",
+   "deger": "0.5215 - 0.5217 = -0.0002",
+   "olcut": "|fark| < 0.005",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T2",
+   "aciklama": "Bağımsızlık: olumsuz rüyayı izleyen günde olay − rastgele günde olay",
+   "deger": "-0.0002 [-0.0007, +0.0002]",
+   "olcut": "%95 aralık 0'ı içerir",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T3",
+   "aciklama": "Aynı tohumla tekrar çalıştırma",
+   "deger": "birebir aynı",
+   "olcut": "birebir aynı",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T4",
+   "aciklama": "Uç durumlar: p_e = 0 ve s = 0 iken O1",
+   "deger": "0.0, 0.0",
+   "olcut": "ikisi de 0",
+   "sonuc": "GEÇTİ"
+  }
+ ],
+ "kararlar": [
+  {
+   "kural": "K1",
+   "soru": "Temel senaryoda kehanet olmadan 'rüyam çıktı' yaygın mı?",
+   "deger": "P(yılda ≥1) = 0.994",
+   "karar": "insanların çoğu yılda en az bir kez yaşar"
+  },
+  {
+   "kural": "K2",
+   "soru": "192 senaryonun yüzde kaçında P(yılda ≥1) ≥ 0.5?",
+   "deger": "%80.7",
+   "karar": "ızgara özeti (ayrıntı izgara.csv)"
+  },
+  {
+   "kural": "K3",
+   "soru": "Seçici hatırlama isabeti şişiriyor mu?",
+   "deger": "algılanan 0.725 / gerçek 0.521 = 1.39",
+   "karar": "sınırlı"
+  },
+  {
+   "kural": "K4",
+   "soru": "Milyon kişide günde kaç 'rüyam çıktı'?",
+   "deger": "15,740",
+   "karar": "her gün yüzlerce ya da daha fazla"
+  },
+  {
+   "kural": "K5",
+   "soru": "Birebir yorumda (s = 0.1) P(yılda ≥1)",
+   "deger": "0.456 (s = 1: 0.994)",
+   "karar": "raporlandı"
+  }
+ ],
+ "tohum": 20261029,
+ "parametreler": {
+  "r": 1.0,
+  "p_neg": 0.33,
+  "p_e": 0.1,
+  "W": 7,
+  "s": 1.0,
+  "m_hit": 0.52,
+  "m_miss": 0.215
+ }
+}

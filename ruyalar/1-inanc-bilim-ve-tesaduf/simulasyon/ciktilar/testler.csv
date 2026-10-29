@@ -1,0 +1,5 @@
+test,aciklama,deger,olcut,sonuc
+T1,Gerçek isabet oranı: simülasyon ile analitik farkı (temel),0.5215 - 0.5217 = -0.0002,|fark| < 0.005,GEÇTİ
+T2,Bağımsızlık: olumsuz rüyayı izleyen günde olay − rastgele günde olay,"-0.0002 [-0.0007, +0.0002]",%95 aralık 0'ı içerir,GEÇTİ
+T3,Aynı tohumla tekrar çalıştırma,birebir aynı,birebir aynı,GEÇTİ
+T4,Uç durumlar: p_e = 0 ve s = 0 iken O1,"0.0, 0.0",ikisi de 0,GEÇTİ

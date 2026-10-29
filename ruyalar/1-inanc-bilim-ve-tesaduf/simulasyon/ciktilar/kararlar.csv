@@ -1,0 +1,6 @@
+kural,soru,deger,karar
+K1,Temel senaryoda kehanet olmadan 'rüyam çıktı' yaygın mı?,P(yılda ≥1) = 0.994,insanların çoğu yılda en az bir kez yaşar
+K2,192 senaryonun yüzde kaçında P(yılda ≥1) ≥ 0.5?,%80.7,ızgara özeti (ayrıntı izgara.csv)
+K3,Seçici hatırlama isabeti şişiriyor mu?,algılanan 0.725 / gerçek 0.521 = 1.39,sınırlı
+K4,Milyon kişide günde kaç 'rüyam çıktı'?,"15,740",her gün yüzlerce ya da daha fazla
+K5,Birebir yorumda (s = 0.1) P(yılda ≥1),0.456 (s = 1: 0.994),raporlandı
