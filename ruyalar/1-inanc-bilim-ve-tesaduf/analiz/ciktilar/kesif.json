@@ -1,0 +1,44 @@
+{
+ "E6_HS_ham": 0.022833828424179522,
+ "E6_HS_bitsiz": 0.01245481550409792,
+ "E6_HS_yakin": 0.004831609462796607,
+ "E6_yalniz_bit_payi": 0.45454545454545453,
+ "E6_milyon_kisi_gecede_yakin": 690.2299232566581,
+ "E7_uzunluk_dilimleri": [
+  {
+   "dilim": 0,
+   "medyan_kelime": 30.0,
+   "olumsuz": 0.1865951742627346,
+   "hayvan_saldiri_yakin": 0.0017873100983020554
+  },
+  {
+   "dilim": 1,
+   "medyan_kelime": 70.0,
+   "olumsuz": 0.3522057510269691,
+   "hayvan_saldiri_yakin": 0.0021432398642614752
+  },
+  {
+   "dilim": 2,
+   "medyan_kelime": 117.0,
+   "olumsuz": 0.4706718805545681,
+   "hayvan_saldiri_yakin": 0.0037326697476004265
+  },
+  {
+   "dilim": 3,
+   "medyan_kelime": 189.0,
+   "olumsuz": 0.5925792507204611,
+   "hayvan_saldiri_yakin": 0.005763688760806916
+  },
+  {
+   "dilim": 4,
+   "medyan_kelime": 372.0,
+   "olumsuz": 0.7945771233614652,
+   "hayvan_saldiri_yakin": 0.010773927096426647
+  }
+ ],
+ "E7_medyan_kelime": 117.0,
+ "E8_dizi_esit_agirlik_olumsuz": 0.5056966591243656,
+ "E8_dizi_medyan_olumsuz": 0.5018180654930102,
+ "E8_dizi_medyan_hs_yakin": 0.004826670703447954,
+ "E8_en_buyuk_5_dizi_payi": 0.44490175727425646
+}

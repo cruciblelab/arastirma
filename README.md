@@ -24,7 +24,7 @@ sürümler eklenir.
 | [cekicilik-ve-sohbet](cekicilik-ve-sohbet/) | İlk tanışmada görünüşün ve sohbetin payı, sohbette işe yarayan davranışlar, söylenen ve gerçek tercih, konuşma sesi hataları, hoşlandığını göstermek, ortalama boydan sonra boy mu fizik mi zekâ mı | [3 · boy mu, fizik mi, zekâ mı](cekicilik-ve-sohbet/3-boy-mu-fizik-mi-zeka-mi/) |
 | [provokasyon-ve-catisma](provokasyon-ve-catisma/) | Kavgaya niyetli, laf sokan, şaklaban kişilere karşı ağırbaşlılığı koruyarak durumu kontrol etmek: baskınlık ve prestij, öfke yönetimi, gerilim düşürme, ses | [1 · literatür taraması](provokasyon-ve-catisma/1-literatur-taramasi/) |
 | [kas-gelisimi-ve-antrenman](kas-gelisimi-ve-antrenman/) | Antrenmanda ne kadar sürede ne değişir; haftalık set, sıklık, tekrar, tükenmeye yakınlık, protein; örnek ev dambıl programının değerlendirilmesi | [1 · literatür taraması](kas-gelisimi-ve-antrenman/1-literatur-taramasi/) |
-| [ruyalar](ruyalar/) | İnsanlar rüyalara neden inanıyor, bilim rüya hakkında ne biliyor, "rüyam çıktı" deneyimi tesadüfle ne kadar açıklanır? Türkiye ve İslam geleneği | [1 · inanç, bilim ve tesadüf](ruyalar/1-inanc-bilim-ve-tesaduf/) |
+| [ruyalar](ruyalar/) | İnsanlar rüyalara neden inanıyor, bilim rüya hakkında ne biliyor, "rüyam çıktı" deneyimi tesadüfle ne kadar açıklanır (simülasyon ve 27.941 gerçek rüya raporu)? Türkiye ve İslam geleneği | [1 · inanç, bilim ve tesadüf](ruyalar/1-inanc-bilim-ve-tesaduf/) |
 
 **Bütün boy araştırmalarının tek sayfalık özeti: [Boy araştırmaları genel özeti](BOY-ARASTIRMALARI-OZETI.md)**.
 
