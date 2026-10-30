@@ -97,4 +97,9 @@ Bu sürümde simülasyon yok. A2 ve A3'teki Türk dağılımına aktarım Monte 
 
 ## Plandan sapmalar
 
-(Henüz yok.)
+**Netleştirmeler (kod yazılırken, sonuçlar görülmeden önce, 2026-10-31):**
+
+1. **PI örneklemi ve kodlama:** Yalnız karşı cinsi tercih eden kadınlar (`PrefersOppositeSex`, `FePrefersOppositeSex`) alınır; kadın silüet ölçeğindeki değerler (158-178) bu filtreyle dışarıda kalır. İki komşu silüetin ortası olan değerler (172,5; 177,5; 182,5) [v − 5, v + 5) aralığı olarak alınır; ızgarada olmayan diğer değerler (ör. 165,5) en yakın silüete yuvarlanır. A1 güven aralıkları kadına göre 1.000 tekrarlı bootstrap ile.
+2. **B2 düğümleri:** Göreli boy (profil − kadın) için düğümler 0, 10 ve 20 cm.
+3. **B3 özellikleri:** Tasarım dosyasında 8 ikili özellik var (ırk, parti, siyasi ilgi, eğitim, çekicilik, boy, beslenme, ideoloji); sekizi de modele girer. Bootstrap kadına göre 2.000 tekrar.
+4. **T0 (ek teknik kontrol):** İndirilen dosyaların SHA-256 özeti, keşif aşamasında kaydedilenlerle eşleşmeli.
