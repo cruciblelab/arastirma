@@ -103,3 +103,8 @@ Bu sürümde simülasyon yok. A2 ve A3'teki Türk dağılımına aktarım Monte 
 2. **B2 düğümleri:** Göreli boy (profil − kadın) için düğümler 0, 10 ve 20 cm.
 3. **B3 özellikleri:** Tasarım dosyasında 8 ikili özellik var (ırk, parti, siyasi ilgi, eğitim, çekicilik, boy, beslenme, ideoloji); sekizi de modele girer. Bootstrap kadına göre 2.000 tekrar.
 4. **T0 (ek teknik kontrol):** İndirilen dosyaların SHA-256 özeti, keşif aşamasında kaydedilenlerle eşleşmeli.
+
+**İlk çalıştırmadan sonra (2026-10-31):**
+
+5. **T1 ölçütü yanlış referansa dayanıyordu.** T1 KALDI (0,466 / 0,534). Yazarların analiz kodu (`3.analysis.do`, satır 122-125) incelendi: yayımlanan 0,382 / 0,435, kadınların kısa/uzun profil seçme olasılığı değil; **tüm katılımcılarda** "karşı parti / aynı parti" profilleri için logit marjinalleri. Karşılaştırılabilir yayımlanmış değer, kadınlar için AMCE tablosu (Tablo A7, `female_results.txt`): uzun +6,26 yp [5,40; 7,12]. Bizim kodlamamız: +6,85 [6,01; 7,65] (yazarlar parti yerine "aynı parti" değişkeni kullanıyor ve bağımsızları dışlıyor; küçük fark beklenir). **Ön kayıt kuralı yine de uygulanır:** T1 KALDI olarak kalır, H4 ve H5 doğrulayıcı sayılmaz ("GEÇERSİZ"), SL bulguları **keşif** olarak raporlanır. Bu kural kodda ilk çalıştırmadan sonra uygulandı.
+6. **C4 kod eksikliği:** Plan, eksik boy oranı partnerli ve partnersiz erkeklerde 5 yp'den fazla farklıysa C2'nin atanmış boyla tekrarlanmasını istiyordu. Fark 8,2 yp çıktı (%16,4'e karşı %24,6), ama ilk kod bu adımı yalnız bildiriyordu. Adım ilk çalıştırmadan sonra eklendi; ilk çalıştırmanın sonuçları değişmedi.

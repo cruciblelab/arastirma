@@ -1,0 +1,15 @@
+test,aciklama,deger,olcut,sonuc
+T0,Veri bütünlüğü: beş dosyanın SHA-256 özeti,"PI eşleşti, UV eşleşti, SL eşleşti, BR eşleşti, BRd eşleşti",beşi de eşleşir,GEÇTİ
+T4,PI uzun süreli bağlamda kendi boyu ve tercihi olan kadın,319 kadın,≥ 300,GEÇTİ
+H1,"Söylenen: 160,5 cm kadının medyan tercih ettiği partner boyu","179.5 [178.8, 180.2]",< 180 ve GA üst < 182,GEÇTİ
+H2,Söylenen: kadın boyu → tercih edilen boy eğimi (cm/cm),"0.30 [0.21, 0.40]",GA alt > 0,GEÇTİ
+T2,UV rastgeleleştirme: profil özellikleri arası en büyük |r|,0.015,"< 0,05",GEÇTİ
+H3,Seçilen (UV): 176 → 178 cm seçilme olasılığı farkı (yp),"0.5 [-0.9, 1.8]",GA üst < 3 yp,GEÇTİ
+T1,"SL kodlama: kısa / uzun profil marjinal seçilme olasılığı (yayımlanan 0,382 / 0,435)",0.466 / 0.534,"ikisi de ±0,015",KALDI
+H5,Seçilen (SL): boy etkisi − çekicilik etkisi (yp),"-9.8 [-11.0, -8.7]",GA üst < 0,GEÇERSİZ (T1 kaldı; hesap geçti̇)
+H4,"Seçilen (SL): uzun profil avantajı, ≥170 cm kadınlar − <160 cm kadınlar (yp)","6.6 [4.1, 9.2], tek yönlü p = 0.000","fark > 0, p < 0,05",GEÇERSİZ (T1 kaldı; hesap geçti̇)
+T3,BR karşı cins çift sayısı ve eşler arası boy korelasyonu,"n = 30789, r = 0.367","n ≥ 25.000 ve 0,30 ≤ r ≤ 0,45",GEÇTİ
+H7,"Yaşanan: kadının daha uzun olduğu çift oranı, gözlenen vs rastgele eşleşme","%6.98 vs %13.23 [%12.97, %13.49]","gözlenen < rastgele %2,5'lik dilim",GEÇTİ
+H6a,"Yaşanan (BR): partnerle yaşama, Türk-176 yüzdeliği − medyan (yp)","-0.2 [-1.0, 0.5]",GA alt > −2 yp,GEÇTİ
+H6b,"Yaşanan (BR): partnerle yaşama, en kısa %10 − medyan (yp)","2.0 [-0.6, 4.6]",GA üst < 0,KALDI
+H8,Yaşanan (BR): Türk-176/178 yüzdeliğinde eşin kocadan uzun olma olasılığı,%1.8 / %1.0,ikisi de < %5,GEÇTİ

@@ -519,29 +519,34 @@ Z_NOKTA = {"z=0 (medyan)": 0.0, "Türk 176 (z=0,189)": Z176, "Türk 178 (z=0,480
 Z_EGRI = np.linspace(-2.5, 2.5, 41)
 
 
-def tahminler(b, X, w):
+def tahminler(b, X, w, dug):
     """Ortalama tahmin: herkesin boyu z'ye eşitlenir, diğer değişkenler olduğu gibi kalır."""
     geri = X[:, 5:] @ b[5:]
     out = {}
     for ad, zv in list(Z_NOKTA.items()) + [(f"egri_{i}", zv) for i, zv in enumerate(Z_EGRI)]:
-        eta = b[0] + rcs([zv])[0] @ b[1:5] + geri
+        eta = b[0] + rcs([zv], dug)[0] @ b[1:5] + geri
         out[ad] = np.average(1 / (1 + np.exp(-np.clip(eta, -30, 30))), weights=w)
     return out
 
 
 upa, upa_idx = np.unique(e.COD_UPA.to_numpy(), return_inverse=True)
-C2 = {}
-for duz in (False, True):
-    X = tasarim(e.z.to_numpy(), duz)
-    b0 = logit_irls(X, y_e, w_e)
-    t0 = tahminler(b0, X, w_e)
+
+
+def c2_model(X, y, w, upa_idx, n_upa, dug):
+    b0 = logit_irls(X, y, w)
+    t0 = tahminler(b0, X, w, dug)
     dg = []
     for _ in range(500):
-        sayi = rng.multinomial(len(upa), np.full(len(upa), 1 / len(upa)))[upa_idx]
-        wb = w_e * sayi
-        bb = logit_irls(X, y_e, wb, b0, it=8)
-        dg.append(tahminler(bb, X, wb))
-    dg = pd.DataFrame(dg)
+        sayi = rng.multinomial(n_upa, np.full(n_upa, 1 / n_upa))[upa_idx]
+        wb = w * sayi
+        bb = logit_irls(X, y, wb, b0, it=8)
+        dg.append(tahminler(bb, X, wb, dug))
+    return t0, pd.DataFrame(dg)
+
+
+C2 = {}
+for duz in (False, True):
+    t0, dg = c2_model(tasarim(e.z.to_numpy(), duz), y_e, w_e, upa_idx, len(upa), DUG_Z)
     ad = "duzeltilmis" if duz else "yas"
     res = {k: [float(100 * t0[k]), *map(float, 100 * aralik(dg[k]))] for k in Z_NOKTA}
     for k in Z_NOKTA:
@@ -580,11 +585,37 @@ OZET["C3_es"] = C3
 test("H8", "Yaşanan (BR): Türk-176/178 yüzdeliğinde eşin kocadan uzun olma olasılığı",
      f"%{100 * C3['Türk 176']['es_daha_uzun']:.1f} / %{100 * C3['Türk 178']['es_daha_uzun']:.1f}", "ikisi de < %5",
      C3["Türk 176"]["es_daha_uzun"] < 0.05 and C3["Türk 178"]["es_daha_uzun"] < 0.05)
-if abs(C4["boy_eksik_partnerli"] - C4["boy_eksik_partnersiz"]) > 0.05:
-    log("C4: eksik boy farkı > 5 yp → atanmış boyla duyarlılık")
-    OZET["C4_eksik_boy"]["duyarlilik_gerekli"] = True
-else:
-    OZET["C4_eksik_boy"]["duyarlilik_gerekli"] = False
+OZET["C4_eksik_boy"]["duyarlilik_gerekli"] = abs(C4["boy_eksik_partnerli"] - C4["boy_eksik_partnersiz"]) > 0.05
+if OZET["C4_eksik_boy"]["duyarlilik_gerekli"]:
+    # Ön kayıt C4: ölçülmüş boy eksikse IBGE'nin atanmış boyu (ALTURA_IMPUTADA) kullanılarak C2 (yaş modeli) tekrarlanır.
+    # (İlk çalıştırmada kod bu adımı yalnız bildiriyordu; Plandan sapmalar, madde 6.)
+    log("C4: eksik boy farkı > 5 yp → atanmış boyla C2 tekrarı")
+    br["boy_ta"] = br.boy.fillna(br.ALTURA_IMPUTADA.where(br.ALTURA_IMPUTADA.between(120, 215)))
+    br["z_ta"] = np.nan
+    for (er, g), d in br[br.boy_ta.notna() & br.IDADE_ANOS.between(20, 64)].groupby(["erkek", "yas_grup"]):
+        m = np.average(d.boy_ta, weights=d.PESO_FINAL)
+        br.loc[d.index, "z_ta"] = (d.boy_ta - m) / np.sqrt(np.average((d.boy_ta - m) ** 2, weights=d.PESO_FINAL))
+    e = br[br.erkek & br.IDADE_ANOS.between(25, 44) & br.z_ta.notna() & br.ANOS_ESTUDO.notna()].reset_index(drop=True)
+    yas_d = pd.get_dummies(e.yas_grup, prefix="y", drop_first=True).to_numpy(float)
+    dug_ta = np.percentile(e.z_ta, [5, 27.5, 50, 72.5, 95])
+    y_ta, w_ta = e.partnerli.to_numpy(), (e.PESO_FINAL / e.PESO_FINAL.mean()).to_numpy()
+    upa_ta, upa_idx_ta = np.unique(e.COD_UPA.to_numpy(), return_inverse=True)
+    X_ta = np.column_stack([np.ones(len(e)), rcs(e.z_ta.to_numpy(), dug_ta), yas_d])
+    t0, dg = c2_model(X_ta, y_ta, w_ta, upa_idx_ta, len(upa_ta), dug_ta)
+    ta = {"n_erkek": len(e), "atanmis_pay": float(br.loc[br.erkek & br.IDADE_ANOS.between(25, 44), "boy"].isna().mean())}
+    for k in Z_NOKTA:
+        if k != "z=0 (medyan)":
+            ta[f"fark: {k} − medyan"] = [float(100 * (t0[k] - t0["z=0 (medyan)"])),
+                                         *map(float, aralik(100 * (dg[k] - dg["z=0 (medyan)"])))]
+    OZET["C4_eksik_boy"]["atanmis_boyla_C2"] = ta
+    log("C4 atanmış boy: Türk-176 − medyan", yaz(*ta["fark: Türk 176 (z=0,189) − medyan"]),
+        "; en kısa %10 − medyan", yaz(*ta["fark: z=-1,28 (en kısa %10) − medyan"]))
+
+# Ön kayıt kuralı: teknik test geçmezse ilgili analizin hipotezleri doğrulayıcı sayılmaz (T1 → SL: H4, H5).
+if [t for t in TESTLER if t["test"] == "T1"][0]["sonuc"] == "KALDI":
+    for t in TESTLER:
+        if t["test"] in ("H4", "H5"):
+            t["sonuc"] = f"GEÇERSİZ (T1 kaldı; hesap {t['sonuc'].lower()})"
 
 # K4: katmanlar arası çelişki
 k1 = pay["TR_176"][0]
@@ -634,9 +665,9 @@ ax = axs[2]
 eg = np.array(C2["yas"]["egri"])
 ax.fill_between(eg[:, 0], eg[:, 2], eg[:, 3], color=MAVI, alpha=0.15, lw=0)
 ax.plot(eg[:, 0], eg[:, 1], color=MAVI, lw=2)
-for zv, et in ((Z176, "176"), (Z178, "178")):
+for zv, et, hiza in ((Z176, "176", "right"), (Z178, "178", "left")):
     ax.axvline(zv, color=SOLUK, lw=1, ls=":")
-    ax.text(zv, eg[:, 3].max(), f" Türk {et}", color=MUR2, fontsize=8, va="top")
+    ax.text(zv, eg[:, 3].max(), f" Türk {et} ", color=MUR2, fontsize=8, va="top", ha=hiza)
 ax.set_title("Yaşanan: partnerle yaşayan erkek oranı (Brezilya)", color=MUR, loc="left", fontsize=10.5)
 ax.set_xlabel("Boy, yaş grubuna göre z-puanı", color=MUR2)
 ax.set_ylabel("Yüzde (25-44 yaş erkek)", color=MUR2)
@@ -651,4 +682,5 @@ pd.DataFrame(KARARLAR).to_csv(CIKTI / "kararlar.csv", index=False)
 OZET.update(testler=TESTLER, kararlar=KARARLAR, tohum=TOHUM, turk_referans=dict(kadin=TR_KADIN, erkek=TR_ERKEK,
             z176=Z176, z178=Z178))
 (CIKTI / "ozet.json").write_text(json.dumps(OZET, ensure_ascii=False, indent=1, default=float), encoding="utf-8")
-log(f"Bitti: {sum(t['sonuc'] == 'GEÇTİ' for t in TESTLER)}/{len(TESTLER)} test geçti.")
+log(f"Bitti: {sum(t['sonuc'] == 'GEÇTİ' for t in TESTLER)}/{len(TESTLER)} test geçti; "
+    f"{sum(t['sonuc'].startswith('GEÇERSİZ') for t in TESTLER)} geçersiz.")

@@ -1,0 +1,6 @@
+kural,soru,deger,karar
+K1-176,Tercihi ≤ 176 cm olan Türk kadın payı (PI modeli),"24.3 [18.0, 30.2] %","176 cm, Türk kadınlarının çoğunun söylediği tercihin altında"
+K1-178,Tercihi ≤ 178 cm olan Türk kadın payı (PI modeli),"38.3 [31.6, 44.1] %","178 cm, Türk kadınlarının yarı yarıya"
+K2,"Seçimde 176 → 178 farkı (UV, mutlak boy)","0.5 [-0.9, 1.8] yp",176 → 178 seçimde küçük fark
+K3,Medyanın biraz üstündeki (Türk-176 yüzdeliği) erkeklerde partnerle yaşama cezası,"-0.2 [-1.0, 0.5] yp",medyanın biraz üstündeki erkekler için partnerle yaşamada ceza görülmedi
+K4,Söylenen ile seçilen/yaşanan uyumlu mu?,söylenen: tercihi ≤176 pay %24; seçilen 176→178 0.5 yp; yaşanan Türk-176 − medyan -0.2 yp,katmanlar farklı sonuç veriyor; ikisi de raporlanacak
