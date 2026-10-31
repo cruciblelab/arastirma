@@ -1,5 +1,7 @@
 # Çekicilik ve Sohbet · Sürüm 3: Ortalama Boydan Sonra Ne Önemli? Boy mu, Fizik mi, Zekâ mı?
 
+> **Güncel sürüm:** [4-agirlikli-puan-tablosu](../4-agirlikli-puan-tablosu/). Bu sürüm dondurulmuştur.
+
 > **Sürüm:** 3 · **Tarih:** 2026-10-23 · **Durum:** güncel
 >
 > **Acelen varsa:** en alttaki [En basit özet](#en-basit-özet) bölümüne atla.
