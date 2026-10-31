@@ -1,6 +1,6 @@
 # Boy Araştırmaları: Genel Özet
 
-> **Tarih:** 2026-10-23 (ilk hali 2026-10-10) · 9 araştırma, toplam 18 sürüm
+> **Tarih:** 2026-10-31 (ilk hali 2026-10-10) · 9 araştırma, toplam 18 sürüm; ek olarak çekicilik ve boy beklentisi araştırmalarından satırlar
 >
 > Bu özet **tıbbi tavsiye değildir.** Sayıların çoğu model tahminidir ve hata içerebilir. [Sorumluluk Reddi Beyanı](SORUMLULUK-REDDI.md) geçerlidir. Her maddenin ayrıntısı, kaynağı ve belirsizliği bağlantı verilen raporda.
 
@@ -100,6 +100,7 @@ Bu bir tavan değil, taban. Taban sağlanınca boy genetiğe kalıyor.
 | **Görünüşte en çok işe yarayan orantı:** geniş omuz ve göğüs, dar bel. Güç izlenimi vücut çekiciliğinin %70'inden fazlasını açıklıyor; bel/göğüs oranı kilodan önemli. Erkekler, kadınların beğendiği kaslılığı abartıyor. | Aynı yer |
 | **Spor orantıyı değiştiriyor.** Modelde bir yıllık antrenman ve hafif yağ kaybıyla akranlar arasında "V" sırası 30'dan 47-69'a çıkıyor (gerçekçisi alt kısım). Antrenmansız kilo almak sırayı düşürüyor. Algılanan boya etkisi model tahmini: +0.7 ile +1.7 cm. | Aynı yer |
 | **Ortalama boydan sonra boy, görünüş ve fizikten çok daha az fark yaratıyor.** Rastgele profilli bir seçim deneyinde (224 kadın) 1 SS fotoğraf çekiciliği seçilme olasılığını +11.8 puan, 7 cm boy +1.2 puan artırdı; 180 cm üstünde +5 cm +0.5 (belirsiz). Boyun değeri kadının kendi boyuna göre göreli: önemli olan kadından uzun olmak. Gerçek boyutlu figürlerde omuz-kalça görünümü boydan ~3.6 kat etkili; gerçek eşleşmede kas/güç boydan tutarlı. | [Çekicilik ve Sohbet, sürüm 3](cekicilik-ve-sohbet/3-boy-mu-fizik-mi-zeka-mi/) |
+| **Kadınların boy beklentisi: söylenen, seçilen, yaşanan.** Türk kadınlarının tercihi hiç ölçülmemiş; sayılar başka ülkelerden aktarım. İdeale göre 176 cm kadınların çoğunun idealinin altında (ideali ≤176 olan ~%24; ortalama Türk erkeği de ~%83'ünün altında), kabul sınırına göre 176'yı ~%88-91, 178'i ~%93-95 kabul ediyor. Rastgele profilli seçimde 176 → 178 farkı ~+0.35 puan (göreli ~%2). Brezilya'da ölçülmüş boyla 176'dan uzun olmak partnerle yaşamayı artırmıyor; bedel ortalamanın altında başlıyor. Ölçülemeyen: uygulama filtreleri. | [Kadınların boy beklentisi, sürüm 1](kadinlarin-boy-beklentisi/1-soylenen-secilen-yasanan/) |
 
 ## 6. Sayılarla tek bakış
 
