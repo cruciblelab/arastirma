@@ -1,0 +1,8 @@
+test,aciklama,deger,olcut,sonuc
+T1,Veri bütünlüğü: dört kaynağın SHA-256 özeti,"HT eşleşti, WA eşleşti, UV eşleşti, SL eşleşti",dördü de eşleşir,GEÇTİ
+T2,HT kadın çekicilik etkisi sürüm 1'i tekrar ediyor (yp / 1 SS),12.88,"12,9 ± 0,3",GEÇTİ
+T3,UV boy etkisi sürüm 3'ü tekrar ediyor (yp / 7 cm),1.22,"1,2 ± 0,3",GEÇTİ
+H1,HT ve UV'de en yüksek puanlı özellik görünüş (kör değil),HT: Görünüş (yüz/fotoğraf); UV: Görünüş (yüz/fotoğraf); SL: Kişilik: samimiyet / hoşgörü,HT ve UV'de birinci,GEÇTİ
+H2,Boy puanı − görünüş puanı (UV; SL),"UV -59.7 [-73.5, -46.9]; SL -15.8 [-17.2, -14.5]",ikisinde de GA üst < 0,GEÇTİ
+H3,"HT: ortak ilgi − zekâ etkisi (yp, kör değil)","5.3 [2.6, 7.8]",GA alt > 0,GEÇTİ
+T4,WA Türk kadın sayısı (5 maddenin hepsi dolu),563,≥ 500,GEÇTİ

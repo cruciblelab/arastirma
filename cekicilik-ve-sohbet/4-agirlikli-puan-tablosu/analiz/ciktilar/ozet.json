@@ -1,0 +1,582 @@
+{
+ "negatif_etkiler": [
+  {
+   "kaynak": "SL",
+   "ozellik": "Diğer (beslenme)",
+   "ham": "vejetaryen",
+   "etki_yp": -6.74,
+   "etki_lo": -7.71,
+   "etki_hi": -5.7
+  }
+ ],
+ "WA": {
+  "tr_kadin": 563,
+  "kadin_45": 7556,
+  "tablo": [
+   {
+    "ozellik": "Zekâ",
+    "TR_ort_1_7": 6.012,
+    "TR_goreli": 0.284,
+    "45ulke_ort_1_7": 6.032,
+    "45ulke_goreli": 0.153,
+    "TR_goreli_lo": 0.22,
+    "TR_goreli_hi": 0.346,
+    "TR_sira": 1,
+    "45ulke_sira": 3
+   },
+   {
+    "ozellik": "Sağlık",
+    "TR_ort_1_7": 5.888,
+    "TR_goreli": 0.16,
+    "45ulke_ort_1_7": 6.095,
+    "45ulke_goreli": 0.216,
+    "TR_goreli_lo": 0.094,
+    "TR_goreli_hi": 0.228,
+    "TR_sira": 2,
+    "45ulke_sira": 2
+   },
+   {
+    "ozellik": "İyi kalplilik",
+    "TR_ort_1_7": 5.71,
+    "TR_goreli": -0.018,
+    "45ulke_ort_1_7": 6.233,
+    "45ulke_goreli": 0.354,
+    "TR_goreli_lo": -0.086,
+    "TR_goreli_hi": 0.05,
+    "TR_sira": 3,
+    "45ulke_sira": 1
+   },
+   {
+    "ozellik": "Fiziksel çekicilik",
+    "TR_ort_1_7": 5.535,
+    "TR_goreli": -0.194,
+    "45ulke_ort_1_7": 5.557,
+    "45ulke_goreli": -0.322,
+    "TR_goreli_lo": -0.261,
+    "TR_goreli_hi": -0.126,
+    "TR_sira": 4,
+    "45ulke_sira": 4
+   },
+   {
+    "ozellik": "Kaynak (maddi imkân)",
+    "TR_ort_1_7": 5.496,
+    "TR_goreli": -0.233,
+    "45ulke_ort_1_7": 5.479,
+    "45ulke_goreli": -0.4,
+    "TR_goreli_lo": -0.298,
+    "TR_goreli_hi": -0.168,
+    "TR_sira": 5,
+    "45ulke_sira": 5
+   }
+  ]
+ },
+ "kaynaklar": {
+  "HT": {
+   "ad": "Hızlı tanışma (canlı, ABD)",
+   "kadin": 267,
+   "karar": 3457,
+   "birim": "kadın içi 1 SS algı farkı"
+  },
+  "UV": {
+   "ad": "Profil seçimi (Almanya)",
+   "kadin": 224,
+   "karar": 8064,
+   "birim": "1 SS (boy 7 cm, IQ 15)"
+  },
+  "SL": {
+   "ad": "İkili profil seçimi (İngiltere)",
+   "kadin": 1250,
+   "karar": 20000,
+   "birim": "ikili özellik (boy 7 cm'ye ölçekli)"
+  }
+ },
+ "puan_tablosu": [
+  {
+   "ozellik": "Görünüş (yüz/fotoğraf)",
+   "genel_puan": 43.6,
+   "kaynak_sayisi": 3,
+   "kaynaklar": "HT, UV, SL",
+   "HT": 42.16,
+   "UV": 66.56,
+   "SL": 22.09,
+   "degistirilebilirlik_0_3": 2.0,
+   "degistirilebilirlik_gerekce": "Yüz yapısı değişmez; bakım, cilt, saç, kilo/yağ oranı, kıyafet ve fotoğraf kalitesi değişir",
+   "sinif": "en büyük ağırlık"
+  },
+  {
+   "ozellik": "Siyasi değerler (İngiltere'ye özgü)",
+   "genel_puan": 31.78,
+   "kaynak_sayisi": 1,
+   "kaynaklar": "SL",
+   "HT": NaN,
+   "UV": NaN,
+   "SL": 31.78,
+   "degistirilebilirlik_0_3": NaN,
+   "degistirilebilirlik_gerekce": "Türkiye'ye aktarılamaz; değer uyumu",
+   "sinif": "en büyük ağırlık (tek kaynak)"
+  },
+  {
+   "ozellik": "Ortak ilgi / uyum",
+   "genel_puan": 27.6,
+   "kaynak_sayisi": 1,
+   "kaynaklar": "HT",
+   "HT": 27.6,
+   "UV": NaN,
+   "SL": NaN,
+   "degistirilebilirlik_0_3": 3.0,
+   "degistirilebilirlik_gerekce": "Algılanan ortak ilgi, soru sorma ve dinlemeyle artar (sürüm 1-2)",
+   "sinif": "en büyük ağırlık (tek kaynak)"
+  },
+  {
+   "ozellik": "Mizah / eğlence",
+   "genel_puan": 19.22,
+   "kaynak_sayisi": 1,
+   "kaynaklar": "HT",
+   "HT": 19.22,
+   "UV": NaN,
+   "SL": NaN,
+   "degistirilebilirlik_0_3": 2.0,
+   "degistirilebilirlik_gerekce": "Kısmen öğrenilir; rahatlık ve ortam etkili",
+   "sinif": "büyük (tek kaynak)"
+  },
+  {
+   "ozellik": "Kişilik: samimiyet / hoşgörü",
+   "genel_puan": 12.19,
+   "kaynak_sayisi": 2,
+   "kaynaklar": "HT, SL",
+   "HT": 0.37,
+   "UV": NaN,
+   "SL": 24.01,
+   "degistirilebilirlik_0_3": 3.0,
+   "degistirilebilirlik_gerekce": "Davranışla hemen gösterilir: dürüstlük, saygı, ilgi",
+   "sinif": "büyük"
+  },
+  {
+   "ozellik": "Kendini anlatma (profil yazısı)",
+   "genel_puan": 11.6,
+   "kaynak_sayisi": 1,
+   "kaynaklar": "UV",
+   "HT": NaN,
+   "UV": 11.6,
+   "SL": NaN,
+   "degistirilebilirlik_0_3": 3.0,
+   "degistirilebilirlik_gerekce": "Yazı ve anlatım hemen düzeltilebilir",
+   "sinif": "orta (tek kaynak)"
+  },
+  {
+   "ozellik": "Zekâ",
+   "genel_puan": 11.55,
+   "kaynak_sayisi": 2,
+   "kaynaklar": "HT, UV",
+   "HT": 10.32,
+   "UV": 12.77,
+   "SL": NaN,
+   "degistirilebilirlik_0_3": 1.0,
+   "degistirilebilirlik_gerekce": "Zekâ büyük ölçüde sabit; algılanan zekâ sohbet ve bilgiyle kısmen değişir",
+   "sinif": "orta"
+  },
+  {
+   "ozellik": "Diğer (ırk)",
+   "genel_puan": 7.12,
+   "kaynak_sayisi": 1,
+   "kaynaklar": "SL",
+   "HT": NaN,
+   "UV": NaN,
+   "SL": 7.12,
+   "degistirilebilirlik_0_3": NaN,
+   "degistirilebilirlik_gerekce": "",
+   "sinif": "orta (tek kaynak)"
+  },
+  {
+   "ozellik": "Boy",
+   "genel_puan": 6.58,
+   "kaynak_sayisi": 2,
+   "kaynaklar": "UV, SL",
+   "HT": NaN,
+   "UV": 6.91,
+   "SL": 6.25,
+   "degistirilebilirlik_0_3": 0.0,
+   "degistirilebilirlik_gerekce": "Büyüme bittikten sonra değişmez; duruş yalnız birkaç mm",
+   "sinif": "orta"
+  },
+  {
+   "ozellik": "Eğitim / meslek / hırs",
+   "genel_puan": 3.75,
+   "kaynak_sayisi": 3,
+   "kaynaklar": "HT, UV, SL",
+   "HT": 0.33,
+   "UV": 2.15,
+   "SL": 8.75,
+   "degistirilebilirlik_0_3": 2.0,
+   "degistirilebilirlik_gerekce": "Yıllar içinde değişir: eğitim, iş, hedefler",
+   "sinif": "küçük"
+  },
+  {
+   "ozellik": "Diğer (beslenme)",
+   "genel_puan": 0.0,
+   "kaynak_sayisi": 1,
+   "kaynaklar": "SL",
+   "HT": NaN,
+   "UV": NaN,
+   "SL": 0.0,
+   "degistirilebilirlik_0_3": NaN,
+   "degistirilebilirlik_gerekce": "",
+   "sinif": "küçük (tek kaynak)"
+  }
+ ],
+ "ozellik_puanlari": [
+  {
+   "kaynak": "HT",
+   "ozellik": "Görünüş (yüz/fotoğraf)",
+   "ham": NaN,
+   "etki_yp": 12.88,
+   "etki_lo": 11.2,
+   "etki_hi": 14.54,
+   "puan": 42.16,
+   "puan_lo": 36.16,
+   "puan_hi": 46.64
+  },
+  {
+   "kaynak": "HT",
+   "ozellik": "Kişilik: samimiyet / hoşgörü",
+   "ham": NaN,
+   "etki_yp": 0.11,
+   "etki_lo": -1.33,
+   "etki_hi": 1.67,
+   "puan": 0.37,
+   "puan_lo": 0.0,
+   "puan_hi": 5.28
+  },
+  {
+   "kaynak": "HT",
+   "ozellik": "Zekâ",
+   "ham": NaN,
+   "etki_yp": 3.15,
+   "etki_lo": 1.58,
+   "etki_hi": 4.9,
+   "puan": 10.32,
+   "puan_lo": 5.15,
+   "puan_hi": 15.43
+  },
+  {
+   "kaynak": "HT",
+   "ozellik": "Mizah / eğlence",
+   "ham": NaN,
+   "etki_yp": 5.87,
+   "etki_lo": 4.17,
+   "etki_hi": 7.72,
+   "puan": 19.22,
+   "puan_lo": 13.85,
+   "puan_hi": 24.19
+  },
+  {
+   "kaynak": "HT",
+   "ozellik": "Eğitim / meslek / hırs",
+   "ham": NaN,
+   "etki_yp": 0.1,
+   "etki_lo": -1.24,
+   "etki_hi": 1.43,
+   "puan": 0.33,
+   "puan_lo": 0.0,
+   "puan_hi": 4.62
+  },
+  {
+   "kaynak": "HT",
+   "ozellik": "Ortak ilgi / uyum",
+   "ham": NaN,
+   "etki_yp": 8.43,
+   "etki_lo": 6.84,
+   "etki_hi": 10.08,
+   "puan": 27.6,
+   "puan_lo": 21.85,
+   "puan_hi": 32.32
+  },
+  {
+   "kaynak": "UV",
+   "ozellik": "Görünüş (yüz/fotoğraf)",
+   "ham": NaN,
+   "etki_yp": 11.79,
+   "etki_lo": 10.44,
+   "etki_hi": 13.16,
+   "puan": 66.56,
+   "puan_lo": 57.93,
+   "puan_hi": 75.78
+  },
+  {
+   "kaynak": "UV",
+   "ozellik": "Boy",
+   "ham": NaN,
+   "etki_yp": 1.22,
+   "etki_lo": 0.04,
+   "etki_hi": 2.41,
+   "puan": 6.91,
+   "puan_lo": 0.2,
+   "puan_hi": 12.75
+  },
+  {
+   "kaynak": "UV",
+   "ozellik": "Zekâ",
+   "ham": NaN,
+   "etki_yp": 2.26,
+   "etki_lo": 1.24,
+   "etki_hi": 3.37,
+   "puan": 12.77,
+   "puan_lo": 7.27,
+   "puan_hi": 18.03
+  },
+  {
+   "kaynak": "UV",
+   "ozellik": "Eğitim / meslek / hırs",
+   "ham": NaN,
+   "etki_yp": 0.38,
+   "etki_lo": -0.54,
+   "etki_hi": 1.22,
+   "puan": 2.15,
+   "puan_lo": 0.0,
+   "puan_hi": 6.58
+  },
+  {
+   "kaynak": "UV",
+   "ozellik": "Kendini anlatma (profil yazısı)",
+   "ham": NaN,
+   "etki_yp": 2.05,
+   "etki_lo": 1.18,
+   "etki_hi": 2.94,
+   "puan": 11.6,
+   "puan_lo": 7.15,
+   "puan_hi": 15.75
+  },
+  {
+   "kaynak": "SL",
+   "ozellik": "Görünüş (yüz/fotoğraf)",
+   "ham": "cekici",
+   "etki_yp": 16.63,
+   "etki_lo": 15.51,
+   "etki_hi": 17.8,
+   "puan": 22.09,
+   "puan_lo": 20.67,
+   "puan_hi": 23.59
+  },
+  {
+   "kaynak": "SL",
+   "ozellik": "Boy",
+   "ham": "uzun",
+   "etki_yp": 4.7,
+   "etki_lo": 4.12,
+   "etki_hi": 5.29,
+   "puan": 6.25,
+   "puan_lo": 5.49,
+   "puan_hi": 7.02
+  },
+  {
+   "kaynak": "SL",
+   "ozellik": "Eğitim / meslek / hırs",
+   "ham": "universite",
+   "etki_yp": 6.59,
+   "etki_lo": 6.06,
+   "etki_hi": 7.13,
+   "puan": 8.75,
+   "puan_lo": 8.1,
+   "puan_hi": 9.4
+  },
+  {
+   "kaynak": "SL",
+   "ozellik": "Kişilik: samimiyet / hoşgörü",
+   "ham": "acik",
+   "etki_yp": 18.08,
+   "etki_lo": 17.05,
+   "etki_hi": 19.12,
+   "puan": 24.01,
+   "puan_lo": 22.66,
+   "puan_hi": 25.4
+  },
+  {
+   "kaynak": "SL",
+   "ozellik": "Siyasi değerler (İngiltere'ye özgü)",
+   "ham": "parti_isci",
+   "etki_yp": 16.03,
+   "etki_lo": 14.89,
+   "etki_hi": 17.17,
+   "puan": 21.29,
+   "puan_lo": 19.86,
+   "puan_hi": 22.69
+  },
+  {
+   "kaynak": "SL",
+   "ozellik": "Siyasi değerler (İngiltere'ye özgü)",
+   "ham": "ilerici",
+   "etki_yp": 7.9,
+   "etki_lo": 6.5,
+   "etki_hi": 9.38,
+   "puan": 10.49,
+   "puan_lo": 8.68,
+   "puan_hi": 12.42
+  },
+  {
+   "kaynak": "SL",
+   "ozellik": "Diğer (ırk)",
+   "ham": "irk_beyaz",
+   "etki_yp": 5.36,
+   "etki_lo": 4.24,
+   "etki_hi": 6.46,
+   "puan": 7.12,
+   "puan_lo": 5.65,
+   "puan_hi": 8.56
+  },
+  {
+   "kaynak": "SL",
+   "ozellik": "Diğer (beslenme)",
+   "ham": "vejetaryen",
+   "etki_yp": -6.74,
+   "etki_lo": -7.71,
+   "etki_hi": -5.7,
+   "puan": 0.0,
+   "puan_lo": 0.0,
+   "puan_hi": 0.0
+  }
+ ],
+ "H2": {
+  "UV": [
+   -59.651822560118326,
+   -73.48719237215445,
+   -46.941346932100885
+  ],
+  "SL": [
+   -15.841948056864286,
+   -17.18583592795022,
+   -14.524668301336273
+  ]
+ },
+ "H3": [
+  5.278910507852176,
+  2.6068694100681364,
+  7.778257700208946
+ ],
+ "testler": [
+  {
+   "test": "T1",
+   "aciklama": "Veri bütünlüğü: dört kaynağın SHA-256 özeti",
+   "deger": "HT eşleşti, WA eşleşti, UV eşleşti, SL eşleşti",
+   "olcut": "dördü de eşleşir",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T2",
+   "aciklama": "HT kadın çekicilik etkisi sürüm 1'i tekrar ediyor (yp / 1 SS)",
+   "deger": "12.88",
+   "olcut": "12,9 ± 0,3",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T3",
+   "aciklama": "UV boy etkisi sürüm 3'ü tekrar ediyor (yp / 7 cm)",
+   "deger": "1.22",
+   "olcut": "1,2 ± 0,3",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "H1",
+   "aciklama": "HT ve UV'de en yüksek puanlı özellik görünüş (kör değil)",
+   "deger": "HT: Görünüş (yüz/fotoğraf); UV: Görünüş (yüz/fotoğraf); SL: Kişilik: samimiyet / hoşgörü",
+   "olcut": "HT ve UV'de birinci",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "H2",
+   "aciklama": "Boy puanı − görünüş puanı (UV; SL)",
+   "deger": "UV -59.7 [-73.5, -46.9]; SL -15.8 [-17.2, -14.5]",
+   "olcut": "ikisinde de GA üst < 0",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "H3",
+   "aciklama": "HT: ortak ilgi − zekâ etkisi (yp, kör değil)",
+   "deger": "5.3 [2.6, 7.8]",
+   "olcut": "GA alt > 0",
+   "sonuc": "GEÇTİ"
+  },
+  {
+   "test": "T4",
+   "aciklama": "WA Türk kadın sayısı (5 maddenin hepsi dolu)",
+   "deger": "563",
+   "olcut": "≥ 500",
+   "sonuc": "GEÇTİ"
+  }
+ ],
+ "kararlar": [
+  {
+   "kural": "K1/K2",
+   "soru": "Görünüş (yüz/fotoğraf): genel davranış puanı",
+   "deger": "43.6 (HT, UV, SL)",
+   "karar": "en büyük ağırlık"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Siyasi değerler (İngiltere'ye özgü): genel davranış puanı",
+   "deger": "31.8 (SL)",
+   "karar": "en büyük ağırlık (tek kaynak)"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Ortak ilgi / uyum: genel davranış puanı",
+   "deger": "27.6 (HT)",
+   "karar": "en büyük ağırlık (tek kaynak)"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Mizah / eğlence: genel davranış puanı",
+   "deger": "19.2 (HT)",
+   "karar": "büyük (tek kaynak)"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Kişilik: samimiyet / hoşgörü: genel davranış puanı",
+   "deger": "12.2 (HT, SL)",
+   "karar": "büyük"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Kendini anlatma (profil yazısı): genel davranış puanı",
+   "deger": "11.6 (UV)",
+   "karar": "orta (tek kaynak)"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Zekâ: genel davranış puanı",
+   "deger": "11.5 (HT, UV)",
+   "karar": "orta"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Diğer (ırk): genel davranış puanı",
+   "deger": "7.1 (SL)",
+   "karar": "orta (tek kaynak)"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Boy: genel davranış puanı",
+   "deger": "6.6 (UV, SL)",
+   "karar": "orta"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Eğitim / meslek / hırs: genel davranış puanı",
+   "deger": "3.7 (HT, UV, SL)",
+   "karar": "küçük"
+  },
+  {
+   "kural": "K1/K2",
+   "soru": "Diğer (beslenme): genel davranış puanı",
+   "deger": "0.0 (SL)",
+   "karar": "küçük (tek kaynak)"
+  },
+  {
+   "kural": "K3",
+   "soru": "Türk kadınlarının söylediği sıralama ile davranış sıralaması",
+   "deger": "söylenen: Zekâ > Sağlık > İyi kalplilik > Fiziksel çekicilik > Kaynak (maddi imkân) | davranış: Görünüş (yüz/fotoğraf) > Siyasi değerler (İngiltere'ye özgü) > Ortak ilgi / uyum > Mizah / eğlence",
+   "karar": "farklı; ikisi de yazılır"
+  }
+ ],
+ "tohum": 20261031,
+ "bootstrap": 2000
+}

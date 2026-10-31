@@ -180,7 +180,7 @@ for _, r in sl_w.iterrows():
         for alt in (1, 2):
             satir.append([r.kadin, 100.0 * (c == alt)] + [float(t in TASARIM[o][alt - 1]) for o in TASARIM])
 sl = pd.DataFrame(satir, columns=["kadin", "y"] + list(TASARIM))
-Xs = sl[list(TASARIM)].to_numpy(float)
+Xs = sl[list(TASARIM)].to_numpy(float).copy()
 Xs[:, 1] *= 10.2 / 7.0                    # boy: 10,2 cm → 7 cm başına (doğrusal kabul)
 Xs1 = np.column_stack([np.ones(len(sl)), Xs])
 benz, idx = np.unique(sl.kadin, return_inverse=True)
@@ -266,7 +266,7 @@ test("T4", "WA Türk kadın sayısı (5 maddenin hepsi dolu)", f"{len(tr)}", "�
 
 
 def ipsatif(df):
-    return df[list(IDEAL)].sub(df[list(IDEAL)].mean(1), axis=0)
+    return df[list(IDEAL)].sub(df[list(IDEAL)].mean(axis=1), axis=0)
 
 
 WA = pd.DataFrame({"TR_ort_1_7": tr[list(IDEAL)].mean(), "TR_goreli": ipsatif(tr).mean(),

@@ -1,0 +1,12 @@
+ozellik,genel_puan,kaynak_sayisi,kaynaklar,HT,UV,SL,degistirilebilirlik_0_3,degistirilebilirlik_gerekce,sinif
+Görünüş (yüz/fotoğraf),43.6,3,"HT, UV, SL",42.2,66.6,22.1,2.0,"Yüz yapısı değişmez; bakım, cilt, saç, kilo/yağ oranı, kıyafet ve fotoğraf kalitesi değişir",en büyük ağırlık
+Siyasi değerler (İngiltere'ye özgü),31.8,1,SL,,,31.8,,Türkiye'ye aktarılamaz; değer uyumu,en büyük ağırlık (tek kaynak)
+Ortak ilgi / uyum,27.6,1,HT,27.6,,,3.0,"Algılanan ortak ilgi, soru sorma ve dinlemeyle artar (sürüm 1-2)",en büyük ağırlık (tek kaynak)
+Mizah / eğlence,19.2,1,HT,19.2,,,2.0,Kısmen öğrenilir; rahatlık ve ortam etkili,büyük (tek kaynak)
+Kişilik: samimiyet / hoşgörü,12.2,2,"HT, SL",0.4,,24.0,3.0,"Davranışla hemen gösterilir: dürüstlük, saygı, ilgi",büyük
+Kendini anlatma (profil yazısı),11.6,1,UV,,11.6,,3.0,Yazı ve anlatım hemen düzeltilebilir,orta (tek kaynak)
+Zekâ,11.5,2,"HT, UV",10.3,12.8,,1.0,Zekâ büyük ölçüde sabit; algılanan zekâ sohbet ve bilgiyle kısmen değişir,orta
+Diğer (ırk),7.1,1,SL,,,7.1,,,orta (tek kaynak)
+Boy,6.6,2,"UV, SL",,6.9,6.2,0.0,Büyüme bittikten sonra değişmez; duruş yalnız birkaç mm,orta
+Eğitim / meslek / hırs,3.7,3,"HT, UV, SL",0.3,2.2,8.8,2.0,"Yıllar içinde değişir: eğitim, iş, hedefler",küçük
+Diğer (beslenme),0.0,1,SL,,,0.0,,,küçük (tek kaynak)

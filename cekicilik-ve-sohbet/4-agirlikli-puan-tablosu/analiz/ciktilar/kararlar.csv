@@ -1,0 +1,13 @@
+kural,soru,deger,karar
+K1/K2,Görünüş (yüz/fotoğraf): genel davranış puanı,"43.6 (HT, UV, SL)",en büyük ağırlık
+K1/K2,Siyasi değerler (İngiltere'ye özgü): genel davranış puanı,31.8 (SL),en büyük ağırlık (tek kaynak)
+K1/K2,Ortak ilgi / uyum: genel davranış puanı,27.6 (HT),en büyük ağırlık (tek kaynak)
+K1/K2,Mizah / eğlence: genel davranış puanı,19.2 (HT),büyük (tek kaynak)
+K1/K2,Kişilik: samimiyet / hoşgörü: genel davranış puanı,"12.2 (HT, SL)",büyük
+K1/K2,Kendini anlatma (profil yazısı): genel davranış puanı,11.6 (UV),orta (tek kaynak)
+K1/K2,Zekâ: genel davranış puanı,"11.5 (HT, UV)",orta
+K1/K2,Diğer (ırk): genel davranış puanı,7.1 (SL),orta (tek kaynak)
+K1/K2,Boy: genel davranış puanı,"6.6 (UV, SL)",orta
+K1/K2,Eğitim / meslek / hırs: genel davranış puanı,"3.7 (HT, UV, SL)",küçük
+K1/K2,Diğer (beslenme): genel davranış puanı,0.0 (SL),küçük (tek kaynak)
+K3,Türk kadınlarının söylediği sıralama ile davranış sıralaması,söylenen: Zekâ > Sağlık > İyi kalplilik > Fiziksel çekicilik > Kaynak (maddi imkân) | davranış: Görünüş (yüz/fotoğraf) > Siyasi değerler (İngiltere'ye özgü) > Ortak ilgi / uyum > Mizah / eğlence,farklı; ikisi de yazılır
