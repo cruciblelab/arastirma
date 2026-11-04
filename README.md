@@ -26,6 +26,7 @@ sürümler eklenir.
 | [kas-gelisimi-ve-antrenman](kas-gelisimi-ve-antrenman/) | Antrenmanda ne kadar sürede ne değişir; haftalık set, sıklık, tekrar, tükenmeye yakınlık, protein; örnek ev dambıl programının değerlendirilmesi | [1 · literatür taraması](kas-gelisimi-ve-antrenman/1-literatur-taramasi/) |
 | [ruyalar](ruyalar/) | İnsanlar rüyalara neden inanıyor, bilim rüya hakkında ne biliyor, "rüyam çıktı" deneyimi tesadüfle ne kadar açıklanır (simülasyon ve 27.941 gerçek rüya raporu)? Türkiye ve İslam geleneği | [1 · inanç, bilim ve tesadüf](ruyalar/1-inanc-bilim-ve-tesaduf/) |
 | [kadinlarin-boy-beklentisi](kadinlarin-boy-beklentisi/) | Kadınlar partnerde hangi boyu bekliyor: söylenen ideal ve kabul sınırı, rastgele boylu profillerde gerçek seçim, ölçülmüş boyla gerçek çiftler; Türkiye'de 176 ve 178 cm nerede duruyor? | [1 · söylenen, seçilen, yaşanan](kadinlarin-boy-beklentisi/1-soylenen-secilen-yasanan/) |
+| [gelir-ve-boy](gelir-ve-boy/) | Zenginler ne kadar uzun? Gelir dilimlerinde ölçülmüş boy (Brezilya, ABD), en zengin %1, CEO'lar, nedenselliğin yönü | [1 · gelir dilimlerinde ölçülmüş boy](gelir-ve-boy/1-gelir-dilimlerinde-olculmus-boy/) |
 
 **Bütün boy araştırmalarının tek sayfalık özeti: [Boy araştırmaları genel özeti](BOY-ARASTIRMALARI-OZETI.md)**.
 
