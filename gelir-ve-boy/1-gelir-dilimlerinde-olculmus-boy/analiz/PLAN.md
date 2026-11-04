@@ -74,3 +74,11 @@ Simülasyon yok.
 ## Plandan sapmalar
 
 1. **Bootstrap'te tekil matris (ilk çalıştırma, 2026-11-04):** ABD verisinde küme sayısı az (~50); bazı bootstrap örneklerinde nadir bir kategori (ör. doğum yeri "bilinmiyor") boş kalınca düzeltilmiş model çözülemedi. Bootstrap çözümüne çok küçük bir sırt terimi (1e-8) eklendi; ana tahminleri değiştirmez. Brezilya sonuçları ilk çalıştırmayla aynı.
+
+2. **Doğrulama sonrası düzeltmeler (2026-11-04, şeytanın avukatı):**
+   - Plandaki "≥5 grubu kabaca en zengin beşte bir" ifadesi yanlış: ağırlıklı pay erkeklerde ~%32, kadınlarda ~%27.
+   - Koddaki "ortanca" etiketi 5. ve 6. dilimlerin birleşik ortalamasıdır (yaklaşık 40-60. yüzdelik).
+   - `WTMECPRP > 0` filtresi etkisizdi (XPT dosyasında 0, 5,4e-79 olarak okunuyor); sonucu değiştirmiyor. keşif kodunda `> 1e-6` kullanıldı.
+   - K2'nin "%X bileşimden" etiketi yanıltıcı: yalnız yaş düzeltmesi farkı büyütüyor (erkek 7,2 → 7,6), küçülmenin neredeyse tamamı coğrafyadan. Raporda yaş düzeltmeli farktan hesaplanan pay kullanıldı.
+   - ozet.json'daki `BR_V0406_dagilim` hamile filtresinden sonra kaydedildi; filtre çalışıyor (796 hamile kadın dışlandı).
+   - Ek kontroller (ABD doğum yeri, eğitim, bölge içi, kohort, log-gelir, eksik boy, örtüşme) ön kayıtsız keşif olarak kesif.py'ye eklendi.
