@@ -73,4 +73,4 @@ Simülasyon yok.
 
 ## Plandan sapmalar
 
-(Henüz yok.)
+1. **Bootstrap'te tekil matris (ilk çalıştırma, 2026-11-04):** ABD verisinde küme sayısı az (~50); bazı bootstrap örneklerinde nadir bir kategori (ör. doğum yeri "bilinmiyor") boş kalınca düzeltilmiş model çözülemedi. Bootstrap çözümüne çok küçük bir sırt terimi (1e-8) eklendi; ana tahminleri değiştirmez. Brezilya sonuçları ilk çalıştırmayla aynı.

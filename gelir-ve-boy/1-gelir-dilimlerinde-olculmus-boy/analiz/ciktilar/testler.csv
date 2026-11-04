@@ -1,0 +1,11 @@
+test,aciklama,deger,olcut,sonuc
+T1,Veri bütünlüğü: dört dosyanın SHA-256 özeti,"BR eşleşti, BRd eşleşti, US_demo eşleşti, US_bmx eşleşti",dördü de eşleşir,GEÇTİ
+T2,"BR örneklemi (25-59 yaş, ölçülmüş boy + gelir)","erkek 33643, kadın 38904",her biri ≥ 20.000,GEÇTİ
+T3,"US örneklemi (25-59 yaş, ölçülmüş boy + gelir oranı)","erkek 1906, kadın 2134",her biri ≥ 1.500,GEÇTİ
+T4,US ağırlıklı ortalama erkek boyu,175.9 cm,172-178,GEÇTİ
+H1,"BR erkek: en üst − en alt gelir dilimi (ham, cm)","7.2 [6.6, 7.8]",≥ 3 ve GA alt > 0,GEÇTİ
+H2,BR erkek: düzeltilmiş fark < ham ve > 0,"ham 7.2, düzeltilmiş 5.2 [4.7, 5.8]","düzeltilmiş < ham, GA alt > 0",GEÇTİ
+H3,"US erkek: ≥5 − <1 (ham, cm)","4.3 [3.1, 5.5]",GA alt > 0,GEÇTİ
+H4,"US erkek: ≥5 − <1, ırk/köken + doğum yeri düzeltmeli","3.1 [1.7, 4.3]",GA alt > 0,GEÇTİ
+H5,"Kadınlarda gradyan (en üst − en alt, ham): BR; US","BR 5.4 [4.9, 5.9]; US 2.2 [0.9, 3.6]",ikisinde de GA alt > 0,GEÇTİ
+H6,"BR erkek: en zengin %1 − üst dilimin geri kalanı (ham, cm)","1.3 [-0.2, 2.7]",GA üst < 2,KALDI

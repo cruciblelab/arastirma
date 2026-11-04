@@ -118,7 +118,9 @@ def kume_ols(X, y, w, kume):
     np.add.at(xty, kidx, Xw * y[:, None])
     b = np.linalg.solve(xtx.sum(0), xty.sum(0))
     say = rng.multinomial(len(kum), np.full(len(kum), 1 / len(kum)), size=BOOT).astype(float)
-    dg = np.array([np.linalg.solve(np.tensordot(a, xtx, 1), a @ xty) for a in say])
+    # Küçük sırt terimi: bootstrap örneğinde nadir bir kategori boş kalınca matris tekil olmasın (Plandan sapmalar, madde 1)
+    ek = 1e-8 * np.eye(k)
+    dg = np.array([np.linalg.solve(np.tensordot(a, xtx, 1) + ek, a @ xty) for a in say])
     return b, dg
 
 
