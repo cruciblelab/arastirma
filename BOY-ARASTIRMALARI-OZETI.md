@@ -1,6 +1,6 @@
 # Boy Araştırmaları: Genel Özet
 
-> **Tarih:** 2026-10-31 (ilk hali 2026-10-10) · 9 araştırma, toplam 18 sürüm; ek olarak çekicilik ve boy beklentisi araştırmalarından satırlar
+> **Tarih:** 2026-11-13 (ilk hali 2026-10-10) · 10 araştırma, toplam 19 sürüm; ek olarak çekicilik ve boy beklentisi araştırmalarından satırlar
 >
 > Bu özet **tıbbi tavsiye değildir.** Sayıların çoğu model tahminidir ve hata içerebilir. [Sorumluluk Reddi Beyanı](SORUMLULUK-REDDI.md) geçerlidir. Her maddenin ayrıntısı, kaynağı ve belirsizliği bağlantı verilen raporda.
 
@@ -15,13 +15,25 @@ Boyu iki katlı bir bina gibi düşün:
 
 ---
 
+## Kapanış (2026-11-13)
+
+[Son tarama](boy-son-tarama/1-kapanis-taramasi/) üç bağımsız ajan ve bir doğrulama ajanıyla şunu sordu: önceki araştırmalardan sonra normal boylu, sağlıklı 17 yaşında birinin boyunu artıran yeni bir şey çıktı mı? **Cevap: hayır.**
+- 2024-2026'da onaylanan boy ilaçları (navepegritide, vosoritide, infigratinib) yalnız iskelet displazileri ve açık büyüme plağı için.
+- Hiçbir takviye, besin, uyku düzeni ya da egzersiz eksikliği olmayan bir gencin boyunu artırmadı; "boy uzatıcı" bir üründe gizli MK-677 bulundu.
+- 17 yaştan sonra kalan büyüme güncel verilerde ~1-1,5 cm ve kendiliğinden olur.
+- Tek gerçek adım: hekim, kemik yaşı ve aynı koşullarda seri ölçüm.
+
+**Boy araştırma dizisi burada kapandı.** Yeni bir araştırma ancak hekimden gelen ölçülmüş yeni bir veriyle (ör. kemik yaşı) anlamlı olur.
+
+---
+
 ## 1. Boy ne zaman, nereden uzar?
 
 | Bulgu | Nereden |
 |---|---|
 | Bacaklar önce durur: erkekte ~16, kızda ~14.5-15 yaş. Sonra gövde uzamaya devam eder: erkekte en az ~3.4 cm, kızda en az ~1.8 cm. | [Büyüme plakları](buyume-plaklari-kapanma-sirasi/1-literatur-ve-berkeley-analizi/) |
 | 16 yaşından sonraki uzamanın ~%90'ı gövdeden, yani omurgadan gelir. | Aynı yer; [16-18 yaş, sürüm 3](boy-uzamasi-16-18-yas/3-mekanistik-simulasyon-ve-on-kayit/) |
-| El ya da ayağın plakları kapandı diye boy durmaz. El röntgeni "bitti" derken diz açık olabilir. | [Büyüme plakları](buyume-plaklari-kapanma-sirasi/1-literatur-ve-berkeley-analizi/) |
+| Ayak ve parmak kemiklerinin plakları kapandı diye boy durmaz; bunlar dizden önce kapanır. **Ama bilek (radius) plağı dizden sonra kapanır** (MRI: 18 yaşında erkeklerin %83'ünde femur, %60'ında radius kapalı). Standart kemik yaşı filminde bilek dahil iskelet olgun görünüyorsa diz büyük olasılıkla kapalıdır. *(2026-11-13 düzeltmesi: önceki "el röntgeni bitti derken diz açık olabilir" cümlesi eksikti.)* | [Büyüme plakları](buyume-plaklari-kapanma-sirasi/1-literatur-ve-berkeley-analizi/), [son tarama](boy-son-tarama/1-kapanis-taramasi/) |
 | 17 yaşından sonra tipik bir erkekte omurga ~1-2 cm daha uzar; kendiliğinden olur. | [Omurga büyümesi](omurga-buyumesi/) |
 | **Güncel referanslarda 17 yaşından sonra kalan uzama ortanca ~1-1.6 cm, 18'den sonra ~0.5-1 cm.** Avusturya askerlik verisinde 17 ve 18 yaşındakilerin farkı son kuşaklarda 0.1 cm'ye inmiş: Gençler son boylarına eskisinden erken ulaşıyor. Geç olgunlaşanlarda büyüme 20'li yaşların başına kadar sürebilir. | [Gözden kaçanlar](boy-potansiyeli-gozden-kacanlar/1-literatur-taramasi/) |
 | "16 yaştan sonraki uzamanın ~%90'ı gövdeden" bulgusu Berkeley'de **ölçüldü**, ama ölçümler ~18.5 yaşında bitiyor. Bundan sonraki son uzamanın da omurgadan geldiği **makul bir çıkarım**, doğrudan ölçülmedi. | Aynı yer |
